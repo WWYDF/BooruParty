@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply text-white bg-primary-500 bg-gradient-to-tl from-primary-500 to-primary-600 w-full h-full bg-no-repeat min-h-screen min-w-[100vw] bg-fixed;
+}
+
+@media (max-width: 768px) {
+  .mobile-hero {
+    background-image: none !important;
+    background: linear-gradient(to bottom, #006400, black);
+  }
+}

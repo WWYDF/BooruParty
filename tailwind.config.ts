@@ -1,22 +1,53 @@
-import type { Config } from 'tailwindcss';
-
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
-    './src/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
       colors: {
-        accent: '#6366f1',           // violet-500
-        subtle: '#9ca3af',           // gray-400
-        background: '#0f172a',       // slate-900
-        foreground: '#f8fafc',       // slate-50
-        secondary: '#1e293b',        // slate-800
-        'secondary-border': '#334155', // slate-700
+        tertiary: '#0E0E0E',
+        secondary: '#0E0E0E',
+        'secondary-border': '#1D1D29',
+        'primary-500': '#0C0C0C',
+        'primary-600': '#000000',
+        'primary-border': '#E5E5E5',
+        accent: '#51FFB8',
+        // accent: '#F69325', // halloween theme
+        error: '#FF5E4F',
+        goalie: '#85828B',
+        forward: '#66e97b',
+        // forward: '#F69325', // halloween theme
+        subtle: '#85828B',
+        win: '#A4FF95',
+        // win: '#FFB768', // halloween theme
+        mid: '#f6ff79',
+        loss: '#FF7979',
+        odyssey: '#D38938',
+        support: '#0E0E0E',
+        'support-border': '#27262B',
+        halloween: '#F69325', // halloween theme
+        winter: '#C5FAF0', // christmas theme
+        pink: '#F763E4',
+      },
+      gridTemplateColumns: {
+        '13': 'repeat(13, minmax(0, 1fr))',
+        '14': 'repeat(14, minmax(0, 1fr))',
+        '15': 'repeat(15, minmax(0, 1fr))',
+        '16': 'repeat(16, minmax(0, 1fr))',
+        '17': 'repeat(17, minmax(0, 1fr))',
+        '18': 'repeat(18, minmax(0, 1fr))',
+        '19': 'repeat(19, minmax(0, 1fr))',
+        '20': 'repeat(20, minmax(0, 1fr))',
+      },
+      width: {
+        '9/25': '36%',
+      },
+      blur: {
+        xs: '2px',
       },
     },
-  },
-  plugins: [],
-};
-
-export default config;
+  }
+}
