@@ -17,6 +17,8 @@ export default function UploadQueue() {
   const [queue, setQueue] = useState<UploadFile[]>([])
   const [uploading, setUploading] = useState(false)
   const idCounter = useRef(0)
+  const [anonymous, setAnonymous] = useState(false)
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
 
   const onDrop = (acceptedFiles: File[]) => {
     const validTypes = ['image/', 'video/']
@@ -53,25 +55,33 @@ export default function UploadQueue() {
   }
 
   const handleSubmit = async () => {
-    if (uploading) return
+    if (uploading || queue.length === 0) return
+  
     setUploading(true)
-
-    for (const item of queue) {
+    const queueCopy = [...queue] // avoid modifying original while looping
+  
+    for (let i = 0; i < queueCopy.length; i++) {
+      const item = queueCopy[i]
+      setUploadingIndex(i)
+  
       const formData = new FormData()
       formData.append('file', item.file)
-
+      formData.append('anonymous', anonymous.toString())
+  
       try {
         await fetch('/api/files/upload', {
           method: 'POST',
           body: formData,
         })
-        // optionally: show success per item
+  
+        setQueue((prev) => prev.filter((f) => f.id !== item.id)) // safely remove
       } catch (err) {
         console.error(`Failed to upload ${item.file.name}`, err)
       }
     }
-
+  
     setUploading(false)
+    setUploadingIndex(null)
   }
 
   return (
@@ -86,12 +96,31 @@ export default function UploadQueue() {
         <p className="text-subtle">Drag and drop your images, videos or gifs here</p>
       </div>
 
+      <div className="mt-4 mb-2 flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="anonymous"
+          checked={anonymous}
+          onChange={(e) => setAnonymous(e.target.checked)}
+          className="accent"
+        />
+        <label htmlFor="anonymous" className="text-subtle">
+          Upload anonymously
+        </label>
+      </div>
+
       {queue.length > 0 && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={queue.map(item => item.id)} strategy={verticalListSortingStrategy}>
             <motion.ul layout className="mt-6 space-y-3">
-              {queue.map(item => (
-                <SortableUploads key={item.id} id={item.id} preview={item.preview} name={item.file.name} />
+              {queue.map((item, i) => (
+                <SortableUploads
+                  key={item.id}
+                  id={item.id}
+                  preview={item.preview}
+                  name={item.file.name}
+                  isUploading={uploadingIndex === i}
+                />
               ))}
             </motion.ul>
           </SortableContext>

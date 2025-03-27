@@ -33,8 +33,15 @@ export async function POST(req: NextRequest) {
 
     const buffers: Buffer[] = []
     let originalFilename = ''
+    let anonymous = false // default
 
     const fileProcessed = new Promise((resolve, reject) => {
+      busboy.on('field', (fieldname, value) => {
+        if (fieldname === 'anonymous') {
+          anonymous = value === 'true'
+        }
+      })
+
       busboy.on('file', (_name, file, info) => {
         originalFilename = info.filename
         file.on('data', (data) => buffers.push(data))
@@ -60,7 +67,7 @@ export async function POST(req: NextRequest) {
       data: {
         fileName: '', // temporary
         uploadedBy: session.user.id,
-        anonymous: false,
+        anonymous,
         safety: 'safe',
         tags: [],
         sources: [],
