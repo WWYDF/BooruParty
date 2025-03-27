@@ -13,6 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -35,5 +40,33 @@ model Posts {
   sources       String[]
   notes         String?
   flags         String[]
+
+  score         Int         @default(0)
+  votes         Vote[]      @relation("PostVotes")
+  comments      Comment[]   @relation("PostComments")
+
   createdAt     DateTime  @default(now())
+}
+
+model Vote {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    String
+  type      VoteType
+  createdAt DateTime @default(now())
+
+  post      Posts    @relation(fields: [postId], references: [id], name: "PostVotes")
+
+  @@unique([postId, userId])
+}
+
+model Comment {
+  id         Int       @id @default(autoincrement())
+  postId     Int
+  authorId   String
+  content    String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  post       Posts     @relation(fields: [postId], references: [id], name: "PostComments")
 }
