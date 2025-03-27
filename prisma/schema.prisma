@@ -84,3 +84,29 @@ model Comments {
 
   post       Posts     @relation(fields: [postId], references: [id], name: "PostComments", onDelete: Cascade)
 }
+
+model TagCategories {
+  id         Int          @id @default(autoincrement())
+  name       String
+  color      String
+  order      Int?
+  tags       Tags[]
+
+  updatedAt  DateTime     @updatedAt
+}
+
+model Tags {
+  id            Int       @id @default(autoincrement())
+  names         String[]
+
+  categoryId    Int
+  category      TagCategories @relation(fields: [categoryId], references: [id])
+
+  implications  Tags[]    @relation("TagImplications")
+  impliedBy     Tags[]    @relation("TagImplications")
+
+  suggestions   Tags[]    @relation("TagSuggestions")
+  suggestedBy   Tags[]    @relation("TagSuggestions")
+
+  updatedAt     DateTime  @updatedAt
+}
