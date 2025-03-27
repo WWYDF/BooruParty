@@ -5,7 +5,6 @@ import UploadQueue from "@/components/clientSide/Uploads/UploadQueue";
 export default function UploadPage() {
   return (
     <div className="p-8">
-      <Navbar />
       <UploadQueue />
     </div>
   )

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../../auth/[...nextauth]/route'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from "@/core/prisma";
 import { mkdir, writeFile } from 'fs/promises'
 import path from 'path'
 import Busboy from 'busboy'
 import { auth } from '@/core/auth'
 import consola from 'consola'
 
-const prisma = new PrismaClient()
 export const logger = consola.withTag('API')
 
 function getFileType(ext: string): 'image' | 'video' | 'animated' {

@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-zinc-900 text-white flex flex-col">
-      <Navbar />
       <section className="flex-1 flex flex-col items-center justify-center px-4 text-center">
         <motion.h1
           initial={{ opacity: 0, y: 10 }}

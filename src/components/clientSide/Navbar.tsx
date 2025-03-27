@@ -15,6 +15,7 @@ export default function Navbar() {
         Imageboard
       </Link>
       <div className="flex gap-6 text-sm text-gray-400">
+        <Link href="/posts" className="hover:text-white transition">Posts</Link>
         <Link href="/upload" className="hover:text-white transition">Upload</Link>
         <Link href="/profile" className="hover:text-white transition">Profile</Link>
       </div>
