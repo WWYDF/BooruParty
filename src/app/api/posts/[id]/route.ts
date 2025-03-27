@@ -1,12 +1,12 @@
 import { prisma } from "@/core/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(...args: [NextRequest, { params: { id: string } }]) {
-  const [req, context] = args;
-  const postId = parseInt(context.params.id);
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params; // ✅ Fixes the warning
 
+  const postId = parseInt(id);
   if (isNaN(postId)) {
-    return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
 
   const post = await prisma.posts.findUnique({
