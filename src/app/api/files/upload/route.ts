@@ -33,12 +33,22 @@ export async function POST(req: NextRequest) {
 
     const buffers: Buffer[] = []
     let originalFilename = ''
-    let anonymous = false // default
+    let anonymous = false
+    let safety: 'safe' | 'sketchy' | 'unsafe' = 'safe'
 
     const fileProcessed = new Promise((resolve, reject) => {
       busboy.on('field', (fieldname, value) => {
         if (fieldname === 'anonymous') {
           anonymous = value === 'true'
+        }
+      })
+
+      busboy.on('field', (fieldname, value) => {
+        if (fieldname === 'anonymous') {
+          anonymous = value === 'true'
+        }
+        if (fieldname === 'safety' && ['safe', 'sketchy', 'unsafe'].includes(value)) {
+          safety = value as 'safe' | 'sketchy' | 'unsafe'
         }
       })
 
@@ -68,7 +78,7 @@ export async function POST(req: NextRequest) {
         fileName: '', // temporary
         uploadedBy: session.user.id,
         anonymous,
-        safety: 'safe',
+        safety,
         tags: [],
         sources: [],
         notes: null,

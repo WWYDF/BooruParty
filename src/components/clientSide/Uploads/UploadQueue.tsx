@@ -5,12 +5,13 @@ import { motion } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { SortableUploads } from './SortableUploads'
+import SortableUploads from './SortableUploads'
 
 type UploadFile = {
   id: string
   file: File
   preview: string
+  safety: 'safe' | 'sketchy' | 'unsafe'
 }
 
 export default function UploadQueue() {
@@ -20,6 +21,19 @@ export default function UploadQueue() {
   const [anonymous, setAnonymous] = useState(false)
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
 
+  const moveItem = (index: number, direction: 'up' | 'down') => {
+    setQueue((prev) => {
+      const newQueue = [...prev]
+      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      if (targetIndex < 0 || targetIndex >= newQueue.length) return prev
+  
+      const temp = newQueue[index]
+      newQueue[index] = newQueue[targetIndex]
+      newQueue[targetIndex] = temp
+      return newQueue
+    })
+  }  
+
   const onDrop = (acceptedFiles: File[]) => {
     const validTypes = ['image/', 'video/']
     const newItems = acceptedFiles
@@ -28,6 +42,7 @@ export default function UploadQueue() {
         id: `${idCounter.current++}`,
         file,
         preview: URL.createObjectURL(file),
+        safety: 'safe' as const, // default
       }))
     setQueue((prev) => [...prev, ...newItems])
   }
@@ -67,6 +82,7 @@ export default function UploadQueue() {
       const formData = new FormData()
       formData.append('file', item.file)
       formData.append('anonymous', anonymous.toString())
+      formData.append('safety', item.safety)
   
       try {
         await fetch('/api/files/upload', {
@@ -113,15 +129,28 @@ export default function UploadQueue() {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={queue.map(item => item.id)} strategy={verticalListSortingStrategy}>
             <motion.ul layout className="mt-6 space-y-3">
-              {queue.map((item, i) => (
-                <SortableUploads
-                  key={item.id}
-                  id={item.id}
-                  preview={item.preview}
-                  name={item.file.name}
-                  isUploading={uploadingIndex === i}
-                />
-              ))}
+            {queue.map((item, i) => (
+              <SortableUploads
+                key={item.id}
+                index={i}
+                id={item.id}
+                name={item.file.name}
+                preview={item.preview}
+                isUploading={uploadingIndex === i}
+                safety={item.safety}
+                onSafetyChange={(newSafety) => {
+                  setQueue((prev) =>
+                    prev.map((f) =>
+                      f.id === item.id ? { ...f, safety: newSafety } : f
+                    )
+                  )
+                }}
+                onMove={moveItem}
+                isFirst={i === 0}
+                isLast={i === queue.length - 1}
+              />
+            ))}
+
             </motion.ul>
           </SortableContext>
         </DndContext>
@@ -131,7 +160,7 @@ export default function UploadQueue() {
         <button
           onClick={handleSubmit}
           disabled={uploading}
-          className="mt-6 px-4 py-2 rounded-xl bg-accent text-white disabled:opacity-50"
+          className="mt-6 px-4 py-2 rounded-xl bg-darkerAccent text-white disabled:opacity-50"
         >
           {uploading ? 'Uploading...' : 'Submit'}
         </button>

@@ -15,6 +15,7 @@ module.exports = {
         'primary-600': '#000000',
         'primary-border': '#E5E5E5',
         accent: '#ffbb3d',
+        darkerAccent: '#bb8624',
         // accent: '#F69325', // halloween theme
         error: '#FF5E4F',
         goalie: '#85828B',
