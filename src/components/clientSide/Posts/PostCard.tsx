@@ -16,11 +16,21 @@ export default function PostCard({ post }: PostCardProps) {
   return (
     <Link href={`/post/${post.id}`}>
       <div className="cursor-pointer rounded-xl overflow-hidden bg-secondary-border shadow hover:scale-[1.02] transition-transform">
-        <img
-          src={imageUrl}
-          alt={post.fileName}
-          className="w-full h-48 object-cover"
+      <picture>
+        <source
+          media="(min-width: 1024px)"
+          srcSet={`/thumbnails/image/large_${post.id}.webp`}
         />
+        <source
+          media="(min-width: 640px)"
+          srcSet={`/thumbnails/image/medium_${post.id}.webp`}
+        />
+        <img
+          src={`/thumbnails/image/small_${post.id}.webp`}
+          alt={post.fileName}
+          className="w-full h-auto object-cover rounded-xl"
+        />
+      </picture>
         <div className="p-2 text-xs text-subtle">
           <p>{post.fileName}</p>
           <p>{new Date(post.createdAt).toLocaleDateString()}</p>

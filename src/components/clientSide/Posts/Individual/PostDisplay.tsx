@@ -8,6 +8,7 @@ type Props = {
     id: number;
     fileName: string;
     createdAt: string;
+    previewScale: number;
   };
 };
 
@@ -25,14 +26,16 @@ export default function PostDisplay({ post }: Props) {
         alt={post.fileName}
         className="max-h-[80vh] w-auto rounded-xl border border-secondary-border object-contain"
       />
-      {!showFull && (
+      {!showFull && post.previewScale ? (
         <button
           onClick={() => setShowFull(true)}
-          className="text-accent text-sm underline"
+          className="text-subtle text-sm italic"
         >
-          View Full File
+          Viewing sample resized to {post.previewScale}% of original (
+          <span className="underline text-accent">view original</span>
+          )
         </button>
-      )}
+      ) : null}
 
       <PostVoting postId={post.id} />
     </div>

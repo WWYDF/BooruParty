@@ -1,4 +1,5 @@
-import { useState } from "react";
+'use client'
+import { useEffect, useState } from "react";
 import EditPostModal from "./EditPost";
 
 type Props = {
@@ -11,6 +12,7 @@ type Props = {
       sources: string[];
       notes: string | null;
       createdAt: string;
+      score: number;
     };
   };
   
@@ -34,6 +36,7 @@ export default function PostMetadata({ post }: Props) {
         <p><strong>Sources:</strong> {post.sources.length ? post.sources.join(", ") : "None"}</p>
         <p><strong>Notes:</strong> {post.notes || "None"}</p>
         <p><strong>Uploaded on:</strong> {new Date(post.createdAt).toLocaleString()}</p>
+        <p><strong>Score:</strong> {post.score}</p>
       </div>
 
       {editing && (

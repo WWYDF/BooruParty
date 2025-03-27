@@ -56,7 +56,7 @@ model Votes {
   type      VoteType
   createdAt DateTime @default(now())
 
-  post      Posts    @relation(fields: [postId], references: [id], name: "PostVotes")
+  post      Posts    @relation(fields: [postId], references: [id], name: "PostVotes", onDelete: Cascade)
 
   @@unique([postId, userId])
 }
@@ -69,5 +69,5 @@ model Comments {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  post       Posts     @relation(fields: [postId], references: [id], name: "PostComments")
+  post       Posts     @relation(fields: [postId], references: [id], name: "PostComments", onDelete: Cascade)
 }

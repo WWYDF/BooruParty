@@ -18,6 +18,8 @@ type Post = {
   notes: string | null;
   flags: string[];
   createdAt: string;
+  score: number;
+  previewScale: number;
 };
 
 export default function PostPageClient({ postId }: { postId: string }) {
