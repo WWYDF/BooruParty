@@ -40,13 +40,13 @@ export default function RegisterPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-background text-foreground">
       <form onSubmit={handleSubmit} className="bg-secondary border border-secondary-border p-6 rounded-xl w-full max-w-md space-y-4">
-        <h1 className="text-xl font-bold text-accent">Register</h1>
+        <h1 className="text-xl font-bold text-neutral-400">Register Page</h1>
 
         <input
           type="email"
           name="email"
           placeholder="Email"
-          className="w-full p-2 bg-background border border-secondary-border rounded"
+          className="w-full p-2 bg-background border border-secondary-border text-black rounded"
           onChange={handleChange}
           value={form.email}
           required
@@ -56,7 +56,7 @@ export default function RegisterPage() {
           type="text"
           name="username"
           placeholder="Username"
-          className="w-full p-2 bg-background border border-secondary-border rounded"
+          className="w-full p-2 bg-background border border-secondary-border text-black rounded"
           onChange={handleChange}
           value={form.username}
           required
@@ -66,7 +66,7 @@ export default function RegisterPage() {
           type="password"
           name="password"
           placeholder="Password"
-          className="w-full p-2 bg-background border border-secondary-border rounded"
+          className="w-full p-2 bg-background border border-secondary-border text-black rounded"
           onChange={handleChange}
           value={form.password}
           required
@@ -74,7 +74,7 @@ export default function RegisterPage() {
 
         <button
           type="submit"
-          className="w-full py-2 bg-accent text-white rounded hover:opacity-90 transition"
+          className="w-full py-2 bg-green-600 text-white rounded hover:opacity-90 transition"
           disabled={loading}
         >
           {loading ? 'Registering...' : 'Register'}

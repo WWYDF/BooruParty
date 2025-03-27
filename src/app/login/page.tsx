@@ -31,13 +31,13 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-background text-foreground">
       <form onSubmit={handleSubmit} className="bg-secondary border border-secondary-border p-6 rounded-xl w-full max-w-md space-y-4">
-        <h1 className="text-xl font-bold text-accent">Login</h1>
+        <h1 className="text-xl font-bold text-neutral-400">Login Page</h1>
 
         <input
           type="email"
           name="email"
           placeholder="Email"
-          className="w-full p-2 bg-background border border-secondary-border rounded"
+          className="w-full p-2 bg-background border border-secondary-border text-black rounded"
           onChange={handleChange}
           value={form.email}
           required
@@ -47,7 +47,7 @@ export default function LoginPage() {
           type="password"
           name="password"
           placeholder="Password"
-          className="w-full p-2 bg-background border border-secondary-border rounded"
+          className="w-full p-2 bg-background border border-secondary-border text-black rounded"
           onChange={handleChange}
           value={form.password}
           required
@@ -55,7 +55,7 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          className="w-full py-2 bg-accent text-white rounded hover:opacity-90 transition"
+          className="w-full py-2 bg-green-600 text-white rounded hover:opacity-90 transition"
         >
           Login
         </button>

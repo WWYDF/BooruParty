@@ -16,7 +16,7 @@ export default function Navbar() {
       </Link>
       <div className="flex gap-6 text-sm text-gray-400">
         <Link href="/upload" className="hover:text-white transition">Upload</Link>
-        <Link href="/dashboard" className="hover:text-white transition">Profile</Link>
+        <Link href="/profile" className="hover:text-white transition">Profile</Link>
       </div>
     </motion.nav>
   );

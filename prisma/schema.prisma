@@ -24,3 +24,16 @@ model User {
   lastLogin     DateTime  @default(now())
   createdAt     DateTime  @default(now())
 }
+
+model Posts {
+  id            Int       @id @default(autoincrement())
+  fileName      String
+  uploadedBy    String
+  anonymous     Boolean
+  safety        String
+  tags          String[]
+  sources       String[]
+  notes         String?
+  flags         String[]
+  createdAt     DateTime  @default(now())
+}
