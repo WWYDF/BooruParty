@@ -1,67 +1,53 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import PostCard from "./PostCard";
+import { useEffect, useState } from 'react';
+import { getSession } from 'next-auth/react';
+import PostCard from './PostCard';
+import { Posts } from '@prisma/client';
 
-type Post = {
-  id: number;
-  fileName: string;
-  uploadedBy: string;
-  anonymous: boolean;
-  safety: string;
-  tags: string[];
-  sources: string[];
-  notes: string | null;
-  flags: string[];
-  createdAt: string;
-};
+type ViewMode = 'GRID' | 'COLLAGE';
 
-type Props = {
-  search?: string;
-  safety?: string;
-  tags?: string[];
-  sort?: "new" | "old";
-};
-
-export default function PostGrid({ search, safety, tags, sort = "new" }: Props) {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function PostGrid() {
+  const [posts, setPosts] = useState<Posts[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>('GRID');
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      setError(null);
+    async function fetchPostsAndUser() {
+      const session = await getSession();
+      if (!session?.user?.id) return;
 
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      if (safety) params.set("safety", safety);
-      if (tags?.length) params.set("tags", tags.join(","));
-      if (sort) params.set("sort", sort);
+      const [userRes, postsRes] = await Promise.all([
+        fetch(`/api/users/${session.user.id}`),
+        fetch('/api/posts'), // or wherever your posts come from
+      ]);
 
-      try {
-        const res = await fetch(`/api/posts?${params.toString()}`);
-        if (!res.ok) throw new Error("Failed to load posts.");
-        const data = await res.json();
-        setPosts(data);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const userData = await userRes.json();
+      const postsData = await postsRes.json();
 
-    fetchPosts();
-  }, [search, safety, tags, sort]);
+      setViewMode(userData?.preferences?.layout || 'GRID');
+      setPosts(postsData);
+    }
 
-  if (loading) return <p className="text-subtle">Loading posts...</p>;
-  if (error) return <p className="text-red-500">Error: {error}</p>;
-  if (!posts.length) return <p className="text-subtle">No posts found.</p>;
+    fetchPostsAndUser();
+  }, []);
 
+  if (viewMode === 'COLLAGE') {
+    return (
+      <div className="columns-2 md:columns-3 gap-4">
+        {posts.map((post) => (
+          <div key={post.id} className="mb-4 break-inside-avoid">
+            <PostCard post={post} viewMode="COLLAGE" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Default to grid layout
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
+        <PostCard key={post.id} post={post} viewMode="GRID" />
       ))}
     </div>
   );

@@ -18,6 +18,11 @@ enum VoteType {
   DOWNVOTE
 }
 
+enum LayoutType {
+  GRID
+  COLLAGE
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -25,9 +30,17 @@ model User {
   password      String
   role          String    @default("Member")
   avatar        String?
+  preferences   UserPreferences?
   
   lastLogin     DateTime  @default(now())
   createdAt     DateTime  @default(now())
+}
+
+model UserPreferences {
+  id            String       @id
+  user          User         @relation(fields: [id], references: [id])
+  
+  layout        LayoutType   @default(GRID)
 }
 
 model Posts {

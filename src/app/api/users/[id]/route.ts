@@ -12,6 +12,11 @@ export async function GET(
     select: {
       id: true,
       username: true,
+      preferences: {
+        select: {
+          layout: true
+        }
+      },
       // add more fields if needed
     },
   });
