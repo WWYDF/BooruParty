@@ -42,13 +42,13 @@ model Posts {
   flags         String[]
 
   score         Int         @default(0)
-  votes         Vote[]      @relation("PostVotes")
-  comments      Comment[]   @relation("PostComments")
+  votes         Votes[]      @relation("PostVotes")
+  comments      Comments[]   @relation("PostComments")
 
   createdAt     DateTime  @default(now())
 }
 
-model Vote {
+model Votes {
   id        Int      @id @default(autoincrement())
   postId    Int
   userId    String
@@ -60,7 +60,7 @@ model Vote {
   @@unique([postId, userId])
 }
 
-model Comment {
+model Comments {
   id         Int       @id @default(autoincrement())
   postId     Int
   authorId   String
