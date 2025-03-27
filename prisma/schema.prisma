@@ -31,7 +31,7 @@ model User {
 }
 
 model Posts {
-  id            Int       @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   fileName      String
   uploadedBy    String
   anonymous     Boolean
@@ -41,11 +41,11 @@ model Posts {
   notes         String?
   flags         String[]
 
-  score         Int         @default(0)
+  score         Int          @default(0)
   votes         Votes[]      @relation("PostVotes")
   comments      Comments[]   @relation("PostComments")
 
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime     @default(now())
 }
 
 model Votes {
