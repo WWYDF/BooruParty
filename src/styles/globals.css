@@ -2,7 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+::-webkit-scrollbar {
+  display: none;
+}
+
 body {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
   @apply text-white bg-primary-500 bg-gradient-to-tl from-primary-500 to-primary-600 w-full h-full bg-no-repeat min-h-screen min-w-[100vw] bg-fixed;
 }
 
