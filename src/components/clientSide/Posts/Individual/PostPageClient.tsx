@@ -5,6 +5,7 @@ import PostDisplay from "./PostDisplay";
 import PostMetadata from "./PostMetadata";
 import PostCommentForm from "./PostCommentForm";
 import PostCommentList from "./PostCommentList";
+import { RawComment, ResolvedComment } from "@/core/types/comments";
 
 type Post = {
   id: number;
@@ -19,18 +20,6 @@ type Post = {
   createdAt: string;
 };
 
-type RawComment = {
-  id: number;
-  postId: number;
-  authorId: string;
-  content: string;
-  createdAt: string;
-};
-
-type ResolvedComment = RawComment & {
-  authorName: string;
-};
-
 export default function PostPageClient({ postId }: { postId: string }) {
   const [post, setPost] = useState<Post | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +29,7 @@ export default function PostPageClient({ postId }: { postId: string }) {
   const [loadingComments, setLoadingComments] = useState(true);
   const [commentError, setCommentError] = useState<string | null>(null);
 
-  // Fetch post
+  // Fetch post once
   useEffect(() => {
     const fetchPost = async () => {
       try {
@@ -58,41 +47,41 @@ export default function PostPageClient({ postId }: { postId: string }) {
     fetchPost();
   }, [postId]);
 
-  // Fetch comments
-  const fetchComments = async () => {
-    try {
-      setLoadingComments(true);
-      setCommentError(null);
-
-      const res = await fetch(`/api/comments?postId=${postId}`);
-      if (!res.ok) throw new Error("Failed to fetch comments");
-      const rawComments: RawComment[] = await res.json();
-
-      const userCache: Record<string, string> = {};
-      const resolved = await Promise.all(
-        rawComments.map(async (comment) => {
-          if (!userCache[comment.authorId]) {
-            const userRes = await fetch(`/api/users/${comment.authorId}`);
-            const userData = await userRes.json();
-            userCache[comment.authorId] = userData?.username ?? "Unknown";
-          }
-
-          return {
-            ...comment,
-            authorName: userCache[comment.authorId],
-          };
-        })
-      );
-
-      setComments(resolved);
-    } catch (err) {
-      setCommentError((err as Error).message);
-    } finally {
-      setLoadingComments(false);
-    }
-  };
-
+  // Fetch comments once
   useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        setLoadingComments(true);
+        setCommentError(null);
+
+        const res = await fetch(`/api/comments?postId=${postId}`);
+        if (!res.ok) throw new Error("Failed to fetch comments");
+        const rawComments: RawComment[] = await res.json();
+
+        const userCache: Record<string, string> = {};
+        const resolved = await Promise.all(
+          rawComments.map(async (comment) => {
+            if (!userCache[comment.authorId]) {
+              const userRes = await fetch(`/api/users/${comment.authorId}`);
+              const userData = await userRes.json();
+              userCache[comment.authorId] = userData?.username ?? "Unknown";
+            }
+
+            return {
+              ...comment,
+              authorName: userCache[comment.authorId],
+            };
+          })
+        );
+
+        setComments(resolved);
+      } catch (err) {
+        setCommentError((err as Error).message);
+      } finally {
+        setLoadingComments(false);
+      }
+    };
+
     fetchComments();
   }, [postId]);
 
@@ -106,7 +95,12 @@ export default function PostPageClient({ postId }: { postId: string }) {
         <PostDisplay post={post} />
         <section className="border-t border-secondary-border pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
-          <PostCommentForm postId={post.id} onPosted={fetchComments} />
+          <PostCommentForm
+            postId={post.id}
+            onPosted={(newComment) =>
+              setComments((prev) => [newComment, ...prev])
+            }
+          />
           <PostCommentList
             comments={comments}
             loading={loadingComments}
