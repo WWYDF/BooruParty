@@ -40,3 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /public/uploads
+/public/previews
+/public/thumbnails

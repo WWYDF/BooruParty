@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '../../auth/[...nextauth]/route'
 import { prisma } from "@/core/prisma";
 import { mkdir, writeFile } from 'fs/promises'
 import path from 'path'
 import Busboy from 'busboy'
 import { auth } from '@/core/auth'
 import consola from 'consola'
+import { processImageForPost } from '@/components/serverSide/UploadProcessing/ProcessImage';
 
 export const logger = consola.withTag('API')
 
@@ -91,6 +90,11 @@ export async function POST(req: NextRequest) {
     await mkdir(saveDir, { recursive: true })
     const fullPath = path.join(saveDir, fileName)
     await writeFile(fullPath, Buffer.concat(buffers))
+
+    // Generate preview + thumbnails if applicable
+    if (fileType === 'image') {
+      await processImageForPost(newPost.id, fullPath, fileType)
+    }
 
     // Step 3: Update DB with final file name
     await prisma.posts.update({
