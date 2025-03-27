@@ -1,3 +1,4 @@
+import { auth } from "@/core/auth";
 import { prisma } from "@/core/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -18,18 +19,23 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { postId, author, message } = body;
+  const session = await auth();
+  if (!session || !session.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  if (!postId || !author || !message?.trim()) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  const body = await req.json();
+  const { postId, content } = body;
+
+  if (!postId || !content?.trim()) {
+    return NextResponse.json({ error: "Missing postId or content" }, { status: 400 });
   }
 
   const comment = await prisma.comments.create({
     data: {
       postId,
-      authorId: author,
-      content: message,
+      content,
+      authorId: session.user.id,
     },
   });
 
