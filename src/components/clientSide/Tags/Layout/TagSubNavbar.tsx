@@ -6,6 +6,8 @@ import clsx from "clsx";
 
 const sections = ["", "edit", "merge", "delete"];
 
+const normalizePath = (path: string) => path.replace(/\/+$/, ''); // Remove trailing slashes
+
 export default function TagSubNavbar({ tag }: { tag: string }) {
   const pathname = usePathname();
 
@@ -16,7 +18,11 @@ export default function TagSubNavbar({ tag }: { tag: string }) {
           ? `/dashboard/tags/${tag}` 
           : `/dashboard/tags/${tag}/${section}`;
         const label = section === "" ? "Summary" : section[0].toUpperCase() + section.slice(1);
-        const isActive = pathname === href;
+        
+        // Normalize both paths before comparison
+        const normalizedHref = normalizePath(href);
+        const normalizedPathname = normalizePath(pathname);
+        const isActive = normalizedPathname === normalizedHref;
 
         return (
           <Link

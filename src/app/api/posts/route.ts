@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { PrismaClient } from "@prisma/client";
-import consola from "consola";
-
-const prisma = new PrismaClient()
-export const logger = consola.withTag('API')
+import { prisma } from "@/core/prisma";
+import { appLogger } from "@/core/logger";
 
 const querySchema = z.object({
   search: z.string().optional(),
@@ -52,7 +49,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(posts);
   } catch (error) {
-    logger.error("[GET /api/posts]", error);
+    appLogger.error("[GET /api/posts]", error);
     return NextResponse.json({ error: "Failed to fetch posts." }, { status: 500 });
   }
 }

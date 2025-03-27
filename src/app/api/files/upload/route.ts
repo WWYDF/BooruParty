@@ -4,10 +4,8 @@ import { mkdir, writeFile } from 'fs/promises'
 import path from 'path'
 import Busboy from 'busboy'
 import { auth } from '@/core/auth'
-import consola from 'consola'
 import { processImageForPost } from '@/components/serverSide/UploadProcessing/ProcessImage';
-
-export const logger = consola.withTag('API')
+import { appLogger } from '@/core/logger';
 
 function getFileType(ext: string): 'image' | 'video' | 'animated' {
   const imageExts = ['.jpg', '.jpeg', '.png', '.webp']
@@ -108,7 +106,7 @@ export async function POST(req: NextRequest) {
       post: { ...newPost, fileName },
     })
   } catch (err) {
-    logger.error('Upload failed:', err)
+    appLogger.error('Upload failed:', err)
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
   }
 }
