@@ -19,3 +19,34 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 
   return NextResponse.json(post);
 }
+
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const postId = parseInt(params.id);
+  if (isNaN(postId)) {
+    return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
+  }
+
+  const body = await req.json();
+
+  try {
+    const updated = await prisma.posts.update({
+      where: { id: postId },
+      data: {
+        tags: body.tags,
+        sources: body.sources,
+        notes: body.notes,
+        safety: body.safety,
+        anonymous: body.anonymous,
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (err) {
+    console.error("Failed to update post:", err);
+    return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+  }
+}

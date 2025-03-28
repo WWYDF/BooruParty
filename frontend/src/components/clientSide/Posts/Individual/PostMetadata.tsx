@@ -1,21 +1,21 @@
 'use client'
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import EditPostModal from "./EditPost";
+import { AnimatePresence } from "framer-motion";
 
 type Props = {
-    post: {
-      id: number;
-      uploadedBy: string;
-      anonymous: boolean;
-      safety: string;
-      tags: string[];
-      sources: string[];
-      notes: string | null;
-      createdAt: string;
-      score: number;
-    };
+  post: {
+    id: number;
+    uploadedBy: string;
+    anonymous: boolean;
+    safety: string;
+    tags: string[];
+    sources: string[];
+    notes: string | null;
+    createdAt: string;
+    score: number;
   };
-  
+};
 
 export default function PostMetadata({ post }: Props) {
   const [editing, setEditing] = useState(false);
@@ -39,13 +39,15 @@ export default function PostMetadata({ post }: Props) {
         <p><strong>Score:</strong> {post.score}</p>
       </div>
 
-      {editing && (
-        <EditPostModal
-          post={post}
-          onClose={() => setEditing(false)}
-          onSuccess={() => location.reload()} // or refetch locally
-        />
-      )}
+      <AnimatePresence>
+        {editing && (
+          <EditPostModal
+            post={post}
+            onClose={() => setEditing(false)}
+            onSuccess={() => location.reload()}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

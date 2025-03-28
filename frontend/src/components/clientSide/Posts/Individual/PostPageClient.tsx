@@ -9,7 +9,7 @@ import { RawComment, ResolvedComment } from "@/core/types/comments";
 
 type Post = {
   id: number;
-  fileName: string;
+  fileExt: string;
   uploadedBy: string;
   anonymous: boolean;
   safety: string;
