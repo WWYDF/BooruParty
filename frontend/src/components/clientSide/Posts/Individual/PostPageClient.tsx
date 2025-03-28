@@ -5,6 +5,7 @@ import PostDisplay from "./PostDisplay";
 import PostMetadata from "./PostMetadata";
 import PostCommentForm from "./PostCommentForm";
 import PostCommentList from "./PostCommentList";
+import PostVoting from "./PostVoting";
 import { RawComment, ResolvedComment } from "@/core/types/comments";
 
 type Post = {
@@ -13,7 +14,17 @@ type Post = {
   uploadedBy: string;
   anonymous: boolean;
   safety: string;
-  tags: string[];
+  postTags: {
+    tag: {
+      name: string;
+      parentTag: {
+        category: {
+          name: string;
+          color: string;
+        };
+      };
+    };
+  }[];
   sources: string[];
   notes: string | null;
   flags: string[];
@@ -31,7 +42,6 @@ export default function PostPageClient({ postId }: { postId: string }) {
   const [loadingComments, setLoadingComments] = useState(true);
   const [commentError, setCommentError] = useState<string | null>(null);
 
-  // Fetch post once
   useEffect(() => {
     const fetchPost = async () => {
       try {
@@ -49,7 +59,6 @@ export default function PostPageClient({ postId }: { postId: string }) {
     fetchPost();
   }, [postId]);
 
-  // Fetch comments once
   useEffect(() => {
     const fetchComments = async () => {
       try {
@@ -92,9 +101,16 @@ export default function PostPageClient({ postId }: { postId: string }) {
 
   return (
     <main className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 p-4">
-      <PostMetadata post={post} />
-      <div className="space-y-4">
+      {/* Metadata: left on desktop, mid-stack on mobile */}
+      <div className="order-2 md:order-1 md:col-span-1">
+        <PostMetadata post={post} />
+      </div>
+
+      <div className="space-y-6 order-1 md:order-2">
         <PostDisplay post={post} />
+      </div>
+
+      <div className="md:col-span-2 space-y-4 order-3 md:order-3">
         <section className="border-t border-secondary-border pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
           <PostCommentForm

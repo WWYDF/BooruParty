@@ -6,7 +6,7 @@ import { PencilSimple, Tag } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 
-const AVATAR_URL = "https://placehold.co/48x48";
+const AVATAR_URL = "/user.png";
 
 export type Props = {
   post: {
@@ -70,7 +70,7 @@ export default function PostMetadata({ post }: Props) {
     setTagGroups(grouped);
   }, [post.postTags]);
 
-  const displayName = post.anonymous ? "Anonymous" : uploader?.username || post.uploadedBy;
+  const displayName = post.anonymous ? "Anonymous" : uploader?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : uploader?.avatar || AVATAR_URL;
 
   return (

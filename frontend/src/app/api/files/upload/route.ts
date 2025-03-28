@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
       uploadedBy: session.user.id,
       anonymous,
       safety,
-      tags: [],
       sources: [],
       notes: '',
       flags: [],

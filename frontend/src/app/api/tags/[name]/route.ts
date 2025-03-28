@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
         name: search,
       },
       include: {
-        tag: {
+        parentTag: {
           include: {
             category: true,
           },
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const results = matchingTagNames.map((tagName) => ({
       name: tagName.name,
       tagId: tagName.tagId,
-      category: tagName.tag.category,
+      category: tagName.parentTag.category,
     }));
 
     return NextResponse.json({ results });
