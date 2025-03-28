@@ -1,10 +1,7 @@
 import sharp from 'sharp'
 import path from 'path'
-import { PrismaClient } from '@prisma/client'
 import { generateThumbnails } from './GenerateThumbnails'
 import { mkdirSync } from 'fs'
-
-const prisma = new PrismaClient()
 
 export async function processImageForPost(postId: number, inputPath: string, type: 'image' | 'animated' | 'video') {
   mkdirSync(path.join(process.cwd(), 'public/previews'), { recursive: true })

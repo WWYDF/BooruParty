@@ -7,3 +7,5 @@
 /core/prisma/node_modules
 /core/prisma/client
 core/prisma/.env
+/backend/data
+frontend/.env

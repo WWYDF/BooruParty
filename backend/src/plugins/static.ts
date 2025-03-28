@@ -4,7 +4,7 @@ import path from 'path';
 
 const registerStatic: FastifyPluginAsync = async (fastify) => {
   fastify.register(staticPlugin, {
-    root: path.join(__dirname, '../../uploads'),
+    root: path.resolve(process.cwd(), 'data/uploads'),
     prefix: '/uploads/',
   });
 };

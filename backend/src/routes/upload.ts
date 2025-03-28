@@ -34,7 +34,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
                    : mimeType.startsWith('video/') ? 'video'
                    : 'other';
 
-        const uploadsDir = path.join(__dirname, '../../uploads', fileFolder);
+        const uploadsDir = path.join(__dirname, '../../data/uploads', fileFolder);
         fs.mkdirSync(uploadsDir, { recursive: true });
 
         finalFileName = `${postId}${ext}`;
