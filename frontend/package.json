@@ -27,6 +27,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",
+    "sharp": "^0.33.5",
+    "sharp-phash": "^2.2.0",
     "streamifier": "^0.1.1",
     "zod": "^3.24.2"
   },

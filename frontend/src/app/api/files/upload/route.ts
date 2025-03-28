@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/auth';
+import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
 
-  if (!session || !session.user?.username) {
+  if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
 
   const formData = await request.formData();
   const file = formData.get('file') as File;
 
   if (!file) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  }
+
+  // Begin processing stuff
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const checkMatch = await checkFile(buffer);
+  if (checkMatch.status == true) {
+    return Response.json({ duplicate: true, postId: checkMatch.postId }, { status: 409 });
   }
 
   const anonymous = formData.get('anonymous') === 'true';
@@ -32,6 +39,7 @@ export async function POST(request: NextRequest) {
       sources: [],
       notes: '',
       flags: [],
+      pHash: checkMatch.genHash || null,
     },
   });
 
