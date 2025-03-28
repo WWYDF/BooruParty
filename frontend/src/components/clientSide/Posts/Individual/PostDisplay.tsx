@@ -17,7 +17,7 @@ const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 export default function PostDisplay({ post }: Props) {
   const [showFull, setShowFull] = useState(false);
 
-  const previewSrc = `${fastify}/previews/${post.id}.webp`;
+  const previewSrc = `${fastify}/previews/image/${post.id}.webp`;
   const fullSrc = `${fastify}/uploads/image/${post.id}.${post.fileExt}`;
 
   return (
