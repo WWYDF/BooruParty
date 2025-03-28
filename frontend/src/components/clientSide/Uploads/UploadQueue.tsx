@@ -35,17 +35,27 @@ export default function UploadQueue() {
   }  
 
   const onDrop = (acceptedFiles: File[]) => {
-    const validTypes = ['image/', 'video/']
+    const validTypes = ['image/', 'video/'];
+    const maxPreviewSize = 30 * 1024 * 1024; // 30 MB
+  
     const newItems = acceptedFiles
       .filter((file) => validTypes.some(type => file.type.startsWith(type)) || file.type === 'image/gif')
-      .map((file) => ({
-        id: `${idCounter.current++}`,
-        file,
-        preview: URL.createObjectURL(file),
-        safety: 'SAFE' as const, // default
-      }))
-    setQueue((prev) => [...prev, ...newItems])
-  }
+      .map((file) => {
+        const isImage = file.type.startsWith('image/');
+        const isTooLarge = file.size > maxPreviewSize;
+  
+        return {
+          id: `${idCounter.current++}`,
+          file,
+          preview: (!isImage || isTooLarge)
+            ? '/speed.png' // Fallback image in /public
+            : URL.createObjectURL(file),
+          safety: 'SAFE' as const, // default
+        };
+      });
+  
+    setQueue((prev) => [...prev, ...newItems]);
+  };  
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
