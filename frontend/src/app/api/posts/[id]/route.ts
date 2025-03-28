@@ -21,11 +21,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 }
 
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const postId = parseInt(params.id);
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+
+  const postId = parseInt(id);
   if (isNaN(postId)) {
     return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
   }
