@@ -23,6 +23,11 @@ enum LayoutType {
   COLLAGE
 }
 
+enum ThemeType {
+  DARK
+  LIGHT
+}
+
 enum SafetyType {
   SAFE
   SKETCHY
@@ -47,6 +52,7 @@ model UserPreferences {
   user          User         @relation(fields: [id], references: [id])
   
   layout        LayoutType   @default(GRID)
+  theme         ThemeType    @default(DARK)
 }
 
 model Posts {
