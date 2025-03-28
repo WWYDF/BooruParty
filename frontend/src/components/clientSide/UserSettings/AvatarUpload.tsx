@@ -17,7 +17,7 @@ export default function AvatarUpload() {
   };
 
   return (
-    <section className="bg-secondary-border p-4 rounded-2xl shadow">
+    <section className="bg-secondary p-4 rounded-2xl shadow">
       <h2 className="text-xl font-semibold mb-4">Avatar</h2>
 
       {/* Avatar preview */}
@@ -32,7 +32,7 @@ export default function AvatarUpload() {
           />
         </div>
         <div>
-          <input type="file" accept="image/*" onChange={handleAvatarChange} />
+          <input type="file" accept="image/*" onChange={handleAvatarChange} className='text-zinc-100'/>
           <p className="text-subtle text-sm mt-1">Max size 5MB. JPG, PNG, WebP.</p>
         </div>
       </div>

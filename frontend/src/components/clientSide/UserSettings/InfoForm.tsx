@@ -7,22 +7,22 @@ export default function InfoForm() {
   const [email, setEmail] = useState('you@example.com');
 
   return (
-    <section className="bg-secondary-border p-4 rounded-2xl shadow space-y-4">
+    <section className="bg-secondary p-4 rounded-2xl shadow space-y-4">
       <h2 className="text-xl font-semibold">Account Info</h2>
       <input
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         placeholder="Username"
-        className="w-full p-2 rounded bg-secondary text-white"
+        className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
       />
       <input
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email"
         type="email"
-        className="w-full p-2 rounded bg-secondary text-white"
+        className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
       />
-      <button className="bg-accent text-white px-4 py-2 rounded">Save Info</button>
+      <button className="bg-darkerAccent text-white px-4 py-2 rounded">Save Info</button>
     </section>
   );
 }
