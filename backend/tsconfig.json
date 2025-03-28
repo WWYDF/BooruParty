@@ -12,7 +12,10 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "types": ["node"],
-    "typeRoots": ["./src/types", "./node_modules/@types"]
+    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "paths": {
+      "@prisma": ["../core/prisma/client"]
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

@@ -4,3 +4,6 @@
 /backend/node_modules
 /backend/uploads
 /backend/dist
+/core/prisma/node_modules
+/core/prisma/client
+core/prisma/.env
