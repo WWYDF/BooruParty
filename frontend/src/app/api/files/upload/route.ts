@@ -54,5 +54,12 @@ export async function POST(request: NextRequest) {
 
   const fastifyResult = await fastifyResponse.json();
 
+  await prisma.posts.update({
+    where: { id: postId },
+    data: {
+      previewScale: fastifyResult.previewScale
+    },
+  })
+
   return NextResponse.json({ success: true, postId, fileName: fastifyResult.fileName });
 }
