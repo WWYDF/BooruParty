@@ -21,7 +21,6 @@ export default function UploadQueue() {
   const idCounter = useRef(0)
   const [anonymous, setAnonymous] = useState(false)
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
-  const [duplicatePost, setDuplicatePost] = useState<{ id: number; fileName: string } | null>(null)
 
   const moveItem = (index: number, direction: 'up' | 'down') => {
     setQueue((prev) => {
@@ -81,6 +80,10 @@ export default function UploadQueue() {
     }
   }
 
+  const handleRemove = (id: string) => {
+    setQueue((prev) => prev.filter((item) => item.id !== id))
+  }
+
   const handleSubmit = async () => {
     if (uploading || queue.length === 0) return
   
@@ -110,8 +113,8 @@ export default function UploadQueue() {
               f.id === item.id ? { ...f, duplicatePostId: result.postId } : f
             )
           )
-          continue
-        }        
+          break;
+        }
       
         // continue with normal removal
         setQueue((prev) => prev.filter((f) => f.id !== item.id))
@@ -175,6 +178,7 @@ export default function UploadQueue() {
                 isFirst={i === 0}
                 isLast={i === queue.length - 1}
                 duplicatePostId={item.duplicatePostId}
+                onRemove={handleRemove}
               />
             ))}
 
