@@ -24,6 +24,12 @@ enum LayoutType {
   COLLAGE
 }
 
+enum SafetyType {
+  SAFE
+  SKETCHY
+  UNSAFE
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -46,10 +52,10 @@ model UserPreferences {
 
 model Posts {
   id            Int          @id @default(autoincrement())
-  fileName      String
+  fileExt       String
   uploadedBy    String
   anonymous     Boolean
-  safety        String
+  safety        SafetyType
   tags          String[]
   sources       String[]
   notes         String?

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma';
+import { PrismaClient } from '../../../core/prisma/client';
 
 declare global {
   // Prevent multiple instances in development

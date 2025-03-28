@@ -4,7 +4,7 @@ import fs from 'fs';
 import { prisma } from "../plugins/prisma";
 
 export async function processPreviewImage(originalPath: string, postId: number) {
-  const previewDir = path.join(__dirname, '../../previews/image');
+  const previewDir = path.join(__dirname, '../../data/previews/image');
   fs.mkdirSync(previewDir, { recursive: true });
 
   const previewPath = path.join(previewDir, `${postId}.webp`);
