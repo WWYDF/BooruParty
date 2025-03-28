@@ -16,7 +16,7 @@ export async function GET(request: Request) {
                 },
               },
               include: {
-                tag: {
+                parentTag: {
                   include: {
                     names: true, // Include all names (aliases + canonical)
                     category: true, // Optional: if you want the category too

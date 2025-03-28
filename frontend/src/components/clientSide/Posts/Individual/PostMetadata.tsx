@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from "react";
-import EditPostModal from "./EditPost";
-import { AnimatePresence } from "framer-motion";
+import EditPost from "./EditPost";
 import { PencilSimple, Tag } from "@phosphor-icons/react";
 
 import Image from "next/image";
@@ -84,71 +83,76 @@ export default function PostMetadata({ post }: Props) {
           height={48}
           className="rounded-full border border-secondary-border"
         />
-        <div>
+        <div className="flex-1">
           <p className="text-base text-white font-semibold">{displayName}</p>
           <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-y-2 gap-x-4 mt-2">
-        <p><span className="text-white font-medium">Safety:</span> {post.safety}</p>
-        <p><span className="text-white font-medium">Score:</span> {post.score}</p>
-        <p className="col-span-2">
-          <span className="text-white font-medium">Sources:</span>{" "}
-          {post.sources.length ? (
-            <span className="flex flex-wrap gap-2">
-              {post.sources.map((src, i) => (
-                <Link key={i} href={src} target="_blank" className="text-accent underline break-all">
-                  {src}
-                </Link>
-              ))}
-            </span>
-          ) : "None"}
-        </p>
-        <p className="col-span-2">
-          <span className="text-white font-medium">Notes:</span>{" "}
-          {post.notes || "None"}
-        </p>
-      </div>
-
-      <button
-        onClick={() => setEditing(true)}
-        className="text-subtle hover:text-accent text-sm flex items-center gap-1 mt-2"
-      >
-        <PencilSimple size={16} /> Edit post
-      </button>
-
-      {Object.keys(tagGroups).length > 0 && (
-        <div className="flex flex-col gap-4 mt-2">
-          {Object.entries(tagGroups).map(([category, tags]) => (
-            <div key={category}>
-              <p className="text-white text-sm font-medium mb-1">{category}</p>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag, i) => (
-                  <Link
-                    key={i}
-                    href={`/dashboard/tags/${tag.name}`}
-                    className="flex items-center gap-1 text-sm border border-secondary-border px-2 py-1 rounded-full hover:opacity-90"
-                    style={{ color: tag.color }}
-                  >
-                    <Tag size={14} /> {tag.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <AnimatePresence>
-        {editing && (
-          <EditPostModal
-            post={post}
-            onClose={() => setEditing(false)}
-            onSuccess={() => location.reload()}
-          />
+        {editing ? (
+          <button
+            onClick={() => setEditing(false)}
+            className="text-sm text-white bg-secondary-border px-3 py-1 rounded hover:bg-accent hover:text-black"
+          >
+            Cancel
+          </button>
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="text-subtle hover:text-accent text-sm flex items-center gap-1"
+          >
+            <PencilSimple size={16} /> Edit post
+          </button>
         )}
-      </AnimatePresence>
+      </div>
+
+      {editing ? (
+        <EditPost post={post} onSuccess={() => location.reload()} />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-y-2 gap-x-4 mt-2">
+            <p><span className="text-white font-medium">Safety:</span> {post.safety}</p>
+            <p><span className="text-white font-medium">Score:</span> {post.score}</p>
+            <p className="col-span-2">
+              <span className="text-white font-medium">Sources:</span>{" "}
+              {post.sources.length ? (
+                <span className="flex flex-wrap gap-2">
+                  {post.sources.map((src, i) => (
+                    <Link key={i} href={src} target="_blank" className="text-accent underline break-all">
+                      {src}
+                    </Link>
+                  ))}
+                </span>
+              ) : "None"}
+            </p>
+            <p className="col-span-2">
+              <span className="text-white font-medium">Notes:</span>{" "}
+              {post.notes || "None"}
+            </p>
+          </div>
+
+          {Object.keys(tagGroups).length > 0 && (
+            <div className="flex flex-col gap-4 mt-2">
+              {Object.entries(tagGroups).map(([category, tags]) => (
+                <div key={category}>
+                  <p className="text-white text-sm font-medium mb-1">{category}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag, i) => (
+                      <Link
+                        key={i}
+                        href={`/dashboard/tags/${tag.name}`}
+                        className="flex items-center gap-1 text-sm border border-secondary-border px-2 py-1 rounded-full hover:opacity-90"
+                        style={{ color: tag.color }}
+                      >
+                        <Tag size={14} /> {tag.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
