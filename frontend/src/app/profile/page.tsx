@@ -1,36 +1,27 @@
-import { getServerSession } from 'next-auth';
-import { redirect } from 'next/navigation';
-import Navbar from '@/components/clientSide/Navbar';
-import { auth } from '@/core/auth';
+import AvatarUpload from "@/components/clientSide/UserSettings/AvatarUpload";
+import InfoForm from "@/components/clientSide/UserSettings/InfoForm";
+import PasswordChangeForm from "@/components/clientSide/UserSettings/PasswordForm";
+import PreferencesForm from "@/components/clientSide/UserSettings/Preferences";
 
-export default async function DashboardPage() {
-  const session = await auth();
 
-  if (!session) {
-    redirect('/login'); // protect this page
-  }
-
+export default function ProfileSettingsPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <Navbar />
-      <section className="p-10 max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-accent mb-4">
-          Welcome, {session.user.username} 👋
-        </h1>
-        <div className="space-y-2">
-          <p>
-            <span className="font-medium text-subtle">Username:</span>{' '}
-            {session.user.username}
-          </p>
-          <p>
-            <span className="font-medium text-subtle">Email:</span>{' '}
-            {session.user.email}
-          </p>
-          <p className="text-subtle text-sm">
-            This is your profile page. More dashboard features coming soon.
-          </p>
+    <div className="max-w-6xl mx-auto p-6">
+      <h1 className="text-3xl font-bold text-accent mb-8">Profile Settings</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-6">
+          <InfoForm />
+          <PasswordChangeForm />
         </div>
-      </section>
-    </main>
+
+        {/* Right Column */}
+        <div className="space-y-6">
+          <AvatarUpload />
+          <PreferencesForm />
+        </div>
+      </div>
+    </div>
   );
 }
