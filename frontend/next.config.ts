@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ['placehold.co'],
+    domains: ['placehold.co', 'localhost'],
   }
 };
 

@@ -12,7 +12,7 @@ interface PostCardProps {
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
 export default function PostCard({ post, viewMode }: PostCardProps) {
-  const thumbnailUrl = `${fastify}/thumbnails/${post.id}`;
+  const thumbnailUrl = `${fastify}/data/thumbnails/${post.id}`;
 
   return (
     <Link href={`/post/${post.id}`} className="block group">

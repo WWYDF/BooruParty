@@ -3,6 +3,8 @@ import { prisma } from '@/core/prisma';
 import { auth } from '@/core/auth';
 import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
 
+const fastify = process.env.NEXT_PUBLIC_FASTIFY;
+
 export async function POST(request: NextRequest) {
   const session = await auth();
 
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
   fastifyFormData.append('postId', postId.toString());
   fastifyFormData.append('file', file);
 
-  const fastifyResponse = await fetch('http://localhost:3005/api/upload', {
+  const fastifyResponse = await fetch(`${fastify}/api/upload`, {
     method: 'POST',
     body: fastifyFormData,
   });

@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs/promises';
 
 const avatarUploadRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.post('/api/avatar/upload', async function (req, reply) {
+  fastify.post('/avatars', async function (req, reply) {
     const parts = req.parts();
     let userId: string | null = null;
     let avatarBuffer: Buffer | null = null;
@@ -25,7 +25,7 @@ const avatarUploadRoute: FastifyPluginAsync = async (fastify) => {
         return reply.code(400).send({ error: 'Missing userId or file' });
     }
 
-    const outputPath = path.join(process.cwd(), 'public', 'avatars', `${userId}.webp`);
+    const outputPath = path.join(process.cwd(), 'data', 'avatars', `${userId}.webp`);
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
 
     await sharp(avatarBuffer)

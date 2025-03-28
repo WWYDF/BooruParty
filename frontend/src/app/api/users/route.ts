@@ -30,6 +30,7 @@ const updateUserSchema = z.object({
     password: z.string().min(6).optional(),
     layout: z.enum(['GRID', 'COLLAGE']).optional(),
     theme: z.enum(['DARK', 'LIGHT']).optional(),
+    avatar: z.string().url().optional(),
 });
   
 export async function PATCH(req: Request) {

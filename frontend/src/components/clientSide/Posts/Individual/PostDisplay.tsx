@@ -17,8 +17,8 @@ const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 export default function PostDisplay({ post }: Props) {
   const [showFull, setShowFull] = useState(false);
 
-  const previewSrc = `${fastify}/previews/image/${post.id}.webp`;
-  const fullSrc = `${fastify}/uploads/image/${post.id}.${post.fileExt}`;
+  const previewSrc = `${fastify}/data/previews/image/${post.id}.webp`;
+  const fullSrc = `${fastify}/data/uploads/image/${post.id}.${post.fileExt}`;
 
   return (
     <div className="flex flex-col items-center gap-4">
