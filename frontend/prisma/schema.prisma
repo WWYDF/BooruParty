@@ -102,9 +102,18 @@ model TagCategories {
   updatedAt  DateTime     @updatedAt
 }
 
+model TagName {
+  id     Int    @id @default(autoincrement())
+  name   String
+  tagId  Int
+  tag    Tags   @relation(fields: [tagId], references: [id])
+  
+  @@index([name])
+}
+
 model Tags {
   id            Int       @id @default(autoincrement())
-  names         String[]
+  names         TagName[]
 
   categoryId    Int
   category      TagCategories @relation(fields: [categoryId], references: [id])
