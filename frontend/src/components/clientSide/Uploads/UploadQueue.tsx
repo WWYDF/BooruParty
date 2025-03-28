@@ -12,6 +12,7 @@ type UploadFile = {
   file: File
   preview: string
   safety: 'SAFE' | 'SKETCHY' | 'UNSAFE'
+  duplicatePostId?: number
 }
 
 export default function UploadQueue() {
@@ -20,6 +21,7 @@ export default function UploadQueue() {
   const idCounter = useRef(0)
   const [anonymous, setAnonymous] = useState(false)
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const [duplicatePost, setDuplicatePost] = useState<{ id: number; fileName: string } | null>(null)
 
   const moveItem = (index: number, direction: 'up' | 'down') => {
     setQueue((prev) => {
@@ -95,13 +97,27 @@ export default function UploadQueue() {
       formData.append('safety', item.safety)
   
       try {
-        await fetch('/api/files/upload', {
+        const res = await fetch('/api/files/upload', {
           method: 'POST',
           body: formData,
         })
   
-        setQueue((prev) => prev.filter((f) => f.id !== item.id)) // safely remove
-      } catch (err) {
+        const result = await res.json()
+
+        if (result.duplicate && result.postId) {
+          setQueue((prev) =>
+            prev.map((f) =>
+              f.id === item.id ? { ...f, duplicatePostId: result.postId } : f
+            )
+          )
+          continue
+        }        
+      
+        // continue with normal removal
+        setQueue((prev) => prev.filter((f) => f.id !== item.id))
+        i--
+        
+        } catch (err) {
         console.error(`Failed to upload ${item.file.name}`, err)
       }
     }
@@ -158,6 +174,7 @@ export default function UploadQueue() {
                 onMove={moveItem}
                 isFirst={i === 0}
                 isLast={i === queue.length - 1}
+                duplicatePostId={item.duplicatePostId}
               />
             ))}
 
