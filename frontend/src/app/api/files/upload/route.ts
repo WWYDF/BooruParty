@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+
   const formData = await request.formData();
   const file = formData.get('file') as File;
 
@@ -16,14 +17,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
   }
 
+  const anonymous = formData.get('anonymous') === 'true';
+  const safety = formData.get('safety') as 'SAFE' | 'SKETCHY' | 'UNSAFE';
+
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
 
   const createdPost = await prisma.posts.create({
     data: {
       fileExt: extension,
       uploadedBy: session.user.id,
-      anonymous: false,
-      safety: 'SAFE',
+      anonymous,
+      safety,
       tags: [],
       sources: [],
       notes: '',

@@ -11,7 +11,7 @@ type UploadFile = {
   id: string
   file: File
   preview: string
-  safety: 'safe' | 'sketchy' | 'unsafe'
+  safety: 'SAFE' | 'SKETCHY' | 'UNSAFE'
 }
 
 export default function UploadQueue() {
@@ -42,7 +42,7 @@ export default function UploadQueue() {
         id: `${idCounter.current++}`,
         file,
         preview: URL.createObjectURL(file),
-        safety: 'safe' as const, // default
+        safety: 'SAFE' as const, // default
       }))
     setQueue((prev) => [...prev, ...newItems])
   }

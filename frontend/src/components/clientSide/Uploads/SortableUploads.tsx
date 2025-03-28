@@ -8,8 +8,8 @@ type Props = {
   preview: string
   name: string
   isUploading?: boolean
-  safety: 'safe' | 'sketchy' | 'unsafe'
-  onSafetyChange: (safety: 'safe' | 'sketchy' | 'unsafe') => void
+  safety: 'SAFE' | 'SKETCHY' | 'UNSAFE'
+  onSafetyChange: (safety: 'SAFE' | 'SKETCHY' | 'UNSAFE') => void
   onMove: (index: number, direction: 'up' | 'down') => void
   isFirst: boolean
   isLast: boolean
@@ -17,12 +17,12 @@ type Props = {
 
 const safetyOptions: {
   label: string
-  value: 'safe' | 'sketchy' | 'unsafe'
+  value: 'SAFE' | 'SKETCHY' | 'UNSAFE'
   color: string
 }[] = [
-  { label: 'Safe', value: 'safe', color: 'bg-green-800' },
-  { label: 'Sketchy', value: 'sketchy', color: 'bg-yellow-800' },
-  { label: 'Unsafe', value: 'unsafe', color: 'bg-red-600' },
+  { label: 'Safe', value: 'SAFE', color: 'bg-green-800' },
+  { label: 'Sketchy', value: 'SKETCHY', color: 'bg-yellow-800' },
+  { label: 'Unsafe', value: 'UNSAFE', color: 'bg-red-600' },
 ]
 
 export default function SortableUploads({
