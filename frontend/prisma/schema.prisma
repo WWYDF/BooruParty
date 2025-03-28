@@ -42,6 +42,7 @@ model User {
   role          String    @default("Member")
   avatar        String?
   preferences   UserPreferences?
+  favorites     UserFavorites[]
   
   lastLogin     DateTime  @default(now())
   createdAt     DateTime  @default(now())
@@ -53,6 +54,19 @@ model UserPreferences {
   
   layout        LayoutType   @default(GRID)
   theme         ThemeType    @default(DARK)
+}
+
+model UserFavorites {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  postId    Int
+
+  user      User     @relation(fields: [userId], references: [id])
+  post      Posts    @relation(fields: [postId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
 }
 
 model Posts {
@@ -71,6 +85,7 @@ model Posts {
   score         Int          @default(0)
   votes         Votes[]      @relation("PostVotes")
   comments      Comments[]   @relation("PostComments")
+  favoritedBy   UserFavorites[]
 
   createdAt     DateTime     @default(now())
 }
