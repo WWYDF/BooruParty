@@ -69,26 +69,26 @@ export default function TagCategoryManager({ initialData }: { initialData: TagCa
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <div className="bg-secondary-border p-4 rounded-xl space-y-4">
+      <div className="bg-zinc-900 p-4 rounded-xl space-y-4">
         <h2 className="text-lg font-semibold text-subtle">Create New Category</h2>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             type="text"
             placeholder="Name"
-            className="bg-secondary p-2 rounded border border-secondary-border"
+            className="bg-secondary p-2 rounded border border-secondary-border focus:outline-none focus:ring-2 focus:ring-darkerAccent"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
           <input
             type="color"
-            className="w-10 h-10 rounded border"
+            className="w-10 h-10 rounded bg-transparent"
             value={form.color}
             onChange={(e) => setForm({ ...form, color: e.target.value })}
           />
           <input
             type="number"
             placeholder="Order (optional)"
-            className="bg-secondary p-2 rounded border border-secondary-border"
+            className="bg-secondary p-2 rounded border border-secondary-border focus:outline-none focus:ring-2 focus:ring-darkerAccent"
             value={form.order}
             onChange={(e) => setForm({ ...form, order: e.target.value })}
           />
@@ -98,7 +98,7 @@ export default function TagCategoryManager({ initialData }: { initialData: TagCa
         </div>
       </div>
 
-      <div className="bg-secondary-border p-4 rounded-xl space-y-4">
+      <div className="bg-zinc-900 p-4 rounded-xl space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-subtle">Existing Categories</h2>
           <button
@@ -128,19 +128,20 @@ export default function TagCategoryManager({ initialData }: { initialData: TagCa
                 {editingId === cat.id ? (
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full">
                     <input
-                      className="bg-secondary-border p-2 rounded w-full sm:w-1/2"
+                      className="bg-secondary-border p-2 rounded w-full sm:w-1/2 focus:outline-none focus:ring-2 focus:ring-darkerAccent"
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                     />
                     <input
                       type="color"
+                      className="bg-transparent"
                       value={editForm.color}
                       onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
                     />
                     <input
                       type="number"
                       placeholder="Order"
-                      className="bg-secondary-border p-2 rounded w-20"
+                      className="bg-secondary-border p-2 rounded w-20 focus:outline-none focus:ring-2 focus:ring-darkerAccent"
                       value={editForm.order}
                       onChange={(e) => setEditForm({ ...editForm, order: e.target.value })}
                     />
