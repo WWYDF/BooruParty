@@ -6,24 +6,25 @@ import PostVoting from "./PostVoting";
 type Props = {
   post: {
     id: number;
-    fileName: string;
+    fileExt: string;
     createdAt: string;
     previewScale: number;
   };
 };
 
+const fastify = process.env.NEXT_PUBLIC_FASTIFY;
+
 export default function PostDisplay({ post }: Props) {
   const [showFull, setShowFull] = useState(false);
 
-  const extension = post.fileName.split(".").pop();
-  const previewSrc = `/previews/${post.fileName.replace(`.${extension}`, ".webp")}`;
-  const fullSrc = `/uploads/image/${post.fileName}`;
+  const previewSrc = `${fastify}/previews/image/${post.id}.webp`;
+  const fullSrc = `${fastify}/uploads/image/${post.id}.${post.fileExt}`;
 
   return (
     <div className="flex flex-col items-center gap-4">
       <img
         src={showFull ? fullSrc : previewSrc}
-        alt={post.fileName}
+        alt='Post'
         className="max-h-[80vh] w-auto rounded-xl border border-secondary-border object-contain"
       />
       {!showFull && post.previewScale ? (

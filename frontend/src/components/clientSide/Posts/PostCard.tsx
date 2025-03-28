@@ -9,8 +9,10 @@ interface PostCardProps {
   viewMode: 'GRID' | 'COLLAGE';
 }
 
+const fastify = process.env.NEXT_PUBLIC_FASTIFY;
+
 export default function PostCard({ post, viewMode }: PostCardProps) {
-  const thumbnailSrc = `/thumbnails/image/small_${post.id}.webp`;
+  const thumbnailUrl = `${fastify}/thumbnails/${post.id}`;
 
   return (
     <Link href={`/post/${post.id}`} className="block group">
@@ -19,16 +21,16 @@ export default function PostCard({ post, viewMode }: PostCardProps) {
           <div className="aspect-square">
             <picture>
               <source
-                srcSet={`/thumbnails/image/large_${post.id}.webp`}
+                srcSet={`${thumbnailUrl}_large.webp`}
                 media="(min-width: 1024px)"
               />
               <source
-                srcSet={`/thumbnails/image/medium_${post.id}.webp`}
+                srcSet={`${thumbnailUrl}_med.webp`}
                 media="(min-width: 640px)"
               />
               <img
-                src={`/thumbnails/image/small_${post.id}.webp`}
-                alt={post.fileName}
+                srcSet={`${thumbnailUrl}_small.webp`}
+                alt={post.id.toString()}
                 className="w-full h-full object-cover"
               />
             </picture>
@@ -36,16 +38,16 @@ export default function PostCard({ post, viewMode }: PostCardProps) {
         ) : (
           <picture>
             <source
-              srcSet={`/thumbnails/image/large_${post.id}.webp`}
+              srcSet={`${thumbnailUrl}_large.webp`}
               media="(min-width: 1024px)"
             />
             <source
-              srcSet={`/thumbnails/image/medium_${post.id}.webp`}
+              srcSet={`${thumbnailUrl}_med.webp`}
               media="(min-width: 640px)"
             />
             <img
-              src={`/thumbnails/image/small_${post.id}.webp`}
-              alt={post.fileName}
+              srcSet={`${thumbnailUrl}_small.webp`}
+              alt={post.id.toString()}
               className="w-full object-cover"
             />
           </picture>
@@ -54,7 +56,7 @@ export default function PostCard({ post, viewMode }: PostCardProps) {
 
         {/* Metadata like filename and timestamp */}
         <div className="p-2 text-xs text-subtle">
-          {post.fileName}
+          Post: {post.id.toString()}
           <br />
           {new Date(post.createdAt).toLocaleDateString()}
         </div>
