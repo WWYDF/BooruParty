@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import Busboy from 'busboy';
 import { processPreviewImage } from '../utils/processPreview';
+import { generateThumbnails } from '../utils/generateThumbnails';
 
 const uploadRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/upload', async (req, reply) => {
@@ -57,6 +58,11 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             } catch (err) {
               fastify.log.error('❌ processPreview failed:', err);
             }
+          }
+
+          if (fileFolder === 'image' || fileFolder === 'animated' || fileFolder === 'video') {
+            const thumbs = await generateThumbnails(filePath, fileFolder as any, Number(postId));
+            fastify.log.info(`🖼️ Generated thumbnails:`, thumbs);
           }
 
           reply.send({
