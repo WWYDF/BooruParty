@@ -1,9 +1,8 @@
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
-import { prisma } from "../plugins/prisma";
 
-export async function processPreviewImage(originalPath: string, postId: number) {
+export async function processPreviewImage(originalPath: string, postId: number): Promise<number | null> {
   const previewDir = path.join(__dirname, '../../data/previews/image');
   fs.mkdirSync(previewDir, { recursive: true });
 
@@ -26,13 +25,5 @@ export async function processPreviewImage(originalPath: string, postId: number) 
       ? Math.round((resizedMeta.width / metadata.width) * 100)
       : null;
 
-  await prisma.posts.update({
-    where: { id: postId },
-    data: { previewScale },
-  });
-
-  return {
-    previewPath,
-    previewScale,
-  };
+  return previewScale;
 }

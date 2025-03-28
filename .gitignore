@@ -9,3 +9,4 @@
 core/prisma/.env
 /backend/data
 frontend/.env
+/frontend/prisma/client
