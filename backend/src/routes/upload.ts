@@ -1,36 +1,76 @@
 import { FastifyPluginAsync } from 'fastify';
 import fs from 'fs';
 import path from 'path';
-import { saveFile } from '../utils/saveFile';
-import type { MultipartFile } from '@fastify/multipart';
+import Busboy from 'busboy';
 
-const uploadRoutes: FastifyPluginAsync = async (fastify) => {
+const uploadRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/upload', async (req, reply) => {
-    const data: MultipartFile | undefined = await req.file();
+    return new Promise<void>((resolve, reject) => {
+      let postId: string | undefined;
+      let finalFileName = '';
+      let fileFolder = '';
+      let filePath = '';
 
-    if (!data) {
-      return reply.code(400).send({ error: 'No file uploaded' });
-    }
+      const busboy = Busboy({ headers: req.headers });
 
-    const { filename, mimetype, file } = data;
+      busboy.on('field', (fieldname, value) => {
+        if (fieldname === 'postId' && /^\d+$/.test(value)) {
+          postId = value;
+          fastify.log.info(`📥 Got postId: ${postId}`);
+        }
+      });
 
-    const isImage = mimetype.startsWith('image/');
-    const isVideo = mimetype.startsWith('video/');
-    if (!isImage && !isVideo) {
-      return reply.code(400).send({ error: 'Invalid file type' });
-    }
+      busboy.on('file', (fieldname, file, info) => {
+        const { filename, mimeType } = info;
 
-    const folder = isImage ? 'image' : 'video';
-    const targetDir = path.join(__dirname, '../../uploads', folder);
-    fs.mkdirSync(targetDir, { recursive: true });
+        if (!postId) {
+          file.resume();
+          fastify.log.error('❌ postId not set before file');
+          return;
+        }
 
-    const finalName = await saveFile(file, filename, targetDir);
+        const ext = path.extname(filename);
+        fileFolder = mimeType.startsWith('image/') ? 'image'
+                   : mimeType.startsWith('video/') ? 'video'
+                   : 'other';
 
-    return reply.send({
-      message: 'Upload successful',
-      url: `/uploads/${folder}/${finalName}`,
+        const uploadsDir = path.join(__dirname, '../../uploads', fileFolder);
+        fs.mkdirSync(uploadsDir, { recursive: true });
+
+        finalFileName = `${postId}${ext}`;
+        filePath = path.join(uploadsDir, finalFileName);
+
+        const writeStream = fs.createWriteStream(filePath);
+        file.pipe(writeStream);
+      });
+
+      busboy.on('finish', () => {
+        fastify.log.info('🧾 Finished streaming. Verifying file...');
+
+        if (!postId || !finalFileName || !fileFolder) {
+          reply.code(400).send({ error: 'Missing data (postId or file info)' });
+          return resolve();
+        }
+
+        if (!fs.existsSync(filePath)) {
+          fastify.log.error(`❌ File not found: ${filePath}`);
+          reply.code(500).send({ error: 'File failed to save' });
+          return resolve();
+        }
+
+        fastify.log.info(`✅ File exists: ${filePath}`);
+        const url = `/uploads/${fileFolder}/${finalFileName}`;
+
+        reply.send({
+          message: 'Upload complete',
+          url,
+        });
+        return resolve();
+      });
+
+      req.raw.pipe(busboy);
     });
   });
 };
 
-export default uploadRoutes;
+export default uploadRoute;

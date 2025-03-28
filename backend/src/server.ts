@@ -1,15 +1,25 @@
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import ipFilter from './plugins/ipFilter';
 import registerStatic from './plugins/static';
 import uploadRoutes from './routes/upload';
 
-
 dotenv.config();
 
 async function buildServer() {
-  const fastify = Fastify({ logger: true });
+    const fastify = Fastify({
+        logger: {
+          level: 'warn', // Only logs 'warn', 'error', 'fatal'
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              translateTime: 'SYS:standard',
+              ignore: 'pid,hostname',
+            },
+          },
+        },
+      });
 
   await fastify.register(multipart);
   await fastify.register(ipFilter);
