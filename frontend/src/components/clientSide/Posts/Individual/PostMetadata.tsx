@@ -7,7 +7,6 @@ import { PencilSimple, Tag } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 
-// Placeholder avatar (replace with real one later)
 const AVATAR_URL = "https://placehold.co/48x48";
 
 export type Props = {
@@ -16,11 +15,21 @@ export type Props = {
     uploadedBy: string;
     anonymous: boolean;
     safety: string;
-    tags: string[];
     sources: string[];
     notes: string | null;
     createdAt: string;
     score: number;
+    postTags: {
+      tag: {
+        name: string;
+        parentTag: {
+          category: {
+            name: string;
+            color: string;
+          };
+        };
+      };
+    }[];
   };
 };
 
@@ -33,6 +42,7 @@ type UploaderInfo = {
 export default function PostMetadata({ post }: Props) {
   const [editing, setEditing] = useState(false);
   const [uploader, setUploader] = useState<UploaderInfo | null>(null);
+  const [tagGroups, setTagGroups] = useState<Record<string, { name: string; color: string }[]>>({});
 
   useEffect(() => {
     if (post.anonymous) return;
@@ -46,10 +56,23 @@ export default function PostMetadata({ post }: Props) {
     fetchUploader();
   }, [post.anonymous, post.uploadedBy]);
 
+  useEffect(() => {
+    const grouped: Record<string, { name: string; color: string }[]> = {};
+
+    for (const pt of post.postTags) {
+      const name = pt.tag.name;
+      const category = pt.tag.parentTag.category;
+      if (!category?.name) continue;
+
+      if (!grouped[category.name]) grouped[category.name] = [];
+      grouped[category.name].push({ name, color: category.color });
+    }
+
+    setTagGroups(grouped);
+  }, [post.postTags]);
+
   const displayName = post.anonymous ? "Anonymous" : uploader?.username || post.uploadedBy;
-  const displayAvatar = post.anonymous
-    ? AVATAR_URL
-    : uploader?.avatar || AVATAR_URL;
+  const displayAvatar = post.anonymous ? AVATAR_URL : uploader?.avatar || AVATAR_URL;
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -63,9 +86,7 @@ export default function PostMetadata({ post }: Props) {
         />
         <div>
           <p className="text-base text-white font-semibold">{displayName}</p>
-          <p className="text-xs text-subtle">
-            {new Date(post.createdAt).toLocaleString()}
-          </p>
+          <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>
         </div>
       </div>
 
@@ -77,12 +98,7 @@ export default function PostMetadata({ post }: Props) {
           {post.sources.length ? (
             <span className="flex flex-wrap gap-2">
               {post.sources.map((src, i) => (
-                <Link
-                  key={i}
-                  href={src}
-                  target="_blank"
-                  className="text-accent underline break-all"
-                >
+                <Link key={i} href={src} target="_blank" className="text-accent underline break-all">
                   {src}
                 </Link>
               ))}
@@ -102,16 +118,24 @@ export default function PostMetadata({ post }: Props) {
         <PencilSimple size={16} /> Edit post
       </button>
 
-      {post.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {post.tags.map((tag, i) => (
-            <Link
-              key={i}
-              href={`/dashboard/tags/${tag}`}
-              className="flex items-center gap-1 text-sm text-subtle hover:text-accent border border-secondary-border px-2 py-1 rounded-full"
-            >
-              <Tag size={14} /> {tag}
-            </Link>
+      {Object.keys(tagGroups).length > 0 && (
+        <div className="flex flex-col gap-4 mt-2">
+          {Object.entries(tagGroups).map(([category, tags]) => (
+            <div key={category}>
+              <p className="text-white text-sm font-medium mb-1">{category}</p>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag, i) => (
+                  <Link
+                    key={i}
+                    href={`/dashboard/tags/${tag.name}`}
+                    className="flex items-center gap-1 text-sm border border-secondary-border px-2 py-1 rounded-full hover:opacity-90"
+                    style={{ color: tag.color }}
+                  >
+                    <Tag size={14} /> {tag.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

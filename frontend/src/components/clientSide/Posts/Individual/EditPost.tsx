@@ -21,7 +21,7 @@ export default function EditPost({
   const [anonymous, setAnonymous] = useState(post.anonymous);
   const [saving, setSaving] = useState(false);
   const initialState = useRef({
-    tags: post.tags,
+    tags: post.tags ?? [],
     sources: post.sources.join(", "),
     notes: post.notes || "",
     safety: post.safety,
@@ -30,20 +30,22 @@ export default function EditPost({
 
   useEffect(() => {
     const fetchFullTagData = async () => {
+      if (!Array.isArray(post.tags)) return;
+  
       const result: TagResult[] = [];
-
+  
       for (const tagName of post.tags) {
         const res = await fetch(`/api/tags?search=${encodeURIComponent(tagName)}`);
         const matches: TagResult[] = await res.json();
         const exact = matches.find((m) => m.name === tagName);
         if (exact) result.push(exact);
       }
-
+  
       setTags(result);
     };
-
+  
     fetchFullTagData();
-  }, [post.tags]);
+  }, [post.tags]);  
 
   const handleSave = async () => {
     setSaving(true);

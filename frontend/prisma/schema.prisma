@@ -75,7 +75,7 @@ model Posts {
   uploadedBy    String
   anonymous     Boolean
   safety        SafetyType
-  tags          String[]
+  postTags      PostTag[]
   sources       String[]
   notes         String?
   flags         String[]
@@ -113,6 +113,16 @@ model Comments {
   post       Posts     @relation(fields: [postId], references: [id], name: "PostComments", onDelete: Cascade)
 }
 
+model PostTag {
+  postId Int
+  tagId  Int
+
+  post   Posts    @relation(fields: [postId], references: [id])
+  tag    TagName  @relation(fields: [tagId], references: [id])
+
+  @@id([postId, tagId])
+}
+
 model TagCategories {
   id         Int          @id @default(autoincrement())
   name       String
@@ -124,10 +134,12 @@ model TagCategories {
 }
 
 model TagName {
-  id     Int    @id @default(autoincrement())
-  name   String
-  tagId  Int
-  tag    Tags   @relation(fields: [tagId], references: [id])
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  tagId      Int
+  parentTag  Tags         @relation(fields: [tagId], references: [id])
+
+  postTags   PostTag[]
   
   @@index([name])
 }
