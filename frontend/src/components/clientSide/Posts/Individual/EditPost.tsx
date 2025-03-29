@@ -134,7 +134,7 @@ export default function EditPost({
         <div className="flex flex-col gap-4">
           {Object.entries(
             tags.reduce((acc: Record<string, TagResult[]>, tag) => {
-              const category = tag.category?.name || "Uncategorized";
+              const category = tag.parentTag?.category?.name || "Uncategorized";
               if (!acc[category]) acc[category] = [];
               acc[category].push(tag);
               return acc;
@@ -147,7 +147,7 @@ export default function EditPost({
                   <div
                     key={i}
                     className="flex items-center gap-1 border border-secondary-border px-2 py-1 rounded-full"
-                    style={{ color: tag.category?.color || "#fff" }}
+                    style={{ color: tag.parentTag?.category?.color || "#fff" }}
                   >
                     <button onClick={() => handleRemoveTag(tag.name)} className="hover:opacity-80">
                       <X size={14} />
