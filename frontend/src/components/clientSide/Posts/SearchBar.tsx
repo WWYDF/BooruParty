@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import TagSelector, { TokenizedTag } from "@/components/clientSide/Tags/Selector";
+import SearchTagSelector, { TokenizedTag } from "./SearchTags";
 import { systemTagHandlers } from "@/components/serverSide/PostSearching/systemTags";
 
 export default function SearchBar({ onResults }: { onResults: (posts: any[]) => void }) {
   const [tokens, setTokens] = useState<TokenizedTag[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = async () => {
     const include: string[] = [];
@@ -41,19 +42,16 @@ export default function SearchBar({ onResults }: { onResults: (posts: any[]) => 
     }
   };
 
-  useEffect(() => {
-    const handleEnter = (e: KeyboardEvent) => {
-      if (e.key === "Enter") handleSearch();
-    };
-    document.addEventListener("keydown", handleEnter);
-    return () => document.removeEventListener("keydown", handleEnter);
-  }, [tokens]);
-
   return (
-    <div ref={containerRef} className="flex flex-col gap-2 w-full md:max-w-md">
+    <div className="flex flex-col gap-2 w-full md:max-w-md">
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <TagSelector mode="search" initialTags={[]} onChange={setTokens} />
+          <SearchTagSelector
+            onChange={setTokens}
+            onFocusChange={setSelectorOpen}
+            inputRef={inputRef}
+            onSearch={handleSearch}
+          />
         </div>
         <button
           onClick={handleSearch}

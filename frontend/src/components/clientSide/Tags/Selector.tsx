@@ -24,15 +24,17 @@ type TagSelectorProps =
       mode?: "edit";
       initialTags: TagResult[];
       onChange: (selected: TagResult[], newTags: string[]) => void;
+      onFocusChange?: (active: boolean) => void;
     }
   | {
       mode: "search";
       initialTags: TagResult[];
       onChange: (tokens: TokenizedTag[]) => void;
+      onFocusChange?: (active: boolean) => void;
     };
 
 export default function TagSelector(props: TagSelectorProps) {
-  const { initialTags, mode = "edit" } = props;
+  const { initialTags, mode = "edit", onFocusChange } = props;
 
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<TagResult[]>(initialTags);
@@ -146,9 +148,11 @@ export default function TagSelector(props: TagSelectorProps) {
           ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => onFocusChange?.(true)}
+          onBlur={() => onFocusChange?.(false)}
           onKeyDown={handleKeyDown}
           placeholder="Search by tags..."
-          className="w-full p-2 rounded bg-secondary text-sm text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+          className="w-full p-2 rounded bg-secondary text-sm text-white"
         />
         {activeToken && results.length > 0 && (
           <ul className="absolute z-10 mt-1 bg-secondary-border w-full rounded shadow max-h-60 overflow-y-auto">
