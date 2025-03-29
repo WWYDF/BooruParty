@@ -1,9 +1,6 @@
-import { Suspense } from "react";
-import PostGrid from "@/components/clientSide/Posts/PostGrid";
-import SearchBar from "@/components/clientSide/Posts/SearchBar";
-import Filters from "@/components/clientSide/Posts/Filters";
 import { prisma } from "@/core/prisma";
 import { auth } from "@/core/auth";
+import ClientPostsPage from "@/components/clientSide/Posts/PostsPage";
 
 export default async function PostsPage() {
   const session = await auth();
@@ -15,23 +12,29 @@ export default async function PostsPage() {
       })
     : null;
 
-  const viewMode = user?.preferences?.layout || "GRID";
-
-  const posts = await prisma.posts.findMany({
+  const initialPosts = await prisma.posts.findMany({
     orderBy: { createdAt: "desc" },
-    // include other stuff you use
+    include: {
+      postTags: {
+        include: {
+          tag: {
+            include: {
+              parentTag: {
+                include: {
+                  names: true,
+                  category: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   });
 
   return (
     <main className="p-4 space-y-4">
-      <section className="flex flex-col md:flex-row gap-4">
-        <SearchBar />
-        <Filters />
-      </section>
-
-      <Suspense fallback={<p className="text-subtle">Loading posts...</p>}>
-        <PostGrid />
-      </Suspense>
+      <ClientPostsPage initialPosts={initialPosts} />
     </main>
   );
 }
