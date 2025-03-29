@@ -5,8 +5,8 @@ import PostDisplay from "./PostDisplay";
 import PostMetadata from "./PostMetadata";
 import PostCommentForm from "./PostCommentForm";
 import PostCommentList from "./PostCommentList";
-import PostVoting from "./PostVoting";
 import { RawComment, ResolvedComment } from "@/core/types/comments";
+import PostNavigator from "./PostNavigator";
 
 type Post = {
   id: number;
@@ -107,6 +107,7 @@ export default function PostPageClient({ postId }: { postId: string }) {
       </div>
 
       <div className="space-y-6 order-1 md:order-2">
+        <PostNavigator />
         <PostDisplay post={post} />
       </div>
 
