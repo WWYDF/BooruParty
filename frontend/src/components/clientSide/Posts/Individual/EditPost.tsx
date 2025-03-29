@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import TagSelector, { TagResult } from "@/components/clientSide/Tags/Selector";
 import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
+import TagSelector, { TagResult } from "./EditPostTags";
 
 export default function EditPost({
   post,

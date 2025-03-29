@@ -2,8 +2,8 @@
 
 import { useRef, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import SearchTagSelector, { TokenizedTag } from "./SearchTags";
 import { systemTagHandlers } from "@/components/serverSide/PostSearching/systemTags";
+import SearchTagSelector, { TokenizedTag } from "./SearchTags";
 
 export default function SearchBar({ onResults }: { onResults: (posts: any[]) => void }) {
   const [tokens, setTokens] = useState<TokenizedTag[]>([]);
