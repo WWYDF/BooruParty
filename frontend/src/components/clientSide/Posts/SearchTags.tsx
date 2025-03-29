@@ -44,7 +44,9 @@ export default function SearchTagSelector({ onChange, onFocusChange, inputRef, o
       return;
     }
     const fetchTags = async () => {
-      const res = await fetch(`/api/tags?search=${encodeURIComponent(activeToken)}`);
+      const cleaned = activeToken.startsWith("-") ? activeToken.slice(1) : activeToken;
+      if (!cleaned) return;
+      const res = await fetch(`/api/tags?search=${encodeURIComponent(cleaned)}`);
       const data = await res.json();
       setResults(data);
       setHighlight(-1);
@@ -68,7 +70,7 @@ export default function SearchTagSelector({ onChange, onFocusChange, inputRef, o
 
   const handleSelect = (tag: TagResult) => {
     const parts = query.trim().split(" ");
-    parts[parts.length - 1] = tag.name;
+    parts[parts.length - 1] = activeToken.startsWith("-") ? `-${tag.name}` : tag.name;
     setQuery(parts.join(" ") + " ");
     setResults([]);
     setHighlight(-1);
