@@ -132,8 +132,6 @@ export default function TagEditPage() {
 
               const sanitized = input
                 .split(" ")
-                .filter((part) => part.trim() !== "")
-                .map((part) => part.replace(/ /g, "_")); // In case user tries sneaky spaces inside words
 
               setNames(sanitized);
             }}

@@ -1,32 +1,34 @@
-'use client';
-import { useState, useEffect } from "react";
-import EditPost from "./EditPost";
-import { PencilSimple, Tag } from "@phosphor-icons/react";
+"use client";
 
+import { useState } from "react";
+import EditPost from "./EditPost";
+import { PencilSimple, Tag as TagIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 
 const AVATAR_URL = "/user.png";
 
-export type Props = {
+type Props = {
   post: {
     id: number;
     anonymous: boolean;
-    safety: string;
+    safety: "SAFE" | "SKETCHY" | "UNSAFE";
     sources: string[];
     notes: string | null;
     createdAt: string;
     score: number;
-    postTags: {
-      tag: {
+    tags: {
+      id: number;
+      name: string;
+      category: {
+        id: number;
         name: string;
-        parentTag: {
-          category: {
-            name: string;
-            color: string;
-          };
-        };
+        color: string;
       };
+      aliases: {
+        id: number;
+        alias: string;
+      }[];
     }[];
   };
   uploader: {
@@ -38,13 +40,13 @@ export type Props = {
 
 export default function PostMetadata({ post, uploader }: Props) {
   const [editing, setEditing] = useState(false);
-  const [tagGroups, setTagGroups] = useState<Record<string, { name: string; color: string }[]>>({});
 
   const displayName = post.anonymous ? "Anonymous" : uploader?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : uploader?.avatar || AVATAR_URL;
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
+      {/* Header with user info */}
       <div className="flex items-center gap-3">
         {displayAvatar ? (
           <Image
@@ -57,6 +59,7 @@ export default function PostMetadata({ post, uploader }: Props) {
         ) : (
           <div className="w-12 h-12 rounded-full bg-secondary-border animate-pulse" />
         )}
+
         <div className="flex-1">
           <p className="text-base text-white font-semibold">{displayName}</p>
           <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>
@@ -79,10 +82,12 @@ export default function PostMetadata({ post, uploader }: Props) {
         )}
       </div>
 
+      {/* Content area */}
       {editing ? (
         <EditPost post={post} onSuccess={() => location.reload()} />
       ) : (
         <>
+          {/* Post info */}
           <div className="grid grid-cols-2 gap-y-2 gap-x-4 mt-2">
             <p><span className="text-white font-medium">Safety:</span> {post.safety}</p>
             <p><span className="text-white font-medium">Score:</span> {post.score}</p>
@@ -91,12 +96,19 @@ export default function PostMetadata({ post, uploader }: Props) {
               {post.sources.length ? (
                 <span className="flex flex-wrap gap-2">
                   {post.sources.map((src, i) => (
-                    <Link key={i} href={src} target="_blank" className="text-accent underline break-all">
+                    <Link
+                      key={i}
+                      href={src}
+                      target="_blank"
+                      className="text-accent underline break-all"
+                    >
                       {src}
                     </Link>
                   ))}
                 </span>
-              ) : "None"}
+              ) : (
+                "None"
+              )}
             </p>
             <p className="col-span-2">
               <span className="text-white font-medium">Notes:</span>{" "}
@@ -104,9 +116,20 @@ export default function PostMetadata({ post, uploader }: Props) {
             </p>
           </div>
 
-          {Object.keys(tagGroups).length > 0 && (
-            <div className="flex flex-col gap-4 mt-2">
-              {Object.entries(tagGroups).map(([category, tags]) => (
+          {/* Tags */}
+          {post.tags.length > 0 && (
+            <div className="flex flex-col gap-4 mt-4">
+              {Object.entries(
+                post.tags.reduce((acc: Record<string, { name: string; color: string }[]>, tag) => {
+                  const category = tag.category?.name || "Uncategorized";
+                  if (!acc[category]) acc[category] = [];
+                  acc[category].push({
+                    name: tag.name,
+                    color: tag.category?.color || "#ccc",
+                  });
+                  return acc;
+                }, {})
+              ).map(([category, tags]) => (
                 <div key={category}>
                   <p className="text-white text-sm font-medium mb-1">{category}</p>
                   <div className="flex flex-wrap gap-2">
@@ -117,7 +140,7 @@ export default function PostMetadata({ post, uploader }: Props) {
                         className="flex items-center gap-1 text-sm border border-secondary-border px-2 py-1 rounded-full hover:opacity-90"
                         style={{ color: tag.color }}
                       >
-                        <Tag size={14} /> {tag.name}
+                        <TagIcon size={14} /> {tag.name}
                       </Link>
                     ))}
                   </div>
