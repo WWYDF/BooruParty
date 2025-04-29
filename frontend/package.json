@@ -29,6 +29,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",
+    "react-masonry-css": "^1.0.16",
     "sharp": "^0.33.5",
     "sharp-phash": "^2.2.0",
     "streamifier": "^0.1.1",
