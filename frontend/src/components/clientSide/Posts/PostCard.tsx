@@ -2,7 +2,7 @@
 
 import { Post } from "@/core/types/posts";
 import Link from "next/link";
-import { ThumbsUp, Heart, FilmStrip } from "phosphor-react";
+import { ThumbsUp, Heart, FilmStrip, Chats } from "phosphor-react";
 
 interface PostCardProps {
   post: Post;
@@ -54,14 +54,26 @@ export default function PostCard({ post, viewMode }: PostCardProps) {
         </div>
 
         <div className="absolute bottom-2 right-2 flex items-center gap-2">
-          <div className="bg-secondary-border px-2 py-1 rounded-full text-xs flex items-center gap-1">
-            <ThumbsUp size={16} />
-            <span>{post.score}</span>
-          </div>
-          <div className="bg-secondary-border px-2 py-1 rounded-full text-xs flex items-center gap-1">
-            <Heart size={16} />
-            <span>{post.favoritedBy?.length ?? 0}</span>
-          </div>
+          {post.comments?.length > 0 && (
+            <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <Chats size={16} />
+              <span>{post.comments.length}</span>
+            </div>
+          )}
+
+          {post.score > 0 && (
+            <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <ThumbsUp size={16} />
+              <span>{post.score}</span>
+            </div>
+          )}
+
+          {post.favoritedBy?.length > 0 && (
+            <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <Heart size={16} />
+              <span>{post.favoritedBy.length}</span>
+            </div>
+          )}
         </div>
       </div>
     </Link>

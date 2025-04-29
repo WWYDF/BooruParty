@@ -19,5 +19,16 @@ export type Post = {
     username: string;
     role: string;
     avatar: string;
-  }
+  };
+  comments: {
+    id: number;
+    author: {
+      id: string;
+      username: string;
+      role: string;
+      avatar: string;
+    };
+    content: string;
+    createdAt: string;
+  }[];
 }
