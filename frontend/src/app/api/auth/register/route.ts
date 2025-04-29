@@ -29,5 +29,13 @@ export async function POST(req: Request) {
     },
   });
 
+  const prefs = await prisma.userPreferences.create({
+    data: {
+      id: user.id,
+      layout: 'GRID',
+      theme: 'DARK'
+    }
+  })
+
   return NextResponse.json({ user: { id: user.id, email: user.email, username: user.username } });
 }

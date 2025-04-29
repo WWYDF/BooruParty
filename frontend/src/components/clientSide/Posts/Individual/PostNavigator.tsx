@@ -2,8 +2,14 @@
 
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
-export default function PostNavigator() {
+type Props = {
+  postId: number;
+};
+
+export default function PostNavigator({ postId }: Props) {
+  const router = useRouter();
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -12,18 +18,18 @@ export default function PostNavigator() {
       className="flex justify-between items-center w-full"
     >
       <button
-        onClick={() => console.log("Prev post")}
+        onClick={() => router.push(`/post/${postId + 1}`)}
         className="flex items-center gap-1 text-subtle hover:text-accent"
       >
         <CaretLeft size={28} weight="bold" />
-        <span className="text-sm">Previous</span>
+        <span className="text-sm">Next</span>
       </button>
 
       <button
-        onClick={() => console.log("Next post")}
+        onClick={() => router.push(`/post/${postId - 1}`)}
         className="flex items-center gap-1 text-subtle hover:text-accent"
       >
-        <span className="text-sm">Next</span>
+        <span className="text-sm">Previous</span>
         <CaretRight size={28} weight="bold" />
       </button>
     </motion.div>

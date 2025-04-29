@@ -107,7 +107,7 @@ export default function PostPageClient({ postId }: { postId: string }) {
       </div>
 
       <div className="space-y-6 order-1 md:order-2">
-        <PostNavigator />
+        <PostNavigator postId={post.id} />
         <PostDisplay post={post} />
       </div>
 

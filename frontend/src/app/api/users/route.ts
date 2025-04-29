@@ -63,13 +63,13 @@ export async function PATCH(req: Request) {
 
     try {
         await prisma.user.update({
-        where: { id: userId },
-        data: {
-            ...updates,
-            preferences: Object.keys(prefUpdates).length
-            ? { update: prefUpdates }
-            : undefined,
-        },
+          where: { id: userId },
+          data: {
+              ...updates,
+              preferences: Object.keys(prefUpdates).length
+              ? { update: prefUpdates }
+              : undefined,
+          },
         });
 
         return NextResponse.json({ success: true });
