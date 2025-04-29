@@ -1,19 +1,18 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { RawComment, ResolvedComment } from "@/core/types/comments";
-
 
 type Props = {
   postId: number;
-  onPosted: (comment: ResolvedComment) => void;
 };
 
-export default function PostCommentForm({ postId, onPosted }: Props) {
+export default function PostCommentForm({ postId }: Props) {
   const { data: session, status } = useSession();
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
+  const router = useRouter();
 
   if (status === "loading") return null;
   if (status === "unauthenticated") {
@@ -27,28 +26,19 @@ export default function PostCommentForm({ postId, onPosted }: Props) {
   const handlePost = async () => {
     if (!content.trim()) return;
 
-    const tempId = Date.now(); // fake ID for optimistic UI
-
-    const tempComment: ResolvedComment = {
-      id: tempId,
-      postId,
-      content,
-      createdAt: new Date().toISOString(),
-      authorId: session?.user?.id ?? "temp-user",
-      authorName: session?.user?.username ?? "You",
-    };
-
-    onPosted(tempComment); // ⬅️ tell the parent to add the fake comment
-    setContent("");
-
     setPosting(true);
+
     const res = await fetch("/api/comments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ postId, content }),
     });
 
-    if (!res.ok) {
+    if (res.ok) {
+      setContent(""); // Clear input after successful post
+      // You could add a "toast" or "reload comments" here later if you want
+      router.refresh();
+    } else {
       alert("Failed to post comment.");
     }
 
@@ -57,20 +47,20 @@ export default function PostCommentForm({ postId, onPosted }: Props) {
 
   return (
     <div className="flex items-end gap-2">
-        <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={1}
-            className="flex-1 p-2 rounded bg-zinc-900 text-subtle text-sm resize-y min-h-[2.5rem]"
-            placeholder="Write a comment..."
-        />
-        <button
-            disabled={!content.trim() || posting}
-            onClick={handlePost}
-            className="bg-accent text-white text-sm px-4 py-1.5 rounded-xl disabled:opacity-50"
-        >
-            {posting ? "Posting..." : "Post"}
-        </button>
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        rows={1}
+        className="flex-1 p-2 rounded bg-zinc-900 text-subtle text-sm resize-y min-h-[2.5rem] focus:outline-none focus:ring-2 focus:ring-zinc-600"
+        placeholder="Write a comment..."
+      />
+      <button
+        disabled={!content.trim() || posting}
+        onClick={handlePost}
+        className="bg-accent text-white text-sm px-4 py-1.5 rounded-xl disabled:opacity-50"
+      >
+        {posting ? "Posting..." : "Post"}
+      </button>
     </div>
   );
 }

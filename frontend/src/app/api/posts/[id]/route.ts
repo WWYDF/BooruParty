@@ -31,7 +31,20 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  return NextResponse.json(post);
+  const uploaderInfo = await prisma.user.findUnique({
+    where: { id: post.uploadedBy },
+    select: {
+      id: true,
+      username: true,
+      role: true,
+      avatar: true
+    }
+  })
+
+  return NextResponse.json({
+    post,
+    uploaderInfo
+  });
 }
 
 // PATCH endpoint to update a post by ID

@@ -11,7 +11,6 @@ const AVATAR_URL = "/user.png";
 export type Props = {
   post: {
     id: number;
-    uploadedBy: string;
     anonymous: boolean;
     safety: string;
     sources: string[];
@@ -30,45 +29,16 @@ export type Props = {
       };
     }[];
   };
+  uploader: {
+    id: string;
+    username: string;
+    avatar: string;
+  } | null;
 };
 
-type UploaderInfo = {
-  username: string;
-  avatar?: string;
-  layout?: string;
-};
-
-export default function PostMetadata({ post }: Props) {
+export default function PostMetadata({ post, uploader }: Props) {
   const [editing, setEditing] = useState(false);
-  const [uploader, setUploader] = useState<UploaderInfo | null>(null);
   const [tagGroups, setTagGroups] = useState<Record<string, { name: string; color: string }[]>>({});
-
-  useEffect(() => {
-    if (post.anonymous) return;
-    const fetchUploader = async () => {
-      const res = await fetch(`/api/users/${post.uploadedBy}`);
-      if (res.ok) {
-        const data = await res.json();
-        setUploader(data);
-      }
-    };
-    fetchUploader();
-  }, [post.anonymous, post.uploadedBy]);
-
-  useEffect(() => {
-    const grouped: Record<string, { name: string; color: string }[]> = {};
-
-    for (const pt of post.postTags) {
-      const name = pt.tag.name;
-      const category = pt.tag.parentTag.category;
-      if (!category?.name) continue;
-
-      if (!grouped[category.name]) grouped[category.name] = [];
-      grouped[category.name].push({ name, color: category.color });
-    }
-
-    setTagGroups(grouped);
-  }, [post.postTags]);
 
   const displayName = post.anonymous ? "Anonymous" : uploader?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : uploader?.avatar || AVATAR_URL;
@@ -76,13 +46,17 @@ export default function PostMetadata({ post }: Props) {
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
       <div className="flex items-center gap-3">
-        <Image
-          src={displayAvatar}
-          alt="Uploader avatar"
-          width={48}
-          height={48}
-          className="rounded-full border border-secondary-border"
-        />
+        {displayAvatar ? (
+          <Image
+            src={displayAvatar}
+            alt="Uploader avatar"
+            width={48}
+            height={48}
+            className="rounded-full border border-secondary-border"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-secondary-border animate-pulse" />
+        )}
         <div className="flex-1">
           <p className="text-base text-white font-semibold">{displayName}</p>
           <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>

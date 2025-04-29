@@ -25,7 +25,9 @@ const avatarUploadRoute: FastifyPluginAsync = async (fastify) => {
         return reply.code(400).send({ error: 'Missing userId or file' });
     }
 
-    const outputPath = path.join(process.cwd(), 'data', 'avatars', `${userId}.webp`);
+    const timestamp = Date.now();
+    const filename = `${userId}_${timestamp}.webp`;
+    const outputPath = path.join(process.cwd(), 'data', 'avatars', filename);
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
 
     await sharp(avatarBuffer)
@@ -33,7 +35,7 @@ const avatarUploadRoute: FastifyPluginAsync = async (fastify) => {
            .webp({ quality: 90 })
            .toFile(outputPath);
 
-    return { success: true, url: `/avatars/${userId}.webp` };
+    return { success: true, url: `/avatars/${filename}` };
     });
 };
 
