@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { CreateTagModal } from "@/components/clientSide/Tags/CreateModal";
 
 type TagListType = {
   id: number;
@@ -26,6 +27,7 @@ export default function TagListPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const router = useRouter();
 
   const perPage = 50;
@@ -84,7 +86,7 @@ export default function TagListPage() {
           className="bg-secondary p-2 rounded border border-secondary-border w-full max-w-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
         />
         <button
-          onClick={handleNewTag}
+          onClick={() => setCreateModalOpen(true)}
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors whitespace-nowrap"
         >
           + New Tag
@@ -194,6 +196,16 @@ export default function TagListPage() {
           </button>
         </div>
       )}
+
+      <CreateTagModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreated={() => {
+          setTimeout(() => {
+            router.refresh();
+          }, 200);
+        }}
+      />
     </div>
   );
 }

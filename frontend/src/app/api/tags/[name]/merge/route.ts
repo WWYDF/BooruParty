@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { name: string } }
-) {
-  const sourceName = decodeURIComponent(params.name);
+export async function POST(req: Request, context: { params: Promise<{ name: string }> }) {
+  const pram = (await context.params).name;
+  const sourceName = decodeURIComponent(pram);
   const { targetId, makeAlias } = await req.json();
 
   if (!targetId || typeof makeAlias !== "boolean") {

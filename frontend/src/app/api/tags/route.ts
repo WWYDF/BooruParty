@@ -27,10 +27,34 @@ export async function GET(req: Request) {
     select: {
       id: true,
       name: true,
-      aliases: { select: { alias: true } },
-      implications: { select: { name: true } },
-      suggestions: { select: { name: true } },
-      posts: { select: { id: true } },
+      category: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          order: true,
+        }
+      },
+      aliases: {
+        select: {
+          alias: true
+        }
+      },
+      implications: {
+        select: {
+          name: true
+        }
+      },
+      suggestions: {
+        select: {
+          name: true
+        }
+      },
+      posts: {
+        select: {
+          id: true
+        }
+      },
       createdAt: true,
     },
   });
