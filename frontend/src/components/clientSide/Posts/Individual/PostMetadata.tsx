@@ -30,19 +30,20 @@ type Props = {
         alias: string;
       }[];
     }[];
+    uploadedBy: {
+      id: string;
+      username: string;
+      role: string;
+      avatar: string;
+    }
   };
-  uploader: {
-    id: string;
-    username: string;
-    avatar: string;
-  } | null;
 };
 
-export default function PostMetadata({ post, uploader }: Props) {
+export default function PostMetadata({ post }: Props) {
   const [editing, setEditing] = useState(false);
 
-  const displayName = post.anonymous ? "Anonymous" : uploader?.username;
-  const displayAvatar = post.anonymous ? AVATAR_URL : uploader?.avatar || AVATAR_URL;
+  const displayName = post.anonymous ? "Anonymous" : post.uploadedBy?.username;
+  const displayAvatar = post.anonymous ? AVATAR_URL : post.uploadedBy?.avatar || AVATAR_URL;
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">

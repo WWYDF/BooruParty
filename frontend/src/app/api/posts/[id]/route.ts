@@ -26,6 +26,14 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
             }
           }
         }
+      },
+      uploadedBy: {
+        select: {
+          id: true,
+          username: true,
+          role: true,
+          avatar: true
+        }
       }
     }
   });
@@ -34,20 +42,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  const uploaderInfo = await prisma.user.findUnique({
-    where: { id: post.uploadedBy },
-    select: {
-      id: true,
-      username: true,
-      role: true,
-      avatar: true
-    }
-  })
-
-  return NextResponse.json({
-    post,
-    uploaderInfo
-  });
+  return NextResponse.json({post});
 }
 
 // PATCH endpoint to update a post by ID

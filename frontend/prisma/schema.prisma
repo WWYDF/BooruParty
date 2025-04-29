@@ -43,6 +43,7 @@ model User {
   avatar        String?
   preferences   UserPreferences?
   favorites     UserFavorites[]
+  posts         Posts[]
   
   lastLogin     DateTime  @default(now())
   createdAt     DateTime  @default(now())
@@ -72,7 +73,7 @@ model UserFavorites {
 model Posts {
   id            Int          @id @default(autoincrement())
   fileExt       String
-  uploadedBy    String
+  uploadedBy    User         @relation(fields: [uploadedById], references: [id])
   anonymous     Boolean
   safety        SafetyType
   tags          Tags[]       @relation("PostTags")
@@ -86,6 +87,7 @@ model Posts {
   votes         Votes[]      @relation("PostVotes")
   comments      Comments[]   @relation("PostComments")
   favoritedBy   UserFavorites[]
+  uploadedById  String
 
   createdAt     DateTime     @default(now())
 }
