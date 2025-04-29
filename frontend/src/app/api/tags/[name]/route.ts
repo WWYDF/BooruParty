@@ -3,11 +3,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { name: string } }
-) {
-  const tagName = decodeURIComponent(params.name);
+export async function GET(req: Request, context: { params: Promise<{ name: string }> }) {
+  const tagName = (await context.params).name;
 
   // Try exact match
   let tag = await prisma.tags.findUnique({
@@ -15,7 +12,7 @@ export async function GET(
     include: {
       category: true,
       aliases: true,
-      implies: true,
+      implications: true,
       suggestions: true,
     },
   });
@@ -29,7 +26,7 @@ export async function GET(
           include: {
             category: true,
             aliases: true,
-            implies: true,
+            implications: true,
             suggestions: true,
           },
         },

@@ -1,5 +1,4 @@
 import CenteredPageWrapper from "@/components/clientSide/Tags/Layout/CenteredPageWrapper";
-import TagSubNavbar from "@/components/clientSide/Tags/Layout/TagSubNavbar";
 import { ReactNode } from "react";
 
 type Props = {
@@ -7,12 +6,10 @@ type Props = {
   params: Promise<{ name: string }>;
 };
 
-export default async function Layout({ children, params }: Props) {
-  const { name } = await params;
+export default async function Layout({ children }: Props) {
 
   return (
     <CenteredPageWrapper>
-      <TagSubNavbar tag={name} />
       {children}
     </CenteredPageWrapper>
   );
