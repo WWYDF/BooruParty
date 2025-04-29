@@ -40,6 +40,21 @@ export async function GET(req: NextRequest) {
 
     const posts = await prisma.posts.findMany({
       where: whereClause,
+      include: {
+        favoritedBy: {
+          select: {
+            userId: true
+          }
+        },
+        uploadedBy: {
+          select: {
+            id: true,
+            username: true,
+            role: true,
+            avatar: true,
+          }
+        },
+      },
       orderBy: {
         createdAt: sort === "old" ? "asc" : "desc",
       },

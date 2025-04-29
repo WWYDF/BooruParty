@@ -1,7 +1,7 @@
 'use client';
 
+import { Post } from '../../../../types/posts';
 import PostCard from './PostCard';
-import { Posts } from '@prisma/client';
 
 type ViewMode = 'GRID' | 'COLLAGE';
 
@@ -9,7 +9,7 @@ export default function PostGrid({
   externalPosts = [],
   viewMode = 'GRID'
 }: {
-  externalPosts?: Posts[];
+  externalPosts?: Post[];
   viewMode?: ViewMode;
 }) {
   if (viewMode === 'COLLAGE') {
