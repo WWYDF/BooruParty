@@ -37,7 +37,7 @@ export async function GET(req: Request) {
   const { includeTags, excludeTags, systemOptions } = parseSearch(search);
 
   const orderValue = systemOptions.order || "createdAt"; // default to createdAt
-  let orderBy: any = {};
+  let orderBy: any = { createdAt: "desc" };
 
   if (orderValue.startsWith("score")) {
     orderBy = { score: orderValue.endsWith("_asc") ? "asc" : "desc" };
@@ -76,7 +76,7 @@ export async function GET(req: Request) {
     },
     skip: (page - 1) * perPage,
     take: perPage,
-    orderBy: { createdAt: "desc" },
+    orderBy,
     select: {
       id: true,
       fileExt: true,
