@@ -82,8 +82,9 @@ export default function SearchBar({ onSubmit }: PostSearchBarProps) {
 
   const insertTag = (tagName: string) => {
     const parts = input.trim().split(/\s+/);
-    parts.pop(); // remove last word
-    parts.push(tagName); // insert selected suggestion
+    const lastWord = parts.pop() || "";
+    const negated = lastWord.startsWith("-");
+    parts.push(negated ? `-${tagName}` : tagName);
     setInput(parts.join(" ") + " ");
     setSuggestions([]);
     setHighlightedIndex(-1);
@@ -130,7 +131,7 @@ export default function SearchBar({ onSubmit }: PostSearchBarProps) {
                   backgroundColor: tag.category.color,
                 }}
               />
-              <span>{tag.name}</span>
+              <span>{input.trim().split(/\s+/).pop()?.startsWith("-") ? `-${tag.name}` : tag.name}</span>
             </div>
           ))}
         </div>

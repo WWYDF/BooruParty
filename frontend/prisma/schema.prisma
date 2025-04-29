@@ -129,6 +129,8 @@ model Tags {
 
   suggestions    Tags[]        @relation("TagSuggestions")
   suggestedBy    Tags[]        @relation("TagSuggestions")
+
+  createdAt      DateTime      @default(now())
 }
 
 model TagAlias {
