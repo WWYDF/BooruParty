@@ -1,8 +1,8 @@
 'use client';
 
+import { Post } from "@/core/types/posts";
 import Link from "next/link";
-import { ThumbsUp, Heart, FilmStrip } from "phosphor-react"; // ✅ icons
-import { Post } from "../../../../types/posts";
+import { ThumbsUp, Heart, FilmStrip } from "phosphor-react";
 
 interface PostCardProps {
   post: Post;

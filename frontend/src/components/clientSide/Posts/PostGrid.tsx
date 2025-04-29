@@ -1,6 +1,6 @@
 'use client';
 
-import { Post } from '../../../../types/posts';
+import { Post } from '@/core/types/posts';
 import PostCard from './PostCard';
 
 type ViewMode = 'GRID' | 'COLLAGE';
