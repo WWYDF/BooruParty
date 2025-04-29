@@ -63,15 +63,11 @@ export default function TagSummaryPage() {
     });
   }  
 
-  if (loading) return <p className="text-muted-foreground">Loading...</p>;
+  if (loading) return <p className="text-zinc-600">Loading...</p>;
   if (error || !tag) return <p className="text-red-500">{error || "Tag not found."}</p>;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-accent">{tag.name}</h1>
-      
-      <TagSubNavbar tag={tag.name} />
-
       <div className="text-sm space-y-2">
         <div>
           <span className="text-subtle">Category:</span>{" "}

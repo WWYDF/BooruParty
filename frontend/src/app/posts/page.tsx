@@ -14,22 +14,6 @@ export default async function PostsPage() {
 
   const initialPosts = await prisma.posts.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
-      postTags: {
-        include: {
-          tag: {
-            include: {
-              parentTag: {
-                include: {
-                  names: true,
-                  category: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
   });
 
   return (
