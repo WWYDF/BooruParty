@@ -1,40 +1,47 @@
+// app/api/tags/[name]/route.ts
+
+import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
-import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
-  const search = req.nextUrl.searchParams.get("search")?.toLowerCase();
-  if (!search) {
-    return NextResponse.json({ error: "Missing search parameter" }, { status: 400 });
-  }
+export async function GET(
+  req: Request,
+  { params }: { params: { name: string } }
+) {
+  const tagName = decodeURIComponent(params.name);
 
-  try {
-    const matchingTagNames = await prisma.tagName.findMany({
-      where: {
-        name: search,
-      },
+  // Try exact match
+  let tag = await prisma.tags.findUnique({
+    where: { name: tagName },
+    include: {
+      category: true,
+      aliases: true,
+      implies: true,
+      suggestions: true,
+    },
+  });
+
+  // If not found, try alias match
+  if (!tag) {
+    const alias = await prisma.tagAlias.findUnique({
+      where: { alias: tagName },
       include: {
-        parentTag: {
+        tag: {
           include: {
             category: true,
+            aliases: true,
+            implies: true,
+            suggestions: true,
           },
         },
       },
     });
 
-    if (!matchingTagNames.length) {
-      return NextResponse.json({ results: [] });
-    }
-
-    // Return the full Tags object including category via TagName
-    const results = matchingTagNames.map((tagName) => ({
-      name: tagName.name,
-      tagId: tagName.tagId,
-      category: tagName.parentTag.category,
-    }));
-
-    return NextResponse.json({ results });
-  } catch (err) {
-    console.error("Failed to search tags:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    tag = alias?.tag ?? null;
   }
+
+  if (!tag) {
+    return NextResponse.json({ error: "Tag not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(tag);
 }
