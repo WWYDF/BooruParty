@@ -1,12 +1,13 @@
-export type RawComment = {
-    id: number;
-    postId: number;
-    authorId: string;
-    content: string;
-    createdAt: string;
-  };
-  
-export type ResolvedComment = RawComment & {
-    authorName: string;
+export type Comments = {
+  id: number;
+  postId: number;
+  content: string;
+  createdAt: string;
+  author: {
+    id: string;
+    username: string;
+    role: string;
+    avatar: string
+  }
 };
   

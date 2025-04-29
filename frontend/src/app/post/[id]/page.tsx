@@ -3,7 +3,7 @@ import PostMetadata from "@/components/clientSide/Posts/Individual/PostMetadata"
 import PostNavigator from "@/components/clientSide/Posts/Individual/PostNavigator";
 import PostCommentForm from "@/components/clientSide/Posts/Individual/PostCommentForm";
 import PostCommentList from "@/components/clientSide/Posts/Individual/PostCommentList";
-import { RawComment, ResolvedComment } from "@/core/types/comments";
+import { Comments } from "@/core/types/comments";
 
 async function fetchPostData(postId: string) {
   const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/posts/${postId}`, {
@@ -13,29 +13,13 @@ async function fetchPostData(postId: string) {
   return res.json();
 }
 
-async function fetchComments(postId: string): Promise<ResolvedComment[]> {
+async function fetchComments(postId: string): Promise<Comments[]> {
   const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/comments?postId=${postId}`, {
     cache: "no-store",
   });
-  const rawComments: RawComment[] = await res.json();
+  const rawComments: Comments[] = await res.json();
 
-  const userCache: Record<string, string> = {};
-  const resolved = await Promise.all(
-    rawComments.map(async (comment) => {
-      if (!userCache[comment.authorId]) {
-        const userRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/users/${comment.authorId}`);
-        const userData = await userRes.json();
-        userCache[comment.authorId] = userData?.username ?? "Unknown";
-      }
-
-      return {
-        ...comment,
-        authorName: userCache[comment.authorId],
-      };
-    })
-  );
-
-  return resolved;
+  return rawComments;
 }
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
