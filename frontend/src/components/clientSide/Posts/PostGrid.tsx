@@ -15,8 +15,8 @@ export default function PostGrid({
   if (viewMode === 'COLLAGE') {
     return (
       <div className="columns-2 md:columns-3 gap-4">
-        {externalPosts.map((post) => (
-          <div key={post.id} className="mb-4 break-inside-avoid">
+        {externalPosts.map((post, index) => (
+          <div key={`${post.id}-${index}`} className="mb-4 break-inside-avoid">
             <PostCard post={post} viewMode="COLLAGE" />
           </div>
         ))}
@@ -26,8 +26,8 @@ export default function PostGrid({
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      {externalPosts.map((post) => (
-        <PostCard key={post.id} post={post} viewMode="GRID" />
+      {externalPosts.map((post, index) => (
+        <PostCard key={`${post.id}-${index}`} post={post} viewMode="GRID" />
       ))}
     </div>
   );
