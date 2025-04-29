@@ -44,6 +44,7 @@ model User {
   preferences   UserPreferences?
   favorites     UserFavorites[]
   posts         Posts[]
+  comments      Comments[]
   
   lastLogin     DateTime  @default(now())
   createdAt     DateTime  @default(now())
@@ -108,6 +109,7 @@ model Votes {
 model Comments {
   id         Int       @id @default(autoincrement())
   postId     Int
+  author     User      @relation(fields: [authorId], references: [id])
   authorId   String
   content    String
   createdAt  DateTime  @default(now())

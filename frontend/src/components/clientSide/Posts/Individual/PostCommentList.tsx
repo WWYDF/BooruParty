@@ -7,7 +7,12 @@ type ResolvedComment = {
   postId: number;
   content: string;
   createdAt: string;
-  authorName: string;
+  author: {
+    id: string;
+    username: string;
+    role: string;
+    avatar: string
+  }
 };
 
 export default function PostCommentList({
@@ -24,7 +29,7 @@ export default function PostCommentList({
   if (!comments.length) return <p className="text-subtle text-sm italic">No comments yet.</p>;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <AnimatePresence initial={false}>
         {comments.map((comment) => (
           <motion.div
@@ -33,12 +38,30 @@ export default function PostCommentList({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="bg-secondary p-3 rounded-xl text-sm text-subtle"
+            className="flex gap-4 items-start bg-secondary p-4 rounded-2xl"
           >
-            <div className="text-xs text-muted mb-1">
-              {comment.authorName} · {new Date(comment.createdAt).toLocaleString()}
+            {/* Avatar */}
+            <div className="flex-shrink-0">
+              {comment.author.avatar ? (
+                <img
+                  src={comment.author.avatar}
+                  alt={comment.author.username}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-secondary-border flex items-center justify-center text-subtle text-xs">
+                  ?
+                </div>
+              )}
             </div>
-            <p>{comment.content}</p>
+
+            {/* Content */}
+            <div className="flex-1">
+              <div className="text-muted text-sm mb-1 text-zinc-400">
+                {comment.author.username} · {new Date(comment.createdAt).toLocaleString()}
+              </div>
+              <p className="text-base text-zinc-400">{comment.content}</p>
+            </div>
           </motion.div>
         ))}
       </AnimatePresence>
