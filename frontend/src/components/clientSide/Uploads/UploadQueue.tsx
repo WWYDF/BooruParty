@@ -6,6 +6,7 @@ import { useDropzone } from 'react-dropzone'
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SortableUploads from './SortableUploads'
+import { useToast } from '../Toast'
 
 type UploadFile = {
   id: string
@@ -21,6 +22,7 @@ export default function UploadQueue() {
   const idCounter = useRef(0)
   const [anonymous, setAnonymous] = useState(false)
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const toast = useToast();
 
   const moveItem = (index: number, direction: 'up' | 'down') => {
     setQueue((prev) => {
@@ -61,7 +63,6 @@ export default function UploadQueue() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: true,
-    noClick: true,
     accept: {
       'image/*': [],
       'video/*': [],
@@ -85,49 +86,64 @@ export default function UploadQueue() {
   }
 
   const handleSubmit = async () => {
-    if (uploading || queue.length === 0) return
+    if (uploading || queue.length === 0) return;
   
-    setUploading(true)
-    const queueCopy = [...queue] // avoid modifying original while looping
+    setUploading(true);
   
-    for (let i = 0; i < queueCopy.length; i++) {
-      const item = queueCopy[i]
-      setUploadingIndex(i)
+    let i = 0;
+    while (i < queue.length) {
+      const item = queue[i];
+      setUploadingIndex(i);
   
-      const formData = new FormData()
-      formData.append('file', item.file)
-      formData.append('anonymous', anonymous.toString())
-      formData.append('safety', item.safety)
+      const formData = new FormData();
+      formData.append('file', item.file);
+      formData.append('anonymous', anonymous.toString());
+      formData.append('safety', item.safety);
   
       try {
         const res = await fetch('/api/files/upload', {
           method: 'POST',
           body: formData,
-        })
+        });
   
-        const result = await res.json()
-
-        if (result.duplicate && result.postId) {
-          setQueue((prev) =>
-            prev.map((f) =>
-              f.id === item.id ? { ...f, duplicatePostId: result.postId } : f
-            )
-          )
+        if (res.status === 409) {
+          const result = await res.json();
+          if (result.duplicate && result.postId) {
+            setQueue((prev) =>
+              prev.map((f) =>
+                f.id === item.id ? { ...f, duplicatePostId: result.postId } : f
+              )
+            );
+            break; // duplicate detected, stop
+          } else {
+            toast('Duplicate upload but no postId returned.', 'error');
+            break;
+          }
+        }
+  
+        if (!res.ok) {
+          const result = await res.json();
+          toast(`Upload failed: ${result.error || res.statusText}`, 'error');
           break;
         }
-      
-        // continue with normal removal
-        setQueue((prev) => prev.filter((f) => f.id !== item.id))
-        i--
-        
-        } catch (err) {
-        console.error(`Failed to upload ${item.file.name}`, err)
+  
+        // ✅ Upload successful
+        setQueue((prev) => prev.filter((f) => f.id !== item.id));
+  
+        i++; // 🔥 manually move to next file after success
+  
+      } catch (err) {
+        console.error(`Failed to upload ${item.file.name}`, err);
+        toast(`Upload failed: ${item.file.name}`, 'error');
+        break;
       }
     }
   
-    setUploading(false)
-    setUploadingIndex(null)
-  }
+    setUploading(false);
+    setUploadingIndex(null);
+  };
+  
+  
 
   return (
     <div className="w-full max-w-3xl mx-auto p-4">
