@@ -13,7 +13,9 @@ type TagType = {
 };
 
 type PostSearchBarProps = {
-  onSubmit: (query: string) => void;
+  input: string;
+  setInput: (input: string) => void;
+  onSubmit: (query?: string) => void;
 };
 
 export default function SearchBar({ onSubmit }: PostSearchBarProps) {

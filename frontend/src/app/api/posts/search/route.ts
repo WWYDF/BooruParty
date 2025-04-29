@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
+import { SafetyType } from "@prisma/client";
 
 function parseSearch(input: string) {
   const terms = input.split(/\s+/).filter(Boolean);
@@ -31,6 +32,7 @@ export async function GET(req: Request) {
   const search = searchParams.get("query") || "";
   const page = parseInt(searchParams.get("page") || "1");
   const perPage = parseInt(searchParams.get("perPage") || "50");
+  const safetyValues = searchParams.getAll("safety");
 
   const { includeTags, excludeTags, systemOptions } = parseSearch(search);
 
@@ -61,6 +63,9 @@ export async function GET(req: Request) {
     where: {
       AND: [
         uploaderWhere,
+        ...(safetyValues.length > 0
+          ? [{ safety: { in: safetyValues as SafetyType[] } }]
+          : []),
         ...includeTags.map((tagName) => ({
           tags: { some: { name: tagName } },
         })),
