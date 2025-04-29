@@ -205,6 +205,16 @@ export default function UploadQueue() {
       </div>
 
       {queue.length > 0 && (
+        <button
+          onClick={handleSubmit}
+          disabled={uploading}
+          className="mt-6 px-4 py-2 rounded-xl bg-darkerAccent text-white disabled:opacity-50"
+        >
+          {uploading ? 'Uploading...' : 'Submit'}
+        </button>
+      )}
+
+      {queue.length > 0 && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={queue.map(item => item.id)} strategy={verticalListSortingStrategy}>
             <motion.ul layout className="mt-6 space-y-3">
@@ -235,16 +245,6 @@ export default function UploadQueue() {
             </motion.ul>
           </SortableContext>
         </DndContext>
-      )}
-
-      {queue.length > 0 && (
-        <button
-          onClick={handleSubmit}
-          disabled={uploading}
-          className="mt-6 px-4 py-2 rounded-xl bg-darkerAccent text-white disabled:opacity-50"
-        >
-          {uploading ? 'Uploading...' : 'Submit'}
-        </button>
       )}
     </div>
   )
