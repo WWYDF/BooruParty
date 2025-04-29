@@ -43,6 +43,7 @@ model User {
   avatar        String?
   preferences   UserPreferences?
   favorites     UserFavorites[]
+  posts         Posts[]
   
   lastLogin     DateTime  @default(now())
   createdAt     DateTime  @default(now())
@@ -72,10 +73,10 @@ model UserFavorites {
 model Posts {
   id            Int          @id @default(autoincrement())
   fileExt       String
-  uploadedBy    String
+  uploadedBy    User         @relation(fields: [uploadedById], references: [id])
   anonymous     Boolean
   safety        SafetyType
-  postTags      PostTag[]
+  tags          Tags[]       @relation("PostTags")
   sources       String[]
   notes         String?
   flags         String[]
@@ -86,6 +87,7 @@ model Posts {
   votes         Votes[]      @relation("PostVotes")
   comments      Comments[]   @relation("PostComments")
   favoritedBy   UserFavorites[]
+  uploadedById  String
 
   createdAt     DateTime     @default(now())
 }
@@ -113,14 +115,31 @@ model Comments {
   post       Posts     @relation(fields: [postId], references: [id], name: "PostComments", onDelete: Cascade)
 }
 
-model PostTag {
-  postId Int
-  tagId  Int
+model Tags {
+  id             Int            @id @default(autoincrement())
+  name           String         @unique
+  description    String?
+  
+  categoryId     Int
+  category       TagCategories  @relation(fields: [categoryId], references: [id])
+  
+  aliases        TagAlias[]
+  posts          Posts[]         @relation("PostTags")
 
-  post   Posts    @relation(fields: [postId], references: [id])
-  tag    TagName  @relation(fields: [tagId], references: [id])
+  implications   Tags[]        @relation("TagImplies")
+  impliedBy      Tags[]        @relation("TagImplies")
 
-  @@id([postId, tagId])
+  suggestions    Tags[]        @relation("TagSuggestions")
+  suggestedBy    Tags[]        @relation("TagSuggestions")
+
+  createdAt      DateTime      @default(now())
+}
+
+model TagAlias {
+  id      Int    @id @default(autoincrement())
+  alias   String @unique
+  tagId   Int
+  tag     Tags   @relation(fields: [tagId], references: [id])
 }
 
 model TagCategories {
@@ -131,31 +150,4 @@ model TagCategories {
   tags       Tags[]
 
   updatedAt  DateTime     @updatedAt
-}
-
-model TagName {
-  id         Int          @id @default(autoincrement())
-  name       String       @unique
-  tagId      Int
-  parentTag  Tags         @relation(fields: [tagId], references: [id])
-
-  postTags   PostTag[]
-  
-  @@index([name])
-}
-
-model Tags {
-  id            Int       @id @default(autoincrement())
-  names         TagName[]
-
-  categoryId    Int
-  category      TagCategories @relation(fields: [categoryId], references: [id])
-
-  implications  Tags[]    @relation("TagImplications")
-  impliedBy     Tags[]    @relation("TagImplications")
-
-  suggestions   Tags[]    @relation("TagSuggestions")
-  suggestedBy   Tags[]    @relation("TagSuggestions")
-
-  updatedAt     DateTime  @updatedAt
 }

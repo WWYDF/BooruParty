@@ -1,178 +1,272 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import TagMultiSelect from "@/components/clientSide/Tags/TagMultiSelect";
+import { useParams, useRouter } from "next/navigation";
+import TagSelector from "@/components/clientSide/TagSelector";
+import { useToast } from "@/components/clientSide/Toast";
+
+type Tag = {
+  id: number;
+  name: string;
+  description: string;
+  category: {
+    id: number;
+    name: string;
+    color: string;
+  };
+  aliases: { id: number; alias: string }[];
+  implications: { id: number; name: string }[];
+  suggestions: { id: number; name: string }[];
+};
+
+type MiniTag = {
+  id: number;
+  name: string;
+};
 
 type Category = {
   id: number;
   name: string;
   color: string;
+  order: number;
 };
 
-type Tag = {
-  id: number;
-  names: string[];
-  categoryId: number;
-  implications: { id: number; names: string[] }[];
-  suggestions: { id: number; names: string[] }[];
-};
-
-type TagReference = {
-  id: number;
-  name: string;
-};
-
-type FormState = {
-  canonical: string;
-  aliases: string[];
-  categoryId: number;
-  implications: TagReference[];
-  suggestions: TagReference[];
-};
-
-export default function EditTagPage() {
+export default function TagEditPage() {
   const { name } = useParams<{ name: string }>();
   const [tag, setTag] = useState<Tag | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [names, setNames] = useState<string[]>([]);
+  const [description, setDescription] = useState<string>("");
+  const [implications, setImplications] = useState<MiniTag[]>([]);
+  const [suggestions, setSuggestions] = useState<MiniTag[]>([]);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<FormState>({
-    canonical: "",
-    aliases: [],
-    categoryId: 0,
-    implications: [],
-    suggestions: [],
-  });
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+  const router = useRouter()
 
   useEffect(() => {
-    const load = async () => {
-      const [tagRes, catRes] = await Promise.all([
-        fetch(`/api/tags/${name}`),
-        fetch("/api/tag-categories"),
-      ]);
-
-      if (!tagRes.ok) return setTag(null);
-
-      const tagData: Tag = await tagRes.json();
-      const cats: Category[] = await catRes.json();
-
-      setTag(tagData);
-      setCategories(cats);
-      setForm({
-        canonical: tagData.names[0],
-        aliases: tagData.names.slice(1),
-        categoryId: tagData.categoryId,
-        implications: tagData.implications.map((t) => ({
-          id: t.id,
-          name: t.names[0],
-        })),
-        suggestions: tagData.suggestions.map((t) => ({
-          id: t.id,
-          name: t.names[0],
-        })),
-      });
-      setLoading(false);
-    };
-
-    load();
+    fetch(`/api/tags/${name}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Tag not found");
+        return res.json();
+      })
+      .then((data) => {
+        setTag(data);
+        setNames([data.name, ...data.aliases.map((a: any) => a.alias)]);
+        setDescription(data.description || "");
+        setImplications(data.implications || []);
+        setSuggestions(data.suggestions || []);
+        setCategoryId(data.category?.id ?? null);
+      })
+      .catch((err) => setError(err.message))
   }, [name]);
 
-  const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  useEffect(() => {
+    fetch("/api/tag-categories")
+      .then((res) => res.json())
+      .then((data: Category[]) => setCategories(data))
+      .catch((err) => console.error("Failed to load categories", err));
+  }, []);
+
+  const handleSave = async () => {
+    if (!tag) return;
+    if (names.length === 0 || !names[0]) {
+      toast("Primary name is required.", "error");
+      return;
+    }
+  
+    setSaving(true);
+  
+    try {
+      const res = await fetch(`/api/tags/${encodeURIComponent(tag.name)}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: names[0],
+          aliases: names.slice(1),
+          description: description.trim() || null,
+          categoryId: categoryId ?? null,
+          implications: implications.map((i) => i.id),
+          suggestions: suggestions.map((s) => s.id),
+        }),
+      });
+  
+      if (res.ok) {
+        toast("Tag updated successfully!", "success");
+        router.push(`/dashboard/tags/${encodeURIComponent(names[0])}`);
+      } else {
+        const data = await res.json();
+        toast(data.error || "Failed to save changes.", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      toast("Failed to save changes.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const updateAlias = (index: number, value: string) => {
-    const updated = [...form.aliases];
-    updated[index] = value;
-    updateField("aliases", updated);
-  };
-
-  const addAlias = () => updateField("aliases", [...form.aliases, ""]);
-  const removeAlias = (index: number) => {
-    const updated = [...form.aliases];
-    updated.splice(index, 1);
-    updateField("aliases", updated);
-  };
-
-  if (loading) return <p className="text-muted-foreground">Loading...</p>;
-  if (!tag) return <p className="text-red-500">Tag not found.</p>;
+  if (error) {
+    return (
+      <div className="text-red-500 text-center mt-10">
+        {error || "Something went wrong."}
+      </div>
+    );
+  }
 
   return (
-    <form className="space-y-6">
-      <div>
-        <label className="block text-subtle text-sm mb-1">Canonical Name</label>
-        <input
-          type="text"
-          className="bg-secondary p-2 rounded w-full border border-secondary-border"
-          value={form.canonical}
-          onChange={(e) => updateField("canonical", e.target.value)}
-        />
-      </div>
+    <div className="space-y-6">
+      {/* Form layout */}
+      <div className="space-y-4">
+        {/* Names */}
+        <div>
+          <label className="text-zinc-600 text-sm">Names</label>
+          <input
+            type="text"
+            value={names.join(" ")}
+            onChange={(e) => {
+              const input = e.target.value;
 
-      <div>
-        <label className="block text-subtle text-sm mb-1">Aliases</label>
-        <div className="space-y-2">
-          {form.aliases.map((alias, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <input
-                type="text"
-                className="bg-secondary p-2 rounded w-full border border-secondary-border"
-                value={alias}
-                onChange={(e) => updateAlias(i, e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => removeAlias(i)}
-                className="text-red-500 hover:underline text-sm"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addAlias}
-            className="text-accent text-sm hover:underline"
-          >
-            + Add Alias
-          </button>
+              const sanitized = input
+                .split(" ")
+
+              setNames(sanitized);
+            }}
+            className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-200"
+            placeholder="example_tag another_tag something_else"
+          />
+          <p className="text-zinc-600 text-xs mt-1">
+            Separate names with spaces. First name is primary. No spaces allowed inside names (use underscores).
+          </p>
         </div>
-      </div>
 
-      <div>
-        <label className="block text-subtle text-sm mb-1">Category</label>
-        <select
-          value={form.categoryId}
-          onChange={(e) => updateField("categoryId", parseInt(e.target.value))}
-          className="bg-secondary p-2 rounded border border-secondary-border w-full"
+
+
+        {/* Category */}
+        <div>
+          <label className="text-zinc-600 text-sm">Category</label>
+          <select
+            value={categoryId ?? ""}
+            onChange={(e) => setCategoryId(Number(e.target.value))}
+            className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100"
+          >
+            <option value="">(none)</option>
+            {categories
+              .sort((a, b) => a.order - b.order)
+              .map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+          </select>
+        </div>
+
+        {/* Implications */}
+        <div>
+          <label className="text-zinc-600 text-sm">Implications</label>
+          <TagSelector
+            onSelect={(tag) => {
+              if (!implications.some((t) => t.id === tag.id)) {
+                setImplications((prev) => [...prev, { id: tag.id, name: tag.name }]);
+              }
+            }}
+            placeholder="Add an implication..."
+            disabledTags={implications.map((tag) => ({
+              id: tag.id,
+              name: tag.name,
+              description: "",
+              category: { id: 0, name: "", color: "#ffffff" }, // dummy category
+              aliases: [],
+            }))}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {implications.map((imp) => (
+              <div
+                key={imp.id}
+                className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm"
+              >
+                <a href={`/dashboard/tag/${encodeURIComponent(imp.name)}`} className="hover:underline">
+                  {imp.name}
+                </a>
+                {/* Remove button */}
+                <button
+                  onClick={() =>
+                    setImplications((prev) => prev.filter((i) => i.id !== imp.id))
+                  }
+                  className="ml-2 text-red-400 hover:text-red-500"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Suggestions */}
+        <div>
+          <label className="text-zinc-600 text-sm">Suggestions</label>
+          <TagSelector
+            onSelect={(tag) => {
+              if (!suggestions.some((t) => t.id === tag.id)) {
+                setSuggestions((prev) => [...prev, { id: tag.id, name: tag.name }]);
+              }
+            }}
+            placeholder="Add a suggestion..."
+            disabledTags={suggestions.map((tag) => ({
+              id: tag.id,
+              name: tag.name,
+              description: "",
+              category: { id: 0, name: "", color: "#ffffff" },
+              aliases: [],
+            }))}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {suggestions.map((sugg) => (
+              <div
+                key={sugg.id}
+                className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm"
+              >
+                <a href={`/dashboard/tag/${encodeURIComponent(sugg.name)}`} className="hover:underline">
+                  {sugg.name}
+                </a>
+                {/* Remove button */}
+                <button
+                  onClick={() =>
+                    setSuggestions((prev) => prev.filter((s) => s.id !== sugg.id))
+                  }
+                  className="ml-2 text-red-400 hover:text-red-500"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="text-subtle text-sm">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1"
+            rows={6}
+          />
+        </div>
+
+        {/* Save Changes */}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-accent text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
         >
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id} style={{ color: cat.color }}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
+          {saving ? "Saving..." : "Save Changes"}
+        </button>
+
       </div>
-
-      <TagMultiSelect
-        label="Implications"
-        selected={form.implications}
-        onChange={(newTags) => updateField("implications", newTags)}
-      />
-
-      <TagMultiSelect
-        label="Suggestions"
-        selected={form.suggestions}
-        onChange={(newTags) => updateField("suggestions", newTags)}
-      />
-
-      <button
-        type="submit"
-        className="bg-accent text-white px-4 py-2 rounded"
-        disabled
-      >
-        Save Changes (Coming soon)
-      </button>
-    </form>
+    </div>
   );
 }

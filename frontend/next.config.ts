@@ -5,7 +5,14 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ['placehold.co', 'localhost'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3005',         // Fastify server port
+        pathname: '/data/**', // allow anything under /data/
+      },
+    ],
   }
 };
 

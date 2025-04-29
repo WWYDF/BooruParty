@@ -2,16 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import TagSubNavbar from "@/components/clientSide/Tags/Layout/TagSubNavbar";
 
-type Tag = {
+export type Tag = {
   id: number;
-  names: string[];
-  category?: { 
+  name: string;
+  description: string;
+  category: {
+    id: number;
     name: string;
     color: string;
-};
-  implications: { id: number; names: string[] }[];
-  suggestions: { id: number; names: string[] }[];
+    order: number;
+    updatedAt: Date;
+  };
+  aliases: { id: number; alias: string }[];
+  implications: { id: number; name: string }[];
+  suggestions: { id: number; name: string }[];
 };
 
 export default function TagSummaryPage() {
@@ -33,79 +39,104 @@ export default function TagSummaryPage() {
       .finally(() => setLoading(false));
   }, [name]);
 
-  if (loading) return <p className="text-muted-foreground">Loading...</p>;
+  function formatDescription(text: string) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+  
+    const parts = text.split(urlRegex);
+  
+    return parts.map((part, index) => {
+      if (urlRegex.test(part)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            className="text-accent hover:underline break-words"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {part}
+          </a>
+        );
+      } else {
+        return <span key={index}>{part}</span>;
+      }
+    });
+  }  
+
+  if (loading) return <p className="text-zinc-600">Loading...</p>;
   if (error || !tag) return <p className="text-red-500">{error || "Tag not found."}</p>;
 
-  const aliases = tag.names.slice(1);
-
   return (
-    <div className="space-y-4">
-        <h1 className="text-xl font-bold text-accent">
-            {tag.names[0]}
-            {aliases.length > 0 && (
-            <span className="text-subtle font-normal"> ({aliases.join(", ")})</span>
-            )}
-        </h1>
+    <div className="space-y-6">
+      <div className="text-sm space-y-2">
+        <div>
+          <span className="text-subtle">Category:</span>{" "}
+          <a
+            href={`/dashboard/tags/categories`}
+            style={{ color: tag.category.color }}
+            className="hover:underline"
+          >
+            {tag.category.name}
+          </a>
+        </div>
 
-        <div className="text-sm">
-            <span className="text-subtle">Category:</span>{" "}
-            {tag.category ? (
+        <div>
+          <span className="text-subtle">Aliases:</span>{" "}
+          {tag.aliases.length > 0
+            ? tag.aliases.map((a, i) => (
+              <a
+                key={a.id}
+                href={`/dashboard/tags/${encodeURIComponent(a.alias)}`}
+                className="text-accent hover:underline"
+              >
+                {a.alias}{i < tag.aliases.length - 1 && ", "}
+              </a>
+            ))
+          : <span className="text-zinc-600">(none)</span>}
+        </div>
+
+        <div>
+          <span className="text-subtle">Implications:</span>{" "}
+          {tag.implications.length > 0
+            ? tag.implications.map((imp, i) => (
                 <a
-                href={`/dashboard/tags/categories`}
-                style={{ color: tag.category.color }}
-                className="hover:underline transition"
+                  key={imp.id}
+                  href={`/dashboard/tags/${encodeURIComponent(imp.name)}`}
+                  className="text-accent hover:underline"
                 >
-                {tag.category.name}
+                  {imp.name}{i < tag.implications.length - 1 && ", "}
                 </a>
-            ) : (
-                <span className="italic text-muted-foreground">(none)</span>
-            )}
+              ))
+            : <span className="text-zinc-600">(none)</span>}
         </div>
 
-        {tag.implications.length > 0 && (
-            <div className="text-sm">
-            <span className="text-subtle">Implications:</span>{" "}
-            {tag.implications.map((imp, i) => (
-                <span key={imp.id}>
-                <a href={`/dashboard/tag/${imp.names[0]}`} className="text-accent hover:underline">
-                    {imp.names[0]}
+        <div>
+          <span className="text-subtle">Suggestions:</span>{" "}
+          {tag.suggestions.length > 0
+            ? tag.suggestions.map((sugg, i) => (
+                <a
+                  key={sugg.id}
+                  href={`/dashboard/tags/${encodeURIComponent(sugg.name)}`}
+                  className="text-accent hover:underline"
+                >
+                  {sugg.name}{i < tag.suggestions.length - 1 && ", "}
                 </a>
-                {i < tag.implications.length - 1 && ", "}
-                </span>
-            ))}
-            </div>
-        )}
-
-        {tag.suggestions.length > 0 && (
-            <div className="text-sm">
-            <span className="text-subtle">Suggestions:</span>{" "}
-            {tag.suggestions.map((sug, i) => (
-                <span key={sug.id}>
-                <a href={`/dashboard/tag/${sug.names[0]}`} className="text-accent hover:underline">
-                    {sug.names[0]}
-                </a>
-                {i < tag.suggestions.length - 1 && ", "}
-                </span>
-            ))}
-            </div>
-        )}
-
-        <div className="border-t border-secondary-border pt-4 text-subtle text-sm text-muted-foreground">
-            <p>This tag has no description yet.</p>
-            <p className="mt-2">
-            This tag has <a className="text-accent hover:underline" href="#">1 usage(s)</a>.
-            </p>
+              ))
+            : <span className="text-zinc-600">(none)</span>}
         </div>
-        </div>
+      </div>
 
-  );
-}
+      <hr className="border-secondary-border" />
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-secondary p-4 rounded-xl space-y-1 border border-secondary-border">
-      <div className="text-subtle text-sm">{title}</div>
-      {children}
+      <div className="text-subtle text-sm text-muted-foreground space-y-2">
+      <p>{tag.description ? formatDescription(tag.description) : "This tag has no description yet."}</p>
+        <p>
+          This tag has{" "}
+          <a className="text-accent hover:underline" href="#">
+            0 usage(s)
+          </a>.
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,11 +1,29 @@
 "use client";
 
-export default function Filters() {
+type FiltersProps = {
+  selectedSafeties: string[];
+  toggleSafety: (safety: string) => void;
+  triggerSearch: () => void;
+};
+
+export default function Filters({ selectedSafeties, toggleSafety }: FiltersProps) {
+  const safetyOptions = ["SAFE", "SKETCHY", "UNSAFE"];
+
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      {/* Placeholder for now, we'll add actual filters later */}
-      <button className="px-3 py-1 rounded-xl bg-secondary-border text-sm text-subtle">Safe</button>
-      <button className="px-3 py-1 rounded-xl bg-secondary-border text-sm text-subtle">NSFW</button>
+    <div className="flex gap-2">
+      {safetyOptions.map((safety) => (
+        <button
+          key={safety}
+          onClick={() => toggleSafety(safety)} // 🔥 calls parent's logic
+          className={`px-3 py-1 rounded ${
+            selectedSafeties.includes(safety)
+              ? "bg-accent text-black"
+              : "bg-secondary text-subtle"
+          }`}
+        >
+          {safety}
+        </button>
+      ))}
     </div>
   );
 }

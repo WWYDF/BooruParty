@@ -10,6 +10,8 @@ export default function ClientPostsPage({ initialPosts }: { initialPosts: any[] 
   const [posts, setPosts] = useState(initialPosts);
   const [viewMode, setViewMode] = useState<"GRID" | "COLLAGE">("GRID");
   const [loadingViewMode, setLoadingViewMode] = useState(true);
+  const [selectedSafeties, setSelectedSafeties] = useState<string[]>([]);
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     getSession().then(async (session) => {
@@ -21,11 +23,43 @@ export default function ClientPostsPage({ initialPosts }: { initialPosts: any[] 
     });
   }, []);
 
+  const toggleSafety = (safety: string) => {
+    const nextSafeties = selectedSafeties.includes(safety)
+      ? selectedSafeties.filter((s) => s !== safety)
+      : [...selectedSafeties, safety];
+  
+    setSelectedSafeties(nextSafeties);
+    searchPosts(searchText, nextSafeties);
+  };  
+
+  const searchPosts = async (
+    queryOverride?: string,
+    safetyOverride?: string[]
+  ) => {
+    const params = new URLSearchParams();
+    params.set("query", queryOverride ?? searchText);
+  
+    const safetiesToUse = safetyOverride ?? selectedSafeties;
+    safetiesToUse.forEach((s) => params.append("safety", s));
+  
+    const res = await fetch(`/api/posts/search?${params.toString()}`);
+    const data = await res.json();
+    setPosts(data.posts || []);
+  };
+
   return (
     <>
       <section className="flex flex-col md:flex-row gap-4">
-        <SearchBar onResults={setPosts} />
-        <Filters />
+        <SearchBar
+          input={searchText}
+          setInput={setSearchText}
+          onSubmit={searchPosts}
+        />
+        <Filters
+          selectedSafeties={selectedSafeties}
+          toggleSafety={toggleSafety}
+          triggerSearch={() => searchPosts()}
+        />
       </section>
 
       <Suspense fallback={<p className="text-subtle">Loading posts...</p>}>

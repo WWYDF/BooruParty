@@ -12,7 +12,10 @@ export default async function Layout({ children, params }: Props) {
 
   return (
     <CenteredPageWrapper>
-      <TagSubNavbar tag={name} />
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-accent">{name}</h1>
+        <TagSubNavbar tag={name} />
+      </div>
       {children}
     </CenteredPageWrapper>
   );

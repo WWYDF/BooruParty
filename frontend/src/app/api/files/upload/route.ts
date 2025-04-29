@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   const createdPost = await prisma.posts.create({
     data: {
       fileExt: extension,
-      uploadedBy: session.user.id,
+      uploadedById: session.user.id,
       anonymous,
       safety,
       sources: [],
