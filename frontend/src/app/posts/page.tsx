@@ -1,6 +1,7 @@
 import { prisma } from "@/core/prisma";
 import { auth } from "@/core/auth";
 import ClientPostsPage from "@/components/clientSide/Posts/PostsPage";
+import BackToTop from "@/components/clientSide/BackToTop";
 
 export default async function PostsPage() {
   const session = await auth();
@@ -25,6 +26,7 @@ export default async function PostsPage() {
         initialPosts={initialPosts}
         postsPerPage={postsPerPage} // 🔥 Pass it to client
       />
+      <BackToTop />
     </main>
   );
 }

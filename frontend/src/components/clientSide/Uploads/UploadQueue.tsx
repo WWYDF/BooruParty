@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useRef, useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -22,6 +22,7 @@ export default function UploadQueue() {
   const idCounter = useRef(0)
   const [anonymous, setAnonymous] = useState(false)
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const [bulkSafety, setBulkSafety] = useState<"SAFE" | "SKETCHY" | "UNSAFE">("SAFE");
   const toast = useToast();
 
   const moveItem = (index: number, direction: 'up' | 'down') => {
@@ -143,7 +144,17 @@ export default function UploadQueue() {
     setUploadingIndex(null);
   };
   
-  
+  const handleBulkSafetyChange = (newSafety: "SAFE" | "SKETCHY" | "UNSAFE") => {
+    setBulkSafety(newSafety);
+    setQueue((prev) =>
+      prev.map((item) => ({
+        ...item,
+        safety: newSafety,
+      }))
+    );
+    // toast(`Marked all as ${newSafety.toUpperCase()}.`, 'success');
+  };
+    
 
   return (
     <div className="w-full max-w-3xl mx-auto p-4">
@@ -158,16 +169,39 @@ export default function UploadQueue() {
       </div>
 
       <div className="mt-4 mb-2 flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="anonymous"
-          checked={anonymous}
-          onChange={(e) => setAnonymous(e.target.checked)}
-          className="accent"
-        />
-        <label htmlFor="anonymous" className="text-subtle">
-          Upload anonymously
-        </label>
+        <div className="flex items-center gap-4 mb-4">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={anonymous}
+              onChange={(e) => setAnonymous(e.target.checked)}
+            />
+            Upload anonymously
+          </label>
+
+          <div className="flex gap-1">
+            {(["SAFE", "SKETCHY", "UNSAFE"] as const).map((level) => {
+              const isActive = bulkSafety === level;
+              const colorMap = {
+                SAFE: "bg-green-600 text-white",
+                SKETCHY: "bg-yellow-400 text-black",
+                UNSAFE: "bg-red-600 text-white",
+              };
+              return (
+                <motion.button
+                  key={level}
+                  onClick={() => handleBulkSafetyChange(level)}
+                  className={`px-2 py-1 rounded text-xs transition-all duration-150 ${
+                    isActive ? colorMap[level] : "bg-secondary-border text-subtle"
+                  }`}
+                  layout
+                >
+                  {level.charAt(0) + level.slice(1).toLowerCase()}
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {queue.length > 0 && (

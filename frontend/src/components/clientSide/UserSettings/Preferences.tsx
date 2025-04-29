@@ -68,9 +68,9 @@ export default function PreferencesForm() {
                 value={postsPerPage}
                 onChange={(e) => setPPP(Number(e.target.value))}
                 className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                min={100}
-                max={1000}
-                step={50}
+                min={1}
+                max={100}
+                step={1}
               />
             </div>
         </div>
