@@ -9,7 +9,7 @@ const querySchema = z.object({
   tags: z.string().optional(),
   sort: z.enum(["new", "old"]).optional(),
   page: z.coerce.number().default(1),
-  perPage: z.coerce.number().default(50),
+  perPage: z.coerce.number().default(30),
 });
 
 export async function GET(req: NextRequest) {

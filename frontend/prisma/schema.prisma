@@ -55,6 +55,7 @@ model UserPreferences {
   
   layout        LayoutType   @default(GRID)
   theme         ThemeType    @default(DARK)
+  postsPerPage  Int          @default(30)
 }
 
 model UserFavorites {

@@ -12,13 +12,19 @@ export default async function PostsPage() {
       })
     : null;
 
+  const postsPerPage = user?.preferences?.postsPerPage ?? 30; // fallback default
+
   const initialPosts = await prisma.posts.findMany({
     orderBy: { createdAt: "desc" },
+    take: postsPerPage, // Limit page 1 properly
   });
 
   return (
     <main className="p-4 space-y-4">
-      <ClientPostsPage initialPosts={initialPosts} />
+      <ClientPostsPage
+        initialPosts={initialPosts}
+        postsPerPage={postsPerPage} // 🔥 Pass it to client
+      />
     </main>
   );
 }

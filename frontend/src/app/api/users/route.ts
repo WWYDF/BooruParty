@@ -16,7 +16,7 @@ export async function GET() {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      preferences: true,
+      preferences: true
       // add whatever other sensitive data you want here
     },
   });
@@ -30,6 +30,7 @@ const updateUserSchema = z.object({
     password: z.string().min(6).optional(),
     layout: z.enum(['GRID', 'COLLAGE']).optional(),
     theme: z.enum(['DARK', 'LIGHT']).optional(),
+    postsPerPage: z.number().default(30),
     avatar: z.string().url().optional(),
 });
   
@@ -49,7 +50,7 @@ export async function PATCH(req: Request) {
         );
     }
 
-    const { username, email, password, layout, theme } = parsed.data;
+    const { username, email, password, layout, theme, postsPerPage } = parsed.data;
     const userId = session.user.id;
 
     const updates: any = {};
@@ -60,6 +61,7 @@ export async function PATCH(req: Request) {
     const prefUpdates: any = {};
     if (layout) prefUpdates.layout = layout;
     if (theme) prefUpdates.theme = theme;
+    if (postsPerPage) prefUpdates.postsPerPage = postsPerPage;
 
     try {
         await prisma.user.update({

@@ -101,7 +101,7 @@ export default function SearchBar({ onSubmit }: PostSearchBarProps) {
   };
 
   return (
-    <div className="relative w-1/3">
+    <div className="relative w-full md:w-1/3">
       <input
         ref={inputRef}
         type="text"

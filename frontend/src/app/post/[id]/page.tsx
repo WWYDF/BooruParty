@@ -38,12 +38,6 @@ async function fetchComments(postId: string): Promise<ResolvedComment[]> {
   return resolved;
 }
 
-type Props = {
-  params: {
-    id: string;
-  };
-};
-
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const postId = id;
@@ -66,7 +60,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   return (
     <main className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 p-4">
       <div className="order-2 md:order-1 md:col-span-1">
-        <PostMetadata post={postData.post} uploader={postData.uploaderInfo} />
+        <PostMetadata post={postData.post} />
       </div>
 
       <div className="space-y-6 order-1 md:order-2">

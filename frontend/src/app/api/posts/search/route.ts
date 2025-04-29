@@ -76,7 +76,7 @@ export async function GET(req: Request) {
     },
     skip: (page - 1) * perPage,
     take: perPage,
-    orderBy,
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       fileExt: true,

@@ -15,7 +15,9 @@ export async function GET(
       avatar: true,
       preferences: {
         select: {
-          layout: true
+          layout: true,
+          theme: true,
+          postsPerPage: true,
         }
       },
       // add more fields if needed

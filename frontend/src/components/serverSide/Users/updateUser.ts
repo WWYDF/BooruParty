@@ -4,6 +4,7 @@ export async function updateUser(data: Partial<{
     password: string;
     layout: 'GRID' | 'COLLAGE';
     theme: 'DARK' | 'LIGHT';
+    postsPerPage: number;
     avatar: string;
 }>) {
     const res = await fetch('/api/users', {
