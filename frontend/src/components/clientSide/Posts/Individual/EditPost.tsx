@@ -3,19 +3,7 @@
 import { useState } from "react";
 import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
-import TagSelector from "../../TagSelector";
-
-type TagType = {
-  id: number;
-  name: string;
-  description?: string;
-  category: {
-    id: number;
-    name: string;
-    color: string;
-  };
-  aliases: { id: number; alias: string }[];
-};
+import TagSelector, { TagType } from "../../TagSelector";
 
 type PostType = {
   id: number;

@@ -1,111 +1,88 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 
-async function resolveTagIds(include: string[], exclude: string[]) {
-  const tagNames = await prisma.tagName.findMany({
-    where: {
-      name: {
-        in: [...include, ...exclude],
-      },
-    },
-  });
+function parseSearch(input: string) {
+  const terms = input.split(/\s+/).filter(Boolean);
 
-  const includedTagIds = tagNames
-    .filter((n) => include.includes(n.name))
-    .map((n) => n.tagId);
+  const includeTags: string[] = [];
+  const excludeTags: string[] = [];
 
-  const excludedTagIds = tagNames
-    .filter((n) => exclude.includes(n.name))
-    .map((n) => n.tagId);
-
-  return { includedTagIds, excludedTagIds };
-}
-
-async function getPostIdsMatchingIncludedTags(includedTagIds: number[]) {
-  if (includedTagIds.length === 0) return []; // intentionally return [] so logic works consistently
-
-  const group = await prisma.postTag.groupBy({
-    by: ["postId"],
-    where: {
-      tagId: { in: includedTagIds },
-    },
-    having: {
-      tagId: {
-        _count: {
-          equals: includedTagIds.length,
-        },
-      },
-    },
-  });
-
-  return group.map((g) => g.postId);
-}
-
-async function fetchPosts(
-  postIds: number[] | undefined,
-  excludedTagIds: number[],
-  options: any
-) {
-  return prisma.posts.findMany({
-    where: {
-      ...(postIds ? { id: { in: postIds } } : {}),
-      postTags: {
-        none: excludedTagIds.length
-          ? {
-              tagId: { in: excludedTagIds },
-            }
-          : undefined,
-      },
-    },
-    include: {
-      postTags: {
-        include: {
-          tag: {
-            include: {
-              parentTag: {
-                include: {
-                  names: true,
-                  category: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    orderBy:
-      options.order === "score"
-        ? { score: "desc" }
-        : options.order === "new"
-        ? { createdAt: "desc" }
-        : undefined,
-    take: typeof options.limit === "number" ? options.limit : 50,
-  });
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { include = [], exclude = [], options = {} } = body;
-
-    const { includedTagIds, excludedTagIds } = await resolveTagIds(include, exclude);
-
-    let postIds: number[] | undefined = undefined;
-
-    if (includedTagIds.length > 0) {
-      postIds = await getPostIdsMatchingIncludedTags(includedTagIds);
-
-      // No matches = no posts
-      if (postIds.length === 0) {
-        return NextResponse.json([]);
-      }
+  for (const term of terms) {
+    if (term.startsWith("-")) {
+      excludeTags.push(term.substring(1));
+    } else {
+      includeTags.push(term);
     }
-
-    const posts = await fetchPosts(postIds, excludedTagIds, options);
-
-    return NextResponse.json(posts);
-  } catch (err) {
-    console.error("Search failed:", err);
-    return NextResponse.json({ error: "Search failed." }, { status: 500 });
   }
+
+  return { includeTags, excludeTags };
+}
+
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+
+  const search = searchParams.get("query") || "";
+  const page = parseInt(searchParams.get("page") || "1");
+  const perPage = parseInt(searchParams.get("perPage") || "50");
+
+  const { includeTags, excludeTags } = parseSearch(search);
+
+  const posts = await prisma.posts.findMany({
+    where: {
+      AND: [
+        ...includeTags.map((tagName) => ({
+          tags: { some: { name: tagName } },
+        })),
+        ...excludeTags.map((tagName) => ({
+          tags: { none: { name: tagName } },
+        })),
+      ],
+    },
+    skip: (page - 1) * perPage,
+    take: perPage,
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      fileExt: true,
+      safety: true,
+      uploadedBy: true,
+      anonymous: true,
+      flags: true,
+      score: true,
+      favoritedBy: {
+        select: {
+          userId: true
+        }
+      },
+      comments: {
+        select: {
+          authorId: true,
+          content: true
+        }
+      },
+      createdAt: true,
+      tags: { select: { id: true, name: true } },
+    },
+  });
+
+  const totalCount = await prisma.posts.count({
+    where: {
+      AND: [
+        ...includeTags.map((tagName) => ({
+          tags: { some: { name: tagName } },
+        })),
+        ...excludeTags.map((tagName) => ({
+          tags: { none: { name: tagName } },
+        })),
+      ],
+    },
+  });
+
+  const totalPages = Math.ceil(totalCount / perPage);
+
+  return NextResponse.json({
+    posts,
+    totalPages,
+  });
 }

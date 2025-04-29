@@ -24,7 +24,17 @@ export default function ClientPostsPage({ initialPosts }: { initialPosts: any[] 
   return (
     <>
       <section className="flex flex-col md:flex-row gap-4">
-        <SearchBar onResults={setPosts} />
+      <SearchBar
+          onSubmit={async (query) => {
+            try {
+              const res = await fetch(`/api/posts/search?query=${encodeURIComponent(query)}`);
+              const data = await res.json();
+              setPosts(data.posts || []);
+            } catch (err) {
+              console.error("Search failed", err);
+            }
+          }}
+        />
         <Filters />
       </section>
 

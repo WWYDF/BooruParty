@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 
-type TagType = {
+export type TagType = {
   id: number;
   name: string;
   description?: string;
@@ -11,14 +11,15 @@ type TagType = {
     name: string;
     color: string;
   };
-  aliases: { id: number; alias: string }[];
+  aliases?: { id: number; alias: string }[];
 };
 
 type TagSelectorProps = {
-  onSelect: (tag: TagType) => void;
+  onSelect: (tag: TagType, isNegated?: boolean) => void;
   onEnter?: (text: string) => void;
   placeholder?: string;
-  disabledTags?: TagType[]; // Tags already added, hide from results
+  disabledTags?: TagType[];
+  allowNegation?: boolean; // 🔥 NEW
 };
 
 export default function TagSelector({
@@ -26,6 +27,7 @@ export default function TagSelector({
   onEnter,
   placeholder = "Type to search...",
   disabledTags = [],
+  allowNegation = false, // 🔥 NEW
 }: TagSelectorProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TagType[]>([]);
@@ -40,7 +42,9 @@ export default function TagSelector({
       clearTimeout(debounceTimeout.current);
     }
 
-    if (query.trim() === "") {
+    const cleanQuery = allowNegation && query.startsWith("-") ? query.slice(1) : query;
+
+    if (cleanQuery.trim() === "") {
       setResults([]);
       setHighlightedIndex(-1);
       return;
@@ -49,10 +53,9 @@ export default function TagSelector({
     debounceTimeout.current = setTimeout(() => {
       setIsSearching(true);
 
-      fetch(`/api/tags/search?query=${encodeURIComponent(query)}`)
+      fetch(`/api/tags/search?query=${encodeURIComponent(cleanQuery)}`)
         .then((res) => res.json())
         .then((data: TagType[]) => {
-          // Filter out disabled tags if needed
           const filtered = data.filter(
             (tag) => !disabledTags.some((disabled) => disabled.id === tag.id)
           );
@@ -64,14 +67,14 @@ export default function TagSelector({
           setHighlightedIndex(-1);
         })
         .finally(() => setIsSearching(false));
-    }, 450); // Debounce (ms)
+    }, 450);
 
     return () => {
       if (debounceTimeout.current) {
         clearTimeout(debounceTimeout.current);
       }
     };
-  }, [query, disabledTags]);
+  }, [query, disabledTags, allowNegation]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
@@ -79,16 +82,11 @@ export default function TagSelector({
       setHighlightedIndex((prev) => (prev + 1) % results.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlightedIndex((prev) =>
-        prev === 0 ? results.length - 1 : prev - 1
-      );
+      setHighlightedIndex((prev) => (prev - 1 + results.length) % results.length);
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (highlightedIndex >= 0 && results[highlightedIndex]) {
-        onSelect(results[highlightedIndex]);
-        setQuery("");
-        setResults([]);
-        setHighlightedIndex(-1);
+        handleSelect(results[highlightedIndex]);
       } else if (onEnter) {
         onEnter(query.trim());
       }
@@ -98,11 +96,16 @@ export default function TagSelector({
     }
   };
 
-  const handleClickResult = (tag: TagType) => {
-    onSelect(tag);
+  const handleSelect = (tag: TagType) => {
+    const isNegated = allowNegation && query.trim().startsWith("-");
+    onSelect(tag, isNegated); // 🔥 pass isNegated flag if needed
     setQuery("");
     setResults([]);
     setHighlightedIndex(-1);
+  };
+
+  const handleClickResult = (tag: TagType) => {
+    handleSelect(tag);
   };
 
   return (

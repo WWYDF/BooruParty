@@ -1,22 +1,9 @@
 "use client";
 
-import TagSelector from "@/components/clientSide/TagSelector";
+import TagSelector, { TagType } from "@/components/clientSide/TagSelector";
 import { useToast } from "@/components/clientSide/Toast";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-
-type TagType = {
-  id: number;
-  name: string;
-  description?: string;
-  category: {
-    id: number;
-    name: string;
-    color: string;
-  };
-  aliases: { id: number; alias: string }[];
-};
-
 
 export default function MergeTagPage() {
   const { name } = useParams<{ name: string }>();
