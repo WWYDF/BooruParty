@@ -7,9 +7,9 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 const sizes = {
-  small: 200,
-  med: 400,
-  large: 800,
+  small: 400,
+  med: 800,
+  large: 1200,
 };
 
 export async function generateThumbnails(

@@ -23,8 +23,8 @@ export default function PostCard({ post, viewMode }: PostCardProps) {
         {viewMode === 'GRID' ? (
           <div className="aspect-square">
             <picture>
-              <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1024px)" />
-              <source srcSet={`${thumbnailUrl}_med.webp`} media="(min-width: 640px)" />
+              <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1920px)" />
+              <source srcSet={`${thumbnailUrl}_med.webp`} media="(min-width: 1024px)" />
               <img
                 srcSet={`${thumbnailUrl}_small.webp`}
                 alt={post.id.toString()}
@@ -34,8 +34,8 @@ export default function PostCard({ post, viewMode }: PostCardProps) {
           </div>
         ) : (
           <picture>
-            <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1024px)" />
-            <source srcSet={`${thumbnailUrl}_med.webp`} media="(min-width: 640px)" />
+            <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1920px)" />
+            <source srcSet={`${thumbnailUrl}_med.webp`} media="(min-width: 1024px)" />
             <img
               srcSet={`${thumbnailUrl}_small.webp`}
               alt={post.id.toString()}
