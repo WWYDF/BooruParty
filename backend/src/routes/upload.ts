@@ -47,13 +47,25 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
         writeStream.on('finish', async () => {
           fastify.log.info(`✅ File saved: ${filePath}`);
 
-          // ✅ Call your helper
           if (fileFolder === 'image') {
             try {
               previewScale = await processPreviewImage(filePath, Number(postId));
               if (previewScale == null) {
-                throw new Error('PreviewScale came back null.')
+                throw new Error('PreviewScale came back null.');
               }
+          
+              // 🛠️ ADD THIS CHECK HERE:
+              const originalSize = fs.statSync(filePath).size;
+              const previewPath = path.join(process.cwd(), 'data/previews/image', `${postId}.webp`);
+              if (fs.existsSync(previewPath)) {
+                const previewSize = fs.statSync(previewPath).size;
+                if (previewScale === 100 && previewSize >= originalSize) {
+                  fastify.log.info(`🗑️ Deleting useless preview for post ${postId}`);
+                  fs.unlinkSync(previewPath);
+                  previewScale = null; // Because there's no good preview now
+                }
+              }
+          
               fastify.log.info(`🖼️ Preview scale = ${previewScale}`);
             } catch (err) {
               fastify.log.error('❌ processPreview failed:', err);

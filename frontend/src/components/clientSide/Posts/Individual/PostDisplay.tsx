@@ -15,7 +15,7 @@ type Props = {
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
 export default function PostDisplay({ post }: Props) {
-  const [showFull, setShowFull] = useState(false);
+  const [showFull, setShowFull] = useState(post.previewScale === 100 || post.previewScale == null);
 
   const previewSrc = `${fastify}/data/previews/image/${post.id}.webp`;
   const fullSrc = `${fastify}/data/uploads/image/${post.id}.${post.fileExt}`;
@@ -31,7 +31,7 @@ export default function PostDisplay({ post }: Props) {
         />
       </div>
 
-      {!showFull && post.previewScale ? (
+      {!showFull && post.previewScale !== 100 ? (
         <button
           onClick={() => setShowFull(true)}
           className="text-subtle text-sm italic"
