@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
-import { getBestH264Encoder } from './pickEncoder';
+import { getBestEncoder } from './pickEncoder';
 
 const execAsync = promisify(exec);
 
@@ -11,19 +11,20 @@ export async function processVideoPreview(originalPath: string, postId: number):
   fs.mkdirSync(previewDir, { recursive: true });
 
   const previewPath = path.join(previewDir, `${postId}.mp4`);
-  const encoder = await getBestH264Encoder();
+  const { codec, encoder } = await getBestEncoderFromEnv();
 
-  const ffmpegCmd =
-    `ffmpeg -y ` +
-    `-i "${originalPath}" ` +
-    `-vf "scale=1280:-2" ` +
-    `-c:v ${encoder} ` +
-    `-crf 28 ` +
-    `-preset fast ` +
-    `-movflags +faststart ` +
-    `-c:a aac ` +
-    `-b:a 128k ` +
-    `"${previewPath}"`;
+  const ffmpegCmd = `
+    ffmpeg -y
+    -i "${originalPath}"
+    -vf "scale=1280:-2"
+    -c:v ${encoder}
+    -crf 33
+    -b:v 0
+    -preset good
+    -c:a libopus
+    -b:a 128k
+    "${previewPath}"
+  `.replace(/\s+/g, ' ').trim();
 
   try {
     await execAsync(ffmpegCmd);
@@ -46,4 +47,18 @@ export async function processVideoPreview(originalPath: string, postId: number):
     console.error('FFmpeg video preview failed:', err);
     return { previewScale: null, previewPath: '' };
   }
+}
+
+
+async function getBestEncoderFromEnv(): Promise<{ codec: string, encoder: string }> {
+  const envCodec = (process.env.VIDEO_ENCODER || 'h264').toLowerCase();
+
+  if (!['h264', 'vp9', 'av1'].includes(envCodec)) {
+    console.warn(`Unsupported VIDEO_ENCODER "${envCodec}", falling back to h264`);
+  }
+
+  const codec = ['h264', 'vp9', 'av1'].includes(envCodec) ? envCodec : 'h264';
+  const encoder = await getBestEncoder(codec as 'h264' | 'vp9' | 'av1');
+
+  return { codec, encoder };
 }

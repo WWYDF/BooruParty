@@ -1,28 +1,30 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { ENCODER_PRIORITY } from '../types/encoders';
+import { ENCODER_PRIORITY_MAP } from '../types/encoders';
 
 const execAsync = promisify(exec);
 
-let cachedEncoder: string | null = null;
+const encoderCache: Record<string, string> = {};
 
-export async function getBestH264Encoder(): Promise<string> {
-  if (cachedEncoder) return cachedEncoder;
+export async function getBestEncoder(codec: 'h264' | 'vp9' | 'av1'): Promise<string> {
+  if (encoderCache[codec]) return encoderCache[codec];
 
   try {
     const { stdout } = await execAsync('ffmpeg -hide_banner -encoders');
-    const availableEncoders = stdout.split('\n').map(line => line.trim());
+    const available = stdout.split('\n').map(line => line.trim());
 
-    for (const encoder of ENCODER_PRIORITY) {
-      if (availableEncoders.some(line => line.includes(encoder))) {
-        cachedEncoder = encoder;
+    const priorityList = ENCODER_PRIORITY_MAP[codec];
+
+    for (const encoder of priorityList) {
+      if (available.some(line => line.includes(encoder))) {
+        encoderCache[codec] = encoder;
         return encoder;
       }
     }
 
-    throw new Error('No suitable H.264 encoder found.');
+    throw new Error(`No available encoder found for codec "${codec}"`);
   } catch (err) {
-    console.error('Failed to detect FFmpeg encoders:', err);
-    return 'libx264'; // Fallback
+    console.error(`Error detecting encoders for ${codec}:`, err);
+    return codec === 'vp9' ? 'libvpx-vp9' : 'libx264'; // fallback
   }
 }

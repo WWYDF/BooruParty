@@ -1,6 +1,5 @@
 import getPHash from "sharp-phash";
 import { prisma } from '@/core/prisma';
-import { resolveFileType } from "@/core/dictionary";
 import { extractVideoFrame } from "@/core/extractVideoFrame";
 
 export interface FileCheck {
@@ -9,8 +8,7 @@ export interface FileCheck {
     postId?: number,
 }
 
-export async function checkFile(file: Buffer, fileExt: string): Promise<FileCheck> {
-    const fileType = resolveFileType(`.${fileExt.toLowerCase()}`);
+export async function checkFile(file: Buffer, fileExt: string, fileType: 'other' | 'video' | 'image' | 'animated'): Promise<FileCheck> {
   
     let pHash: string;
   
