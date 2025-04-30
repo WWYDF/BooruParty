@@ -1,4 +1,4 @@
-import { ROLE_BADGE } from "@/core/dictionary";
+import { ROLE_BADGE } from "@/core/roles";
 import { IconWeight } from "phosphor-react";
 
 type Props = {

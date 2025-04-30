@@ -39,7 +39,7 @@ export default function UploadQueue() {
   }  
 
   const onDrop = (acceptedFiles: File[]) => {
-    const validTypes = ['image/', 'video/'];
+    const validTypes = ['image/', 'video/', 'media/'];
     const maxPreviewSize = 30 * 1024 * 1024; // 30 MB
   
     const newItems = acceptedFiles
@@ -68,6 +68,7 @@ export default function UploadQueue() {
       'image/*': [],
       'video/*': [],
       'image/gif': [],
+      'media/': [],
     },
   })
 

@@ -2,9 +2,9 @@ import { FastifyPluginAsync } from 'fastify';
 import fs from 'fs';
 import path from 'path';
 import Busboy from 'busboy';
-import { processPreviewImage } from '../utils/processPreview';
+import { processPreview } from '../utils/processPreview';
 import { generateThumbnails } from '../utils/generateThumbnails';
-import { resolveFileType } from '../utils/mediaTypes';
+import { resolveFileType } from '../types/mediaTypes';
 
 const uploadRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/upload', async (req, reply) => {
@@ -44,9 +44,9 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
         writeStream.on('finish', async () => {
           fastify.log.info(`✅ File saved: ${filePath}`);
 
-          if (fileFolder === 'image' || fileFolder === 'animated') {
+          if (fileFolder === 'image' || fileFolder === 'animated' || fileFolder === 'video') {
             try {
-              previewScale = await processPreviewImage(filePath, Number(postId));
+              previewScale = await processPreview(filePath, Number(postId));
               if (previewScale == null) {
                 throw new Error('PreviewScale came back null.');
               }

@@ -1,44 +1,55 @@
 import getPHash from "sharp-phash";
 import { prisma } from '@/core/prisma';
+import { resolveFileType } from "@/core/dictionary";
+import { extractVideoFrame } from "@/core/extractVideoFrame";
 
 export interface FileCheck {
     status: boolean,
     genHash: string,
-    postId?: number
+    postId?: number,
 }
 
-export async function checkFile(file: Buffer): Promise<FileCheck> {
-    const pHash = await getPHash(file);
-
-    // Only pull id + pHash (minimize memory)
-    const allHashes = await prisma.posts.findMany({
-        where: {
-            pHash: {
-            not: null,
-            }
-        },
-        select: {
-            id: true,
-            pHash: true
-        }
-    });
-
-    for (const post of allHashes) {
-        const dist = hammingDistance(pHash, post.pHash!);
-        if (dist <= 5) {
-            return {
-                status: true,
-                genHash: pHash,
-                postId: post.id
-            };
-        }
+export async function checkFile(file: Buffer, fileExt: string): Promise<FileCheck> {
+    const fileType = resolveFileType(`.${fileExt.toLowerCase()}`);
+  
+    let pHash: string;
+  
+    if (fileType === "video") {
+        const frameBuffer = await extractVideoFrame(file, fileExt);
+        pHash = await getPHash(frameBuffer);
+    } else {
+      // image or animated (like GIF/APNG) — sharp-phash works directly
+      pHash = await getPHash(file);
     }
-
+  
+    const allHashes = await prisma.posts.findMany({
+      where: {
+        pHash: {
+          not: null,
+        },
+      },
+      select: {
+        id: true,
+        pHash: true,
+      },
+    });
+  
+    for (const post of allHashes) {
+      const dist = hammingDistance(pHash, post.pHash!);
+      if (dist <= 5) {
+        return {
+          status: true,
+          genHash: pHash,
+          postId: post.id,
+        };
+      }
+    }
+  
     return {
-        status: false,
-        genHash: pHash
+      status: false,
+      genHash: pHash,
     };
-}
+  }
 
 function hammingDistance(a: string, b: string): number {
     if (a.length !== b.length) {

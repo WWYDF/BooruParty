@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/auth';
 import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
-import { formatStorageFromBytes } from '@/core/formats';
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
@@ -20,9 +19,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
   }
 
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+
   // Begin processing stuff
   const buffer = Buffer.from(await file.arrayBuffer());
-  const checkMatch = await checkFile(buffer);
+  const checkMatch = await checkFile(buffer, extension);
   if (checkMatch.status == true) {
     return Response.json({ duplicate: true, postId: checkMatch.postId }, { status: 409 });
   }
@@ -30,7 +31,6 @@ export async function POST(request: NextRequest) {
   const anonymous = formData.get('anonymous') === 'true';
   const safety = formData.get('safety') as 'SAFE' | 'SKETCHY' | 'UNSAFE';
 
-  const extension = file.name.split('.').pop()?.toLowerCase() || '';
 
   const createdPost = await prisma.posts.create({
     data: {

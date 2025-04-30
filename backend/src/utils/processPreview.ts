@@ -2,9 +2,10 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import { compressGif } from './processGifs';
-import { resolveFileType } from './mediaTypes';
+import { resolveFileType } from '../types/mediaTypes';
+import { processVideoPreview } from './processVideos';
 
-export async function processPreviewImage(originalPath: string, postId: number): Promise<number | null> {
+export async function processPreview(originalPath: string, postId: number): Promise<number | null> {
   const ext = path.extname(originalPath).toLowerCase();
   const fileType = resolveFileType(ext);
 
@@ -13,7 +14,7 @@ export async function processPreviewImage(originalPath: string, postId: number):
 
   const previewPath = path.join(previewDir, `${postId}${fileType === 'animated' ? '.gif' : '.webp'}`);
 
-  if (fileType === 'animated' || fileType === 'video') {
+  if (fileType === 'animated') {
     try {
       await compressGif(originalPath, previewPath); // or ffmpeg in video case
   
@@ -28,6 +29,16 @@ export async function processPreviewImage(originalPath: string, postId: number):
       return Math.round((previewSize / originalSize) * 100);
     } catch (err) {
       console.error(`Compression failed:`, err);
+      return null;
+    }
+  }
+
+  if (fileType === 'video') {
+    try {
+      const { previewScale } = await processVideoPreview(originalPath, postId);
+      return previewScale;
+    } catch (err) {
+      console.error('FFmpeg preview failed:', err);
       return null;
     }
   }
