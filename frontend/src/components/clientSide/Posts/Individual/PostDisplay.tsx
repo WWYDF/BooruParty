@@ -10,11 +10,12 @@ type Props = {
     createdAt: string;
     previewScale: number;
   };
+  showVoting?: boolean;
 };
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
-export default function PostDisplay({ post }: Props) {
+export default function PostDisplay({ post, showVoting = true }: Props) {
   const [showFull, setShowFull] = useState(post.previewScale === 100 || post.previewScale == null);
 
   const previewSrc = `${fastify}/data/previews/image/${post.id}.webp`;
@@ -42,7 +43,7 @@ export default function PostDisplay({ post }: Props) {
         </button>
       ) : null}
 
-      <PostVoting postId={post.id} />
+      {showVoting && <PostVoting postId={post.id} />}
     </div>
   );
 }

@@ -1,12 +1,32 @@
 'use client';
 
-import Navbar from '@/components/clientSide/Navbar';
+import PostDisplay from '@/components/clientSide/Posts/Individual/PostDisplay';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+type PostType = {
+  id: number;
+  fileExt: string;
+  createdAt: string;
+  previewScale: number;
+};
 
 export default function HomePage() {
+  const [post, setPost] = useState<PostType | null>(null);
+
+  useEffect(() => {
+    const fetchFeaturedPost = async () => {
+      const res = await fetch('/api/posts/featured');
+      const data = await res.json();
+      setPost(data?.post ?? null);
+    };
+    fetchFeaturedPost();
+  }, []);
+
   return (
     <main className="min-h-screen bg-zinc-900 text-white flex flex-col">
-      <section className="flex-1 flex flex-col items-center justify-center px-4 text-center">
+      <section className="pt-12 pb-6 px-4 text-center">
         <motion.h1
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -20,11 +40,20 @@ export default function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.5 }}
-          className="text-lg text-gray-300 max-w-xl"
+          className="text-lg text-gray-300 max-w-xl mx-auto"
         >
           Effortlessly upload, manage, and share your images. Built with modern tech and speed in mind.
         </motion.p>
       </section>
+
+      {post && (
+        <section className="px-4 pb-12 mt-8">
+          <h2 className="text-2xl font-semibold text-center mb-4">Featured Post</h2>
+          <Link href={`/post/${post.id}`} className="block">
+            <PostDisplay post={post} showVoting={false} />
+          </Link>
+        </section>
+      )}
     </main>
   );
 }

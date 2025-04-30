@@ -89,6 +89,7 @@ model Posts {
   votes         Votes[]      @relation("PostVotes")
   comments      Comments[]   @relation("PostComments")
   favoritedBy   UserFavorites[]
+  specialPosts  SpecialPosts[]
   uploadedById  String
 
   createdAt     DateTime     @default(now())
@@ -153,4 +154,13 @@ model TagCategories {
   tags       Tags[]
 
   updatedAt  DateTime     @updatedAt
+}
+
+model SpecialPosts {
+  id        Int      @id @default(autoincrement())
+  label     String   @unique
+  postId    Int
+  post      Posts    @relation(fields: [postId], references: [id])
+
+  createdAt DateTime @default(now())
 }
