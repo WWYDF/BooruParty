@@ -18,8 +18,7 @@ type PostSearchBarProps = {
   onSubmit: (query?: string) => void;
 };
 
-export default function SearchBar({ onSubmit }: PostSearchBarProps) {
-  const [input, setInput] = useState("");
+export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarProps) {
   const [suggestions, setSuggestions] = useState<TagType[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [isSearching, setIsSearching] = useState(false);

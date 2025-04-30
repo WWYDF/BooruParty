@@ -1,21 +1,30 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import SearchBar from "@/components/clientSide/Posts/SearchBar";
 import PostGrid from "@/components/clientSide/Posts/PostGrid";
 import Filters from "@/components/clientSide/Posts/Filters";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getSession } from "next-auth/react";
 
 export default function ClientPostsPage({ initialPosts, postsPerPage }: { initialPosts: any[]; postsPerPage: number; }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const initialQuery = searchParams.get("query") ?? "";
+  const initialSafeties = searchParams.get("safety")?.split("-").filter(Boolean) ?? [];
+
   const [posts, setPosts] = useState(initialPosts);
   const [viewMode, setViewMode] = useState<"GRID" | "COLLAGE">("GRID");
   const [loadingViewMode, setLoadingViewMode] = useState(true);
-  const [selectedSafeties, setSelectedSafeties] = useState<string[]>([]);
-  const [searchText, setSearchText] = useState("");
+  const [selectedSafeties, setSelectedSafeties] = useState<string[]>(initialSafeties);
+  const [searchText, setSearchText] = useState(initialQuery);
 
-  const [page, setPage] = useState(1); // Page 1 = already preloaded (initialPosts)
+  const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+
+  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     getSession().then(async (session) => {
@@ -27,43 +36,62 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
     });
   }, []);
 
+  const updateUrl = (query: string, safeties: string[]) => {
+    const params = new URLSearchParams();
+    if (query) params.set("query", query);
+    if (safeties.length > 0) {
+      params.set("safety", safeties.join("-"));
+    }
+    router.replace(`?${params.toString()}`);
+  };
+
   const toggleSafety = (safety: string) => {
     const nextSafeties = selectedSafeties.includes(safety)
       ? selectedSafeties.filter((s) => s !== safety)
       : [...selectedSafeties, safety];
-  
+
     setSelectedSafeties(nextSafeties);
     searchPosts(searchText, nextSafeties);
-  };  
+  };
 
   const searchPosts = async (
-  queryOverride: string = searchText,
-  safetyOverride: string[] = selectedSafeties,
-  pageOverride: number = 1,
-  append: boolean = false
-) => {
-  const params = new URLSearchParams();
-  params.set("query", queryOverride);
-  params.set("page", pageOverride.toString());
-  params.set("perPage", postsPerPage.toString());
-  safetyOverride.forEach((s) => params.append("safety", s));
+    queryOverride: string = searchText,
+    safetyOverride: string[] = selectedSafeties,
+    pageOverride: number = 1,
+    append: boolean = false
+  ) => {
+    const params = new URLSearchParams();
+    params.set("query", queryOverride);
+    params.set("page", pageOverride.toString());
+    params.set("perPage", postsPerPage.toString());
+    safetyOverride.forEach((s) => params.append("safety", s));
 
-  try {
-    const res = await fetch(`/api/posts/search?${params.toString()}`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`/api/posts/search?${params.toString()}`);
+      const data = await res.json();
 
-    if (append) {
-      setPosts((prev) => [...prev, ...(data.posts || [])]);
-    } else {
-      setPosts(data.posts || []);
+      if (append) {
+        setPosts((prev) => [...prev, ...(data.posts || [])]);
+      } else {
+        setPosts(data.posts || []);
+      }
+
+      setHasMore((data.posts || []).length > 0);
+      updateUrl(queryOverride, safetyOverride);
+    } catch (err) {
+      console.error("Search failed", err);
     }
+  };
 
-    setHasMore((data.posts || []).length > 0);
-  } catch (err) {
-    console.error("Search failed", err);
-  }
-};
+  // 🔁 Run initial search on first mount if URL had params
+  useEffect(() => {
+    if (isFirstLoad.current && (initialQuery || initialSafeties.length > 0)) {
+      searchPosts(initialQuery, initialSafeties);
+    }
+    isFirstLoad.current = false;
+  }, []);
 
+  // 🌀 Infinite scroll
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
@@ -87,14 +115,16 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
     return () => window.removeEventListener("scroll", handleScroll);
   }, [page, searchText, selectedSafeties, isLoadingMore, hasMore]);
 
-
   return (
     <>
       <section className="flex flex-col md:flex-row gap-4">
         <SearchBar
           input={searchText}
           setInput={setSearchText}
-          onSubmit={searchPosts}
+          onSubmit={(query) => {
+            setSearchText(query ?? "");
+            searchPosts(query ?? "");
+          }}
         />
         <Filters
           selectedSafeties={selectedSafeties}
