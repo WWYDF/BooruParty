@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 type ResolvedComment = {
   id: number;
@@ -58,7 +59,15 @@ export default function PostCommentList({
             {/* Content */}
             <div className="flex-1">
               <div className="text-muted text-sm mb-1 text-zinc-400">
-                {comment.author.username} · {new Date(comment.createdAt).toLocaleString()}
+              <Link
+                href={`/posts?query=submit:${encodeURIComponent(comment.author.username)}`}
+                className="text-accent hover:underline"
+              >
+                <span>{comment.author.username}</span>
+              </Link>
+
+                {" · "}
+                {new Date(comment.createdAt).toLocaleString()}
               </div>
               <p className="text-base text-zinc-400">{comment.content}</p>
             </div>
