@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 import { getBestEncoder } from './pickEncoder';
+import { PRESET_MAP } from '../types/encoders';
 
 const execAsync = promisify(exec);
 
@@ -11,7 +12,9 @@ export async function processVideoPreview(originalPath: string, postId: number):
   fs.mkdirSync(previewDir, { recursive: true });
 
   const previewPath = path.join(previewDir, `${postId}.mp4`);
-  const { codec, encoder } = await getBestEncoderFromEnv();
+  const encoder = await getBestEncoderFromEnv();
+  const preset = PRESET_MAP[encoder] || 'fast';
+
 
   const ffmpegCmd = `
     ffmpeg -y
@@ -20,7 +23,7 @@ export async function processVideoPreview(originalPath: string, postId: number):
     -c:v ${encoder}
     -crf 33
     -b:v 0
-    -preset good
+    -preset ${preset}
     -c:a libopus
     -b:a 128k
     "${previewPath}"
@@ -50,7 +53,7 @@ export async function processVideoPreview(originalPath: string, postId: number):
 }
 
 
-async function getBestEncoderFromEnv(): Promise<{ codec: string, encoder: string }> {
+async function getBestEncoderFromEnv(): Promise<string> {
   const envCodec = (process.env.VIDEO_ENCODER || 'h264').toLowerCase();
 
   if (!['h264', 'vp9', 'av1'].includes(envCodec)) {
@@ -60,5 +63,5 @@ async function getBestEncoderFromEnv(): Promise<{ codec: string, encoder: string
   const codec = ['h264', 'vp9', 'av1'].includes(envCodec) ? envCodec : 'h264';
   const encoder = await getBestEncoder(codec as 'h264' | 'vp9' | 'av1');
 
-  return { codec, encoder };
+  return encoder;
 }

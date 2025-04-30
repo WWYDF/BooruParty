@@ -68,7 +68,6 @@ export default function UploadQueue() {
       'image/*': [],
       'video/*': [],
       'image/gif': [],
-      'media/': [],
     },
   })
 

@@ -37,6 +37,7 @@ export default function PostDisplay({ post, showVoting = true }: Props) {
           src={showFull ? fullSrc : previewSrc}
           controls
           playsInline
+          loop
           muted
           preload="metadata"
           className="max-h-[70vh] w-auto h-auto object-contain rounded-xl"
