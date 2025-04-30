@@ -43,17 +43,18 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 p-4">
-      <div className="order-2 md:order-1 md:col-span-1">
+      {/* LEFT COLUMN - Metadata */}
+      <div className="order-3 md:order-1 md:col-span-1">
         <PostMetadata post={postData.post} />
       </div>
 
-      <div className="space-y-6 order-1 md:order-2">
+      {/* RIGHT COLUMN - Main content + Comments */}
+      <div className="order-1 md:order-2 space-y-6">
         <PostNavigator postId={postData.post.id} />
         <PostDisplay post={postData.post} />
-      </div>
 
-      <div className="md:col-span-2 space-y-4 order-3 md:order-3">
-        <section className="border-t border-secondary-border pt-4 space-y-4">
+        {/* Comments - In column 2 only */}
+        <section className="order-4 border-t border-secondary-border pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
           <PostCommentForm postId={postData.post.id} />
           <PostCommentList comments={comments} loading={false} error={null} />
