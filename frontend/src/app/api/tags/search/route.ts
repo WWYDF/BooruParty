@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
+import { fetchAllImplications } from "@/core/recursiveImplications";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -60,5 +61,12 @@ export async function GET(req: Request) {
 
   const allTags = Array.from(allTagsMap.values());
 
-  return NextResponse.json(allTags);
+  const tagsWithImplications = await Promise.all(
+    allTags.map(async (tag) => {
+      const allImplications = await fetchAllImplications(tag.id);
+      return { ...tag, allImplications };
+    })
+  );
+  
+  return NextResponse.json(tagsWithImplications);
 }

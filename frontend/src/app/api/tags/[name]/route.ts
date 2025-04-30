@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
+import { fetchAllImplications } from "@/core/recursiveImplications";
 
 export async function GET(req: Request, context: { params: Promise<{ name: string }> }) {
   const tagName = (await context.params).name;
@@ -68,7 +69,12 @@ export async function GET(req: Request, context: { params: Promise<{ name: strin
     return NextResponse.json({ error: "Tag not found" }, { status: 404 });
   }
 
-  return NextResponse.json(tag);
+  const allImplications = await fetchAllImplications(tag.id);
+
+  return NextResponse.json({
+    ...tag,
+    allImplications,
+  });
 }
 
 export async function DELETE(req: Request, context: { params: Promise<{ name: string }> }) {

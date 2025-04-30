@@ -51,37 +51,26 @@ export default function EditPost({
   };
 
   const handleAddTag = async (tag: TagType, impliedEnabled = true) => {
+    let allTags: TagType[] = [tag];
+  
     if (impliedEnabled) {
-      const res = await fetch(`/api/tags/${encodeURIComponent(tag.name)}`);
-      const data = await res.json();
-  
-      console.log("Fetched tag:", data); // 👈 IMPORTANT
-  
-      const implications = (data.implications ?? []).map((imp: any) => ({
-        id: imp.id,
-        name: imp.name,
-        description: imp.description ?? undefined,
-        category: {
-          id: imp.category.id,
-          name: imp.category.name,
-          color: imp.category.color,
-        },
-      }));
-  
-      const allTags = [tag, ...implications];
-  
-      setTags((prev) => {
-        const existingIds = new Set(prev.map((t) => t.id));
-        const newTags = allTags.filter((t) => !existingIds.has(t.id));
-        console.log("Adding new tags:", newTags); // 👈 IMPORTANT
-        return [...prev, ...newTags];
-      });
-    } else {
-      if (!tags.some((t) => t.id === tag.id)) {
-        setTags([...tags, tag]);
+      if (tag.allImplications?.length) {
+        allTags = [tag, ...tag.allImplications];
+      } else {
+        // fallback fetch if no allImplications in search (e.g. from SuggestionPopup)
+        const res = await fetch(`/api/tags/${encodeURIComponent(tag.name)}`);
+        const data = await res.json();
+        allTags = [tag, ...(data.allImplications ?? [])];
       }
     }
-  }; 
+  
+    setTags((prev) => {
+      const existingIds = new Set(prev.map((t) => t.id));
+      const newTags = allTags.filter((t) => !existingIds.has(t.id));
+      return [...prev, ...newTags];
+    });
+  };
+  
 
   const handleRemoveTag = (tagId: number) => {
     setTags(tags.filter((t) => t.id !== tagId));

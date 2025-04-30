@@ -14,6 +14,7 @@ export type TagType = {
   aliases?: { id: number; alias: string }[];
   suggestions?: TagType[];
   implications?: TagType[];
+  allImplications?: TagType[];
 };
 
 type TagSelectorProps = {
