@@ -106,7 +106,7 @@ export default function PostMetadata({ post }: Props) {
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="text-subtle hover:text-accent text-sm flex items-center gap-1"
+            className="text-subtle hover:text-accent text-sm flex items-center gap-1 mr-4"
           >
             <PencilSimple size={16} /> Edit post
           </button>

@@ -55,6 +55,11 @@ export default function PostVoting({ postId }: { postId: number }) {
     });
     const data = await res.json();
     setFavorited(data.favorited);
+
+    // If user just favorited AND hasn't upvoted, auto-upvote
+    if (data.favorited && vote !== "UPVOTE") {
+      await handleVote("UPVOTE");
+    }
   };
 
   return (
