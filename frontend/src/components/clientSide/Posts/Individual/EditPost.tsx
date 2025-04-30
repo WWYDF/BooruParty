@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import TagSelector, { TagType } from "../../TagSelector";
+import TagSuggestionPopup from "../../Tags/SuggestionPopup";
 
 type PostType = {
   id: number;
@@ -27,6 +28,8 @@ export default function EditPost({
   const [safety, setSafety] = useState(post.safety);
   const [anonymous, setAnonymous] = useState(post.anonymous);
   const [saving, setSaving] = useState(false);
+  const [activeSuggestionTag, setActiveSuggestionTag] = useState<string | null>(null);
+  const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
 
   const handleSave = async () => {
     setSaving(true);
@@ -146,31 +149,57 @@ export default function EditPost({
                     className="flex items-center gap-1 border border-secondary-border px-2 py-1 rounded-full"
                     style={{ color: tag.category?.color || "#fff" }}
                   >
+                    {/* Button to remove */}
                     <button
                       onClick={() => handleRemoveTag(tag.id)}
                       className="hover:opacity-80"
                     >
                       <X size={14} />
                     </button>
-                    <Link
-                      href={`/dashboard/tags/${tag.name}`}
-                      className="hover:opacity-80"
-                    >
+                  
+                    {/* Tag icon to tag editor */}
+                    <Link href={`/dashboard/tags/${tag.name}`} className="hover:opacity-80">
                       <TagIcon size={14} />
                     </Link>
+                  
+                    {/* Name -> opens suggestion list */}
                     <button
-                      onClick={() =>
-                        console.log("todo: open suggestion popup", tag.name)
-                      }
+                      onClick={(e) => {
+                        const rect = (e.target as HTMLElement).getBoundingClientRect();
+                        setPopupPosition({ x: rect.left, y: rect.bottom });
+                        setActiveSuggestionTag(tag.name);
+                      }}
                       className="hover:underline"
                     >
                       {tag.name}
                     </button>
-                  </div>
+                  </div>                
                 ))}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {activeSuggestionTag && popupPosition && (
+        <div
+          style={{
+            position: "fixed",
+            left: popupPosition.x,
+            top: popupPosition.y + 4,
+          }}
+        >
+          <TagSuggestionPopup
+            tagName={activeSuggestionTag}
+            onClose={() => setActiveSuggestionTag(null)}
+            onAddTag={(tag) => {
+              handleAddTag({
+                ...tag,
+                description: tag.description ?? undefined,
+              });
+              setActiveSuggestionTag(null);
+            }}
+          />
         </div>
       )}
     </div>

@@ -5,6 +5,8 @@ import EditPost from "./EditPost";
 import { PencilSimple, Tag as TagIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Minus, Plus, Tag } from "phosphor-react";
 
 const AVATAR_URL = "/user.png";
 
@@ -38,6 +40,30 @@ type Props = {
     }
   };
 };
+
+function modifyQuery(type: "add" | "exclude" | "replace", tag: string) {
+  const saved = JSON.parse(localStorage.getItem("lastSearchParams") ?? "{}");
+  const existingQuery = saved.query ?? "";
+  const router = useRouter();
+
+  let newQuery = "";
+
+  if (type === "add") {
+    newQuery = `${existingQuery} ${tag}`.trim();
+  } else if (type === "exclude") {
+    newQuery = `${existingQuery} -${tag}`.trim();
+  } else {
+    newQuery = tag;
+  }
+
+  localStorage.setItem("lastSearchParams", JSON.stringify({
+    ...saved,
+    query: newQuery
+  }));
+
+  router.push(`/posts?query=${encodeURIComponent(newQuery)}`);
+}
+
 
 export default function PostMetadata({ post }: Props) {
   const [editing, setEditing] = useState(false);
@@ -135,14 +161,43 @@ export default function PostMetadata({ post }: Props) {
                   <p className="text-white text-sm font-medium mb-1">{category}</p>
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag, i) => (
-                      <Link
+                      <div
                         key={i}
-                        href={`/dashboard/tags/${tag.name}`}
-                        className="flex items-center gap-1 text-sm border border-secondary-border px-2 py-1 rounded-full hover:opacity-90"
+                        className="flex items-center gap-1 text-sm border border-secondary-border px-2 py-1 rounded-full"
                         style={{ color: tag.color }}
                       >
-                        <TagIcon size={14} /> {tag.name}
-                      </Link>
+                        {/* Icon → Tag Editor */}
+                        <Link href={`/dashboard/tags/${tag.name}`} title="Edit tag in dashboard">
+                          <Tag size={14} />
+                        </Link>
+
+                        {/* Name → replace query */}
+                        <button
+                          onClick={() => modifyQuery("replace", tag.name)}
+                          className="hover:underline"
+                          title="Search with only this tag"
+                        >
+                          {tag.name}
+                        </button>
+
+                        {/* + */}
+                        <button
+                          onClick={() => modifyQuery("add", tag.name)}
+                          title="Add tag to search"
+                          className="hover:text-accent"
+                        >
+                          <Plus size={14} weight="bold" />
+                        </button>
+
+                        {/* - */}
+                        <button
+                          onClick={() => modifyQuery("exclude", tag.name)}
+                          title="Exclude tag from search"
+                          className="hover:text-accent"
+                        >
+                          <Minus size={14} weight="bold" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>

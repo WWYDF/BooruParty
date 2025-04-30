@@ -13,7 +13,14 @@ export async function GET(req: Request, context: { params: Promise<{ name: strin
       category: true,
       aliases: true,
       implications: true,
-      suggestions: true,
+      suggestions: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          category: true,
+        }
+      },
     },
   });
 
@@ -27,7 +34,14 @@ export async function GET(req: Request, context: { params: Promise<{ name: strin
             category: true,
             aliases: true,
             implications: true,
-            suggestions: true,
+            suggestions: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                category: true,
+              }
+            },
           },
         },
       },

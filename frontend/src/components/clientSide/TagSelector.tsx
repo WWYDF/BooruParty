@@ -12,6 +12,17 @@ export type TagType = {
     color: string;
   };
   aliases?: { id: number; alias: string }[];
+  suggestions?: {
+    id: number;
+    name: string;
+    description: string;
+    category: {
+      id: number;
+      name: string;
+      color: string;
+      order: number | null;
+    }
+  }[];
 };
 
 type TagSelectorProps = {
