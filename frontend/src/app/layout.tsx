@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import AuthProvider from '@/components/clientSide/AuthProvider';
 import Navbar from '@/components/clientSide/Navbar';
 import { ToastProvider } from '@/components/clientSide/Toast';
+import Footer from '@/components/clientSide/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -43,6 +44,7 @@ export default function RootLayout({
             {children}
           </ToastProvider>
         </AuthProvider>
+        <Footer />
       </body>
     </html>
   )

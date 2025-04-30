@@ -5,6 +5,7 @@ import ipFilter from './plugins/ipFilter';
 import registerStatic from './plugins/static';
 import uploadRoutes from './routes/upload';
 import avatarUploadRoute from './routes/avatars';
+import statsRoute from './routes/stats';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ async function buildServer() {
   await fastify.register(registerStatic);
   await fastify.register(uploadRoutes, { prefix: '/api' });
   await fastify.register(avatarUploadRoute, { prefix: '/api' });
+  await fastify.register(statsRoute, { prefix: '/api' });
 
   return fastify;
 }
