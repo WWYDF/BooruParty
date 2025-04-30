@@ -41,32 +41,36 @@ type Props = {
   };
 };
 
-function modifyQuery(type: "add" | "exclude" | "replace", tag: string) {
-  const saved = JSON.parse(localStorage.getItem("lastSearchParams") ?? "{}");
-  const existingQuery = saved.query ?? "";
-  const router = useRouter();
-
-  let newQuery = "";
-
-  if (type === "add") {
-    newQuery = `${existingQuery} ${tag}`.trim();
-  } else if (type === "exclude") {
-    newQuery = `${existingQuery} -${tag}`.trim();
-  } else {
-    newQuery = tag;
-  }
-
-  localStorage.setItem("lastSearchParams", JSON.stringify({
-    ...saved,
-    query: newQuery
-  }));
-
-  router.push(`/posts?query=${encodeURIComponent(newQuery)}`);
-}
-
 
 export default function PostMetadata({ post }: Props) {
   const [editing, setEditing] = useState(false);
+  const router = useRouter();
+
+  function modifyQuery(action: "replace" | "add" | "exclude", tag: string) {
+    const saved = JSON.parse(localStorage.getItem("lastSearchParams") ?? "{}");
+    const prevQuery = saved.query ?? "";
+
+    let newQuery = "";
+
+    if (action === "replace") {
+      newQuery = tag;
+    } else if (action === "add") {
+      const parts = prevQuery.split(/\s+/).filter(Boolean);
+      if (!parts.includes(tag)) parts.push(tag);
+      newQuery = parts.join(" ");
+    } else {
+      const parts = prevQuery.split(/\s+/).filter(Boolean);
+      if (!parts.includes(`-${tag}`)) parts.push(`-${tag}`);
+      newQuery = parts.join(" ");
+    }
+
+    localStorage.setItem("lastSearchParams", JSON.stringify({
+      ...saved,
+      query: newQuery
+    }));
+
+    router.push(`/posts?query=${encodeURIComponent(newQuery)}`);
+  }
 
   const displayName = post.anonymous ? "Anonymous" : post.uploadedBy?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : post.uploadedBy?.avatar || AVATAR_URL;
@@ -162,42 +166,46 @@ export default function PostMetadata({ post }: Props) {
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag, i) => (
                       <div
-                        key={i}
-                        className="flex items-center gap-1 text-sm border border-secondary-border px-2 py-1 rounded-full"
-                        style={{ color: tag.color }}
+                      key={i}
+                      className="flex items-center gap-1 text-sm border border-secondary-border px-2 py-1 rounded-full"
+                      style={{ color: tag.color }}
+                    >
+                      {/* Tag icon to dashboard */}
+                      <Link
+                        href={`/dashboard/tags/${tag.name}`}
+                        title="Edit tag in dashboard"
+                        className="hover:opacity-90"
                       >
-                        {/* Icon → Tag Editor */}
-                        <Link href={`/dashboard/tags/${tag.name}`} title="Edit tag in dashboard">
-                          <Tag size={14} />
-                        </Link>
-
-                        {/* Name → replace query */}
-                        <button
-                          onClick={() => modifyQuery("replace", tag.name)}
-                          className="hover:underline"
-                          title="Search with only this tag"
-                        >
-                          {tag.name}
-                        </button>
-
-                        {/* + */}
-                        <button
-                          onClick={() => modifyQuery("add", tag.name)}
-                          title="Add tag to search"
-                          className="hover:text-accent"
-                        >
-                          <Plus size={14} weight="bold" />
-                        </button>
-
-                        {/* - */}
-                        <button
-                          onClick={() => modifyQuery("exclude", tag.name)}
-                          title="Exclude tag from search"
-                          className="hover:text-accent"
-                        >
-                          <Minus size={14} weight="bold" />
-                        </button>
-                      </div>
+                        <Tag size={14} />
+                      </Link>
+                    
+                      {/* Tag name → replace search */}
+                      <button
+                        onClick={() => modifyQuery("replace", tag.name)}
+                        className="hover:underline"
+                        title="Search posts with only this tag"
+                      >
+                        {tag.name}
+                      </button>
+                    
+                      {/* + Add tag to current query */}
+                      <button
+                        onClick={() => modifyQuery("add", tag.name)}
+                        className="hover:text-accent"
+                        title="Add tag to search"
+                      >
+                        <Plus size={14} weight="bold" />
+                      </button>
+                    
+                      {/* - Exclude tag */}
+                      <button
+                        onClick={() => modifyQuery("exclude", tag.name)}
+                        className="hover:text-accent"
+                        title="Exclude tag from search"
+                      >
+                        <Minus size={14} weight="bold" />
+                      </button>
+                    </div>
                     ))}
                   </div>
                 </div>

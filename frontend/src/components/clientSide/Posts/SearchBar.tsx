@@ -23,6 +23,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -107,11 +108,13 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setTimeout(() => setIsFocused(false), 100)}
         placeholder="Search by tags (example: cat -dog)"
         className="w-full bg-secondary border border-secondary-border p-2 rounded text-zinc-100 focus:outline-none focus:ring-1 focus:ring-darkerAccent"
       />
 
-      {suggestions.length > 0 && (
+      {isFocused && suggestions.length > 0 && (
         <div className="absolute mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-10 max-h-60 overflow-y-auto">
           {suggestions.map((tag, idx) => (
             <div
