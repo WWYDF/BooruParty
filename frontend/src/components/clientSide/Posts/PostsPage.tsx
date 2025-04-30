@@ -79,10 +79,10 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
         setPosts((prev) => [...prev, ...(data.posts || [])]);
       } else {
         setPosts(data.posts || []);
+        updateUrl(queryOverride, safetyOverride); // ONLY update URL on new search, not scroll
       }
 
       setHasMore((data.posts || []).length > 0);
-      updateUrl(queryOverride, safetyOverride);
     } catch (err) {
       console.error("Search failed", err);
     }
