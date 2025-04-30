@@ -6,7 +6,9 @@ import { PencilSimple, Tag as TagIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Tag } from "phosphor-react";
+import { FloppyDisk, Heart, Minus, Plus, Tag, ThumbsUp } from "phosphor-react";
+import { formatStorageFromBytes } from "@/core/formats";
+import { FILE_TYPE_LABELS } from "@/core/dictionary";
 
 const AVATAR_URL = "/user.png";
 
@@ -14,6 +16,7 @@ type Props = {
   post: {
     id: number;
     anonymous: boolean;
+    fileExt: string;
     safety: "SAFE" | "SKETCHY" | "UNSAFE";
     sources: string[];
     notes: string | null;
@@ -37,7 +40,9 @@ type Props = {
       username: string;
       role: string;
       avatar: string;
-    }
+    },
+    fileSize?: number;
+    favorites?: number;
   };
 };
 
@@ -92,7 +97,14 @@ export default function PostMetadata({ post }: Props) {
         )}
 
         <div className="flex-1">
-          <p className="text-base text-white font-semibold">{displayName}</p>
+          <p className="text-base text-white font-semibold flex items-center gap-2">
+            {displayName}
+            {!post.anonymous && post.uploadedBy.role === "Admin" && (
+              <span className="bg-red-500/10 text-red-400 text-xs font-medium px-2 py-0.5 rounded-md">
+                Admin
+              </span>
+            )}
+          </p>
           <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>
         </div>
 
@@ -113,38 +125,57 @@ export default function PostMetadata({ post }: Props) {
         )}
       </div>
 
-      {/* Content area */}
       {editing ? (
         <EditPost post={post} onSuccess={() => location.reload()} />
       ) : (
         <>
           {/* Post info */}
-          <div className="grid grid-cols-2 gap-y-2 gap-x-4 mt-2">
-            <p><span className="text-white font-medium">Safety:</span> {post.safety}</p>
-            <p><span className="text-white font-medium">Score:</span> {post.score}</p>
-            <p className="col-span-2">
-              <span className="text-white font-medium">Sources:</span>{" "}
-              {post.sources.length ? (
-                <span className="flex flex-wrap gap-2">
-                  {post.sources.map((src, i) => (
-                    <Link
-                      key={i}
-                      href={src}
-                      target="_blank"
-                      className="text-accent underline break-all"
-                    >
-                      {src}
-                    </Link>
-                  ))}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 items-start">
+            {/* LEFT: Safety + File Type */}
+            <div>
+              <p>
+                <span className="text-white font-medium">Safety:</span>{" "}
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    post.safety === "SAFE"
+                      ? "bg-green-500/10 text-green-400"
+                      : post.safety === "SKETCHY"
+                      ? "bg-yellow-500/10 text-yellow-400"
+                      : "bg-red-500/10 text-red-400"
+                  }`}
+                >
+                  {post.safety}
                 </span>
-              ) : (
-                "None"
+              </p>
+
+              {post.fileExt && (
+                <p className="text-subtle text-sm mt-1">
+                  <span className="text-white font-medium mr-1">File Type: </span>
+                  {FILE_TYPE_LABELS[post.fileExt] ?? post.fileExt}
+                </p>
               )}
-            </p>
-            <p className="col-span-2">
-              <span className="text-white font-medium">Notes:</span>{" "}
-              {post.notes || "None"}
-            </p>
+            </div>
+
+            {/* RIGHT: Score + Favorites + File Size */}
+            <div className="flex flex-col items-end mr-4">
+              <div className="flex gap-4">
+                <p className="flex items-center gap-1">
+                  <ThumbsUp size={16} weight="fill" className="!text-green-600" />
+                  <a className="text-zinc-400">{post.score}</a>
+                </p>
+                <p className="flex items-center gap-1">
+                  <Heart size={16} weight="fill" className="!text-red-600" />
+                  <a className="text-zinc-400">{post.favorites ?? 0}</a>
+                </p>
+              </div>
+
+              {typeof post.fileSize === "number" && (
+                <p className="flex items-center gap-1 text-subtle text-sm mt-1">
+                  <FloppyDisk size={16} weight="bold" className="text-accent" />
+                  <a className="text-zinc-400">{formatStorageFromBytes(post.fileSize)}</a>
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Tags */}

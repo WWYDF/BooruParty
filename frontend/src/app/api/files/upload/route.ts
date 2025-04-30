@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/auth';
 import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
+import { formatStorageFromBytes } from '@/core/formats';
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
       notes: '',
       flags: [],
       pHash: checkMatch.genHash || null,
+      fileSize: buffer.length,
     },
   });
 

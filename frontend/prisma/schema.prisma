@@ -91,6 +91,7 @@ model Posts {
   favoritedBy   UserFavorites[]
   specialPosts  SpecialPosts[]
   uploadedById  String
+  fileSize      Int?
 
   createdAt     DateTime     @default(now())
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { formatStorage } from '@/core/formats';
+import { formatStorageFromMB } from '@/core/formats';
 import { useEffect, useState } from 'react';
 
 export default function Footer() {
@@ -12,7 +12,7 @@ export default function Footer() {
       try {
         const res = await fetch('/api/system/stats');
         const data = await res.json();
-        setStorage(formatStorage(data.totalMB));
+        setStorage(formatStorageFromMB(data.totalMB));
         setPostCount(data.totalPosts);
       } catch (err) {
         console.error('Failed to fetch system stats:', err);

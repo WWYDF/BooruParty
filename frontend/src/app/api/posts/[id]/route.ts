@@ -34,6 +34,11 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
           role: true,
           avatar: true
         }
+      },
+      favoritedBy: {
+        select: {
+          userId: true
+        }
       }
     }
   });
@@ -42,7 +47,13 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  return NextResponse.json({post});
+  const postWOFavorites = {
+    ...post,
+    favorites: post.favoritedBy.length,
+    favoritedBy: undefined
+  }
+
+  return NextResponse.json({post: postWOFavorites});
 }
 
 // PATCH endpoint to update a post by ID
