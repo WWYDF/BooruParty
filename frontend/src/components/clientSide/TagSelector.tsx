@@ -12,25 +12,17 @@ export type TagType = {
     color: string;
   };
   aliases?: { id: number; alias: string }[];
-  suggestions?: {
-    id: number;
-    name: string;
-    description: string;
-    category: {
-      id: number;
-      name: string;
-      color: string;
-      order: number | null;
-    }
-  }[];
+  suggestions?: TagType[];
+  implications?: TagType[];
 };
 
 type TagSelectorProps = {
-  onSelect: (tag: TagType, isNegated?: boolean) => void;
+  onSelect: (tag: TagType, isNegated?: boolean, addImpliedTags?: boolean) => void;
   onEnter?: (text: string) => void;
   placeholder?: string;
   disabledTags?: TagType[];
-  allowNegation?: boolean; // 🔥 NEW
+  allowNegation?: boolean;
+  addImpliedTags?: boolean;
 };
 
 export default function TagSelector({
@@ -38,7 +30,8 @@ export default function TagSelector({
   onEnter,
   placeholder = "Type to search...",
   disabledTags = [],
-  allowNegation = false, // 🔥 NEW
+  allowNegation = false,
+  addImpliedTags = false,
 }: TagSelectorProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TagType[]>([]);
@@ -109,7 +102,14 @@ export default function TagSelector({
 
   const handleSelect = (tag: TagType) => {
     const isNegated = allowNegation && query.trim().startsWith("-");
-    onSelect(tag, isNegated); // 🔥 pass isNegated flag if needed
+    
+    // If negation is allowed, we prioritize that logic
+    if (allowNegation && isNegated) {
+      onSelect(tag, true);
+    } else {
+      onSelect(tag, addImpliedTags ?? false);
+    }
+  
     setQuery("");
     setResults([]);
     setHighlightedIndex(-1);

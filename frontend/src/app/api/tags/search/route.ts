@@ -23,6 +23,7 @@ export async function GET(req: Request) {
     include: {
       category: true,
       aliases: true,
+      implications: true
     },
     take: LIMIT,
   });
@@ -40,6 +41,7 @@ export async function GET(req: Request) {
         include: {
           category: true,
           aliases: true,
+          implications: true
         },
       },
     },

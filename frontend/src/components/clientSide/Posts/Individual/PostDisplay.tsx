@@ -26,9 +26,6 @@ export default function PostDisplay({ post, showVoting = true }: Props) {
   const previewSrc = `${fastify}/data/previews/${fileType}/${post.id}.${post.fileExt}`;
   const fullSrc = `${fastify}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
 
-  console.debug(`Preview Source URL: ${previewSrc}`);
-  console.debug(`Original Source URL: ${fullSrc}`);
-
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="flex justify-center">
