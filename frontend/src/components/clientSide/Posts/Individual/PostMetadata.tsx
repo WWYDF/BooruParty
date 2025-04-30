@@ -130,53 +130,75 @@ export default function PostMetadata({ post }: Props) {
       ) : (
         <>
           {/* Post info */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 items-start">
-            {/* LEFT: Safety + File Type */}
-            <div>
-              <p>
-                <span className="text-white font-medium">Safety:</span>{" "}
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                    post.safety === "SAFE"
-                      ? "bg-green-500/10 text-green-400"
-                      : post.safety === "SKETCHY"
-                      ? "bg-yellow-500/10 text-yellow-400"
-                      : "bg-red-500/10 text-red-400"
-                  }`}
-                >
-                  {post.safety}
-                </span>
+          <div>
+            <p className="flex items-baseline gap-1 text-xs">
+              <span className="text-white font-medium w-[80px]">Safety:</span>
+              <span
+                className={`font-semibold ${
+                  post.safety === "SAFE"
+                    ? "text-green-400"
+                    : post.safety === "SKETCHY"
+                    ? "text-yellow-400"
+                    : "text-red-400"
+                }`}
+              >
+                {post.safety}
+              </span>
+            </p>
+
+            {post.fileExt && (
+              <p className="flex items-center gap-1 text-xs text-subtle">
+                <span className="text-white font-medium w-[80px]">File Type:</span>
+                {FILE_TYPE_LABELS[post.fileExt] ?? post.fileExt}
               </p>
+            )}
 
-              {post.fileExt && (
-                <p className="text-subtle text-sm mt-1">
-                  <span className="text-white font-medium mr-1">File Type: </span>
-                  {FILE_TYPE_LABELS[post.fileExt] ?? post.fileExt}
-                </p>
-              )}
-            </div>
+            {typeof post.fileSize === "number" && (
+              <p className="flex items-center gap-1 text-xs text-subtle">
+                <span className="text-white font-medium w-[80px]">File Size:</span>
+                {formatStorageFromBytes(post.fileSize ?? 0)}
+              </p>
+            )}
 
-            {/* RIGHT: Score + Favorites + File Size */}
-            <div className="flex flex-col items-end mr-4">
-              <div className="flex gap-4">
-                <p className="flex items-center gap-1">
-                  <ThumbsUp size={16} weight="fill" className="!text-green-600" />
-                  <a className="text-zinc-400">{post.score}</a>
-                </p>
-                <p className="flex items-center gap-1">
-                  <Heart size={16} weight="fill" className="!text-red-600" />
-                  <a className="text-zinc-400">{post.favorites ?? 0}</a>
-                </p>
-              </div>
+            <p className="flex items-center gap-1 text-xs text-subtle">
+              <span className="text-white font-medium w-[80px]">User Score:</span>
+              {post.score}
+            </p>
 
-              {typeof post.fileSize === "number" && (
-                <p className="flex items-center gap-1 text-subtle text-sm mt-1">
-                  <FloppyDisk size={16} weight="bold" className="text-accent" />
-                  <a className="text-zinc-400">{formatStorageFromBytes(post.fileSize)}</a>
-                </p>
-              )}
-            </div>
+            {typeof post.favorites === "number" && (
+              <p className="flex items-center gap-1 text-xs text-subtle">
+                <span className="text-white font-medium w-[80px]">Favorites:</span>
+                {post.favorites}
+              </p>
+            )}
           </div>
+
+          {/* Sources */}
+          {post.sources.length > 0 && (
+            <div className="mt-4">
+              <p className="text-white font-medium text-sm mb-1">Sources:</p>
+              <div className="bg-zinc-900 px-4 py-2 rounded border border-secondary-border text-sm space-y-1 mr-3">
+                {post.sources.map((src, i) => (
+                  <p key={i} className="break-all">
+                    <Link href={src} target="_blank" className="text-accent underline">
+                      {src}
+                    </Link>
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          {post.notes && (
+            <div className="mt-3">
+              <p className="text-white font-medium text-sm mb-1">Notes:</p>
+              <div className="bg-zinc-900 px-4 py-2 rounded border border-secondary-border text-sm whitespace-pre-wrap text-subtle mr-3">
+                {post.notes}
+              </div>
+            </div>
+          )}
+
 
           {/* Tags */}
           {post.tags.length > 0 && (

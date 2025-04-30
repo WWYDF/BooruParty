@@ -4,11 +4,20 @@ import { useSession } from "next-auth/react";
 
 type VoteType = "UPVOTE" | "DOWNVOTE" | null;
 
-export default function PostVoting({ postId }: { postId: number }) {
+type Props = {
+  post: {
+    id: number;
+    score: number;
+    favorites?: number;
+  };
+};
+
+export default function PostVoting({ post }: Props) {
   const { data: session } = useSession();
   const [vote, setVote] = useState<VoteType>(null);
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(false);
+  const postId = post.id;
 
   useEffect(() => {
     const fetchStatus = async () => {

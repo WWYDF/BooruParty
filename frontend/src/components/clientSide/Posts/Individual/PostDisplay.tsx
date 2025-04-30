@@ -9,6 +9,8 @@ type Props = {
     fileExt: string;
     createdAt: string;
     previewScale: number;
+    score: number;
+    favorites?: number;
   };
   showVoting?: boolean;
 };
@@ -43,7 +45,7 @@ export default function PostDisplay({ post, showVoting = true }: Props) {
         </button>
       ) : null}
 
-      {showVoting && <PostVoting postId={post.id} />}
+      {showVoting && <PostVoting post={post} />}
     </div>
   );
 }
