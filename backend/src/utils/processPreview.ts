@@ -1,25 +1,46 @@
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
+import { compressGif } from './processGifs';
+import { resolveFileType } from './mediaTypes';
 
 export async function processPreviewImage(originalPath: string, postId: number): Promise<number | null> {
-  const previewDir = path.join(__dirname, '../../data/previews/image');
+  const ext = path.extname(originalPath).toLowerCase();
+  const fileType = resolveFileType(ext);
+
+  const previewDir = path.join(__dirname, `../../data/previews/${fileType}`);
   fs.mkdirSync(previewDir, { recursive: true });
 
-  const previewPath = path.join(previewDir, `${postId}.webp`);
+  const previewPath = path.join(previewDir, `${postId}${fileType === 'animated' ? '.gif' : '.webp'}`);
 
-  // Load original metadata
+  if (fileType === 'animated' || fileType === 'video') {
+    try {
+      await compressGif(originalPath, previewPath); // or ffmpeg in video case
+  
+      const originalSize = fs.statSync(originalPath).size;
+      const previewSize = fs.statSync(previewPath).size;
+  
+      if (previewSize >= originalSize) {
+        fs.unlinkSync(previewPath); // no benefit
+        return null;
+      }
+  
+      return Math.round((previewSize / originalSize) * 100);
+    } catch (err) {
+      console.error(`Compression failed:`, err);
+      return null;
+    }
+  }
+  
+
+  // Non-GIF logic (e.g., static images, handled by sharp)
   const metadata = await sharp(originalPath).metadata();
-
-  const resized = sharp(originalPath)
+  await sharp(originalPath)
     .resize({ width: 1280, withoutEnlargement: true })
-    .webp({ quality: 90 });
+    .webp({ quality: 90 })
+    .toFile(previewPath);
 
-  await resized.toFile(previewPath);
-
-  // Get final size after resizing
   const resizedMeta = await sharp(previewPath).metadata();
-
   const previewScale =
     metadata.width && resizedMeta.width
       ? Math.round((resizedMeta.width / metadata.width) * 100)

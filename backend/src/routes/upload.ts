@@ -4,6 +4,7 @@ import path from 'path';
 import Busboy from 'busboy';
 import { processPreviewImage } from '../utils/processPreview';
 import { generateThumbnails } from '../utils/generateThumbnails';
+import { resolveFileType } from '../utils/mediaTypes';
 
 const uploadRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/upload', async (req, reply) => {
@@ -31,11 +32,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
         }
 
         const ext = path.extname(filename);
-        fileFolder = mimeType.startsWith('image/')
-          ? 'image'
-          : mimeType.startsWith('video/')
-          ? 'video'
-          : 'other';
+        fileFolder = resolveFileType(ext); // will be 'image', 'animated', 'video', or 'other'
 
         finalFileName = `${postId}${ext}`;
         filePath = path.join(process.cwd(), 'data/uploads', fileFolder, finalFileName);
@@ -47,7 +44,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
         writeStream.on('finish', async () => {
           fastify.log.info(`✅ File saved: ${filePath}`);
 
-          if (fileFolder === 'image') {
+          if (fileFolder === 'image' || fileFolder === 'animated') {
             try {
               previewScale = await processPreviewImage(filePath, Number(postId));
               if (previewScale == null) {

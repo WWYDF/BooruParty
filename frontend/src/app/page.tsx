@@ -10,6 +10,7 @@ type PostType = {
   fileExt: string;
   createdAt: string;
   previewScale: number;
+  score: number;
 };
 
 export default function HomePage() {

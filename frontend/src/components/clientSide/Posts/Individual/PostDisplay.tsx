@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import PostVoting from "./PostVoting";
+import { resolveFileType } from "@/core/dictionary";
 
 type Props = {
   post: {
@@ -20,8 +21,11 @@ const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 export default function PostDisplay({ post, showVoting = true }: Props) {
   const [showFull, setShowFull] = useState(post.previewScale === 100 || post.previewScale == null);
 
-  const previewSrc = `${fastify}/data/previews/image/${post.id}.webp`;
-  const fullSrc = `${fastify}/data/uploads/image/${post.id}.${post.fileExt}`;
+  const fileType = resolveFileType(`.${post.fileExt}`);
+
+  const previewExt = fileType === "animated" ? "gif" : "webp";
+  const previewSrc = `${fastify}/data/previews/${fileType}/${post.id}.${previewExt}`;
+  const fullSrc = `${fastify}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -29,7 +33,7 @@ export default function PostDisplay({ post, showVoting = true }: Props) {
         <img
           loading="lazy"
           src={showFull ? fullSrc : previewSrc}
-          alt="Post"
+          alt={`Error accessing ${fullSrc}`}
           className="max-h-[70vh] w-auto h-auto object-contain rounded-xl"
         />
       </div>
