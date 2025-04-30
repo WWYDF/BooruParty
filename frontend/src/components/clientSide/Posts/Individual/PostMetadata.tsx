@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import EditPost from "./EditPost";
-import { PencilSimple, Tag as TagIcon } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FloppyDisk, Heart, Minus, Plus, Tag, ThumbsUp } from "phosphor-react";
+import { PencilSimple, Minus, Plus, Tag } from "phosphor-react";
 import { formatStorageFromBytes } from "@/core/formats";
 import { FILE_TYPE_LABELS } from "@/core/dictionary";
+import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 
 const AVATAR_URL = "/user.png";
 
@@ -97,12 +97,10 @@ export default function PostMetadata({ post }: Props) {
         )}
 
         <div className="flex-1">
-          <p className="text-base text-white font-semibold flex items-center gap-2">
+          <p className="text-base text-white font-semibold flex items-center">
             {displayName}
-            {!post.anonymous && post.uploadedBy.role === "Admin" && (
-              <span className="bg-red-500/10 text-red-400 text-xs font-medium px-2 py-0.5 rounded-md">
-                Admin
-              </span>
+            {!post.anonymous && (
+              <RoleBadge role={post.uploadedBy.role} />
             )}
           </p>
           <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>

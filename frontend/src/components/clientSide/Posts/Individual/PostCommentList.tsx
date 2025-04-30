@@ -1,5 +1,6 @@
 "use client";
 
+import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
@@ -59,14 +60,16 @@ export default function PostCommentList({
             {/* Content */}
             <div className="flex-1">
               <div className="text-muted text-sm mb-1 text-zinc-400">
-              <Link
-                href={`/posts?query=submit:${encodeURIComponent(comment.author.username)}`}
-                className="text-accent hover:underline"
-              >
-                <span>{comment.author.username}</span>
-              </Link>
-
+                <Link
+                  href={`/posts?query=submit:${encodeURIComponent(comment.author.username)}`}
+                  className="text-accent hover:underline"
+                >
+                  <span>{comment.author.username}</span>
+                </Link>
+                <RoleBadge role={comment.author.role} />
                 {" · "}
+
+
                 {new Date(comment.createdAt).toLocaleString()}
               </div>
               <p className="text-base text-zinc-400">{comment.content}</p>
