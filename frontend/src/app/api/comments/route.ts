@@ -1,5 +1,6 @@
 import { auth } from "@/core/auth";
 import { prisma } from "@/core/prisma";
+import { setAvatarUrl } from "@/core/reformatProfile";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -25,7 +26,15 @@ export async function GET(req: NextRequest) {
     }
   });
 
-  return NextResponse.json(comments);
+  const formattedComments = comments.map((comment) => ({
+    ...comment,
+    author: {
+      ...comment.author,
+      avatar: setAvatarUrl(comment.author.avatar),
+    },
+  }));
+
+  return NextResponse.json(formattedComments);
 }
 
 export async function POST(req: NextRequest) {

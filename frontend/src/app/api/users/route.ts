@@ -3,6 +3,7 @@ import { prisma } from '@/core/prisma';
 import { auth } from '@/core/auth';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { setAvatarUrl } from '@/core/reformatProfile';
 
 export async function GET() {
   const session = await auth();
@@ -21,7 +22,10 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json(user);
+  return NextResponse.json({
+    ...user,
+    avatar: setAvatarUrl(user?.avatar)
+  });
 }
 
 const updateUserSchema = z.object({

@@ -8,9 +8,15 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'http',
-        hostname: 'localhost',
-        port: '3005',         // Fastify server port
-        pathname: '/data/**', // allow anything under /data/
+        hostname: 'localhost',    // Leave this entry here
+        port: '3005',             // Fastify server port
+        pathname: '/data/**',     // allow anything under /data/
+      },
+      {
+        protocol: 'http',
+        hostname: '192.168.1.17', // Set this to your fastify server ip
+        port: '3005',             // Fastify server port
+        pathname: '/data/**',     // allow anything under /data/
       },
     ],
   }

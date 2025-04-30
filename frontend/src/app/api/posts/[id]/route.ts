@@ -1,4 +1,5 @@
 import { prisma } from "@/core/prisma";
+import { setAvatarUrl } from "@/core/reformatProfile";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET endpoint to retrieve a single post by ID
@@ -50,6 +51,12 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   const postWOFavorites = {
     ...post,
     favorites: post.favoritedBy.length,
+    uploadedBy: post.uploadedBy
+      ? {
+          ...post.uploadedBy,
+          avatar: setAvatarUrl(post.uploadedBy.avatar)
+        }
+      : null,
     favoritedBy: undefined
   }
 

@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     return new Response(JSON.stringify({ error: data.error || 'Fastify upload failed' }), { status: 500 });
   }
 
-  const fullUrl = `${fastifyUrl}/data${data.url}`;
+  const fullUrl = `/data${data.url}`;
 
   await prisma.user.update({
     where: { id: userId },
