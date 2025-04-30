@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import TagSelector, { TagType } from "../../TagSelector";
@@ -22,7 +22,7 @@ export default function EditPost({
   post: PostType;
   onSuccess: () => void;
 }) {
-  const [tags, setTags] = useState<TagType[]>(post.tags || []);
+  const [orderedTags, setOrderedTags] = useState<TagType[]>([]);
   const [sources, setSources] = useState(post.sources.join(", "));
   const [notes, setNotes] = useState(post.notes || "");
   const [safety, setSafety] = useState(post.safety);
@@ -30,6 +30,20 @@ export default function EditPost({
   const [saving, setSaving] = useState(false);
   const [activeSuggestionTag, setActiveSuggestionTag] = useState<string | null>(null);
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
+  const initialized = useRef(false);
+  const [initialOrderedTags, setInitialOrderedTags] = useState<TagType[]>([]);
+  const [newlyAddedTags, setNewlyAddedTags] = useState<TagType[]>([]);
+
+  // One-time init
+  useEffect(() => {
+    if (post.tags) {
+      // preserve category-sorted order but flatten it
+      const sorted = [...post.tags].sort((a, b) => {
+        return a.category?.order ?? 0 - (b.category?.order ?? 0);
+      });
+      setInitialOrderedTags(sorted);
+    }
+  }, [post.tags]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -38,7 +52,7 @@ export default function EditPost({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        tags: tags.map((t) => t.id),
+        tags: [...newlyAddedTags, ...initialOrderedTags].map((t) => t.id),
         sources: sources.split(",").map((s) => s.trim()).filter(Boolean),
         notes,
         safety,
@@ -64,16 +78,17 @@ export default function EditPost({
       }
     }
   
-    setTags((prev) => {
-      const existingIds = new Set(prev.map((t) => t.id));
+    setNewlyAddedTags((prev) => {
+      const existingIds = new Set([...prev, ...initialOrderedTags].map((t) => t.id));
       const newTags = allTags.filter((t) => !existingIds.has(t.id));
-      return [...prev, ...newTags];
+      return [...newTags, ...prev];
     });
   };
   
 
   const handleRemoveTag = (tagId: number) => {
-    setTags(tags.filter((t) => t.id !== tagId));
+    setNewlyAddedTags((prev) => prev.filter((t) => t.id !== tagId));
+    setInitialOrderedTags((prev) => prev.filter((t) => t.id !== tagId));
   };
 
   return (
@@ -140,59 +155,42 @@ export default function EditPost({
       <div className="mt-2">
         <TagSelector
           onSelect={handleAddTag}
-          disabledTags={tags}
+          disabledTags={orderedTags}
           placeholder="Add tags..."
           addImpliedTags
         />
       </div>
 
       {/* Selected tags display */}
-      {tags.length > 0 && (
-        <div className="flex flex-col gap-4">
-          {Object.entries(
-            tags.reduce((acc: Record<string, TagType[]>, tag) => {
-              const category = tag.category?.name || "Uncategorized";
-              if (!acc[category]) acc[category] = [];
-              acc[category].push(tag);
-              return acc;
-            }, {})
-          ).map(([category, grouped]) => (
-            <div key={category}>
-              <p className="text-white text-sm font-medium mb-1">{category}</p>
-              <div className="flex flex-wrap gap-2">
-                {grouped.map((tag) => (
-                  <div
-                    key={tag.id}
-                    className="flex items-center gap-1 border border-secondary-border px-2 py-1 rounded-full"
-                    style={{ color: tag.category?.color || "#fff" }}
-                  >
-                    {/* Button to remove */}
-                    <button
-                      onClick={() => handleRemoveTag(tag.id)}
-                      className="hover:opacity-80"
-                    >
-                      <X size={14} />
-                    </button>
-                  
-                    {/* Tag icon to tag editor */}
-                    <Link href={`/dashboard/tags/${tag.name}`} className="hover:opacity-80">
-                      <TagIcon size={14} />
-                    </Link>
-                  
-                    {/* Name -> opens suggestion list */}
-                    <button
-                      onClick={(e) => {
-                        const rect = (e.target as HTMLElement).getBoundingClientRect();
-                        setPopupPosition({ x: rect.left, y: rect.bottom });
-                        setActiveSuggestionTag(tag.name);
-                      }}
-                      className="hover:underline"
-                    >
-                      {tag.name}
-                    </button>
-                  </div>                
-                ))}
-              </div>
+      {(newlyAddedTags.length > 0 || initialOrderedTags.length > 0) && (
+        <div className="flex flex-col gap-2">
+          {[...newlyAddedTags, ...initialOrderedTags].map((tag) => (
+            <div
+              key={tag.id}
+              className="flex items-center gap-2 border border-secondary-border px-3 py-1.5 rounded-lg"
+              style={{ color: tag.category?.color || "#fff" }}
+            >
+              <button
+                onClick={() => handleRemoveTag(tag.id)}
+                className="hover:opacity-80"
+              >
+                <X size={16} />
+              </button>
+
+              <Link href={`/dashboard/tags/${tag.name}`} className="hover:opacity-80">
+                <TagIcon size={16} />
+              </Link>
+
+              <button
+                onClick={(e) => {
+                  const rect = (e.target as HTMLElement).getBoundingClientRect();
+                  setPopupPosition({ x: rect.left, y: rect.bottom });
+                  setActiveSuggestionTag(tag.name);
+                }}
+                className="hover:underline text-left"
+              >
+                {tag.name}
+              </button>
             </div>
           ))}
         </div>

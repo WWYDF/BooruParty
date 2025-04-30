@@ -29,6 +29,7 @@ type Props = {
         id: number;
         name: string;
         color: string;
+        order: number;
       };
       aliases: {
         id: number;
@@ -79,6 +80,20 @@ export default function PostMetadata({ post }: Props) {
 
   const displayName = post.anonymous ? "Anonymous" : post.uploadedBy?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : post.uploadedBy?.avatar || AVATAR_URL;
+
+  // 1. Group tags by category
+  const grouped = post.tags.reduce((acc: Record<string, { tag: typeof post.tags[0]; order: number }[]>, tag) => {
+    const name = tag.category?.name || "Uncategorized";
+    const order = tag.category?.order ?? 9999; // fallback to end
+    if (!acc[name]) acc[name] = [];
+    acc[name].push({ tag, order });
+    return acc;
+  }, {});
+
+  // 2. Sort category blocks by their `order` field
+  const sortedCategories = Object.entries(grouped).sort(
+    ([, tagsA], [, tagsB]) => (tagsA[0]?.order ?? 0) - (tagsB[0]?.order ?? 0)
+  );
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -201,62 +216,44 @@ export default function PostMetadata({ post }: Props) {
           {/* Tags */}
           {post.tags.length > 0 && (
             <div className="flex flex-col gap-4 mt-4">
-              {Object.entries(
-                post.tags.reduce((acc: Record<string, { name: string; color: string }[]>, tag) => {
-                  const category = tag.category?.name || "Uncategorized";
-                  if (!acc[category]) acc[category] = [];
-                  acc[category].push({
-                    name: tag.name,
-                    color: tag.category?.color || "#ccc",
-                  });
-                  return acc;
-                }, {})
-              ).map(([category, tags]) => (
-                <div key={category}>
-                  <p className="text-white text-sm font-medium mb-1">{category}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map((tag, i) => (
+              {sortedCategories.map(([categoryName, items]) => (
+                <div key={categoryName}>
+                  <p className="text-white text-sm font-medium mb-1">{categoryName}</p>
+                  <div className="flex flex-col gap-2">
+                    {items.map(({ tag }) => (
                       <div
-                      key={i}
-                      className="flex items-center gap-1 text-sm border border-secondary-border px-2 py-1 rounded-full"
-                      style={{ color: tag.color }}
-                    >
-                      {/* Tag icon to dashboard */}
-                      <Link
-                        href={`/dashboard/tags/${tag.name}`}
-                        title="Edit tag in dashboard"
-                        className="hover:opacity-90"
+                        key={tag.id}
+                        className="inline-flex items-center gap-1 border border-secondary-border px-2 py-1 rounded-full w-fit"
+                        style={{ color: tag.category?.color || "#fff" }}
                       >
-                        <Tag size={14} />
-                      </Link>
-                    
-                      {/* Tag name → replace search */}
-                      <button
-                        onClick={() => modifyQuery("replace", tag.name)}
-                        className="hover:underline"
-                        title="Search posts with only this tag"
-                      >
-                        {tag.name}
-                      </button>
-                    
-                      {/* + Add tag to current query */}
-                      <button
-                        onClick={() => modifyQuery("add", tag.name)}
-                        className="hover:text-accent"
-                        title="Add tag to search"
-                      >
-                        <Plus size={14} weight="bold" />
-                      </button>
-                    
-                      {/* - Exclude tag */}
-                      <button
-                        onClick={() => modifyQuery("exclude", tag.name)}
-                        className="hover:text-accent"
-                        title="Exclude tag from search"
-                      >
-                        <Minus size={14} weight="bold" />
-                      </button>
-                    </div>
+                        <Link href={`/dashboard/tags/${tag.name}`} title="Edit tag">
+                          <Tag size={14} />
+                        </Link>
+
+                        <button
+                          onClick={() => modifyQuery("replace", tag.name)}
+                          className="hover:underline"
+                          title="Search only this tag"
+                        >
+                          {tag.name}
+                        </button>
+
+                        <button
+                          onClick={() => modifyQuery("add", tag.name)}
+                          className="hover:text-accent"
+                          title="Add tag to search"
+                        >
+                          <Plus size={14} weight="bold" />
+                        </button>
+
+                        <button
+                          onClick={() => modifyQuery("exclude", tag.name)}
+                          className="hover:text-accent"
+                          title="Exclude tag from search"
+                        >
+                          <Minus size={14} weight="bold" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>

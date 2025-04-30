@@ -10,6 +10,7 @@ export type TagType = {
     id: number;
     name: string;
     color: string;
+    order?: number;
   };
   aliases?: { id: number; alias: string }[];
   suggestions?: TagType[];
