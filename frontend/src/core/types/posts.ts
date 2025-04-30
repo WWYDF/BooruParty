@@ -32,3 +32,8 @@ export type Post = {
     createdAt: string;
   }[];
 }
+
+export type PostNavigatorType = {
+  previousPostId: number;
+  nextPostId: number;
+}

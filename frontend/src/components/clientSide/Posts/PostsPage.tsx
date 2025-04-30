@@ -43,6 +43,11 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
       params.set("safety", safeties.join("-"));
     }
     router.replace(`?${params.toString()}`);
+
+    localStorage.setItem("lastSearchParams", JSON.stringify({
+      query: query,
+      safety: safeties.join("-"),
+    }));
   };
 
   const toggleSafety = (safety: string) => {
@@ -85,10 +90,19 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
 
   // 🔁 Run initial search on first mount if URL had params
   useEffect(() => {
-    if (isFirstLoad.current && (initialQuery || initialSafeties.length > 0)) {
-      searchPosts(initialQuery, initialSafeties);
+    if (isFirstLoad.current) {
+      const hasQuery = !!initialQuery.trim();
+      const hasSafety = initialSafeties.length > 0;
+  
+      if (hasQuery || hasSafety) {
+        searchPosts(initialQuery, initialSafeties);
+      } else {
+        // No filters in URL → clear localStorage
+        localStorage.removeItem("lastSearchParams");
+      }
+  
+      isFirstLoad.current = false;
     }
-    isFirstLoad.current = false;
   }, []);
 
   // 🌀 Infinite scroll
