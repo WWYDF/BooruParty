@@ -39,7 +39,9 @@ type Props = {
     uploadedBy: {
       id: string;
       username: string;
-      role: string;
+      role: {
+        name: string;
+      };
       avatar: string;
     },
     fileSize?: number;
@@ -115,7 +117,7 @@ export default function PostMetadata({ post }: Props) {
           <p className="text-base text-white font-semibold flex items-center">
             {displayName}
             {!post.anonymous && (
-              <RoleBadge role={post.uploadedBy.role} />
+              <RoleBadge role={post.uploadedBy.role.name} />
             )}
           </p>
           <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>

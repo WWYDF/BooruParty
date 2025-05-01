@@ -26,3 +26,22 @@ export function resolveFileType(ext: string): FileType {
 
   return 'other';
 }
+
+export const DISALLOWED_USERNAMES = [
+  "admin",
+  "administrator",
+  "root",
+  "moderator",
+  "support",
+  "staff",
+  "system",
+  "null",
+  "undefined",
+  "api",
+  "setup",
+  "login",
+  "register",
+  "me",
+  "deleted",
+  "anonymous"
+];

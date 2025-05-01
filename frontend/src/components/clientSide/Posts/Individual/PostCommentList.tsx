@@ -12,7 +12,9 @@ type ResolvedComment = {
   author: {
     id: string;
     username: string;
-    role: string;
+    role: {
+      name: string;
+    };
     avatar: string
   }
 };
@@ -66,7 +68,7 @@ export default function PostCommentList({
                 >
                   <span>{comment.author.username}</span>
                 </Link>
-                <RoleBadge role={comment.author.role} />
+                <RoleBadge role={comment.author.role.name} />
                 {" · "}
 
 

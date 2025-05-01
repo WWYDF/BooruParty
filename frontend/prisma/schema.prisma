@@ -34,17 +34,26 @@ enum SafetyType {
   UNSAFE
 }
 
+model SiteSettings {
+  id            Int       @id @default(1)
+  setupComplete Boolean   @default(false)
+  siteName      String    @default("Imageboard")
+  accent        String    @default("#FFBB3D")
+  darkerAccent  String    @default("#BB8624")
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   username      String    @unique
   password      String
-  role          String    @default("Member")
+  role          Role?     @relation(fields: [roleId], references: [id])
   avatar        String?
   preferences   UserPreferences?
   favorites     UserFavorites[]
   posts         Posts[]
   comments      Comments[]
+  roleId        Int?
   
   lastLogin     DateTime  @default(now())
   createdAt     DateTime  @default(now())
@@ -52,7 +61,7 @@ model User {
 
 model UserPreferences {
   id            String       @id
-  user          User         @relation(fields: [id], references: [id])
+  user          User         @relation(fields: [id], references: [id], onDelete: Cascade)
   
   layout        LayoutType   @default(GRID)
   theme         ThemeType    @default(DARK)
@@ -64,18 +73,31 @@ model UserFavorites {
   userId    String
   postId    Int
 
-  user      User     @relation(fields: [userId], references: [id])
-  post      Posts    @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Posts    @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
   @@unique([userId, postId])
 }
 
+model Role {
+  id            Int              @id @default(autoincrement())
+  name          String           @unique
+  users         User[]
+  permissions   Permission[]     @relation("RolePermissions")
+}
+
+model Permission {
+  id            Int              @id @default(autoincrement())
+  name          String           @unique
+  roles         Role[]           @relation("RolePermissions")
+}
+
 model Posts {
   id            Int          @id @default(autoincrement())
   fileExt       String
-  uploadedBy    User         @relation(fields: [uploadedById], references: [id])
+  uploadedBy    User         @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
   anonymous     Boolean
   safety        SafetyType
   tags          Tags[]       @relation("PostTags")
@@ -111,7 +133,7 @@ model Votes {
 model Comments {
   id         Int       @id @default(autoincrement())
   postId     Int
-  author     User      @relation(fields: [authorId], references: [id])
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId   String
   content    String
   createdAt  DateTime  @default(now())
