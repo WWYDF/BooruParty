@@ -1,5 +1,5 @@
 export async function getCurrentUser() {
-    const res = await fetch('/api/users', {
+    const res = await fetch('/api/users/self', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });

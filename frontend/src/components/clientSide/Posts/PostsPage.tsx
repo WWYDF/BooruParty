@@ -29,7 +29,7 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
   useEffect(() => {
     getSession().then(async (session) => {
       if (!session?.user?.id) return setLoadingViewMode(false);
-      const res = await fetch(`/api/users/${session.user.id}`);
+      const res = await fetch(`/api/users/${session.user.username}`);
       const data = await res.json();
       if (data?.preferences?.layout) setViewMode(data.preferences?.layout);
       setLoadingViewMode(false);

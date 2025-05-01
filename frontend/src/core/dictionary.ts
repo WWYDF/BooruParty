@@ -55,3 +55,10 @@ export const ALLOWED_EMBED_SOURCES: Record<string, "image" | "iframe"> = {
   // "youtube.com": "iframe",
   // "youtu.be": "iframe",
 };
+
+// Replace this and (roles.ts) later with customizable hex codes.
+export const roleGlowMap: Record<string, string> = {
+  ADMIN: "shadow-[0_0_20px_2px_rgba(239,68,68,0.3)]",     // red-500
+  MOD: "shadow-[0_0_20px_2px_rgba(59,130,246,0.3)]",     // blue-500
+  "POWER USER": "shadow-[0_0_20px_2px_rgba(239,177,0,0.3)]",   // yellow-500
+};

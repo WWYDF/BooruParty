@@ -79,9 +79,14 @@ export async function PATCH(req: Request) {
         await prisma.user.update({
           where: { id: userId },
           data: {
-              ...updates,
-              preferences: Object.keys(prefUpdates).length
-              ? { update: prefUpdates }
+            ...updates,
+            preferences: Object.keys(prefUpdates).length
+              ? {
+                  upsert: {
+                    update: prefUpdates,
+                    create: prefUpdates
+                  }
+                }
               : undefined,
           },
         });

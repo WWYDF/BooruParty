@@ -31,7 +31,7 @@ export const ROLE_BADGE: Record<
   },
   "POWER USER": {
     label: "Power User",
-    color: "text-blue-400 bg-blue-500/10",
+    color: "text-yellow-400 bg-yellow-500/10",
     icon: Lightning,
     importance: 'low'
   },
