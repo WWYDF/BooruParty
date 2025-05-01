@@ -20,6 +20,15 @@ export async function GET(
           postsPerPage: true,
         }
       },
+      role: {
+        include: {
+          permissions: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
       // add more fields if needed
     },
   });

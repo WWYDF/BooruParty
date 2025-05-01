@@ -1,34 +1,24 @@
-import { prisma } from "@/core/prisma";
-import { auth } from "@/core/auth";
-import { NextResponse } from "next/server";
-
-export async function checkPermissions(permission: string) {
-  const session = await auth();
-  
-  if (permission == 'posts_view') {
-    if (process.env.GUEST_VIEWING == 'true') { return {success: true} }
+export async function checkPermissions(permission: string): Promise<{ success: boolean }> {
+  // Special case for guest-viewing
+  if (permission === 'posts_view' && process.env.GUEST_VIEWING === 'true') {
+    return { success: true };
   }
 
+  try {
+    const res = await fetch('/api/users/permissions', { cache: 'no-store' });
 
-  if (!session?.user?.id) {
-    return { success: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      role: {
-        include: { permissions: true }
-      }
+    if (!res.ok) {
+      return { success: false };
     }
-  });
 
-  const allowed = user?.role?.permissions.some((p) => p.name === permission) ?? false;
-  const admin = user?.role?.permissions.some((p) => p.name === 'administrator') ?? false;
+    const data = await res.json();
 
-  if (!allowed && !admin) {
-    return { success: false, response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+    const allowed = Array.isArray(data.permissions) &&
+      (data.permissions.includes(permission) || data.permissions.includes('administrator'));
+
+    return { success: allowed };
+  } catch (err) {
+    console.error('checkPermissions error:', err);
+    return { success: false };
   }
-
-  return { success: true, user };
 }

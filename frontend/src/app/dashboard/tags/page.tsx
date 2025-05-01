@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CreateTagModal } from "@/components/clientSide/Tags/CreateModal";
+import { checkPermissions } from "@/core/permissions";
 
 type TagListType = {
   id: number;
@@ -28,9 +29,19 @@ export default function TagListPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [canCreateTag, setCanCreateTag] = useState(false);
   const router = useRouter();
 
   const perPage = 50;
+
+  // Check if they can make tags
+  useEffect(() => {
+    const check = async () => {
+      const res = await checkPermissions("tags_create");
+      setCanCreateTag(res.success);
+    };
+    check();
+  }, []);
 
   // Debounce search input by 500ms
   useEffect(() => {
@@ -68,9 +79,6 @@ export default function TagListPage() {
     setPage(1); // Reset to first page when typing
   };
 
-  const handleNewTag = () => {
-    router.push("/dashboard/tags/create");
-  };
 
   return (
     <div className="space-y-6 px-4 md:px-8 mt-8">
@@ -85,12 +93,14 @@ export default function TagListPage() {
           placeholder="Search tags..."
           className="bg-secondary p-2 rounded border border-secondary-border w-full max-w-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
         />
-        <button
-          onClick={() => setCreateModalOpen(true)}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors whitespace-nowrap"
-        >
-          + New Tag
-        </button>
+        {canCreateTag && (
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors whitespace-nowrap"
+          >
+            + New Tag
+          </button>
+        )}
       </div>
   
       {!loading && (
@@ -103,7 +113,7 @@ export default function TagListPage() {
                 <th className="text-left py-2 px-2">Aliases</th>
                 <th className="text-left py-2 px-2">Implications</th>
                 <th className="text-left py-2 px-2">Suggestions</th>
-                <th className="text-left py-2 px-2">Usage</th>
+                <th className="text-left py-2 px-2">Usages</th>
                 <th className="text-left py-2 px-2">Created</th>
               </tr>
             </thead>
