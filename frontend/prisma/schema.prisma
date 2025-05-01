@@ -53,6 +53,7 @@ model User {
   description   String?
   preferences   UserPreferences?
   favorites     UserFavorites[]
+  votes         Votes[]
   posts         Posts[]
   comments      Comments[]
   roleId        Int?
@@ -81,6 +82,19 @@ model UserFavorites {
   createdAt DateTime @default(now())
 
   @@unique([userId, postId])
+}
+
+model Votes {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    String
+  type      VoteType
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Posts    @relation(fields: [postId], references: [id], name: "PostVotes", onDelete: Cascade)
+
+  @@unique([postId, userId])
 }
 
 model Role {
@@ -118,18 +132,6 @@ model Posts {
   fileSize      Int?
 
   createdAt     DateTime     @default(now())
-}
-
-model Votes {
-  id        Int      @id @default(autoincrement())
-  postId    Int
-  userId    String
-  type      VoteType
-  createdAt DateTime @default(now())
-
-  post      Posts    @relation(fields: [postId], references: [id], name: "PostVotes", onDelete: Cascade)
-
-  @@unique([postId, userId])
 }
 
 model Comments {

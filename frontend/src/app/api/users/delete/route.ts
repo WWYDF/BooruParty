@@ -33,6 +33,39 @@ export async function DELETE(req: Request) {
   }
   
   try {
+    // Remove User's Votes on Posts.
+    // Step 1: Get all votes by this user
+    const votes = await prisma.votes.findMany({
+      where: { userId: targetUserId },
+      select: {
+        postId: true,
+        type: true,
+      },
+    });
+
+    // Step 2: Calculate vote impact per post
+    const postScoreMap = new Map<number, number>();
+
+    for (const vote of votes) {
+      const delta = vote.type === "UPVOTE" ? -1 : 1; // Reverse effect of vote
+      postScoreMap.set(vote.postId, (postScoreMap.get(vote.postId) ?? 0) + delta);
+    }
+
+    // Step 3: Update each post’s score
+    await Promise.all(
+      Array.from(postScoreMap.entries()).map(([postId, delta]) =>
+        prisma.posts.update({
+          where: { id: postId },
+          data: {
+            score: {
+              increment: delta,
+            },
+          },
+        })
+      )
+    );
+
+
     if (mode === "transfer") {
       // Retain posts: Reassign to system user with id "0" (deleted)
       await prisma.posts.updateMany({
