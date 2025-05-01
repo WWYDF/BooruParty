@@ -10,6 +10,7 @@ export type Comments = {
       name: string;
     };
     avatar: string
-  }
+  },
+  isEmbed: boolean;
 };
   

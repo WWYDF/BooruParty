@@ -137,6 +137,7 @@ model Comments {
   author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId   String
   content    String
+  isEmbed    Boolean   @default(false)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 

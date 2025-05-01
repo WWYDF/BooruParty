@@ -1,7 +1,11 @@
+import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/auth";
+import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
 import { NextRequest, NextResponse } from "next/server";
+
+const embedDomains = Object.keys(ALLOWED_EMBED_SOURCES);
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -50,11 +54,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing postId or content" }, { status: 400 });
   }
 
+  // --- Check for embed permission
+  const canComment = await checkPermissions('comment_create');
+  const embedURLs = await checkPermissions('comment_embed_url');
+  // const embedPosts = await checkPermissions('comment_embed_post');
+  const allowedEmbedDomains = ["cdn.discordapp.com", "media.tenor.com"];
+
+  let isEmbed = false;
+
+  if (embedURLs) {
+    const urlRegex = /https?:\/\/[^\s]+/g;
+    let match;
+    while ((match = urlRegex.exec(content)) !== null) {
+      const domain = new URL(match[0]).hostname;
+      if (embedDomains.some((d) => domain.endsWith(d))) {
+        isEmbed = true;
+        break;
+      }
+    }
+  }
+
   const comment = await prisma.comments.create({
     data: {
       postId,
       content,
       authorId: session.user.id,
+      isEmbed,
     },
   });
 

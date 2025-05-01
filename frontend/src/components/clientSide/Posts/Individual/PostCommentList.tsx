@@ -1,9 +1,67 @@
 "use client";
 
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
+import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { Comments } from "@/core/types/comments";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { JSX } from "react";
+
+function extractEmbedURLs(content: string): string[] {
+  const urlRegex = /https?:\/\/[^\s]+/g;
+  const matches = content.match(urlRegex) || [];
+
+  return matches.filter((url) => {
+    try {
+      const hostname = new URL(url).hostname;
+      return Object.keys(ALLOWED_EMBED_SOURCES).some((domain) =>
+        hostname.endsWith(domain)
+      );
+    } catch {
+      return false;
+    }
+  });
+}
+
+function renderEmbeds(urls: string[]): JSX.Element[] {
+  return urls.map((url) => {
+    try {
+      const parsed = new URL(url);
+      const type = Object.entries(ALLOWED_EMBED_SOURCES).find(([domain]) =>
+        parsed.hostname.endsWith(domain)
+      )?.[1];
+
+      if (!type) return null;
+
+      if (type === "image") {
+        return (
+          <div key={url} className="mt-2">
+            <img
+              src={url}
+              alt="Embedded media"
+              className="rounded-lg max-w-xs max-h-64 object-contain"
+            />
+          </div>
+        );
+      }
+
+      if (type === "iframe") {
+        return (
+          <div key={url} className="mt-2">
+            <iframe
+              src={url}
+              className="w-full max-w-md h-64 rounded"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          </div>
+        );
+      }
+    } catch {
+      return null;
+    }
+  }).filter(Boolean) as JSX.Element[];
+}
 
 export default function PostCommentList({
   comments,
@@ -60,7 +118,22 @@ export default function PostCommentList({
 
                 {new Date(comment.createdAt).toLocaleString()}
               </div>
-              <p className="text-base text-zinc-400">{comment.content}</p>
+              <div className="text-base text-zinc-400 whitespace-pre-wrap">
+              {(() => {
+                const embedURLs = comment.isEmbed ? extractEmbedURLs(comment.content) : [];
+                const visibleContent = embedURLs.reduce(
+                  (text, url) => text.replace(url, "").trim(),
+                  comment.content
+                );
+
+                return (
+                  <div className="text-base text-zinc-400 whitespace-pre-wrap">
+                    {visibleContent}
+                    {comment.isEmbed && renderEmbeds(embedURLs)}
+                  </div>
+                );
+              })()}
+              </div>
             </div>
           </motion.div>
         ))}

@@ -45,3 +45,13 @@ export const DISALLOWED_USERNAMES = [
   "deleted",
   "anonymous"
 ];
+
+export const ALLOWED_EMBED_SOURCES: Record<string, "image" | "iframe"> = {
+  "cdn.discordapp.com": "image",
+  "media.tenor.com": "image",
+  "media1.tenor.com": "image",
+  "c.tenor.com": "image",
+  // Later additions:
+  // "youtube.com": "iframe",
+  // "youtu.be": "iframe",
+};
