@@ -44,11 +44,41 @@ export async function DELETE(req: Request) {
       await prisma.user.delete({
         where: { id: targetUserId },
       });
-    } else {
+    } else { // User wants to delete everything
+      // Gather postIds to ask Fastify to purge them
+      const postsToDelete = await prisma.posts.findMany({
+        where: { uploadedById: targetUserId },
+        select: { id: true },
+      });
+
+      const postIds = postsToDelete.map((p) => p.id);
+
+      // If there are posts, notify Fastify of them
+      if (postIds.length > 0) {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/posts`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ postIds }),
+          });
+        } catch (err) {
+          console.error("Failed to notify Fastify to delete post files:", err);
+        }
+      }
+
       // Fully cascade delete (Posts, settings, favorites, likes, etc.)
       await prisma.user.delete({
         where: { id: targetUserId },
       });
+    }
+
+    // Regardless, ask Fastify to remove their avatar history
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/avatar/${targetUserId}`, {
+        method: "DELETE",
+      });
+    } catch (err) {
+      console.error("Failed to delete avatar files from Fastify:", err);
     }
 
     return new Response(null, { status: 204 });

@@ -6,6 +6,8 @@ import registerStatic from './plugins/static';
 import uploadRoutes from './routes/upload';
 import avatarUploadRoute from './routes/avatars';
 import statsRoute from './routes/stats';
+import postDeleteRoute from './routes/delete/posts';
+import avatarDeleteRoute from './routes/delete/avatars';
 
 dotenv.config();
 
@@ -33,6 +35,8 @@ async function buildServer() {
   await fastify.register(uploadRoutes, { prefix: '/api' });
   await fastify.register(avatarUploadRoute, { prefix: '/api' });
   await fastify.register(statsRoute, { prefix: '/api' });
+  await fastify.register(postDeleteRoute, { prefix: '/api' });
+  await fastify.register(avatarDeleteRoute, { prefix: '/api' });
 
   return fastify;
 }
