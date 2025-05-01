@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserCircle } from 'phosphor-react';
+import { List, X, UserCircle, ImageSquare, Users, ChartPie, UploadSimple, House } from 'phosphor-react';
+import { usePathname } from "next/navigation";
+import { Images, Panorama } from '@phosphor-icons/react';
 
 type UserInfo = {
   id: string;
-  username: string;
-  avatar: string;
+  username?: string;
+  avatar?: string;
   role: {
     name: string;
     permissions: { name: string }[];
@@ -18,21 +20,21 @@ type UserInfo = {
 export default function Navbar() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     fetch('/api/users/self')
-      .then((res) => res.ok ? res.json() : null)
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && data.username) {
-          setUser(data); // logged-in user
-        } else if (data?.role?.name === "GUEST") {
-          setUser(data); // treat as guest with permissions
-        } else {
-          setUser(null); // fallback
-        }
+        if (data?.username) setUser(data);
+        else if (data?.role?.name === 'GUEST') setUser(data);
+        else setUser(null);
       });
-  }, []);  
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -43,84 +45,200 @@ export default function Navbar() {
         setDropdownOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const hasPerm = (perm: string) => user?.role?.permissions?.some((p) => p.name === perm);
+  useEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+  
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartX.current = e.touches[0].clientX;
+    };
+  
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartX.current === null) return;
+      const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+      if (deltaX > 60) setSidebarOpen(false); // swipe right
+    };
+  
+    sidebar.addEventListener('touchstart', handleTouchStart);
+    sidebar.addEventListener('touchend', handleTouchEnd);
+  
+    return () => {
+      sidebar.removeEventListener('touchstart', handleTouchStart);
+      sidebar.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
+
+  const hasPerm = (perm: string) =>
+    user?.role?.permissions?.some((p) => p.name === perm);
+
+  const linkClass = (href: string) =>
+    `hover:text-white transition ${pathname === href ? "text-accent" : "text-subtle"}`;  
 
   return (
-    <motion.nav
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800"
-    >
-      <Link href="/" className="text-xl font-semibold text-white">
-        Imageboard
-      </Link>
+    <>
+      {/* Main Navbar */}
+      <motion.nav
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800"
+      >
+        <Link href="/" className="text-xl font-semibold text-white">
+          Imageboard
+        </Link>
 
-      <div className="flex gap-4 items-center text-sm text-subtle">
-        <Link href="/posts" className="hover:text-white transition">Posts</Link>
-        {hasPerm('post_create') && (
-          <Link href="/upload" className="hover:text-white transition">Upload</Link>
-        )}
-        {hasPerm('dashboard_view') && (
-          <Link href="/dashboard" className="hover:text-white transition">Dashboard</Link>
-        )}
-        {hasPerm("posts_view") && (
-          <Link href="/users" className="hover:text-white transition">
-            Users
-          </Link>
-        )}
+        {/* Desktop Links */}
+        <div className="hidden md:flex gap-4 items-center text-sm text-subtle">
+          <Link href="/posts" className={linkClass("/posts")}>Posts</Link>
+          {hasPerm('post_create') && (
+            <Link href="/upload" className={linkClass("/upload")}>Upload</Link>
+          )}
+          {hasPerm('dashboard_view') && (
+            <Link href="/dashboard" className={linkClass("/dashboard")}>Dashboard</Link>
+          )}
+          {hasPerm('posts_view') && (
+            <Link href="/users" className={linkClass("/users")}>Users</Link>
+          )}
+          {user?.username && user.avatar ? (
+            <Link href="/profile">
+              <img
+                src={user.avatar}
+                alt={user.username}
+                className="w-8 h-8 rounded-full object-cover border border-zinc-700 hover:border-accent transition"
+              />
+            </Link>
+          ) : (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen((v) => !v)}
+                className="text-subtle hover:text-accent transition focus:outline-none"
+              >
+                <UserCircle size={28} weight="fill" />
+              </button>
+              <AnimatePresence>
+                {dropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-md shadow-md z-50 min-w-[120px]"
+                  >
+                    <Link
+                      href="/login"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm hover:bg-zinc-800"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      href="/register"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm hover:bg-zinc-800"
+                    >
+                      Register
+                    </Link>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
 
-        {/* Avatar or Login/Register */}
-        {user?.username && user.avatar ? (
-          <Link href={`/profile`}>
-            <img
-              src={user.avatar}
-              alt={user.username}
-              className="w-8 h-8 rounded-full object-cover border border-zinc-700 hover:border-accent transition"
-            />
-          </Link>
-        ) : (
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen((v) => !v)}
-              className="text-subtle hover:text-accent transition focus:outline-none"
+        {/* Mobile Hamburger */}
+        <button
+          className="md:hidden text-white"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <List size={28} />
+        </button>
+      </motion.nav>
+
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            ref={sidebarRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-end md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <motion.div
+              className="w-64 h-full bg-zinc-900 border-l border-zinc-700 p-4 space-y-4"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ duration: 0.25 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <UserCircle size={28} weight="fill" />
-            </button>
-
-            <AnimatePresence>
-              {dropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-md shadow-md z-50 min-w-[120px]"
-                >
-                  <Link
-                    href="/login"
-                    onClick={() => setDropdownOpen(false)}
-                    className="block px-4 py-2 text-sm hover:bg-zinc-800"
-                  >
-                    Login
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-white font-semibold text-lg">Menu</span>
+                <button onClick={() => setSidebarOpen(false)}>
+                  <X size={24} className="text-subtle hover:text-white" />
+                </button>
+              </div>
+              <nav className="flex flex-col gap-3 text-md text-subtle">
+                <Link href="/" onClick={() => setSidebarOpen(false)} className={linkClass("/")}>
+                  <span className="inline-flex items-center gap-2">
+                    <House size={18} />
+                    Home
+                  </span>
+                </Link>
+                <Link href="/posts" onClick={() => setSidebarOpen(false)} className={linkClass("/posts")}>
+                  <span className="inline-flex items-center gap-2">
+                    <Images size={18} />
+                    Posts
+                  </span>
+                </Link>
+                {hasPerm('post_create') && (
+                  <Link href="/upload" onClick={() => setSidebarOpen(false)} className={linkClass("/upload")}>
+                    <span className="inline-flex items-center gap-2">
+                      <UploadSimple size={18} />
+                      Upload
+                    </span>
                   </Link>
-                  <Link
-                    href="/register"
-                    onClick={() => setDropdownOpen(false)}
-                    className="block px-4 py-2 text-sm hover:bg-zinc-800"
-                  >
-                    Register
+                )}
+                {hasPerm('dashboard_view') && (
+                  <Link href="/dashboard" onClick={() => setSidebarOpen(false)} className={linkClass("/dashboard")}>
+                    <span className="inline-flex items-center gap-2">
+                      <ChartPie size={18} />
+                      Dashboard
+                    </span>
                   </Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                )}
+                {hasPerm('posts_view') && (
+                  <Link href="/users" onClick={() => setSidebarOpen(false)} className={linkClass("/users")}>
+                    <span className="inline-flex items-center gap-2">
+                      <Users size={18} />
+                      Users
+                    </span>
+                  </Link>
+                )}
+                {user?.username ? (
+                  <Link href={`/profile`} onClick={() => setSidebarOpen(false)} className={linkClass("/profile")}>
+                    <span className="inline-flex items-center gap-2">
+                      <UserCircle size={18} />
+                      My Profile
+                    </span>
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/login" onClick={() => setSidebarOpen(false)} className="hover:text-white">Login</Link>
+                    <Link href="/register" onClick={() => setSidebarOpen(false)} className="hover:text-white">Register</Link>
+                  </>
+                )}
+              </nav>
+            </motion.div>
+          </motion.div>
         )}
-      </div>
-    </motion.nav>
+      </AnimatePresence>
+    </>
   );
 }
