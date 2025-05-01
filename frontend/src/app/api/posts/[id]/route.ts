@@ -1,9 +1,15 @@
+import { checkPermissions } from "@/core/permissions";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET endpoint to retrieve a single post by ID
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    const permCheck = await checkPermissions('posts_view');
+    if (!permCheck.success) return permCheck.response;
+  } catch {}
+
   const { id } = await context.params;
 
   const postId = parseInt(id);

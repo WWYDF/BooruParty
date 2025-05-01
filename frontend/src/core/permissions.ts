@@ -1,16 +1,27 @@
 import { prisma } from "@/core/prisma";
+import { auth } from "@/core/auth";
+import { NextResponse } from "next/server";
 
-export async function hasPermission(userId: string, permission: string): Promise<boolean> {
+export async function checkPermissions(permission: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: session.user.id },
     include: {
       role: {
-        include: {
-          permissions: true
-        }
+        include: { permissions: true }
       }
     }
   });
 
-  return user?.role?.permissions.some(p => p.name === permission) ?? false;
+  const allowed = user?.role?.permissions.some((p) => p.name === permission) ?? false;
+
+  if (!allowed) {
+    return { success: false, response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
+
+  return { success: true, user };
 }
