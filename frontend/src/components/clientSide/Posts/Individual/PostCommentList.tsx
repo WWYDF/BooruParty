@@ -7,59 +7,95 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { JSX } from "react";
 
-function extractEmbedURLs(content: string): string[] {
-  const urlRegex = /https?:\/\/[^\s]+/g;
-  const matches = content.match(urlRegex) || [];
+type ExtractedEmbed = 
+  | { type: "url"; value: string }
+  | { type: "post"; postId: number; inline: boolean };
 
-  return matches.filter((url) => {
+function extractEmbeds(content: string): ExtractedEmbed[] {
+  const embeds: ExtractedEmbed[] = [];
+
+  const urlRegex = /https?:\/\/[^\s]+/g;
+  const postRegex = /:(\d+):/g;
+
+  const urlMatches = content.match(urlRegex) || [];
+  for (const url of urlMatches) {
     try {
       const hostname = new URL(url).hostname;
-      return Object.keys(ALLOWED_EMBED_SOURCES).some((domain) =>
-        hostname.endsWith(domain)
-      );
-    } catch {
-      return false;
+      if (Object.keys(ALLOWED_EMBED_SOURCES).some((d) => hostname.endsWith(d))) {
+        embeds.push({ type: "url", value: url });
+      }
+    } catch {}
+  }
+
+  let match;
+  while ((match = postRegex.exec(content)) !== null) {
+    const postId = parseInt(match[1]);
+    if (!isNaN(postId)) {
+      // Check if the entire content is just ":<id>:" (no other text)
+      const isAlone = content.trim() === match[0];
+      embeds.push({ type: "post", postId, inline: !isAlone });
     }
-  });
+  }
+
+  return embeds;
 }
 
-function renderEmbeds(urls: string[]): JSX.Element[] {
-  return urls.map((url) => {
-    try {
-      const parsed = new URL(url);
-      const type = Object.entries(ALLOWED_EMBED_SOURCES).find(([domain]) =>
-        parsed.hostname.endsWith(domain)
-      )?.[1];
+function renderEmbeds(embeds: ExtractedEmbed[]): JSX.Element[] {
+  return embeds.map((embed, index) => {
+    if (embed.type === "url") {
+      try {
+        const parsed = new URL(embed.value);
+        const type = Object.entries(ALLOWED_EMBED_SOURCES).find(([domain]) =>
+          parsed.hostname.endsWith(domain)
+        )?.[1];
 
-      if (!type) return null;
+        if (!type) return null;
 
-      if (type === "image") {
-        return (
-          <div key={url} className="mt-2">
-            <img
-              src={url}
-              alt="Embedded media"
-              className="rounded-lg max-w-xs max-h-64 object-contain"
-            />
-          </div>
-        );
+        if (type === "image") {
+          return (
+            <div key={index} className="mt-2">
+              <img
+                src={embed.value}
+                alt="Embedded media"
+                className="rounded-lg max-w-xs max-h-64 object-contain"
+              />
+            </div>
+          );
+        }
+
+        if (type === "iframe") {
+          return (
+            <div key={index} className="mt-2">
+              <iframe
+                src={embed.value}
+                className="w-full max-w-md h-64 rounded"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+              />
+            </div>
+          );
+        }
+      } catch {
+        return null;
       }
-
-      if (type === "iframe") {
-        return (
-          <div key={url} className="mt-2">
-            <iframe
-              src={url}
-              className="w-full max-w-md h-64 rounded"
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-            />
-          </div>
-        );
-      }
-    } catch {
-      return null;
     }
+
+    if (embed.type === "post") {
+      const thumbnailUrl = `${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${embed.postId}_small.webp`;
+      return (
+        <div key={index} className="mt-2">
+          <a href={`/post/${embed.postId}`} className="block max-w-xs rounded-lg overflow-hidden border border-zinc-700 hover:border-accent transition">
+            <img
+              src={thumbnailUrl}
+              alt={`Post #${embed.postId}`}
+              className="w-full object-cover"
+            />
+          </a>
+        </div>
+      );
+    }
+
+    return null;
   }).filter(Boolean) as JSX.Element[];
 }
 
@@ -120,16 +156,41 @@ export default function PostCommentList({
               </div>
               <div className="text-base text-zinc-400 whitespace-pre-wrap">
               {(() => {
-                const embedURLs = comment.isEmbed ? extractEmbedURLs(comment.content) : [];
-                const visibleContent = embedURLs.reduce(
-                  (text, url) => text.replace(url, "").trim(),
-                  comment.content
-                );
+                const embeds = comment.isEmbed ? extractEmbeds(comment.content) : [];
+
+                const visibleContent = embeds.reduce((text, embed) => {
+                  if (embed.type === "url") {
+                    return text.replace(embed.value, "").trim();
+                  } else if (embed.type === "post" && !embed.inline) {
+                    return text.replace(`:${embed.postId}:`, "").trim();
+                  }
+                  return text;
+                }, comment.content);
 
                 return (
                   <div className="text-base text-zinc-400 whitespace-pre-wrap">
-                    {visibleContent}
-                    {comment.isEmbed && renderEmbeds(embedURLs)}
+                    {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
+                      const match = chunk.match(/^:(\d+):$/);
+                      if (match) {
+                        const id = parseInt(match[1]);
+                        const isInline = embeds.some(
+                          (e) => e.type === "post" && e.postId === id && e.inline
+                        );
+                        if (isInline) {
+                          return (
+                            <a
+                              key={idx}
+                              href={`/post/${id}`}
+                              className="text-accent hover:underline"
+                            >
+                              {id}
+                            </a>
+                          );
+                        }
+                      }
+                      return <span key={idx}>{chunk}</span>;
+                    })}
+                    {comment.isEmbed && renderEmbeds(embeds)}
                   </div>
                 );
               })()}

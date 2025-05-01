@@ -57,22 +57,32 @@ export async function POST(req: NextRequest) {
   // --- Check for embed permission
   const canComment = await checkPermissions('comment_create');
   const embedURLs = await checkPermissions('comment_embed_url');
-  // const embedPosts = await checkPermissions('comment_embed_post');
-  const allowedEmbedDomains = ["cdn.discordapp.com", "media.tenor.com"];
+  const embedPosts = await checkPermissions('comment_embed_post');
 
-  let isEmbed = false;
+  const urlRegex = /https?:\/\/[^\s]+/g;
+  const postRegex = /:(\d+):/g;
 
-  if (embedURLs) {
-    const urlRegex = /https?:\/\/[^\s]+/g;
-    let match;
-    while ((match = urlRegex.exec(content)) !== null) {
-      const domain = new URL(match[0]).hostname;
-      if (embedDomains.some((d) => domain.endsWith(d))) {
-        isEmbed = true;
-        break;
-      }
+  let hasURLEmbed = false;
+  let hasPostEmbed = false;
+
+  if (embedURLs && urlRegex.test(content)) {
+    const matches = content.match(urlRegex) || [];
+    for (const url of matches) {
+      try {
+        const domain = new URL(url).hostname;
+        if (Object.keys(ALLOWED_EMBED_SOURCES).some((d) => domain.endsWith(d))) {
+          hasURLEmbed = true;
+          break;
+        }
+      } catch {}
     }
   }
+
+  if (embedPosts && postRegex.test(content)) {
+    hasPostEmbed = true;
+  }
+
+  const isEmbed = hasURLEmbed || hasPostEmbed;
 
   const comment = await prisma.comments.create({
     data: {
