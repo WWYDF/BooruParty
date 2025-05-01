@@ -3,10 +3,65 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
-import { roleGlowMap } from "@/core/dictionary";
+import { ALLOWED_EMBED_SOURCES, roleGlowMap } from "@/core/dictionary";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import { formatTimeAgo } from "@/core/formats";
+
+function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
+  const embeds: { type: "url" | "post"; value: string }[] = [];
+
+  const urlRegex = /https?:\/\/[^\s]+/g;
+  const postRegex = /:(\d+):/g;
+
+  const urls = content.match(urlRegex) || [];
+  urls.forEach((url) => {
+    try {
+      const domain = new URL(url).hostname;
+      if (Object.keys(ALLOWED_EMBED_SOURCES).some((d) => domain.endsWith(d))) {
+        embeds.push({ type: "url", value: url });
+      }
+    } catch {}
+  });
+
+  let match;
+  while ((match = postRegex.exec(content)) !== null) {
+    embeds.push({ type: "post", value: match[1] });
+  }
+
+  return embeds;
+}
+
+function renderCommentEmbeds(embeds: { type: "url" | "post"; value: string }[]) {
+  return embeds.map((embed, i) => {
+    if (embed.type === "url") {
+      return (
+        <div key={`url-${i}`} className="mt-2">
+          <img
+            src={embed.value}
+            alt="Embedded media"
+            className="rounded-lg max-w-xs max-h-64 object-contain"
+          />
+        </div>
+      );
+    }
+
+    if (embed.type === "post") {
+      const thumb = `${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${embed.value}_small.webp`;
+      return (
+        <div key={`post-${i}`} className="mt-2">
+          <img
+            src={thumb}
+            alt={`Post ${embed.value}`}
+            className="w-full max-w-xs rounded-lg object-cover aspect-[4/3]"
+          />
+        </div>
+      );
+    }
+
+    return null;
+  });
+}
 
 export default function UserProfilePage() {
   const { username } = useParams() as { username: string };
@@ -44,9 +99,9 @@ export default function UserProfilePage() {
         />
 
         <div className="">
-          <div className="flex items-center gap-2 text-2xl font-bold text-accent">
+          <div className="flex items-center text-2xl font-bold text-accent">
             {user.username}
-            <RoleBadge role={user.role.name} variant="badge" />
+            <RoleBadge role={user.role.name} />
           </div>
 
           {user.description && (
@@ -136,20 +191,36 @@ export default function UserProfilePage() {
         <section>
           <h2 className="text-lg font-semibold mb-2">Recent Comments</h2>
           <div className="space-y-3">
-            {user.comments.map((comment: any) => (
+          {user.comments.map((comment: any) => {
+            const embeds = extractEmbeds(comment.content);
+
+            // Strip matched embed references from the content
+            const cleanedText = embeds.reduce((text, embed) => {
+              if (embed.type === "url") {
+                return text.replace(embed.value, "").trim();
+              }
+              if (embed.type === "post") {
+                return text.replace(`:${embed.value}:`, "").trim();
+              }
+              return text;
+            }, comment.content);
+
+            return (
               <a
                 key={comment.id}
                 href={`/post/${comment.postId}`}
                 className="block border border-zinc-800 p-3 rounded-lg hover:border-zinc-700 transition"
               >
                 <div className="text-sm text-subtle whitespace-pre-wrap">
-                  {comment.content}
+                  {cleanedText}
+                  {renderCommentEmbeds(embeds)}
                 </div>
-                <div className="text-xs text-muted mt-1">
+                <div className="text-xs text-zinc-500 mt-2">
                   {new Date(comment.createdAt).toLocaleString()}
                 </div>
               </a>
-            ))}
+            );
+          })}
           </div>
         </section>
       )}
