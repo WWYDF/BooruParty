@@ -6,7 +6,9 @@ export type Comments = {
   author: {
     id: string;
     username: string;
-    role: string;
+    role: {
+      name: string;
+    };
     avatar: string
   }
 };

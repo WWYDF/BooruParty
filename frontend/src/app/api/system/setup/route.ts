@@ -28,35 +28,49 @@ export async function POST(req: Request) {
       },
     });
 
-    // Ensure default ADMIN role and permissions exist
-    const adminRole = await prisma.role.upsert({
-      where: { name: "ADMIN" },
+    // Setup Permissions
+    await prisma.role.upsert({     // DEFAULT REGISTRATION ROLE MUST BE FIRST!
+      where: { name: "MEMBER" },
       update: {},
       create: {
-        name: "ADMIN",
+        name: "MEMBER",
         permissions: {
           connectOrCreate: [
-            { where: { name: "administrator" }, create: { name: "administrator" } },
             { where: { name: "post_create" }, create: { name: "post_create" } },
             { where: { name: "post_edit_own" }, create: { name: "post_edit_own" } },
-            { where: { name: "post_edit_others" }, create: { name: "post_edit_others" } },
             { where: { name: "post_delete_own" }, create: { name: "post_delete_own" } },
-            { where: { name: "post_delete_others" }, create: { name: "post_delete_others" } },
+            { where: { name: "comment_create" }, create: { name: "comment_create" } },
             { where: { name: "comment_delete_own" }, create: { name: "comment_delete_own" } },
-            { where: { name: "comment_delete_others" }, create: { name: "comment_delete_others" } },
             { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
-            { where: { name: "profile_edit_others" }, create: { name: "profile_edit_others" } },
+            { where: { name: "profile_edit_avatar" }, create: { name: "profile_edit_avatar" } },
+            { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
+            { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
+            { where: { name: "tags_view" }, create: { name: "tags_view" } },
+            { where: { name: "posts_view" }, create: { name: "posts_view" } },
+          ],
+        },
+      },
+    });
+
+    await prisma.role.upsert({
+      where: { name: "POWER USER" },
+      update: {},
+      create: {
+        name: "POWER USER",
+        permissions: {
+          connectOrCreate: [
+            { where: { name: "post_create" }, create: { name: "post_create" } },
+            { where: { name: "post_edit_own" }, create: { name: "post_edit_own" } },
+            { where: { name: "post_delete_own" }, create: { name: "post_delete_own" } },
+            { where: { name: "comment_create" }, create: { name: "comment_create" } },
+            { where: { name: "comment_delete_own" }, create: { name: "comment_delete_own" } },
+            { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
+            { where: { name: "profile_edit_avatar" }, create: { name: "profile_edit_avatar" } },
             { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
             { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
             { where: { name: "upload_type_video" }, create: { name: "upload_type_video" } },
             { where: { name: "limit_upload_ignore" }, create: { name: "limit_upload_ignore" } },
             { where: { name: "tags_view" }, create: { name: "tags_view" } },
-            { where: { name: "tags_edit" }, create: { name: "tags_edit" } },
-            { where: { name: "tags_delete" }, create: { name: "tags_delete" } },
-            { where: { name: "tags_create" }, create: { name: "tags_create" } },
-            { where: { name: "tags_categories_manage" }, create: { name: "tags_categories_manage" } },
-            { where: { name: "dashboard_view" }, create: { name: "dashboard_view" } },
-            { where: { name: "dashboard_settings" }, create: { name: "dashboard_settings" } },
             { where: { name: "posts_view" }, create: { name: "posts_view" } },
           ],
         },
@@ -75,9 +89,11 @@ export async function POST(req: Request) {
             { where: { name: "post_edit_others" }, create: { name: "post_edit_others" } },
             { where: { name: "post_delete_own" }, create: { name: "post_delete_own" } },
             { where: { name: "post_delete_others" }, create: { name: "post_delete_others" } },
+            { where: { name: "comment_create" }, create: { name: "comment_create" } },
             { where: { name: "comment_delete_own" }, create: { name: "comment_delete_own" } },
             { where: { name: "comment_delete_others" }, create: { name: "comment_delete_others" } },
             { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
+            { where: { name: "profile_edit_avatar" }, create: { name: "profile_edit_avatar" } },
             { where: { name: "profile_edit_others" }, create: { name: "profile_edit_others" } },
             { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
             { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
@@ -94,48 +110,55 @@ export async function POST(req: Request) {
       },
     });
 
-    await prisma.role.upsert({
-      where: { name: "POWER USER" },
+
+    const adminRole = await prisma.role.upsert({
+      where: { name: "ADMIN" },
       update: {},
       create: {
-        name: "POWER USER",
+        name: "ADMIN",
         permissions: {
           connectOrCreate: [
+            { where: { name: "administrator" }, create: { name: "administrator" } },
             { where: { name: "post_create" }, create: { name: "post_create" } },
             { where: { name: "post_edit_own" }, create: { name: "post_edit_own" } },
+            { where: { name: "post_edit_others" }, create: { name: "post_edit_others" } },
             { where: { name: "post_delete_own" }, create: { name: "post_delete_own" } },
+            { where: { name: "post_delete_others" }, create: { name: "post_delete_others" } },
+            { where: { name: "comment_create" }, create: { name: "comment_create" } },
             { where: { name: "comment_delete_own" }, create: { name: "comment_delete_own" } },
+            { where: { name: "comment_delete_others" }, create: { name: "comment_delete_others" } },
             { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
+            { where: { name: "profile_edit_avatar" }, create: { name: "profile_edit_avatar" } },
+            { where: { name: "profile_edit_others" }, create: { name: "profile_edit_others" } },
+            { where: { name: "profile_delete_others" }, create: { name: "profile_delete_others" } },
             { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
             { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
             { where: { name: "upload_type_video" }, create: { name: "upload_type_video" } },
             { where: { name: "limit_upload_ignore" }, create: { name: "limit_upload_ignore" } },
             { where: { name: "tags_view" }, create: { name: "tags_view" } },
+            { where: { name: "tags_edit" }, create: { name: "tags_edit" } },
+            { where: { name: "tags_delete" }, create: { name: "tags_delete" } },
+            { where: { name: "tags_create" }, create: { name: "tags_create" } },
+            { where: { name: "tags_categories_manage" }, create: { name: "tags_categories_manage" } },
+            { where: { name: "dashboard_view" }, create: { name: "dashboard_view" } },
+            { where: { name: "dashboard_settings" }, create: { name: "dashboard_settings" } },
             { where: { name: "posts_view" }, create: { name: "posts_view" } },
           ],
         },
       },
     });
 
-    await prisma.role.upsert({
-      where: { name: "MEMBER" },
+    // Setup deleted account
+    await prisma.user.upsert({
+      where: { id: "0" },
       update: {},
       create: {
-        name: "MEMBER",
-        permissions: {
-          connectOrCreate: [
-            { where: { name: "post_create" }, create: { name: "post_create" } },
-            { where: { name: "post_edit_own" }, create: { name: "post_edit_own" } },
-            { where: { name: "post_delete_own" }, create: { name: "post_delete_own" } },
-            { where: { name: "comment_delete_own" }, create: { name: "comment_delete_own" } },
-            { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
-            { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
-            { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
-            { where: { name: "tags_view" }, create: { name: "tags_view" } },
-            { where: { name: "posts_view" }, create: { name: "posts_view" } },
-          ],
-        },
-      },
+        id: "0",
+        username: "deleted",
+        email: "deleted@system.local",
+        password: "OJ9L1EWAjWy8ehj@", // this account isn't even allowed to sign in so this doesn't matter lol
+        roleId: 1                     // but i figured i'd set it regardless
+      }
     });
 
     // Only create user if none exists and credentials provided

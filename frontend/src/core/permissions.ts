@@ -1,16 +1,20 @@
-import { prisma } from "@/core/prisma";
+// Client Side Component/Page -> This
+export async function checkPermissions(permission: string): Promise<{ success: boolean }> {
+  try {
+    const res = await fetch('/api/users/permissions', { cache: 'no-store' });
 
-export async function hasPermission(userId: string, permission: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      role: {
-        include: {
-          permissions: true
-        }
-      }
+    if (!res.ok) {
+      return { success: false };
     }
-  });
 
-  return user?.role?.permissions.some(p => p.name === permission) ?? false;
+    const data = await res.json();
+
+    const allowed = Array.isArray(data.permissions) &&
+      (data.permissions.includes(permission) || data.permissions.includes('administrator'));
+
+    return { success: allowed };
+  } catch (err) {
+    console.error('checkPermissions error:', err);
+    return { success: false };
+  }
 }

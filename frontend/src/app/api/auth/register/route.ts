@@ -26,10 +26,11 @@ export async function POST(req: Request) {
       email,
       username,
       password: hashedPassword,
+      roleId: 1
     },
   });
 
-  const prefs = await prisma.userPreferences.create({
+  await prisma.userPreferences.create({
     data: {
       id: user.id,
       layout: 'GRID',

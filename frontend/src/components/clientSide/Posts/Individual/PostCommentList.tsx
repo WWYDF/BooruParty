@@ -1,30 +1,16 @@
 "use client";
 
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
+import { Comments } from "@/core/types/comments";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-
-type ResolvedComment = {
-  id: number;
-  postId: number;
-  content: string;
-  createdAt: string;
-  author: {
-    id: string;
-    username: string;
-    role: {
-      name: string;
-    };
-    avatar: string
-  }
-};
 
 export default function PostCommentList({
   comments,
   loading,
   error,
 }: {
-  comments: ResolvedComment[];
+  comments: Comments[];
   loading: boolean;
   error: string | null;
 }) {

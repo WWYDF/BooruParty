@@ -3,12 +3,13 @@
 import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useEffect, useState } from 'react';
+import { useToast } from '../Toast';
 
 export default function PreferencesForm() {
     const [layout, setLayout] = useState<'GRID' | 'COLLAGE'>('GRID');
     const [theme, setTheme] = useState<'DARK' | 'LIGHT'>('DARK');
     const [postsPerPage, setPPP] = useState<number>(30);
-    const [status, setStatus] = useState('');
+    const toast = useToast();
   
     useEffect(() => {
       (async () => {
@@ -18,23 +19,22 @@ export default function PreferencesForm() {
           setTheme(user.preferences?.theme || 'DARK');
           setPPP(user.preferences?.postsPerPage || 30);
         } catch (err) {
-          setStatus('Could not load preferences');
+          toast('Could not load preferences', 'error');
         }
       })();
     }, []);
   
     const save = async () => {
-      setStatus('Saving...');
       try {
         await updateUser({ layout, theme, postsPerPage });
-        setStatus('Preferences saved ✅');
+        toast('Preferences Saved!', 'success');
       } catch (err: any) {
-        setStatus(err.message);
+        toast(err.message, 'error');
       }
     };
 
     return (
-        <section className="bg-secondary p-4 rounded-2xl shadow space-y-4">
+      <section className="bg-secondary p-4 rounded-2xl shadow space-y-4">
         <h2 className="text-xl font-semibold">Preferences</h2>
 
         <div className="flex flex-col md:flex-row gap-4">
@@ -76,7 +76,6 @@ export default function PreferencesForm() {
         </div>
 
         <button onClick={save} className="bg-darkerAccent text-white px-4 py-2 rounded">Save Preferences</button>
-        <p className="text-sm text-subtle">{status}</p>
-        </section>
+      </section>
     );
 }

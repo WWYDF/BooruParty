@@ -17,8 +17,16 @@ export async function GET() {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      preferences: true
-      // add whatever other sensitive data you want here
+      preferences: true,
+      role: {
+        include: {
+          permissions: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
     },
   });
 

@@ -102,7 +102,7 @@ export default function UploadQueue() {
       formData.append('safety', item.safety);
   
       try {
-        const res = await fetch('/api/files/upload', {
+        const res = await fetch('/api/posts/create', {
           method: 'POST',
           body: formData,
         });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/core/prisma";
 import { appLogger } from "@/core/logger";
+import { checkPermissions } from "@/components/serverSide/permCheck";
 
 const querySchema = z.object({
   search: z.string().optional(),
@@ -14,6 +15,9 @@ const querySchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    const permCheck = await checkPermissions('posts_view');
+    if (!permCheck) { return NextResponse.json({ error: "You are unauthorized to view posts." }, { status: 401 }); }
+
     const url = new URL(req.url);
     const query = querySchema.parse(Object.fromEntries(url.searchParams.entries()));
 
