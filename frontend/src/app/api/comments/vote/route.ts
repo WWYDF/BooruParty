@@ -16,8 +16,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  console.log(`Received value: ${vote}`);
-
   try {
     if (vote === 0) {
       // Remove vote

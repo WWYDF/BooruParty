@@ -6,6 +6,7 @@ import PostCommentList from "@/components/clientSide/Posts/Individual/PostCommen
 import { Comments } from "@/core/types/comments";
 import { cookies } from "next/headers";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { auth } from "@/core/auth";
 
 async function fetchPostData(postId: string) {
   const cookieStore = cookies();
@@ -27,32 +28,51 @@ async function fetchPostData(postId: string) {
   return res.json();
 }
 
+async function fetchComments(postId: string): Promise<Comments[]> {
+  const cookieStore = cookies();
+  const token = (await cookieStore).get("next-auth.session-token")?.value ??
+                (await cookieStore).get("__Secure-next-auth.session-token")?.value;
+
+  const cookieHeader = token ? `next-auth.session-token=${token}` : "";
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/comments?postId=${postId}`, {
+    cache: "no-store",
+    headers: {
+      Cookie: cookieHeader
+    }
+
+  });
+  const rawComments: Comments[] = await res.json();
+
+  return rawComments;
+}
+
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const postId = id;
+  const postPromise = fetchPostData(postId);
+  const commentsPromise = fetchComments(postId);
   const canComment = await checkPermissions('comment_create');
-  let postData;
 
-  try {
-    postData = await fetchPostData(postId);
-  } catch (err) {
-    const errMsg = (err as Error).message.toLowerCase();
+  const [postResult, commentsResult] = await Promise.allSettled([
+    postPromise,
+    commentsPromise,
+  ]);
 
+  if (postResult.status !== "fulfilled") {
+    const errMsg = postResult.reason?.message?.toLowerCase() ?? "";
+  
     let title = "Failed to load post";
     let description = "Something went wrong while fetching the post.";
-
+  
     if (errMsg.includes("not found") || errMsg.includes("404")) {
       title = "Post Not Found";
       description = "The post you're looking for doesn’t exist or has been removed.";
-    } else if (
-      errMsg.includes("unauthorized") ||
-      errMsg.includes("forbidden") ||
-      errMsg.includes("403")
-    ) {
+    } else if (errMsg.includes("unauthorized") || errMsg.includes("forbidden") || errMsg.includes("403")) {
       title = "Access Denied";
       description = "You do not have permission to view this post.";
     }
-
+  
     return (
       <main className="min-h-screen flex flex-col items-center justify-center text-center px-4 text-red-400">
         <h1 className="text-3xl font-bold mb-2">{title}</h1>
@@ -61,10 +81,13 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
     );
   }
 
+  const postData = postResult.value;
+  const comments = commentsResult.status === 'fulfilled' ? commentsResult.value : [];
+
   return (
     <main className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 p-4">
       {/* LEFT COLUMN - Metadata */}
-      <div className="order-3 md:order-1 md:col-span-1 border-r border-zinc-900">
+      <div className="order-3 md:order-1 md:col-span-1 mt-6 md:mt-0 border-r border-zinc-900">
         <PostMetadata post={postData.post} />
       </div>
 
@@ -77,7 +100,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         <section className="order-4 border-t border-secondary-border pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
           {canComment && <PostCommentForm postId={postData.post.id} />}
-          <PostCommentList postId={postData.post.id} />
+          <PostCommentList comments={comments} loading={false} error={null} />
         </section>
       </div>
     </main>

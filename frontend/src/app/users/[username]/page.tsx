@@ -6,9 +6,9 @@ import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { ALLOWED_EMBED_SOURCES, roleGlowMap } from "@/core/dictionary";
 import { motion } from "framer-motion";
 import clsx from "clsx";
-import { formatTimeAgo } from "@/core/formats";
 import { GearSix } from "phosphor-react";
 import { useSession } from "next-auth/react";
+import { formatRelativeTime } from "@/core/formats";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -112,7 +112,7 @@ export default function UserProfilePage() {
           )}
 
           <div className="text-sm text-subtle">
-            Last seen: {formatTimeAgo(user.lastLogin)}
+            Last seen: {formatRelativeTime(user.lastLogin)}
           </div>
           <div className="text-xs text-subtle">
             Member Since: {new Date(user.createdAt).toLocaleDateString()}
