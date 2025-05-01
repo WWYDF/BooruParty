@@ -136,7 +136,7 @@ export default function TagEditPage() {
               setNames(sanitized);
             }}
             className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-200"
-            placeholder="example_tag another_tag something_else"
+            placeholder="tag_name"
           />
           <p className="text-zinc-600 text-xs mt-1">
             Separate names with spaces. First name is primary. No spaces allowed inside names (use underscores).
