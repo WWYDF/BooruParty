@@ -50,6 +50,7 @@ model User {
   password      String
   role          Role?     @relation(fields: [roleId], references: [id])
   avatar        String?
+  description   String?
   preferences   UserPreferences?
   favorites     UserFavorites[]
   posts         Posts[]

@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
-import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useToast } from '../Toast';
-import { useRouter } from 'next/navigation';
 
 export default function AvatarUpload() {
   const [current, setCurrent] = useState('/user.png');
