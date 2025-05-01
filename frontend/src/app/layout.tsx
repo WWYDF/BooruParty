@@ -38,8 +38,8 @@ export default function RootLayout({
     <html lang="en">
       <head />
       <body className={`${inter.className} min-h-screen flex flex-col`}>
-        <Navbar />
         <AuthProvider>
+          <Navbar />
           <ToastProvider>
             <main className="flex-grow">
               {children}

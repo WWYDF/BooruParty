@@ -9,6 +9,22 @@ export async function GET() {
   const session = await auth();
 
   if (!session?.user) {
+    if (process.env.GUEST_VIEWING == "true") {
+      const empty = {
+        role: {
+          id: -1,
+          name: "GUEST",
+          permissions: [
+            {
+              id: 24,
+              name: "posts_view"
+            }
+          ]
+        }
+      }
+
+      return NextResponse.json(empty);
+    }
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
@@ -16,18 +32,27 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: {
-      preferences: true,
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      avatar: true,
+      description: true,
+      lastLogin: true,
+      createdAt: true,
+      preferences: {
+        select: {
+          layout: true,
+          theme: true,
+          postsPerPage: true,
+        }
+      },
       role: {
         include: {
-          permissions: {
-            select: {
-              name: true
-            }
-          }
+          permissions: true
         }
-      }
-    },
+      },
+    }
   });
 
   return NextResponse.json({
