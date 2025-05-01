@@ -49,11 +49,23 @@ export async function GET(req: Request) {
     orderBy = { createdAt: "desc" }; // fallback
   }
 
-  const uploaderWhere = systemOptions.submit
+  const uploaderWhere = systemOptions.posts
   ? {
       uploadedBy: {
         is: {
-          username: systemOptions.submit,
+          username: systemOptions.posts,
+        },
+      },
+    }
+  : {};
+
+  const favoriterWhere = systemOptions.favorites
+  ? {
+      favoritedBy: {
+        some: {
+          user: {
+            username: systemOptions.favorites,
+          },
         },
       },
     }
@@ -63,6 +75,7 @@ export async function GET(req: Request) {
     where: {
       AND: [
         uploaderWhere,
+        favoriterWhere,
         ...(safetyValues.length > 0
           ? [{ safety: { in: safetyValues as SafetyType[] } }]
           : []),
