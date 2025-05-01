@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { List, X, UserCircle, ImageSquare, Users, ChartPie, UploadSimple, House } from 'phosphor-react';
 import { usePathname } from "next/navigation";
 import { Images, Panorama } from '@phosphor-icons/react';
+import { NavItem } from './NavItem';
 
 type UserInfo = {
   id: string;
@@ -93,15 +94,15 @@ export default function Navbar() {
 
         {/* Desktop Links */}
         <div className="hidden md:flex gap-4 items-center text-sm text-subtle">
-          <Link href="/posts" className={linkClass("/posts")}>Posts</Link>
+          <NavItem href="/posts">Posts</NavItem>
           {hasPerm('post_create') && (
-            <Link href="/upload" className={linkClass("/upload")}>Upload</Link>
+            <NavItem href="/upload">Upload</NavItem>
           )}
           {hasPerm('dashboard_view') && (
-            <Link href="/dashboard" className={linkClass("/dashboard")}>Dashboard</Link>
+            <NavItem href="/dashboard">Dashboard</NavItem>
           )}
           {hasPerm('posts_view') && (
-            <Link href="/users" className={linkClass("/users")}>Users</Link>
+            <NavItem href="/users">Users</NavItem>
           )}
           {user?.username && user.avatar ? (
             <Link href="/profile">
@@ -185,49 +186,31 @@ export default function Navbar() {
                 </button>
               </div>
               <nav className="flex flex-col gap-3 text-md text-subtle">
-                <Link href="/" onClick={() => setSidebarOpen(false)} className={linkClass("/")}>
-                  <span className="inline-flex items-center gap-2">
-                    <House size={18} />
-                    Home
-                  </span>
-                </Link>
-                <Link href="/posts" onClick={() => setSidebarOpen(false)} className={linkClass("/posts")}>
-                  <span className="inline-flex items-center gap-2">
-                    <Images size={18} />
-                    Posts
-                  </span>
-                </Link>
+                <NavItem href="/" icon={<House size={18} />} onClick={() => setSidebarOpen(false)}>
+                  Home
+                </NavItem>
+                <NavItem href="/posts" icon={<Images size={18} />} onClick={() => setSidebarOpen(false)}>
+                  Posts
+                </NavItem>
                 {hasPerm('post_create') && (
-                  <Link href="/upload" onClick={() => setSidebarOpen(false)} className={linkClass("/upload")}>
-                    <span className="inline-flex items-center gap-2">
-                      <UploadSimple size={18} />
-                      Upload
-                    </span>
-                  </Link>
+                  <NavItem href="/upload" icon={<UploadSimple size={18} />} onClick={() => setSidebarOpen(false)}>
+                    Upload
+                  </NavItem>
                 )}
                 {hasPerm('dashboard_view') && (
-                  <Link href="/dashboard" onClick={() => setSidebarOpen(false)} className={linkClass("/dashboard")}>
-                    <span className="inline-flex items-center gap-2">
-                      <ChartPie size={18} />
-                      Dashboard
-                    </span>
-                  </Link>
+                  <NavItem href="/dashboard" icon={<ChartPie size={18} />} onClick={() => setSidebarOpen(false)}>
+                    Dashboard
+                  </NavItem>
                 )}
                 {hasPerm('posts_view') && (
-                  <Link href="/users" onClick={() => setSidebarOpen(false)} className={linkClass("/users")}>
-                    <span className="inline-flex items-center gap-2">
-                      <Users size={18} />
-                      Users
-                    </span>
-                  </Link>
+                  <NavItem href="/users" icon={<Users size={18} />} onClick={() => setSidebarOpen(false)}>
+                    Users
+                  </NavItem>
                 )}
                 {user?.username ? (
-                  <Link href={`/profile`} onClick={() => setSidebarOpen(false)} className={linkClass("/profile")}>
-                    <span className="inline-flex items-center gap-2">
-                      <UserCircle size={18} />
-                      My Profile
-                    </span>
-                  </Link>
+                  <NavItem href="/profile" icon={<UserCircle size={18} />} onClick={() => setSidebarOpen(false)}>
+                    My Profile
+                  </NavItem>
                 ) : (
                   <>
                     <Link href="/login" onClick={() => setSidebarOpen(false)} className="hover:text-white">Login</Link>

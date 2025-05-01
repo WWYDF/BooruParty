@@ -143,7 +143,7 @@ export default function PostCommentList({
             <div className="flex-1">
               <div className="text-muted text-sm mb-1 text-zinc-400">
                 <Link
-                  href={`/posts?query=submit:${encodeURIComponent(comment.author.username)}`}
+                  href={`/users/${encodeURIComponent(comment.author.username)}`}
                   className="text-accent hover:underline"
                 >
                   <span>{comment.author.username}</span>
