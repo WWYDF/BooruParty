@@ -9,6 +9,7 @@ import { PencilSimple, Minus, Plus, Tag } from "phosphor-react";
 import { formatStorageFromBytes } from "@/core/formats";
 import { FILE_TYPE_LABELS } from "@/core/dictionary";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
+import { useToast } from "../../Toast";
 
 const AVATAR_URL = "/user.png";
 
@@ -52,7 +53,9 @@ type Props = {
 
 export default function PostMetadata({ post }: Props) {
   const [editing, setEditing] = useState(false);
+  const [lastCheckTime, setLastCheckTime] = useState<number | null>(null);
   const router = useRouter();
+  const toast = useToast();
 
   function modifyQuery(action: "replace" | "add" | "exclude", tag: string) {
     const saved = JSON.parse(localStorage.getItem("lastSearchParams") ?? "{}");
@@ -97,6 +100,38 @@ export default function PostMetadata({ post }: Props) {
     ([, tagsA], [, tagsB]) => (tagsA[0]?.order ?? 0) - (tagsB[0]?.order ?? 0)
   );
 
+  const checkEditPermissions = async () => {
+    const now = Date.now();
+  
+    // If user clicked too recently, block
+    if (lastCheckTime && now - lastCheckTime < 350) {
+      toast("Please wait before trying again.", "error");
+      return;
+    }
+  
+    setLastCheckTime(now);
+  
+    const res = await fetch("/api/users/permissions");
+    if (!res.ok) {
+      toast("Only users signed in can edit posts.", "error");
+      return;
+    }
+  
+    const data = await res.json();
+    const isOwner = post.uploadedBy.id === data.userId;
+    const perms: string[] = data.permissions;
+  
+    const canEdit =
+      (isOwner && perms.includes("post_edit_own")) ||
+      (!isOwner && perms.includes("post_edit_others"));
+  
+    if (canEdit) {
+      setEditing(true);
+    } else {
+      toast("You do not have permission to edit this post.", "error");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
       {/* Header with user info */}
@@ -132,7 +167,7 @@ export default function PostMetadata({ post }: Props) {
           </button>
         ) : (
           <button
-            onClick={() => setEditing(true)}
+            onClick={checkEditPermissions}
             className="text-subtle hover:text-accent text-sm flex items-center gap-1 mr-4"
           >
             <PencilSimple size={16} /> Edit post

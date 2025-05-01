@@ -4,6 +4,12 @@ import { NextResponse } from "next/server";
 
 export async function checkPermissions(permission: string) {
   const session = await auth();
+  
+  if (permission == 'posts_view') {
+    if (process.env.GUEST_VIEWING == 'true') { return {success: true} }
+  }
+
+
   if (!session?.user?.id) {
     return { success: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
