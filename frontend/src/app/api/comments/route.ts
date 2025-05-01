@@ -5,11 +5,11 @@ import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
 import { NextRequest, NextResponse } from "next/server";
 
-const embedDomains = Object.keys(ALLOWED_EMBED_SOURCES);
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const postId = parseInt(searchParams.get("postId") || "");
+  const session = await auth();
+  const userId = session?.user?.id;
 
   if (isNaN(postId)) {
     return NextResponse.json({ error: "Missing or invalid postId" }, { status: 400 });
@@ -30,12 +30,44 @@ export async function GET(req: NextRequest) {
     }
   });
 
+  const commentIds = comments.map((c) => c.id);
+
+  const [voteAggregates, userVotes] = await Promise.all([
+    prisma.commentVotes.groupBy({
+      by: ["commentId"],
+      where: { commentId: { in: commentIds } },
+      _sum: { vote: true },
+    }),
+    userId
+      ? prisma.commentVotes.findMany({
+          where: {
+            commentId: { in: commentIds },
+            userId,
+          },
+          select: {
+            commentId: true,
+            vote: true,
+          },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const scoreMap = Object.fromEntries(
+    voteAggregates.map((v) => [v.commentId, v._sum.vote ?? 0])
+  );
+
+  const userVoteMap = Object.fromEntries(
+    userVotes.map((v) => [v.commentId, v.vote])
+  );
+
   const formattedComments = comments.map((comment) => ({
     ...comment,
     author: {
       ...comment.author,
       avatar: setAvatarUrl(comment.author.avatar),
     },
+    score: scoreMap[comment.id] ?? 0,
+    userVote: userVoteMap[comment.id] ?? 0,
   }));
 
   return NextResponse.json(formattedComments);

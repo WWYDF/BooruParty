@@ -56,6 +56,7 @@ model User {
   votes         Votes[]
   posts         Posts[]
   comments      Comments[]
+  commentVotes  CommentVotes[]
   roleId        Int?
   
   lastLogin     DateTime  @default(now())
@@ -135,17 +136,31 @@ model Posts {
 }
 
 model Comments {
-  id         Int       @id @default(autoincrement())
+  id         Int                @id @default(autoincrement())
   postId     Int
-  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author     User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId   String
   content    String
-  isEmbed    Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  isEmbed    Boolean            @default(false)
+  score      CommentVotes[]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 
-  post       Posts     @relation(fields: [postId], references: [id], name: "PostComments", onDelete: Cascade)
+  post       Posts              @relation(fields: [postId], references: [id], name: "PostComments", onDelete: Cascade)
 }
+
+model CommentVotes {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  commentId  Int
+  vote       Int
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment    Comments @relation(fields: [commentId], references: [id])
+
+  @@unique([userId, commentId])
+}
+
 
 model Tags {
   id             Int            @id @default(autoincrement())

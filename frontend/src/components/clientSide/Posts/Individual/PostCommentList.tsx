@@ -5,7 +5,11 @@ import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { Comments } from "@/core/types/comments";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { JSX } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowDown, ArrowUp } from "phosphor-react";
+import { JSX, useEffect, useRef, useState } from "react";
+import { useToast } from "../../Toast";
+import clsx from "clsx";
 
 type ExtractedEmbed = 
   | { type: "url"; value: string }
@@ -99,15 +103,64 @@ function renderEmbeds(embeds: ExtractedEmbed[]): JSX.Element[] {
   }).filter(Boolean) as JSX.Element[];
 }
 
-export default function PostCommentList({
-  comments,
-  loading,
-  error,
-}: {
-  comments: Comments[];
-  loading: boolean;
-  error: string | null;
-}) {
+export default function PostCommentList({ postId }: { postId: number }) {
+  const [comments, setComments] = useState<Comments[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const toast = useToast();
+
+  // Now this is scoped properly
+  const loadComments = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/comments?postId=${postId}`);
+      if (!res.ok) throw new Error("Failed to load comments");
+
+      const data = await res.json();
+      setComments(data);
+      setError(null);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadComments();
+  }, [postId]);
+
+  const handleVote = async (commentId: number, vote: 1 | 0 | -1) => {
+    const current = comments.find(c => c.id === commentId); // Find comment interacted with
+    if (!current) return;
+
+    console.log(`Current Uservote: ${current.userVote}`);
+
+    const newVote = current.userVote === vote ? 0 : vote;
+
+    console.log("sending vote", { commentId, vote: newVote });
+
+    const res = await fetch("/api/comments/vote", {
+      method: "POST",
+      body: JSON.stringify({ commentId, vote: newVote }),
+    });
+  
+    if (!res.ok) {
+      const data = await res.json();
+      if (data?.error?.toLowerCase().includes("unauthorized")) {
+        toast("You must be logged in to vote.", "error");
+      } else {
+        toast("Failed to vote.", "error");
+      }
+      return;
+    }
+  
+    loadComments();
+  };
+
   if (loading) return null;
   if (error) return <p className="text-red-500 text-sm">Error: {error}</p>;
   if (!comments.length) return <p className="text-subtle text-sm italic">No comments yet.</p>;
@@ -122,78 +175,105 @@ export default function PostCommentList({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="flex gap-4 items-start bg-secondary p-4 rounded-2xl"
+            className="flex gap-4 bg-secondary p-4 rounded-2xl"
           >
             {/* Avatar */}
-            <div className="flex-shrink-0">
-              {comment.author.avatar ? (
-                <img
-                  src={comment.author.avatar}
-                  alt={comment.author.username}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-secondary-border flex items-center justify-center text-subtle text-xs">
-                  ?
-                </div>
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1">
-              <div className="text-muted text-sm mb-1 text-zinc-400">
-                <Link
-                  href={`/users/${encodeURIComponent(comment.author.username)}`}
-                  className="text-accent hover:underline"
-                >
-                  <span>{comment.author.username}</span>
-                </Link>
-                <RoleBadge role={comment.author.role.name} />
-                {" · "}
-
-
-                {new Date(comment.createdAt).toLocaleString()}
-              </div>
-              <div className="text-base text-zinc-400 whitespace-pre-wrap">
-              {(() => {
-                const embeds = comment.isEmbed ? extractEmbeds(comment.content) : [];
-
-                const visibleContent = embeds.reduce((text, embed) => {
-                  if (embed.type === "url") {
-                    return text.replace(embed.value, "").trim();
-                  } else if (embed.type === "post" && !embed.inline) {
-                    return text.replace(`:${embed.postId}:`, "").trim();
-                  }
-                  return text;
-                }, comment.content);
-
-                return (
-                  <div className="text-base text-zinc-400 whitespace-pre-wrap">
-                    {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
-                      const match = chunk.match(/^:(\d+):$/);
-                      if (match) {
-                        const id = parseInt(match[1]);
-                        const isInline = embeds.some(
-                          (e) => e.type === "post" && e.postId === id && e.inline
-                        );
-                        if (isInline) {
-                          return (
-                            <a
-                              key={idx}
-                              href={`/post/${id}`}
-                              className="text-accent hover:underline"
-                            >
-                              {id}
-                            </a>
-                          );
-                        }
-                      }
-                      return <span key={idx}>{chunk}</span>;
-                    })}
-                    {comment.isEmbed && renderEmbeds(embeds)}
+            <div className="flex gap-4 w-full">
+              <div className="flex-shrink-0">
+                {comment.author.avatar ? (
+                  <img
+                    src={comment.author.avatar}
+                    alt={comment.author.username}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-secondary-border flex items-center justify-center text-subtle text-xs">
+                    ?
                   </div>
-                );
-              })()}
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1">
+                <div className="text-muted text-sm mb-1 text-zinc-400">
+                  <Link
+                    href={`/users/${encodeURIComponent(comment.author.username)}`}
+                    className="text-accent hover:underline"
+                  >
+                    <span>{comment.author.username}</span>
+                  </Link>
+                  <RoleBadge role={comment.author.role.name} />
+
+                  <a className="ml-1 text-xs text-zinc-500">{new Date(comment.createdAt).toLocaleString()}</a>
+                </div>
+                <div className="text-base text-zinc-400 whitespace-pre-wrap">
+                {(() => {
+                  const embeds = comment.isEmbed ? extractEmbeds(comment.content) : [];
+
+                  const visibleContent = embeds.reduce((text, embed) => {
+                    if (embed.type === "url") {
+                      return text.replace(embed.value, "").trim();
+                    } else if (embed.type === "post" && !embed.inline) {
+                      return text.replace(`:${embed.postId}:`, "").trim();
+                    }
+                    return text;
+                  }, comment.content);
+
+                  return (
+                    <div className="text-base text-zinc-400 whitespace-pre-wrap">
+                      {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
+                        const match = chunk.match(/^:(\d+):$/);
+                        if (match) {
+                          const id = parseInt(match[1]);
+                          const isInline = embeds.some(
+                            (e) => e.type === "post" && e.postId === id && e.inline
+                          );
+                          if (isInline) {
+                            return (
+                              <a
+                                key={idx}
+                                href={`/post/${id}`}
+                                className="text-accent hover:underline"
+                              >
+                                {id}
+                              </a>
+                            );
+                          }
+                        }
+                        return <span key={idx}>{chunk}</span>;
+                      })}
+                      {comment.isEmbed && renderEmbeds(embeds)}
+                    </div>
+                  );
+                })()}
+                </div>
+              </div>
+
+              {/* Voting Column */}
+              <div className="flex flex-col items-center pr-1 pt-1">
+                <button onClick={() => handleVote(comment.id, 1)}>
+                  <ArrowUp
+                    size={16}
+                    weight="bold"
+                    className={clsx(
+                      "transition hover:text-white",
+                      comment.userVote === 1 ? "text-accent" : "text-subtle"
+                    )}
+                  />
+                </button>
+
+                <span className="text-xs font-medium text-subtle">{comment.score}</span>
+
+                <button onClick={() => handleVote(comment.id, -1)}>
+                  <ArrowDown
+                    size={16}
+                    weight="bold"
+                    className={clsx(
+                      "transition hover:text-white",
+                      comment.userVote === -1 ? "text-accent" : "text-subtle"
+                    )}
+                  />
+                </button>
               </div>
             </div>
           </motion.div>

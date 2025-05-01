@@ -12,5 +12,7 @@ export type Comments = {
     avatar: string
   },
   isEmbed: boolean;
+  score: number;
+  userVote: number;
 };
   
