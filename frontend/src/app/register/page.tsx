@@ -1,6 +1,7 @@
 'use client';
 
 import { useToast } from '@/components/clientSide/Toast';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function RegisterPage() {
@@ -12,6 +13,7 @@ export default function RegisterPage() {
 
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -34,6 +36,9 @@ export default function RegisterPage() {
       toast(data.error || 'Something went wrong', 'error');
     } else {
       toast('Successfully registered! Redirecting...', 'success');
+      setTimeout(() => {
+        router.push('/login');
+      }, 1250);
     }
   };
 

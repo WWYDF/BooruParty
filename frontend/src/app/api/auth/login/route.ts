@@ -5,6 +5,8 @@ import { prisma } from "@/core/prisma";
 export async function POST(req: Request) {
   const { email, password } = await req.json();
 
+  if (email == "deleted@system.local") { return NextResponse.json({ error: 'This account cannot be logged into.' }, { status: 401 }); }
+
   const user = await prisma.user.findUnique({
     where: { email },
   });

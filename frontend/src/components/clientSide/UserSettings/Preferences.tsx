@@ -34,7 +34,7 @@ export default function PreferencesForm() {
     };
 
     return (
-        <section className="bg-secondary p-4 rounded-2xl shadow space-y-4">
+      <section className="bg-secondary p-4 rounded-2xl shadow space-y-4">
         <h2 className="text-xl font-semibold">Preferences</h2>
 
         <div className="flex flex-col md:flex-row gap-4">
@@ -76,7 +76,6 @@ export default function PreferencesForm() {
         </div>
 
         <button onClick={save} className="bg-darkerAccent text-white px-4 py-2 rounded">Save Preferences</button>
-        <p className="text-sm text-subtle">{status}</p>
-        </section>
+      </section>
     );
 }

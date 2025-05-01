@@ -126,6 +126,7 @@ export async function POST(req: Request) {
             { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
             { where: { name: "profile_edit_avatar" }, create: { name: "profile_edit_avatar" } },
             { where: { name: "profile_edit_others" }, create: { name: "profile_edit_others" } },
+            { where: { name: "profile_delete_others" }, create: { name: "profile_delete_others" } },
             { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
             { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
             { where: { name: "upload_type_video" }, create: { name: "upload_type_video" } },
@@ -141,6 +142,19 @@ export async function POST(req: Request) {
           ],
         },
       },
+    });
+
+    // Setup deleted account
+    await prisma.user.upsert({
+      where: { id: "0" },
+      update: {},
+      create: {
+        id: "0",
+        username: "deleted",
+        email: "deleted@system.local",
+        password: "OJ9L1EWAjWy8ehj@", // this account isn't even allowed to sign in so this doesn't matter lol
+        roleId: 1                     // but i figured i'd set it regardless
+      }
     });
 
     // Only create user if none exists and credentials provided
