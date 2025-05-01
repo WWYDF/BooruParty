@@ -9,19 +9,9 @@ type Props = {
 };
 
 export default function PostCommentForm({ postId }: Props) {
-  const { data: session, status } = useSession();
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
   const router = useRouter();
-
-  if (status === "loading") return null;
-  if (status === "unauthenticated") {
-    return (
-      <p className="text-sm text-subtle italic">
-        You must be logged in to comment.
-      </p>
-    );
-  }
 
   const handlePost = async () => {
     if (!content.trim()) return;

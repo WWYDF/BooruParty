@@ -1,9 +1,5 @@
+// Client Side Component/Page -> This
 export async function checkPermissions(permission: string): Promise<{ success: boolean }> {
-  // Special case for guest-viewing
-  if (permission === 'posts_view' && process.env.GUEST_VIEWING === 'true') {
-    return { success: true };
-  }
-
   try {
     const res = await fetch('/api/users/permissions', { cache: 'no-store' });
 

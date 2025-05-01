@@ -5,6 +5,7 @@ import PostCommentForm from "@/components/clientSide/Posts/Individual/PostCommen
 import PostCommentList from "@/components/clientSide/Posts/Individual/PostCommentList";
 import { Comments } from "@/core/types/comments";
 import { cookies } from "next/headers";
+import { checkPermissions } from "@/components/serverSide/permCheck";
 
 async function fetchPostData(postId: string) {
   const cookieStore = cookies();
@@ -40,6 +41,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const postId = id;
   const postPromise = fetchPostData(postId);
   const commentsPromise = fetchComments(postId);
+  const canComment = await checkPermissions('comment_create');
 
   const [postResult, commentsResult] = await Promise.allSettled([
     postPromise,
@@ -66,7 +68,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         <p className="text-base text-subtle max-w-md">{description}</p>
       </main>
     );
-  }  
+  }
 
   const postData = postResult.value;
   const comments = commentsResult.status === 'fulfilled' ? commentsResult.value : [];
@@ -86,7 +88,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         {/* Comments - In column 2 only */}
         <section className="order-4 border-t border-secondary-border pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
-          <PostCommentForm postId={postData.post.id} />
+          {canComment && <PostCommentForm postId={postData.post.id} />}
           <PostCommentList comments={comments} loading={false} error={null} />
         </section>
       </div>
