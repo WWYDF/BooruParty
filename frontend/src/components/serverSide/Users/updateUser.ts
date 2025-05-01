@@ -2,6 +2,7 @@ export async function updateUser(data: Partial<{
     username: string;
     email: string;
     password: string;
+    description?: string;
     layout: 'GRID' | 'COLLAGE';
     theme: 'DARK' | 'LIGHT';
     postsPerPage: number;

@@ -7,6 +7,8 @@ import { ALLOWED_EMBED_SOURCES, roleGlowMap } from "@/core/dictionary";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import { formatTimeAgo } from "@/core/formats";
+import { GearSix } from "phosphor-react";
+import { useSession } from "next-auth/react";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -67,6 +69,7 @@ export default function UserProfilePage() {
   const { username } = useParams() as { username: string };
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { data: session } = useSession();
 
   useEffect(() => {
     fetch(`/api/users/${username}`)
@@ -91,7 +94,7 @@ export default function UserProfilePage() {
       )}
     >
       {/* Avatar + Username + Bio */}
-      <div className="grid grid-cols-1 md:grid-cols-[100px_1fr] gap-4 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-[100px_1fr_auto] gap-4 items-start">
         <img
           src={user.avatar}
           alt={user.username}
@@ -115,6 +118,17 @@ export default function UserProfilePage() {
             Member Since: {new Date(user.createdAt).toLocaleDateString()}
           </div>
         </div>
+        {session?.user?.username === user.username && (
+          <div className="self-start">
+            <a
+              href="/profile"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
+            >
+              <GearSix size={16} weight="bold" />
+              Edit Profile
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Recent Posts */}

@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function InfoForm() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [description, setDescription] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteMode, setDeleteMode] = useState<"delete" | "transfer">("transfer");
@@ -21,6 +22,7 @@ export default function InfoForm() {
         const user = await getCurrentUser();
         setUsername(user.username || '');
         setEmail(user.email || '');
+        setDescription(user.description || '');
       } catch (err) {
         toast('Could not load user info', 'error');
       }
@@ -29,7 +31,7 @@ export default function InfoForm() {
 
   const save = async () => {
     try {
-      await updateUser({ username, email });
+      await updateUser({ username, email, description });
       toast('Saved!', 'success');
     } catch (err: any) {
       toast(err.message, 'error');
@@ -51,6 +53,13 @@ export default function InfoForm() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
             type="email"
+            className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+        />
+        <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="About Me"
+            type="text"
             className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
         />
         <button onClick={save} className="bg-darkerAccent text-white px-4 py-2 rounded">Save Info</button>

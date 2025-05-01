@@ -40,6 +40,7 @@ const updateUserSchema = z.object({
     username: z.string().min(3).max(32).optional(),
     email: z.string().email().optional(),
     password: z.string().min(6).optional(),
+    description: z.string().max(64).optional(),
     layout: z.enum(['GRID', 'COLLAGE']).optional(),
     theme: z.enum(['DARK', 'LIGHT']).optional(),
     postsPerPage: z.number().default(30),
@@ -62,12 +63,13 @@ export async function PATCH(req: Request) {
         );
     }
 
-    const { username, email, password, layout, theme, postsPerPage } = parsed.data;
+    const { username, email, description, password, layout, theme, postsPerPage } = parsed.data;
     const userId = session.user.id;
 
     const updates: any = {};
     if (username) updates.username = username;
     if (email) updates.email = email;
+    updates.description = description;
     if (password) updates.password = await bcrypt.hash(password, 10);
 
     const prefUpdates: any = {};
