@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { updateUser } from '@/components/serverSide/Users/updateUser';
+import { useToast } from '../Toast';
+import { useRouter } from 'next/navigation';
 
 export default function AvatarUpload() {
   const [current, setCurrent] = useState('/user.png');
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState('');
+  const toast = useToast();
 
   useEffect(() => {
     (async () => {
@@ -33,7 +36,7 @@ export default function AvatarUpload() {
   const uploadAvatar = async () => {
     if (!file) return;
 
-    setStatus('Uploading...');
+    toast('Uploading...');
     try {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = new Uint8Array(arrayBuffer);
@@ -51,7 +54,7 @@ export default function AvatarUpload() {
         throw new Error(data.error || 'Upload failed');
       }
 
-      await updateUser({ avatar: data.url });
+      // await updateUser({ avatar: data.url });
 
       const cacheBusted = `${data.url}?t=${Date.now()}`;
       setCurrent(cacheBusted);
@@ -59,9 +62,9 @@ export default function AvatarUpload() {
       setCurrent(data.url);
       setPreview(null);
       setFile(null);
-      setStatus('Avatar updated ✅');
+      toast('Avatar Updated!', 'success');
     } catch (err: any) {
-      setStatus(err.message || 'Error uploading avatar');
+      toast(err.message || 'Error uploading avatar', 'error');
     }
   }; 
 

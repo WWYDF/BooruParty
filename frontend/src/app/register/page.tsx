@@ -1,5 +1,6 @@
 'use client';
 
+import { useToast } from '@/components/clientSide/Toast';
 import { useState } from 'react';
 
 export default function RegisterPage() {
@@ -10,7 +11,7 @@ export default function RegisterPage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const toast = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -19,7 +20,6 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
 
     const res = await fetch('/api/auth/register', {
       method: 'POST',
@@ -31,9 +31,9 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (!res.ok) {
-      setMessage(data.error || 'Something went wrong');
+      toast(data.error || 'Something went wrong', 'error');
     } else {
-      setMessage('Successfully registered!');
+      toast('Successfully registered! Redirecting...', 'success');
     }
   };
 
@@ -82,9 +82,7 @@ export default function RegisterPage() {
             disabled={loading}
           >
             {loading ? 'Registering...' : 'Register'}
-          </button>
-  
-          {message && <p className="text-subtle text-sm mt-2">{message}</p>}
+          </button>  
         </form>
   
         <p className="text-sm text-subtle mt-4">

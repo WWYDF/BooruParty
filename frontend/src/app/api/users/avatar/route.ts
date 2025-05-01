@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   const fileType = await fileTypeFromBuffer(buffer);
   if (!fileType || !fileType.mime.startsWith('image/')) {
-    return new Response(JSON.stringify({ error: 'Unsupported or invalid image type' }), { status: 400 });
+    return new Response(JSON.stringify({ error: `Unsupported or invalid image type. '${fileType?.mime}'` }), { status: 400 });
   }
 
   const formData = new FormData();
@@ -38,15 +38,13 @@ export async function POST(req: Request) {
   const data = await fastifyRes.json();
 
   if (!data.url || !data.success) {
-    return new Response(JSON.stringify({ error: data.error || 'Fastify upload failed' }), { status: 500 });
+    return new Response(JSON.stringify({ error: `Fastify upload failed: ${data.error}` }), { status: 500 });
   }
-
-  const fullUrl = `/data${data.url}`;
 
   await prisma.user.update({
     where: { id: userId },
-    data: { avatar: fullUrl },
+    data: { avatar: `/data${data.url}` },
   });
 
-  return new Response(JSON.stringify({ success: true, url: fullUrl }));
+  return new Response(JSON.stringify({ success: true, url: `${fastifyUrl}/data${data.url}` }));
 }

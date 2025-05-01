@@ -23,7 +23,11 @@ async function buildServer() {
         },
       });
 
-  await fastify.register(multipart);
+  await fastify.register(multipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5 MB
+    },
+  });
   await fastify.register(ipFilter);
   await fastify.register(registerStatic);
   await fastify.register(uploadRoutes, { prefix: '/api' });

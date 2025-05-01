@@ -1,13 +1,14 @@
 'use client';
 
+import { useToast } from '@/components/clientSide/Toast';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
   const router = useRouter();
+  const toast = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,7 +23,7 @@ export default function LoginPage() {
     });
 
     if (res?.error) {
-      setError(res.error);
+      toast('Unable to sign in.', 'error');
     } else {
       router.push('/profile');
     }
@@ -63,8 +64,6 @@ export default function LoginPage() {
           >
             Login
           </button>
-  
-          {error && <p className="text-subtle text-sm mt-2">{error}</p>}
         </form>
   
         <p className="text-sm text-subtle mt-4">
