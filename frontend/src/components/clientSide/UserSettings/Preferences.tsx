@@ -3,12 +3,13 @@
 import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useEffect, useState } from 'react';
+import { useToast } from '../Toast';
 
 export default function PreferencesForm() {
     const [layout, setLayout] = useState<'GRID' | 'COLLAGE'>('GRID');
     const [theme, setTheme] = useState<'DARK' | 'LIGHT'>('DARK');
     const [postsPerPage, setPPP] = useState<number>(30);
-    const [status, setStatus] = useState('');
+    const toast = useToast();
   
     useEffect(() => {
       (async () => {
@@ -18,18 +19,17 @@ export default function PreferencesForm() {
           setTheme(user.preferences?.theme || 'DARK');
           setPPP(user.preferences?.postsPerPage || 30);
         } catch (err) {
-          setStatus('Could not load preferences');
+          toast('Could not load preferences', 'error');
         }
       })();
     }, []);
   
     const save = async () => {
-      setStatus('Saving...');
       try {
         await updateUser({ layout, theme, postsPerPage });
-        setStatus('Preferences saved ✅');
+        toast('Preferences Saved!', 'success');
       } catch (err: any) {
-        setStatus(err.message);
+        toast(err.message, 'error');
       }
     };
 

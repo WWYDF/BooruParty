@@ -24,8 +24,9 @@ export async function checkPermissions(permission: string) {
   });
 
   const allowed = user?.role?.permissions.some((p) => p.name === permission) ?? false;
+  const admin = user?.role?.permissions.some((p) => p.name === 'administrator') ?? false;
 
-  if (!allowed) {
+  if (!allowed && !admin) {
     return { success: false, response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
 

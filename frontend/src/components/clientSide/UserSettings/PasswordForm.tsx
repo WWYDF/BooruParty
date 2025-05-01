@@ -2,26 +2,26 @@
 
 import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useState } from 'react';
+import { useToast } from '../Toast';
 
 export default function PasswordChangeForm() {
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
-    const [status, setStatus] = useState('');
+    const toast = useToast();
   
     const save = async () => {
       if (password !== confirm) {
-        setStatus('Passwords do not match');
+        toast('Passwords do not match', 'error');
         return;
       }
   
-      setStatus('Updating...');
       try {
         await updateUser({ password });
         setPassword('');
         setConfirm('');
-        setStatus('Password updated ✅');
+        toast('Password Updated!', 'success');
       } catch (err: any) {
-        setStatus(err.message);
+        toast(`Error: ${err.message}`, 'error');
       }
     };
 
@@ -43,7 +43,6 @@ export default function PasswordChangeForm() {
             className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
         />
         <button onClick={save} className="bg-darkerAccent text-white px-4 py-2 rounded">Update Password</button>
-        <p className="text-sm text-subtle">{status}</p>
         </section>
     );
 }

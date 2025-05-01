@@ -3,11 +3,12 @@
 import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useEffect, useState } from 'react';
+import { useToast } from '../Toast';
 
 export default function InfoForm() {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
-    const [status, setStatus] = useState('');
+    const toast = useToast();
   
     useEffect(() => {
       (async () => {
@@ -16,18 +17,17 @@ export default function InfoForm() {
           setUsername(user.username || '');
           setEmail(user.email || '');
         } catch (err) {
-          setStatus('Could not load user info');
+          toast('Could not load user info', 'error');
         }
       })();
     }, []);
   
     const save = async () => {
-      setStatus('Saving...');
       try {
         await updateUser({ username, email });
-        setStatus('Saved ✅');
+        toast('Saved!', 'success');
       } catch (err: any) {
-        setStatus(err.message);
+        toast(err.message, 'error');
       }
     };
 
@@ -48,7 +48,6 @@ export default function InfoForm() {
             className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
         />
         <button onClick={save} className="bg-darkerAccent text-white px-4 py-2 rounded">Save Info</button>
-        <p className="text-sm text-subtle">{status}</p>
         </section>
     );
 }

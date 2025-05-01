@@ -12,13 +12,21 @@ export default function AvatarUpload() {
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState('');
+  const [canEdit, setCanEdit] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
     (async () => {
       try {
         const user = await getCurrentUser();
+  
         setCurrent(user.avatar || '/user.png');
+  
+        const perms = user.role?.permissions?.map((p: any) => p.name) || [];
+  
+        if (perms.includes("profile_edit_avatar") || perms.includes("administrator")) {
+          setCanEdit(true);
+        }
       } catch {
         setStatus('Could not load avatar');
       }
@@ -35,6 +43,7 @@ export default function AvatarUpload() {
 
   const uploadAvatar = async () => {
     if (!file) return;
+    if (!canEdit) { toast('You do not have permission to change your avatar.', 'error'); return; }
 
     toast('Uploading...');
     try {
