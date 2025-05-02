@@ -124,7 +124,7 @@ export default function TagListPage() {
                     {/* Name */}
                     <td className="py-2 px-2">
                       <Link
-                        href={`/dashboard/tags/${encodeURIComponent(tag.name)}`}
+                        href={`/tags/${encodeURIComponent(tag.name)}`}
                         className="hover:underline text-accent"
                       >
                         {tag.name}
