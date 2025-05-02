@@ -9,35 +9,19 @@ type Props = {
     id: number;
     score: number;
     favorites?: number;
-  };
+  },
+  user: {
+    vote: 'UPVOTE' | 'DOWNVOTE' | null,
+    favorited: boolean
+  }
 };
 
-export default function PostVoting({ post }: Props) {
+export default function PostVoting({ post, user }: Props) {
   const { data: session } = useSession();
-  const [vote, setVote] = useState<VoteType>(null);
-  const [favorited, setFavorited] = useState(false);
+  const [vote, setVote] = useState<VoteType>(user.vote);
+  const [favorited, setFavorited] = useState(user.favorited);
   const [loading, setLoading] = useState(false);
   const postId = post.id;
-
-  useEffect(() => {
-    const fetchStatus = async () => {
-      if (!session) return;
-
-      const voteRes = await fetch(`/api/posts/vote?postId=${postId}`);
-      if (voteRes.ok) {
-        const data = await voteRes.json();
-        setVote(data.type ?? null);
-      }
-
-      const favRes = await fetch(`/api/posts/favorite?postId=${postId}`);
-      if (favRes.ok) {
-        const data = await favRes.json();
-        setFavorited(data.favorited);
-      }
-    };
-
-    fetchStatus();
-  }, [postId, session]);
 
   const handleVote = async (type: VoteType) => {
     if (!session) return;

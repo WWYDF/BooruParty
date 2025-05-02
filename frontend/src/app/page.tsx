@@ -1,20 +1,13 @@
 'use client';
 
 import PostDisplay from '@/components/clientSide/Posts/Individual/PostDisplay';
+import { Post } from '@/core/types/posts';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-type PostType = {
-  id: number;
-  fileExt: string;
-  createdAt: string;
-  previewScale: number;
-  score: number;
-};
-
 export default function HomePage() {
-  const [post, setPost] = useState<PostType | null>(null);
+  const [post, setPost] = useState<Post | null>(null);
 
   useEffect(() => {
     const fetchFeaturedPost = async () => {

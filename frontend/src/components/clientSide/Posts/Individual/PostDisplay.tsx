@@ -3,21 +3,27 @@
 import { useState } from "react";
 import PostVoting from "./PostVoting";
 import { resolveFileType } from "@/core/dictionary";
-import { Post } from "@/core/types/posts";
+import { Post, PostUserStatus } from "@/core/types/posts";
 
 type Props = {
-  post: Post
+  post: Post;
+  user?: PostUserStatus;
   showVoting?: boolean;
 };
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
-export default function PostDisplay({ post, showVoting = true }: Props) {
+export default function PostDisplay({ post, user, showVoting = true }: Props) {
   const [showFull, setShowFull] = useState(post.previewScale === 100 || post.previewScale == null);
 
   const fileType = resolveFileType(`.${post.fileExt}`);
 
   const fullSrc = `${fastify}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
+
+  const userNull: PostUserStatus = {
+    vote: null,
+    favorited: false
+  }
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -53,7 +59,7 @@ export default function PostDisplay({ post, showVoting = true }: Props) {
         </button>
       ) : null}
 
-      {showVoting && <PostVoting post={post} />}
+      {showVoting && <PostVoting post={post} user={userNull} />}
     </div>
   );
 }

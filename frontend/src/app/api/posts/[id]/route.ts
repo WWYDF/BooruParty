@@ -1,4 +1,5 @@
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { auth } from "@/core/auth";
 import { getConversionType } from "@/core/dictionary";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
@@ -12,6 +13,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   } catch {}
 
   const { id } = await context.params;
+  const session = await auth();
 
   const postId = parseInt(id);
   if (isNaN(postId)) {
@@ -55,6 +57,29 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
+  let hasFavorited = false;
+  let voteType = null;
+
+  // If user is logged in, check their post statuses
+  if (session?.user) {
+    const userStatus = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        favorites: {
+          where: { postId },
+          select: { id: true }
+        },
+        votes: {
+          where: { postId },
+          select: { type: true }
+        }
+      }
+    });
+
+    hasFavorited = (userStatus?.favorites?.length ?? 0) > 0;
+    voteType = userStatus?.votes?.[0]?.type ?? null;
+  }
+
   // Might not need this anymore
   const previewExt = getConversionType(post.fileExt);
 
@@ -70,7 +95,12 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     previewPath: `${process.env.NEXT_PUBLIC_FASTIFY}${post.previewPath}`,
   }
 
-  return NextResponse.json({post: postFormatted});
+  const userFormatted = {
+    vote: voteType,
+    favorited: hasFavorited,
+  }
+
+  return NextResponse.json({post: postFormatted, user: userFormatted});
 }
 
 // PATCH endpoint to update a post by ID

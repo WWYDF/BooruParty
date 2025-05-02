@@ -34,6 +34,11 @@ export type Post = {
   }[];
 }
 
+export type PostUserStatus = {
+  vote: 'UPVOTE' | 'DOWNVOTE' | null,
+  favorited: boolean
+}
+
 export type PostNavigatorType = {
   previousPostId: number;
   nextPostId: number;
