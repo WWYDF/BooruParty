@@ -1,20 +1,25 @@
 // Client Side Component/Page -> This
-export async function checkPermissions(permission: string): Promise<{ success: boolean }> {
-  try {
-    const res = await fetch('/api/users/permissions', { cache: 'no-store' });
+export async function checkPermissions(
+  perms: string | string[]
+): Promise<Record<string, boolean>> {
+  const permissions = Array.isArray(perms) ? perms : [perms];
 
+  try {
+    const res = await fetch("/api/users/permissions", { cache: "no-store" });
     if (!res.ok) {
-      return { success: false };
+      return Object.fromEntries(permissions.map((p) => [p, false]));
     }
 
     const data = await res.json();
+    const userPerms: string[] = Array.isArray(data.permissions) ? data.permissions : [];
 
-    const allowed = Array.isArray(data.permissions) &&
-      (data.permissions.includes(permission) || data.permissions.includes('administrator'));
+    const hasAdmin = userPerms.includes("administrator");
 
-    return { success: allowed };
+    return Object.fromEntries(
+      permissions.map((p) => [p, hasAdmin || userPerms.includes(p)])
+    );
   } catch (err) {
-    console.error('checkPermissions error:', err);
-    return { success: false };
+    console.error("checkPermissions error:", err);
+    return Object.fromEntries(permissions.map((p) => [p, false]));
   }
 }

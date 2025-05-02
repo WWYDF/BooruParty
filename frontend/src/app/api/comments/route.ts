@@ -36,11 +36,15 @@ export async function GET(req: NextRequest) {
 
   // Only check perms if there are any comments to speed things up
   if (comments.length > 0) {
-    [canEditOwn, canEditOthers, canDeleteOthers] = await Promise.all([
-      checkPermissions("comment_edit_own"),
-      checkPermissions("comment_edit_others"),
-      checkPermissions("comment_delete_others"),
+    const perms = await checkPermissions([
+      "comment_edit_own",
+      "comment_edit_others",
+      "comment_delete_others"
     ]);
+
+    canEditOwn = perms["comment_edit_own"];
+    canEditOthers = perms["comment_edit_others"];
+    canDeleteOthers = perms["comment_delete_others"];
   }
 
   const commentIds = comments.map((c) => c.id);
@@ -113,9 +117,13 @@ export async function POST(req: NextRequest) {
   }
 
   // --- Check for embed permission
-  const canComment = await checkPermissions('comment_create');
-  const embedURLs = await checkPermissions('comment_embed_url');
-  const embedPosts = await checkPermissions('comment_embed_post');
+  const perms = await checkPermissions([
+    'comment_embed_url',
+    'comment_embed_post'
+  ]);
+
+  const embedURLs = perms['comment_embed_url'];
+  const embedPosts = perms['comment_embed_post'];
 
   const urlRegex = /https?:\/\/[^\s]+/g;
   const postRegex = /:(\d+):/g;

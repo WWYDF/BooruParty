@@ -1,9 +1,16 @@
 import { cookies } from "next/headers";
 
-export async function checkPermissions(permission: string): Promise<boolean> {
+export async function checkPermissions(
+  perms: string | string[]
+): Promise<Record<string, boolean>> {
+  const permissions = Array.isArray(perms) ? perms : [perms];
+
   // Shortcut: allow all if permission is posts_view and GUEST_VIEWING is enabled
-  if (permission === 'posts_view' && process.env.GUEST_VIEWING === 'true') {
-    return true;
+  if (
+    permissions.includes("posts_view") &&
+    process.env.GUEST_VIEWING === "true"
+  ) {
+    return Object.fromEntries(permissions.map((p) => [p, true]));
   }
 
   const cookieStore = cookies();
@@ -18,10 +25,16 @@ export async function checkPermissions(permission: string): Promise<boolean> {
     cache: "no-store",
   });
 
-  if (!res.ok) return false;
+  if (!res.ok) {
+    return Object.fromEntries(permissions.map((p) => [p, false]));
+  }
 
   const data = await res.json();
-  const permissions = Array.isArray(data.permissions) ? data.permissions : [];
+  const userPerms: string[] = data.permissions ?? [];
 
-  return permissions.includes(permission) || permissions.includes('administrator');
+  const hasAdmin = userPerms.includes("administrator");
+
+  return Object.fromEntries(
+    permissions.map((p) => [p, hasAdmin || userPerms.includes(p)])
+  );
 }

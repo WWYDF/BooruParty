@@ -15,7 +15,7 @@ const querySchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const permCheck = await checkPermissions('posts_view');
+    const permCheck = (await checkPermissions(['posts_view']))['posts_view'];
     if (!permCheck) { return NextResponse.json({ error: "You are unauthorized to view posts." }, { status: 401 }); }
 
     const url = new URL(req.url);

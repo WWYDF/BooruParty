@@ -2,6 +2,7 @@ import { prisma } from "@/core/prisma";
 import { auth } from "@/core/auth";
 import ClientPostsPage from "@/components/clientSide/Posts/PostsPage";
 import BackToTop from "@/components/clientSide/BackToTop";
+import { checkPermissions } from "@/components/serverSide/permCheck";
 
 export default async function PostsPage() {
   const session = await auth();
@@ -22,15 +23,20 @@ export default async function PostsPage() {
 
   const postsPerPage = user?.preferences?.postsPerPage ?? 30; // fallback default
 
-  // If guest viewing is disabled, and user is a guest, set to 0 posts.
-  if (process.env.GUEST_VIEWING === 'false' && !user) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center text-center px-4 text-red-400">
-        <h1 className="text-3xl font-bold mb-2">Unauthorized</h1>
-        <p className="text-base text-subtle max-w-md">Guests do not have permission to view posts.</p>
-        <p className="text-base text-subtle max-w-md">Please click <a className="text-accent hover:underline" href="/login" >here</a> to login.</p>
-      </main>
-    );
+  if (process.env.GUEST_VIEWING === 'false') {
+    const permCheck = (await checkPermissions(['posts_view']))['posts_view'];
+  
+    if (!permCheck) {
+      return (
+        <main className="min-h-screen flex flex-col items-center justify-center text-center px-4 text-red-400">
+          <h1 className="text-3xl font-bold mb-2">Unauthorized</h1>
+          <p className="text-base text-subtle max-w-md">Guests do not have permission to view posts.</p>
+          <p className="text-base text-subtle max-w-md">
+            Please click <a className="text-accent hover:underline" href="/login">here</a> to login.
+          </p>
+        </main>
+      );
+    }
   }
 
   const initialPosts = await prisma.posts.findMany({

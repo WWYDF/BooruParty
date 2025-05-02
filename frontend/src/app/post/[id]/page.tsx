@@ -51,7 +51,8 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const postId = id;
   const postPromise = fetchPostData(postId);
   const commentsPromise = fetchComments(postId);
-  const canComment = await checkPermissions('comment_create');
+  const perms = await checkPermissions(['comment_create']);
+  const canComment = perms['comment_create'];
 
   const [postResult, commentsResult] = await Promise.allSettled([
     postPromise,
