@@ -78,3 +78,14 @@ export const roleGlowMap: Record<string, string> = {
   MOD: "shadow-[0_0_20px_2px_rgba(59,130,246,0.3)]",     // blue-500
   "POWER USER": "shadow-[0_0_20px_2px_rgba(239,177,0,0.3)]",   // yellow-500
 };
+
+
+
+// Dashboard Stuff
+export const auditLogColors: Record<string, string> = {
+  EDIT: "text-blue-400",
+  DELETE: "text-red-500",
+  FEATURE: "text-purple-400",
+  CREATE: "text-green-500",
+  CHANGE: "text-yellow-400",
+};
