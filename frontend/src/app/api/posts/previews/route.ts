@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     select: {
       id: true,
       previewPath: true,
+      safety: true
     },
   });
 
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
     previewPath: post.previewPath
       ? `${process.env.NEXT_PUBLIC_FASTIFY}${post.previewPath}`
       : null,
+    safety: `${post.safety}`
   }));
 
   return NextResponse.json(transformed);

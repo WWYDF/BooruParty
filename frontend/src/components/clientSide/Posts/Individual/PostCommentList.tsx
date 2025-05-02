@@ -11,11 +11,29 @@ import { JSX, useEffect, useState } from "react";
 import { useToast } from "../../Toast";
 import clsx from "clsx";
 
-type ExtractedEmbed = 
+type ExtractedEmbed =
   | { type: "url"; value: string }
-  | { type: "post"; postId: number; inline: boolean; previewPath: string };
+  | {
+      type: "post";
+      postId: number;
+      inline: boolean;
+      previewPath: string;
+      safety: "SAFE" | "SKETCHY" | "UNSAFE";
+      shouldBlur: boolean;
+    };
 
-  function extractEmbeds(content: string, previewMap: Record<number, string>): ExtractedEmbed[] {
+type PreviewData = {
+  previewPath: string;
+  safety: "SAFE" | "SKETCHY" | "UNSAFE";
+};
+
+
+function extractEmbeds(
+  content: string,
+  previewMap: Record<number, { previewPath: string; safety: "SAFE" | "SKETCHY" | "UNSAFE" }>,
+  blurUnsafeEmbeds: boolean,
+  parentPostSafety: "SAFE" | "SKETCHY" | "UNSAFE"
+): ExtractedEmbed[] {
   const embeds: ExtractedEmbed[] = [];
 
   const urlRegex = /https?:\/\/[^\s]+/g;
@@ -37,11 +55,19 @@ type ExtractedEmbed =
     if (!isNaN(postId)) {
       // Check if the entire content is just ":<id>:" (no other text)
       const isAlone = content.trim() === match[0];
+      const postData = previewMap[postId];
+      const previewPath = postData?.previewPath ?? `${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${postId}_small.webp`;
+      const safety = postData?.safety ?? "SAFE";
       embeds.push({
         type: "post",
         postId,
         inline: !isAlone,
-        previewPath: previewMap[postId] ?? `${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${postId}_small.webp`
+        previewPath,
+        safety,
+        shouldBlur:
+          blurUnsafeEmbeds &&
+          parentPostSafety === "SAFE" &&
+          safety === "UNSAFE",
       });
     }
   }
@@ -97,7 +123,10 @@ function renderEmbeds(embeds: ExtractedEmbed[]): JSX.Element[] {
               src={embed.previewPath}
               alt={`Post #${embed.postId}`}
               title={`Post #${embed.postId} from ${embed.previewPath}`}
-              className="w-full object-cover"
+              className={clsx(
+                "w-full object-cover rounded-lg transition duration-300",
+                embed.shouldBlur && "blur-md hover:blur-none"
+              )}
             />
           </a>
         </div>
@@ -112,10 +141,14 @@ export default function PostCommentList({
   comments,
   loading,
   error,
+  blurUnsafeEmbeds,
+  parentPostSafety
 }: {
   comments: Comments[];
   loading: boolean;
   error: string | null;
+  blurUnsafeEmbeds: boolean;
+  parentPostSafety: "SAFE" | "SKETCHY" | "UNSAFE";
 }) {
   if (loading) return null;
   if (error) return <p className="text-red-500 text-sm">Error: {error}</p>;
@@ -131,7 +164,8 @@ export default function PostCommentList({
 
   const router = useRouter();
   const toast = useToast();
-  const [previewMap, setPreviewMap] = useState<Record<number, string>>({});
+  const [previewMap, setPreviewMap] = useState<Record<number, PreviewData>>({});
+
 
   useEffect(() => {
     if (referencedPostIds.length === 0) return;
@@ -140,7 +174,12 @@ export default function PostCommentList({
       const res = await fetch(`/api/posts/previews?ids=${referencedPostIds.join(",")}`);
       const data = await res.json();
       setPreviewMap(
-        Object.fromEntries(data.map((post: { id: number; previewPath: string }) => [post.id, post.previewPath]))
+        Object.fromEntries(
+          data.map((post: PreviewData & { id: number }) => [
+            post.id,
+            { previewPath: post.previewPath, safety: post.safety },
+          ])
+        )
       );
     };
   
@@ -214,7 +253,9 @@ export default function PostCommentList({
                 </div>
                 <div className="text-base text-zinc-400 whitespace-pre-wrap">
                 {(() => {
-                  const embeds = comment.isEmbed ? extractEmbeds(comment.content, previewMap) : [];
+                  const embeds = comment.isEmbed
+                  ? extractEmbeds(comment.content, previewMap, blurUnsafeEmbeds, parentPostSafety)
+                  : [];
 
                   const visibleContent = embeds.reduce((text, embed) => {
                     if (embed.type === "url") {

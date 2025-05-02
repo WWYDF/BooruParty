@@ -100,8 +100,8 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         <section className="order-4 border-t border-secondary-border pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
           {canComment && <PostCommentForm postId={postData.post.id} />}
-          <PostCommentList comments={comments} loading={false} error={null} />
-        </section>
+          <PostCommentList comments={comments} loading={false} error={null} blurUnsafeEmbeds={true} parentPostSafety={postData.post.safety} />
+        </section>                                                        {/* Get from user preferences later */}
       </div>
     </main>
   );
