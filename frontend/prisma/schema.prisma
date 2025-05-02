@@ -57,6 +57,7 @@ model User {
   posts         Posts[]
   comments      Comments[]
   commentVotes  CommentVotes[]
+  audits        Audits[]
   roleId        Int?
   
   lastLogin     DateTime  @default(now())
@@ -207,4 +208,35 @@ model SpecialPosts {
   post      Posts    @relation(fields: [postId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+enum AuditCategory {
+  EDIT
+  DELETE
+  FEATURE
+  CREATE
+  CHANGE
+}
+
+enum AuditAction {
+  POST
+  COMMENT
+  PROFILE
+  TAG
+  CATEGORY
+  SITE_SETTINGS
+  PERMISSIONS
+}
+
+model Audits {
+  id            Int             @id @default(autoincrement())
+  category      AuditCategory
+  actionType    AuditAction
+  details       String?
+  userId        String          @unique
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  executedAt    DateTime       @default(now())
+
+  @@index([category, actionType])
 }

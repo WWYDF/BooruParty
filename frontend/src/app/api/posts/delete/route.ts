@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/auth";
+import { reportAudit } from "@/components/serverSide/auditLog";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
     "post_delete_own",
     "post_delete_others"
   ]);
+  
   const canDeleteOwnPosts = perms["post_delete_own"];
   const canDeleteOthersPosts = perms["post_delete_others"];
 
@@ -45,9 +47,20 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Delete from database
     await prisma.posts.deleteMany({
       where: { id: { in: postIds } }
     });
+
+    // Delete files from Fastify
+    await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/posts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postIds }),
+    });
+
+    // Log actions in database
+    await reportAudit(session.user.id, 'DELETE', 'POST');
 
     return NextResponse.json({ success: true });
   } catch (err) {
