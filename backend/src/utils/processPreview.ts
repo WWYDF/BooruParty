@@ -46,12 +46,15 @@ export async function processPreview(originalPath: string, postId: number): Prom
 
   // Non-GIF logic (e.g., static images, handled by sharp)
   const metadata = await sharp(originalPath).metadata();
-  await sharp(originalPath)
+  const resizedBuffer = await sharp(originalPath)
     .resize({ width: 1280, withoutEnlargement: true })
     .webp({ quality: 90 })
-    .toFile(previewPath);
+    .toBuffer();
 
-  const resizedMeta = await sharp(previewPath).metadata();
+  await fs.promises.writeFile(previewPath, resizedBuffer);
+
+  // Then use the buffer directly to get metadata
+  const resizedMeta = await sharp(resizedBuffer).metadata();
   const previewScale =
     metadata.width && resizedMeta.width
       ? Math.round((resizedMeta.width / metadata.width) * 100)

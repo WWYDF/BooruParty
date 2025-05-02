@@ -17,24 +17,35 @@ const postDeleteRoute: FastifyPluginAsync = async (fastify) => {
     }
 
     for (const id of idsToDelete) {
-      const mediaPaths = [
-        path.join("data/uploads/image", `${id}.webp`),
-        path.join("data/uploads/video", `${id}.mp4`),
-        path.join("data/uploads/animated", `${id}.gif`),
-        path.join("data/previews/image", `${id}.webp`),
-        path.join("data/previews/animated", `${id}.gif`),
-        ...["small", "med", "large"].map(size =>
-          path.join("data/thumbnails", `${id}_${size}.webp`)
-        ),
+      const idStr = `${id}`;
+    
+      // Folders to scan for files by ID (excluding thumbnails)
+      const mediaFolders = [
+        "data/uploads/image",
+        "data/uploads/video",
+        "data/uploads/animated",
+        "data/previews/image",
+        "data/previews/animated",
+        "data/thumbnails",
       ];
-
-      for (const filePath of mediaPaths) {
+    
+      for (const folder of mediaFolders) {
         try {
-          await fs.unlink(filePath);
-        } catch (err) {
-          if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-            fastify.log.warn(`Failed to delete ${filePath}: ${err}`);
+          const files = await fs.readdir(folder);
+          const matches = files.filter((file) => file.startsWith(idStr));
+    
+          for (const file of matches) {
+            const filePath = path.join(folder, file);
+            try {
+              await fs.unlink(filePath);
+            } catch (err) {
+              if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+                fastify.log.warn(`Failed to delete ${filePath}: ${err}`);
+              }
+            }
           }
+        } catch (err) {
+          fastify.log.warn(`Could not read ${folder}: ${err}`);
         }
       }
     }

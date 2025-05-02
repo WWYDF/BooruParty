@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Log actions in database
-    await reportAudit(session.user.id, 'DELETE', 'POST');
+    await reportAudit(session.user.id, 'DELETE', 'POST', `Deleted Posts: ${postIds}`);
 
     return NextResponse.json({ success: true });
   } catch (err) {

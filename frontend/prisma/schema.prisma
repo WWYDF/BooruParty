@@ -158,7 +158,7 @@ model CommentVotes {
   vote       Int
 
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comment    Comments @relation(fields: [commentId], references: [id])
+  comment    Comments @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, commentId])
 }
@@ -229,14 +229,13 @@ enum AuditAction {
 }
 
 model Audits {
-  id            Int             @id @default(autoincrement())
+  executedAt    DateTime        @default(now())
   category      AuditCategory
   actionType    AuditAction
   details       String?
-  userId        String          @unique
+  userId        String
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  executedAt    DateTime       @default(now())
-
+  @@id([executedAt, userId])
   @@index([category, actionType])
 }

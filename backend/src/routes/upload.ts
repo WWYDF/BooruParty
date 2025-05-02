@@ -60,8 +60,15 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
               if (fs.existsSync(previewPath)) {
                 const previewSize = fs.statSync(previewPath).size;
                 if (previewScale === 100 && previewSize >= originalSize) {
-                  fastify.log.info(`🗑️ Deleting useless preview for post ${postId}`);
-                  fs.unlinkSync(previewPath);
+                  fastify.log.warn(`Deleting useless preview for post ${postId}`);
+                  setTimeout(() => {
+                    try {
+                      fs.unlinkSync(previewPath);
+                      fastify.log.warn(`Deleted redundant preview: ${previewPath}`);
+                    } catch (err) {
+                      fastify.log.error(`Failed to delete preview: ${err}`);
+                    }
+                  }, 50);
                   previewScale = null; // Because there's no good preview now
                 }
               }
