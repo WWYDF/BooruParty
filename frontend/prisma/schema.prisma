@@ -114,6 +114,7 @@ model Permission {
 model Posts {
   id            Int          @id @default(autoincrement())
   fileExt       String
+  previewPath   String?
   uploadedBy    User         @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
   anonymous     Boolean
   safety        SafetyType

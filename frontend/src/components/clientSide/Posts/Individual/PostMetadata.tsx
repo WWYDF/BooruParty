@@ -46,7 +46,9 @@ type Props = {
       avatar: string;
     },
     fileSize?: number;
-    favorites?: number;
+    _count?: {
+      favoritedBy: number;
+    };
   };
 };
 
@@ -215,10 +217,10 @@ export default function PostMetadata({ post }: Props) {
               {post.score}
             </p>
 
-            {typeof post.favorites === "number" && (
+            {typeof post._count?.favoritedBy === "number" && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">Favorites:</span>
-                {post.favorites}
+                {post._count?.favoritedBy}
               </p>
             )}
           </div>

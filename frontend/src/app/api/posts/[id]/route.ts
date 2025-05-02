@@ -1,4 +1,5 @@
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { getConversionType } from "@/core/dictionary";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
 import { NextRequest, NextResponse } from "next/server";
@@ -42,9 +43,9 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
           avatar: true
         }
       },
-      favoritedBy: {
+      _count: {
         select: {
-          userId: true
+          favoritedBy: true
         }
       }
     }
@@ -54,19 +55,22 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  const postWOFavorites = {
+  // Might not need this anymore
+  const previewExt = getConversionType(post.fileExt);
+
+  const postFormatted = {
     ...post,
-    favorites: post.favoritedBy.length,
     uploadedBy: post.uploadedBy
       ? {
           ...post.uploadedBy,
           avatar: setAvatarUrl(post.uploadedBy.avatar)
         }
       : null,
-    favoritedBy: undefined
+    previewExt,
+    previewPath: `${process.env.NEXT_PUBLIC_FASTIFY}${post.previewPath}`,
   }
 
-  return NextResponse.json({post: postWOFavorites});
+  return NextResponse.json({post: postFormatted});
 }
 
 // PATCH endpoint to update a post by ID

@@ -2,17 +2,11 @@
 
 import { useState } from "react";
 import PostVoting from "./PostVoting";
-import { conversionType, resolveFileType } from "@/core/dictionary";
+import { resolveFileType } from "@/core/dictionary";
+import { Post } from "@/core/types/posts";
 
 type Props = {
-  post: {
-    id: number;
-    fileExt: string;
-    createdAt: string;
-    previewScale: number;
-    score: number;
-    favorites?: number;
-  };
+  post: Post
   showVoting?: boolean;
 };
 
@@ -23,8 +17,6 @@ export default function PostDisplay({ post, showVoting = true }: Props) {
 
   const fileType = resolveFileType(`.${post.fileExt}`);
 
-  const ext = conversionType(post.fileExt);
-  const previewSrc = `${fastify}/data/previews/${fileType}/${post.id}.${ext}`;
   const fullSrc = `${fastify}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
 
   return (
@@ -32,7 +24,7 @@ export default function PostDisplay({ post, showVoting = true }: Props) {
       <div className="flex justify-center">
       {fileType === "video" ? (
         <video
-          src={showFull ? fullSrc : previewSrc}
+          src={showFull ? fullSrc : post.previewPath}
           controls
           playsInline
           loop
@@ -43,7 +35,7 @@ export default function PostDisplay({ post, showVoting = true }: Props) {
       ) : (
         <img
           loading="lazy"
-          src={showFull ? fullSrc : previewSrc}
+          src={showFull ? fullSrc : post.previewPath}
           alt={`Error accessing ${fullSrc}`}
           className="max-h-[70vh] w-auto h-auto object-contain rounded-xl"
         />

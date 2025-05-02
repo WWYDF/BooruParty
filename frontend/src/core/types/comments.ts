@@ -14,5 +14,8 @@ export type Comments = {
   isEmbed: boolean;
   score: number;
   userVote: number;
+  post: {
+    previewPath: string;
+  }
 };
   

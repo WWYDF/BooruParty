@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/auth';
 import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
-import { resolveFileType } from '@/core/dictionary';
+import { getConversionType, resolveFileType } from '@/core/dictionary';
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
@@ -32,12 +32,10 @@ export async function POST(request: NextRequest) {
 
   const anonymous = formData.get('anonymous') === 'true';
   const safety = formData.get('safety') as 'SAFE' | 'SKETCHY' | 'UNSAFE';
-  let fileExt = extension;
-
 
   const createdPost = await prisma.posts.create({
     data: {
-      fileExt: fileExt,
+      fileExt: extension,
       uploadedById: session.user.id,
       anonymous,
       safety,
@@ -71,11 +69,15 @@ export async function POST(request: NextRequest) {
   }
 
   const fastifyResult = await fastifyResponse.json();
+  
+  const conversionType = getConversionType(extension);
+  const previewSrc = `/data/previews/${fileType}/${postId}.${conversionType}`;
 
   await prisma.posts.update({
     where: { id: postId },
     data: {
-      previewScale: fastifyResult.previewScale
+      previewScale: fastifyResult.previewScale,
+      previewPath: previewSrc
     },
   })
 

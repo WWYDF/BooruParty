@@ -6,16 +6,16 @@ import { Comments } from "@/core/types/comments";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowFatDown, ArrowFatLineDown, ArrowFatLineUp, ArrowFatUp, ArrowUp } from "phosphor-react";
-import { JSX, useRef } from "react";
+import { ArrowFatDown, ArrowFatUp } from "phosphor-react";
+import { JSX, useEffect, useState } from "react";
 import { useToast } from "../../Toast";
 import clsx from "clsx";
 
 type ExtractedEmbed = 
   | { type: "url"; value: string }
-  | { type: "post"; postId: number; inline: boolean };
+  | { type: "post"; postId: number; inline: boolean; previewPath: string };
 
-function extractEmbeds(content: string): ExtractedEmbed[] {
+  function extractEmbeds(content: string, previewMap: Record<number, string>): ExtractedEmbed[] {
   const embeds: ExtractedEmbed[] = [];
 
   const urlRegex = /https?:\/\/[^\s]+/g;
@@ -37,7 +37,12 @@ function extractEmbeds(content: string): ExtractedEmbed[] {
     if (!isNaN(postId)) {
       // Check if the entire content is just ":<id>:" (no other text)
       const isAlone = content.trim() === match[0];
-      embeds.push({ type: "post", postId, inline: !isAlone });
+      embeds.push({
+        type: "post",
+        postId,
+        inline: !isAlone,
+        previewPath: previewMap[postId] ?? `${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${postId}_small.webp`
+      });
     }
   }
 
@@ -85,13 +90,13 @@ function renderEmbeds(embeds: ExtractedEmbed[]): JSX.Element[] {
     }
 
     if (embed.type === "post") {
-      const thumbnailUrl = `${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${embed.postId}_small.webp`;
       return (
         <div key={index} className="mt-2">
           <a href={`/post/${embed.postId}`} className="block max-w-xs rounded-lg overflow-hidden border border-zinc-700 hover:border-accent transition">
             <img
-              src={thumbnailUrl}
+              src={embed.previewPath}
               alt={`Post #${embed.postId}`}
+              title={`Post #${embed.postId} from ${embed.previewPath}`}
               className="w-full object-cover"
             />
           </a>
@@ -116,8 +121,31 @@ export default function PostCommentList({
   if (error) return <p className="text-red-500 text-sm">Error: {error}</p>;
   if (!comments.length) return <p className="text-subtle text-sm italic">No comments yet.</p>;
 
+  const referencedPostIds = Array.from(
+    new Set(
+      comments.flatMap(comment =>
+        Array.from(comment.content.matchAll(/:(\d+):/g)).map(([, id]) => parseInt(id))
+      )
+    )
+  ).filter(Boolean);  
+
   const router = useRouter();
   const toast = useToast();
+  const [previewMap, setPreviewMap] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (referencedPostIds.length === 0) return;
+  
+    const loadPreviews = async () => {
+      const res = await fetch(`/api/posts/previews?ids=${referencedPostIds.join(",")}`);
+      const data = await res.json();
+      setPreviewMap(
+        Object.fromEntries(data.map((post: { id: number; previewPath: string }) => [post.id, post.previewPath]))
+      );
+    };
+  
+    loadPreviews();
+  }, [comments]);
 
   const handleVote = async (commentId: number, vote: 1 | 0 | -1) => {
     const current = comments.find(c => c.id === commentId); // Find comment interacted with
@@ -186,7 +214,7 @@ export default function PostCommentList({
                 </div>
                 <div className="text-base text-zinc-400 whitespace-pre-wrap">
                 {(() => {
-                  const embeds = comment.isEmbed ? extractEmbeds(comment.content) : [];
+                  const embeds = comment.isEmbed ? extractEmbeds(comment.content, previewMap) : [];
 
                   const visibleContent = embeds.reduce((text, embed) => {
                     if (embed.type === "url") {

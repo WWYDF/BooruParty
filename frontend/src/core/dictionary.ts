@@ -27,7 +27,7 @@ export function resolveFileType(ext: string): FileType {
   return 'other';
 }
 
-export function conversionType(ext: string): string {
+export function getConversionType(ext: string): string {
   if (ext == 'png' || ext == 'jpg' || ext == 'jpeg' || ext == 'bmp' || ext == 'tiff') {
     return 'webp'
   }

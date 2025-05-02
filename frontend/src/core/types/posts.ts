@@ -1,6 +1,7 @@
 export type Post = {
   id: number;
   fileExt: string;
+  previewPath: string;
   anonymous: boolean;
   safety: 'SAFE' | 'SKETCHY' | 'UNSAFE';
   sources: string[];
