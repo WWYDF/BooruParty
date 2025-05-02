@@ -37,8 +37,8 @@ export default function TagListPage() {
   // Check if they can make tags
   useEffect(() => {
     const check = async () => {
-      const res = await checkPermissions("tags_create");
-      setCanCreateTag(res.success);
+      const res = (await checkPermissions(['tags_create']))['tags_create'];
+      setCanCreateTag(res);
     };
     check();
   }, []);
