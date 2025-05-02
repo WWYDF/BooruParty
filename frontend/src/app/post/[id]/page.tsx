@@ -94,7 +94,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   return (
     <main className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 p-4">
       {/* LEFT COLUMN - Metadata */}
-      <div className="order-3 md:order-1 md:col-span-1 mt-6 md:mt-0 border-r border-zinc-900 h-screen overflow-y-auto">
+      <div className="order-3 md:order-1 md:col-span-1 mt-6 md:mt-0 border-r border-zinc-900">
         <PostMetadata post={postData.post} />
       </div>
 

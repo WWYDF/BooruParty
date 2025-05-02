@@ -163,7 +163,7 @@ export default function PostMetadata({ post }: Props) {
         {editing ? (
           <button
             onClick={() => setEditing(false)}
-            className="text-sm text-white bg-secondary-border px-3 py-1 rounded hover:bg-accent hover:text-black"
+            className="text-sm text-white bg-secondary-border transition px-3 py-1 mr-4 rounded hover:bg-accent hover:text-black"
           >
             Cancel
           </button>
@@ -178,7 +178,9 @@ export default function PostMetadata({ post }: Props) {
       </div>
 
       {editing ? (
-        <EditPost post={post} onSuccess={() => location.reload()} />
+        <div className="mr-4">
+          <EditPost post={post} onSuccess={() => location.reload()} />
+        </div>
       ) : (
         <>
           {/* Post info */}
@@ -257,12 +259,12 @@ export default function PostMetadata({ post }: Props) {
             <div className="flex flex-col gap-4 mt-4">
               {sortedCategories.map(([categoryName, items]) => (
                 <div key={categoryName}>
-                  <p className="text-white text-sm font-medium mb-1">{categoryName}</p>
+                  <p className="text-white text-base font-semibold mb-1">{categoryName}</p>
                   <div className="flex flex-col gap-2">
                     {items.map(({ tag }) => (
                       <div
                         key={tag.id}
-                        className="inline-flex items-center gap-1 border border-secondary-border px-2 py-1 rounded-full w-fit"
+                        className="inline-flex items-center gap-1 border border-zinc-900 px-2 py-1 rounded-full w-fit"
                         style={{ color: tag.category?.color || "#fff" }}
                       >
                         <Link href={`/dashboard/tags/${tag.name}`} title="Edit tag">

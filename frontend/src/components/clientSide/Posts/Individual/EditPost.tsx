@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import TagSelector, { TagType } from "../../TagSelector";
 import TagSuggestionPopup from "../../Tags/SuggestionPopup";
-import { AnimatePresence, motion } from "framer-motion";
 import ConfirmModal from "../../ConfirmModal";
 
 type PostType = {
@@ -32,7 +31,6 @@ export default function EditPost({
   const [saving, setSaving] = useState(false);
   const [activeSuggestionTag, setActiveSuggestionTag] = useState<string | null>(null);
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
-  const initialized = useRef(false);
   const [initialOrderedTags, setInitialOrderedTags] = useState<TagType[]>([]);
   const [newlyAddedTags, setNewlyAddedTags] = useState<TagType[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -95,15 +93,24 @@ export default function EditPost({
   };
 
   return (
-    <div className="flex flex-col min-h-screen gap-4 text-sm text-subtle px-4 pt-4">
+    <div className="flex flex-col gap-4 text-sm text-subtle">
       {/* Save button */}
       <div className="w-full">
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-accent text-black text-sm py-1.5 rounded-xl disabled:opacity-50"
+          className="w-full bg-green-600 hover:bg-green-700 transition text-white text-sm py-1.5 rounded-xl disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+
+      <div className="w-full">
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="w-full bg-red-600 hover:bg-red-700 text-white text-sm py-1.5 rounded-xl disabled:opacity-50"
+        >
+          Delete Post
         </button>
       </div>
 
@@ -170,7 +177,7 @@ export default function EditPost({
           {[...newlyAddedTags, ...initialOrderedTags].map((tag) => (
             <div
               key={tag.id}
-              className="flex items-center gap-2 border border-secondary-border px-3 py-1.5 rounded-lg"
+              className="flex items-center gap-2 border border-zinc-900 px-3 py-1.5 rounded-2xl w-fit"
               style={{ color: tag.category?.color || "#fff" }}
             >
               <button
@@ -198,15 +205,6 @@ export default function EditPost({
           ))}
         </div>
       )}
-
-      <div className="sticky bottom-0 bg-black pt-4 pb-4 -mx-4 px-4 z-10 border-t border-secondary-border">
-        <button
-          onClick={() => setShowDeleteModal(true)}
-          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-full text-center font-semibold"
-        >
-          Delete Post
-        </button>
-      </div>
 
       {activeSuggestionTag && popupPosition && (
         <div
