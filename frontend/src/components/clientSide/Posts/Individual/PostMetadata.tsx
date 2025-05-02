@@ -179,7 +179,14 @@ export default function PostMetadata({ post }: Props) {
 
       {editing ? (
         <div className="mr-4">
-          <EditPost post={post} onSuccess={() => location.reload()} />
+          <EditPost
+            post={post}
+            onSaveSuccess={() => location.reload()}
+            onDeleteSuccess={() => {
+              router.push("/posts");
+              toast(`Deleted Post #${post.id}!`, 'success')
+            }}
+          />
         </div>
       ) : (
         <>

@@ -18,10 +18,12 @@ type PostType = {
 
 export default function EditPost({
   post,
-  onSuccess = () => {},
+  onSaveSuccess = () => {},
+  onDeleteSuccess = () => {},
 }: {
   post: PostType;
-  onSuccess: () => void;
+  onSaveSuccess?: () => void;
+  onDeleteSuccess?: () => void;
 }) {
   const [orderedTags, setOrderedTags] = useState<TagType[]>([]);
   const [sources, setSources] = useState(post.sources.join(", "));
@@ -62,7 +64,7 @@ export default function EditPost({
     });
 
     setSaving(false);
-    onSuccess();
+    onSaveSuccess();
   };
 
   const handleAddTag = async (tag: TagType, impliedEnabled = true) => {
@@ -238,7 +240,7 @@ export default function EditPost({
             body: JSON.stringify({ postIds: [post.id] }),
           });
           setShowDeleteModal(false);
-          onSuccess();
+          onDeleteSuccess();
         }}
         title="Delete Post?"
         description="This will permanently remove the post and its data. Are you sure?"
