@@ -15,6 +15,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing or invalid postId" }, { status: 400 });
   }
 
+  let canEditOwn = false;
+  let canEditOthers = false;
+  let canDeleteOthers = false;
+
   const comments = await prisma.comments.findMany({
     where: { postId },
     orderBy: { createdAt: "asc" },
@@ -29,6 +33,15 @@ export async function GET(req: NextRequest) {
       }
     }
   });
+
+  // Only check perms if there are any comments to speed things up
+  if (comments.length > 0) {
+    [canEditOwn, canEditOthers, canDeleteOthers] = await Promise.all([
+      checkPermissions("comment_edit_own"),
+      checkPermissions("comment_edit_others"),
+      checkPermissions("comment_delete_others"),
+    ]);
+  }
 
   const commentIds = comments.map((c) => c.id);
 
@@ -60,15 +73,28 @@ export async function GET(req: NextRequest) {
     userVotes.map((v) => [v.commentId, v.vote])
   );
 
-  const formattedComments = comments.map((comment) => ({
-    ...comment,
-    author: {
-      ...comment.author,
-      avatar: setAvatarUrl(comment.author.avatar),
-    },
-    score: scoreMap[comment.id] ?? 0,
-    userVote: userVoteMap[comment.id] ?? 0,
-  }));
+  const formattedComments = comments.map((comment) => {
+    const isOwn = comment.author.id === session?.user.id;
+  
+    const canEdit =
+      (canEditOwn && isOwn) ||
+      (canEditOthers && !isOwn);
+  
+    const canDelete =
+      isOwn || canDeleteOthers;
+  
+    return {
+      ...comment,
+      author: {
+        ...comment.author,
+        avatar: setAvatarUrl(comment.author.avatar),
+      },
+      score: scoreMap[comment.id] ?? 0,
+      userVote: userVoteMap[comment.id] ?? 0,
+      canEdit,
+      canDelete,
+    };
+  });
 
   return NextResponse.json(formattedComments);
 }

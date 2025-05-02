@@ -6,7 +6,7 @@ import { Comments } from "@/core/types/comments";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowFatDown, ArrowFatUp } from "phosphor-react";
+import { ArrowFatDown, ArrowFatUp, Trash, PencilSimple } from "phosphor-react";
 import { JSX, useEffect, useState } from "react";
 import { useToast } from "../../Toast";
 import clsx from "clsx";
@@ -210,6 +210,26 @@ export default function PostCommentList({
     router.refresh();
   };
 
+  const handleEdit = (commentId: number) => {
+    toast("Edit not implemented yet", "info");
+  };
+  
+  const handleDelete = async (commentId: number) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+  
+    const res = await fetch(`/api/comments/${commentId}`, {
+      method: "DELETE",
+    });
+  
+    if (!res.ok) {
+      toast("Failed to delete comment", "error");
+    } else {
+      toast("Comment deleted", "success");
+      router.refresh(); // or manually update state
+    }
+  };
+    
+
   return (
     <div className="space-y-4">
       <AnimatePresence initial={false}>
@@ -293,6 +313,24 @@ export default function PostCommentList({
                     </div>
                   );
                 })()}
+                </div>
+                <div className="flex gap-2 text-2xs mt-1 text-zinc-600">
+                  {comment.canEdit && (
+                    <button
+                      onClick={() => handleEdit(comment.id)}
+                      className="hover:underline inline-flex items-center gap-1"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {comment.canDelete && (
+                    <button
+                      onClick={() => handleDelete(comment.id)}
+                      className="hover:underline inline-flex items-center gap-1"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
 

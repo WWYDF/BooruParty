@@ -16,6 +16,8 @@ export type Comments = {
   userVote: number;
   post: {
     previewPath: string;
-  }
+  },
+  canEdit: boolean;
+  canDelete: boolean;
 };
   
