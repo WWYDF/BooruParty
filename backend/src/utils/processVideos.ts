@@ -7,7 +7,7 @@ import { PRESET_MAP } from '../types/encoders';
 
 const execAsync = promisify(exec);
 
-export async function processVideoPreview(originalPath: string, postId: number): Promise<{ previewScale: number | null, previewPath: string }> {
+export async function processVideoPreview(originalPath: string, postId: number): Promise<number | null> {
   const previewDir = path.join(__dirname, '../../data/previews/video');
   fs.mkdirSync(previewDir, { recursive: true });
 
@@ -41,14 +41,14 @@ export async function processVideoPreview(originalPath: string, postId: number):
 
     if (previewSize >= originalSize) {
       fs.unlinkSync(previewPath);
-      return { previewScale: null, previewPath: '' };
+      return 100; // return 100 as the original was smaller so we should just use that
     }
 
     const previewScale = Math.round((previewSize / originalSize) * 100);
-    return { previewScale, previewPath };
+    return previewScale;
   } catch (err) {
     console.error('FFmpeg video preview failed:', err);
-    return { previewScale: null, previewPath: '' };
+    return null;
   }
 }
 

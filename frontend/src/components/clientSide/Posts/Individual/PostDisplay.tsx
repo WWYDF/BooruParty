@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import PostVoting from "./PostVoting";
-import { resolveFileType } from "@/core/dictionary";
+import { conversionType, resolveFileType } from "@/core/dictionary";
 
 type Props = {
   post: {
@@ -23,7 +23,8 @@ export default function PostDisplay({ post, showVoting = true }: Props) {
 
   const fileType = resolveFileType(`.${post.fileExt}`);
 
-  const previewSrc = `${fastify}/data/previews/${fileType}/${post.id}.${post.fileExt}`;
+  const ext = conversionType(post.fileExt);
+  const previewSrc = `${fastify}/data/previews/${fileType}/${post.id}.${ext}`;
   const fullSrc = `${fastify}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
 
   return (

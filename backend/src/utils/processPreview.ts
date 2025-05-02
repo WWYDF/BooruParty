@@ -35,7 +35,7 @@ export async function processPreview(originalPath: string, postId: number): Prom
 
   if (fileType === 'video') {
     try {
-      const { previewScale } = await processVideoPreview(originalPath, postId);
+      const previewScale = await processVideoPreview(originalPath, postId);
       return previewScale;
     } catch (err) {
       console.error('FFmpeg preview failed:', err);

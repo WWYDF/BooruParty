@@ -54,6 +54,9 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
               // 🛠️ ADD THIS CHECK HERE:
               const originalSize = fs.statSync(filePath).size;
               const previewPath = path.join(process.cwd(), 'data/previews/image', `${postId}.webp`);
+              
+              // Videos do this check themselves for whatever reason.
+              // idk, I just don't want to fuck with it rn since its working.
               if (fs.existsSync(previewPath)) {
                 const previewSize = fs.statSync(previewPath).size;
                 if (previewScale === 100 && previewSize >= originalSize) {
@@ -65,7 +68,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
           
               fastify.log.info(`🖼️ Preview scale = ${previewScale}`);
             } catch (err) {
-              fastify.log.error('❌ processPreview failed:', err);
+              fastify.log.error(`❌ processPreview failed with ${err}`);
             }
           }
 

@@ -27,6 +27,22 @@ export function resolveFileType(ext: string): FileType {
   return 'other';
 }
 
+export function conversionType(ext: string): string {
+  if (ext == 'png' || ext == 'jpg' || ext == 'jpeg' || ext == 'bmp' || ext == 'tiff') {
+    return 'webp'
+  }
+  
+  if (ext == 'mp4' || ext == 'webm' || ext == 'mov' || ext == 'avi' || ext == 'mkv') {
+    return 'mp4'
+  }
+  
+  if (ext == 'gif' || ext == 'apng') {
+    return 'gif'
+  }
+  
+  return ext; // If not here, return itself
+}
+
 export const DISALLOWED_USERNAMES = [
   "admin",
   "administrator",

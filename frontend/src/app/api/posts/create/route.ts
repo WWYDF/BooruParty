@@ -33,9 +33,6 @@ export async function POST(request: NextRequest) {
   const anonymous = formData.get('anonymous') === 'true';
   const safety = formData.get('safety') as 'SAFE' | 'SKETCHY' | 'UNSAFE';
   let fileExt = extension;
-  if (fileType == 'video') { fileExt = 'mp4'}
-  if (fileType == 'image') { fileExt = 'webp'}
-  if (fileType == 'animated') { fileExt = 'gif'}
 
 
   const createdPost = await prisma.posts.create({
