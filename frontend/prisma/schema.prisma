@@ -213,9 +213,9 @@ model SpecialPosts {
 enum AuditCategory {
   EDIT
   DELETE
-  FEATURE
   CREATE
-  CHANGE
+  UPDATE
+  ARCHIVE
 }
 
 enum AuditAction {
@@ -226,6 +226,7 @@ enum AuditAction {
   CATEGORY
   SITE_SETTINGS
   PERMISSIONS
+  FEATURE
 }
 
 model Audits {
@@ -233,6 +234,7 @@ model Audits {
   category      AuditCategory
   actionType    AuditAction
   details       String?
+  address       String?
   userId        String
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 

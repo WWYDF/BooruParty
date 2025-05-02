@@ -1,3 +1,5 @@
+import { reportAudit } from "@/components/serverSide/auditLog";
+import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/auth";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
@@ -13,23 +15,22 @@ export async function DELETE(req: Request) {
   const mode = url.searchParams.get("mode"); // "delete" | "transfer"
   const targetUserId = url.searchParams.get("user") ?? session.user.id;
   const isSelfDelete = targetUserId === session.user.id;
+  let ip = undefined; // We don't want to log the IPs of users trying to delete their account.
 
   // If attempting to delete someone else, check permission
+  let canArchiveOthers = false;
+  let canDeleteOthers = false;
   if (!isSelfDelete) {
-    const current = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: {
-        role: {
-          include: { permissions: true }
-        }
-      }
-    });
+    const perms = await checkPermissions([
+      'profile_archive_others',
+      'profile_delete_others'
+    ]);
+    
+    canArchiveOthers = perms['profile_archive_others'];
+    canDeleteOthers = perms['profile_delete_others'];
 
-    const perms = current?.role?.permissions.map((p) => p.name) ?? [];
-
-    if (!perms.includes("profile_delete_others") || !perms.includes("administrator")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const forwarded = req.headers.get("x-forwarded-for");
+    ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
   }
   
   try {
@@ -67,6 +68,8 @@ export async function DELETE(req: Request) {
 
 
     if (mode === "transfer") {
+      if (!isSelfDelete && !canArchiveOthers) { return NextResponse.json({ error: "You lack the required permissions to archive other users' profiles." }, { status: 403 }); }
+
       // Retain posts: Reassign to system user with id "0" (deleted)
       await prisma.posts.updateMany({
         where: { uploadedById: targetUserId },
@@ -77,7 +80,12 @@ export async function DELETE(req: Request) {
       await prisma.user.delete({
         where: { id: targetUserId },
       });
+
+      await reportAudit(session.user.id, 'ARCHIVE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}`);
+
     } else { // User wants to delete everything
+      if (!isSelfDelete && !canDeleteOthers) { return NextResponse.json({ error: "You lack the required permissions to delete other users' profiles." }, { status: 403 }); }
+
       // Gather postIds to ask Fastify to purge them
       const postsToDelete = await prisma.posts.findMany({
         where: { uploadedById: targetUserId },
@@ -103,6 +111,8 @@ export async function DELETE(req: Request) {
       await prisma.user.delete({
         where: { id: targetUserId },
       });
+
+      await reportAudit(session.user.id, 'DELETE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}`);
     }
 
     // Regardless, ask Fastify to remove their avatar history

@@ -1,9 +1,14 @@
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
 import { setAvatarUrl } from "@/core/reformatProfile";
+import { checkPermissions } from "@/components/serverSide/permCheck";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
+
+  const hasPerms = (await checkPermissions(['profile_view']))['profile_view'];
+  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to view users." }, { status: 403 }); }
+
   const page = parseInt(searchParams.get("page") || "1");
   const TAKE = 12; // Hardcode this for now
 

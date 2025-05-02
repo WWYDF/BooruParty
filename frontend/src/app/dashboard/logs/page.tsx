@@ -10,6 +10,7 @@ type AuditLog = {
   category: string;
   actionType: string;
   details: string | null;
+  address: string | null;
   user: {
     id: string;
     username: string;
@@ -65,9 +66,8 @@ export default function AuditLogPage() {
           <option value="">All Categories</option>
           <option value="EDIT">Edit</option>
           <option value="DELETE">Delete</option>
-          <option value="FEATURE">Feature</option>
           <option value="CREATE">Create</option>
-          <option value="CHANGE">Change</option>
+          <option value="UPDATE">Update</option>
         </select>
         <select
           value={actionType}
@@ -82,6 +82,7 @@ export default function AuditLogPage() {
           <option value="CATEGORY">Category</option>
           <option value="SITE_SETTINGS">Site Settings</option>
           <option value="PERMISSIONS">Permissions</option>
+          <option value="FEATURE">Feature</option>
         </select>
         <input
           type="text"
@@ -120,6 +121,7 @@ export default function AuditLogPage() {
             </div>
             <div className="text-xs text-subtle whitespace-nowrap">
               {new Date(log.executedAt).toLocaleString()}<br />
+              From: {log.address}<br />
               by <strong>{log.user.username}</strong><RoleBadge role={log.user.role.name} classes={'text-2xs'} />
             </div>
           </div>

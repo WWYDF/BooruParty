@@ -3,6 +3,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 import { fetchAllImplications } from "@/core/recursiveImplications";
+import { checkPermissions } from "@/components/serverSide/permCheck";
+import { reportAudit } from "@/components/serverSide/auditLog";
+import { auth } from "@/core/auth";
 
 export async function GET(req: Request, context: { params: Promise<{ name: string }> }) {
   const tagName = (await context.params).name;
@@ -80,6 +83,10 @@ export async function GET(req: Request, context: { params: Promise<{ name: strin
 export async function DELETE(req: Request, context: { params: Promise<{ name: string }> }) {
   const pram = (await context.params).name;
   const tagName = decodeURIComponent(pram);
+  const session = await auth();
+
+  const hasPerms = (await checkPermissions(['tags_delete']))['tags_delete'];
+  if (!session || !hasPerms) { return NextResponse.json({ error: "You are unauthorized to delete tags." }, { status: 403 }); }
 
   try {
     const tag = await prisma.tags.findUnique({
@@ -101,6 +108,10 @@ export async function DELETE(req: Request, context: { params: Promise<{ name: st
       where: { id: tag.id },
     });
 
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+    await reportAudit(session.user.id, 'DELETE', 'TAG', ip, `Tag Name: ${tagName}`);
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[TAG_DELETE]", err);
@@ -112,6 +123,10 @@ export async function PATCH(req: Request, context: { params: Promise<{ name: str
   const pram = (await context.params).name;
   const oldName = decodeURIComponent(pram);
   const data = await req.json();
+  const session = await auth();
+
+  const hasPerms = (await checkPermissions(['tags_edit']))['tags_edit'];
+  if (!session || !hasPerms) { return NextResponse.json({ error: "You are unauthorized to edit tags." }, { status: 403 }); }
 
   const {
     name: newName,
@@ -183,6 +198,10 @@ export async function PATCH(req: Request, context: { params: Promise<{ name: str
         },
       },
     });
+
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+    await reportAudit(session.user.id, 'DELETE', 'TAG', ip, `Tag ID: ${tagId}, Old Name: ${oldName}, New Name: ${newName}`);
 
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -2,6 +2,7 @@ import { auth } from "@/core/auth";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
+import { reportAudit } from "@/components/serverSide/auditLog";
 
 export async function DELETE( req: Request, context: { params: Promise<{ id: string }> }) {
   const prams = await context.params;
@@ -34,6 +35,10 @@ export async function DELETE( req: Request, context: { params: Promise<{ id: str
   await prisma.comments.delete({
     where: { id: commentId },
   });
+
+  const forwarded = req.headers.get("x-forwarded-for");
+  const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+  await reportAudit(session.user.id, 'DELETE', 'COMMENT', ip, `Comment: #${commentId}, isOwner: ${isOwner}`);
 
   return NextResponse.json({ success: true });
 }
@@ -85,6 +90,10 @@ export async function PATCH( req: Request, context: { params: Promise<{ id: stri
     where: { id: commentId },
     data: { content },
   });
+
+  const forwarded = req.headers.get("x-forwarded-for");
+  const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+  await reportAudit(session.user.id, 'EDIT', 'COMMENT', ip, `Comment: #${commentId}, isOwner: ${isOwner}, Content: ${content}`);
 
   return NextResponse.json({ success: true });
 }

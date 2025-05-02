@@ -1,3 +1,4 @@
+import { reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/auth";
 import { getConversionType } from "@/core/dictionary";
@@ -107,6 +108,17 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const postId = parseInt(id);
+  const session = await auth();
+
+  const perms = await checkPermissions([
+    'post_edit_own',
+    'post_edit_others'
+  ]);
+
+  // Permissions Check
+  const canEditOwnPost = perms['post_edit_own'];
+  const canEditOtherPosts = perms['post_edit_others'];
+  if (!session || !canEditOwnPost && !canEditOtherPosts) { return NextResponse.json({ error: "You are unauthorized to view the contents of this page." }, { status: 403 }); }
 
   if (isNaN(postId)) {
     return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
@@ -137,6 +149,11 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
         },
       },
     });
+
+    // Log action - Wish this could be more detailed, but idk how to go about that
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+    await reportAudit(session.user.id, 'EDIT', 'POST', ip, `Edited Post: ${postId}`);
 
     return NextResponse.json(updatedPost);
   } catch (error) {

@@ -83,9 +83,9 @@ export const roleGlowMap: Record<string, string> = {
 
 // Dashboard Stuff
 export const auditLogColors: Record<string, string> = {
-  EDIT: "text-blue-400",
+  EDIT: "text-yellow-400",
   DELETE: "text-red-500",
-  FEATURE: "text-purple-400",
   CREATE: "text-green-500",
-  CHANGE: "text-yellow-400",
+  UPDATE: "text-blue-400",
+  ARCHIVE: "text-pink-400",
 };

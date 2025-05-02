@@ -5,6 +5,7 @@ import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/auth";
 import { reportAudit } from "@/components/serverSide/auditLog";
 
+// Why is this not a DELETE?
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { postIds } = body;
@@ -60,7 +61,9 @@ export async function POST(req: NextRequest) {
     });
 
     // Log actions in database
-    await reportAudit(session.user.id, 'DELETE', 'POST', `Deleted Posts: ${postIds}`);
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+    await reportAudit(session.user.id, 'DELETE', 'POST', ip, `Deleted Posts: ${postIds}`);
 
     return NextResponse.json({ success: true });
   } catch (err) {
