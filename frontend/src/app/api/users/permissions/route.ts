@@ -4,26 +4,27 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      role: {
-        select: {
-          permissions: {
-            select: { name: true }
+  let user;
+
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: session!.user.id },
+      select: {
+        id: true,
+        role: {
+          select: {
+            permissions: {
+              select: { name: true }
+            }
           }
         }
       }
-    }
-  });
+    });
+  } catch {} // Will fail if the user is signed out.
 
   return NextResponse.json({
-    userId: user?.id,
+    userId: user?.id ? null : user?.id,
     permissions: user?.role?.permissions.map(p => p.name) ?? []
   });
 }

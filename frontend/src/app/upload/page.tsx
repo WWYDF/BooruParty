@@ -3,7 +3,7 @@ import { checkPermissions } from "@/components/serverSide/permCheck";
 
 
 export default async function UploadPage() {
-  const canUpload = await checkPermissions('post_create');
+  const canUpload = (await checkPermissions(['post_create']))['post_create'];
   if (!canUpload) { 
     return (
       <main className="min-h-screen flex flex-col items-center justify-center text-center px-4 text-red-400">

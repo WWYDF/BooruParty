@@ -25,7 +25,7 @@ export async function DELETE( req: Request, context: { params: Promise<{ id: str
   }
 
   const isOwner = comment.authorId === session.user.id;
-  const canDeleteOthers = await checkPermissions("comment_delete_others");
+  const canDeleteOthers = (await checkPermissions(['comment_delete_others']))['comment_delete_others'];
 
   if (!isOwner && !canDeleteOthers) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -66,8 +66,13 @@ export async function PATCH( req: Request, context: { params: Promise<{ id: stri
   }
 
   const isOwner = comment.authorId === session.user.id;
-  const canEditOwn = await checkPermissions("comment_edit_own");
-  const canEditOthers = await checkPermissions("comment_edit_others");
+  const perms = await checkPermissions([
+    'comment_edit_own',
+    'comment_edit_others'
+  ]);
+
+  const canEditOwn = perms['comment_edit_own'];
+  const canEditOthers = perms['comment_edit_others'];
 
   const allowed =
     (isOwner && canEditOwn) || (!isOwner && canEditOthers);
