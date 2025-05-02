@@ -41,7 +41,9 @@ async function fetchComments(postId: string): Promise<Comments[]> {
     }
 
   });
-  const rawComments: Comments[] = await res.json();
+
+  const response = await res.json();
+  const rawComments: Comments[] = response.formattedComments;
 
   return rawComments;
 }
@@ -51,8 +53,13 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const postId = id;
   const postPromise = fetchPostData(postId);
   const commentsPromise = fetchComments(postId);
-  const perms = await checkPermissions(['comment_create']);
+  const perms = await checkPermissions([
+    'comment_create',
+    'comment_vote'
+  ]);
+
   const canComment = perms['comment_create'];
+  const canVote = perms['comment_vote'];
 
   const [postResult, commentsResult] = await Promise.allSettled([
     postPromise,
@@ -100,7 +107,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         <section className="order-4 border-t border-secondary-border pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
           {canComment && <PostCommentForm postId={postData.post.id} />}
-          <PostCommentList comments={comments} loading={false} error={null} blurUnsafeEmbeds={true} parentPostSafety={postData.post.safety} />
+          <PostCommentList comments={comments} loading={false} error={null} blurUnsafeEmbeds={true} parentPostSafety={postData.post.safety} canVoteOnComments={canVote} />
         </section>                                                        {/* Get from user preferences later */}
       </div>
     </main>

@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
   let canEditOwn = false;
   let canEditOthers = false;
   let canDeleteOthers = false;
+  let canVoteOnComments = false;
 
   const comments = await prisma.comments.findMany({
     where: { postId },
@@ -39,12 +40,14 @@ export async function GET(req: NextRequest) {
     const perms = await checkPermissions([
       "comment_edit_own",
       "comment_edit_others",
-      "comment_delete_others"
+      "comment_delete_others",
+      "comment_vote"
     ]);
 
     canEditOwn = perms["comment_edit_own"];
     canEditOthers = perms["comment_edit_others"];
     canDeleteOthers = perms["comment_delete_others"];
+    canVoteOnComments = perms["comment_vote"];
   }
 
   const commentIds = comments.map((c) => c.id);
@@ -100,7 +103,10 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json(formattedComments);
+  return NextResponse.json({
+    formattedComments,
+    canVoteOnComments
+  });
 }
 
 export async function POST(req: NextRequest) {

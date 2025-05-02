@@ -142,13 +142,15 @@ export default function PostCommentList({
   loading,
   error,
   blurUnsafeEmbeds,
-  parentPostSafety
+  parentPostSafety,
+  canVoteOnComments
 }: {
   comments: Comments[];
   loading: boolean;
   error: string | null;
   blurUnsafeEmbeds: boolean;
   parentPostSafety: "SAFE" | "SKETCHY" | "UNSAFE";
+  canVoteOnComments: boolean;
 }) {
   if (loading) return null;
   if (error) return <p className="text-red-500 text-sm">Error: {error}</p>;
@@ -167,6 +169,8 @@ export default function PostCommentList({
   const [previewMap, setPreviewMap] = useState<Record<number, PreviewData>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState<string>("");
+
+  console.log(`Voting: ${canVoteOnComments}`)
 
 
   useEffect(() => {
@@ -387,29 +391,63 @@ export default function PostCommentList({
 
               {/* Voting Column */}
               <div className="flex flex-col items-center pr-1 pt-1">
-                <button onClick={() => handleVote(comment.id, 1)}>
-                  <ArrowFatUp
-                    size={16}
-                    weight={comment.userVote === 1 ? "fill" : "bold"}
-                    className={clsx(
-                      "transition lg:hover:text-white",
-                      comment.userVote === 1 ? "text-accent" : "text-subtle"
-                    )}
-                  />
-                </button>
+                {canVoteOnComments ? (
+                  <>
+                    <button onClick={() => handleVote(comment.id, 1)}>
+                      <ArrowFatUp
+                        size={16}
+                        weight={comment.userVote === 1 ? "fill" : "bold"}
+                        className={clsx(
+                          "transition lg:hover:text-white",
+                          comment.userVote === 1 ? "text-accent" : "text-subtle"
+                        )}
+                      />
+                    </button>
 
-                <span className="text-xs font-medium text-subtle">{comment.score}</span>
+                    <div className="h-full flex items-center justify-center">
+                      <span
+                        className={clsx(
+                          "text-xs font-medium",
+                          comment.score > 0
+                            ? "text-accent"
+                            : comment.score < 0
+                            ? "text-red-500"
+                            : "text-subtle"
+                        )}
+                        title={`This comment has ${comment.score} vote(s).`}
+                      >
+                        {comment.score}
+                      </span>
+                    </div>
 
-                <button onClick={() => handleVote(comment.id, -1)}>
-                  <ArrowFatDown
-                    size={16}
-                    weight={comment.userVote === -1 ? "fill" : "bold"}
-                    className={clsx(
-                      "transition lg:hover:text-white",
-                      comment.userVote === -1 ? "text-blue-500" : "text-subtle"
-                    )}
-                  />
-                </button>
+                    <button onClick={() => handleVote(comment.id, -1)}>
+                      <ArrowFatDown
+                        size={16}
+                        weight={comment.userVote === -1 ? "fill" : "bold"}
+                        className={clsx(
+                          "transition lg:hover:text-white",
+                          comment.userVote === -1 ? "text-red-500" : "text-subtle"
+                        )}
+                      />
+                    </button>
+                  </>
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <span
+                      className={clsx(
+                        "text-xs font-medium px-2 py-0.5 rounded bg-zinc-900",
+                        comment.score > 0
+                          ? "text-green-400"
+                          : comment.score < 0
+                          ? "text-red-400"
+                          : "text-subtle"
+                      )}
+                      title={`This comment has ${comment.score} vote(s).`}
+                    >
+                      {comment.score}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

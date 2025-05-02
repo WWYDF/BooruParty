@@ -20,4 +20,3 @@ export type Comments = {
   canEdit: boolean;
   canDelete: boolean;
 };
-  
