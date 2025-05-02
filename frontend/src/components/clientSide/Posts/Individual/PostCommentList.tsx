@@ -6,7 +6,7 @@ import { Comments } from "@/core/types/comments";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowFatDown, ArrowFatUp, Trash, PencilSimple } from "phosphor-react";
+import { ArrowFatDown, ArrowFatUp, Trash, PencilSimple, Check, X } from "phosphor-react";
 import { JSX, useEffect, useState } from "react";
 import { useToast } from "../../Toast";
 import clsx from "clsx";
@@ -165,6 +165,8 @@ export default function PostCommentList({
   const router = useRouter();
   const toast = useToast();
   const [previewMap, setPreviewMap] = useState<Record<number, PreviewData>>({});
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState<string>("");
 
 
   useEffect(() => {
@@ -210,9 +212,28 @@ export default function PostCommentList({
     router.refresh();
   };
 
-  const handleEdit = (commentId: number) => {
-    toast("Edit not implemented yet", "info");
-  };
+  const handleSaveEdit = async (commentId: number) => {
+    if (!editContent.trim()) {
+      toast("Comment cannot be empty", "error");
+      return;
+    }
+  
+    const res = await fetch(`/api/comments/${commentId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content: editContent }),
+    });
+  
+    if (!res.ok) {
+      toast("Failed to update comment", "error");
+    } else {
+      toast("Comment updated!", "success");
+      setEditingId(null);
+      router.refresh();
+    }
+  };  
   
   const handleDelete = async (commentId: number) => {
     if (!confirm("Are you sure you want to delete this comment?")) return;
@@ -224,8 +245,8 @@ export default function PostCommentList({
     if (!res.ok) {
       toast("Failed to delete comment", "error");
     } else {
-      toast("Comment deleted", "success");
-      router.refresh(); // or manually update state
+      toast("Comment deleted!", "success");
+      router.refresh();
     }
   };
     
@@ -286,7 +307,33 @@ export default function PostCommentList({
                     return text;
                   }, comment.content);
 
-                  return (
+                  return editingId === comment.id ? (
+                    <div className="space-y-2 mt-1">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-sm text-white resize-none  focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                        rows={4}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSaveEdit(comment.id)}
+                          className="text-green-400 hover:underline inline-flex items-center gap-1 text-xs"
+                        >
+                          <Check size={14} weight="bold" />
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="text-zinc-400 hover:underline inline-flex items-center gap-1 text-xs"
+                        >
+                          <X size={14} weight="bold" />
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                  <>
                     <div className="text-base text-zinc-400 whitespace-pre-wrap">
                       {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
                         const match = chunk.match(/^:(\d+):$/);
@@ -311,13 +358,17 @@ export default function PostCommentList({
                       })}
                       {comment.isEmbed && renderEmbeds(embeds)}
                     </div>
-                  );
+                  </>
+                );
                 })()}
                 </div>
                 <div className="flex gap-2 text-2xs mt-1 text-zinc-600">
                   {comment.canEdit && (
                     <button
-                      onClick={() => handleEdit(comment.id)}
+                      onClick={() => {
+                        setEditingId(comment.id);
+                        setEditContent(comment.content);
+                      }}
                       className="hover:underline inline-flex items-center gap-1"
                     >
                       Edit
