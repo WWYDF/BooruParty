@@ -5,6 +5,8 @@ import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import TagSelector, { TagType } from "../../TagSelector";
 import TagSuggestionPopup from "../../Tags/SuggestionPopup";
+import { AnimatePresence, motion } from "framer-motion";
+import ConfirmModal from "../../ConfirmModal";
 
 type PostType = {
   id: number;
@@ -33,6 +35,7 @@ export default function EditPost({
   const initialized = useRef(false);
   const [initialOrderedTags, setInitialOrderedTags] = useState<TagType[]>([]);
   const [newlyAddedTags, setNewlyAddedTags] = useState<TagType[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // One-time init
   useEffect(() => {
@@ -92,7 +95,7 @@ export default function EditPost({
   };
 
   return (
-    <div className="flex flex-col gap-4 text-sm text-subtle">
+    <div className="flex flex-col min-h-screen gap-4 text-sm text-subtle px-4 pt-4">
       {/* Save button */}
       <div className="w-full">
         <button
@@ -196,6 +199,15 @@ export default function EditPost({
         </div>
       )}
 
+      <div className="sticky bottom-0 bg-black pt-4 pb-4 -mx-4 px-4 z-10 border-t border-secondary-border">
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-full text-center font-semibold"
+        >
+          Delete Post
+        </button>
+      </div>
+
       {activeSuggestionTag && popupPosition && (
         <div
           style={{
@@ -217,6 +229,24 @@ export default function EditPost({
           />
         </div>
       )}
+
+      <ConfirmModal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={async () => {
+          await fetch("/api/posts/delete/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ postIds: [post.id] }),
+          });
+          setShowDeleteModal(false);
+          onSuccess();
+        }}
+        title="Delete Post?"
+        description="This will permanently remove the post and its data. Are you sure?"
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 }
