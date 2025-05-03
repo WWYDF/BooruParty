@@ -70,6 +70,9 @@ export default function AvatarUpload() {
       setPreview(null);
       setFile(null);
       toast('Avatar Updated!', 'success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (err: any) {
       toast(err.message || 'Error uploading avatar', 'error');
     }
