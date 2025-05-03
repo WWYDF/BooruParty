@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useToast } from '../Toast';
 import { Trash } from 'phosphor-react';
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from 'next/navigation';
 
 export default function InfoForm() {
   const [username, setUsername] = useState('');
@@ -14,6 +15,7 @@ export default function InfoForm() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteMode, setDeleteMode] = useState<"delete" | "transfer">("transfer");
+  const router = useRouter();
   const toast = useToast();
 
   useEffect(() => {
@@ -137,7 +139,7 @@ export default function InfoForm() {
                     if (res.status === 204) {
                       toast("Account deleted", "success");
                       setTimeout(() => {
-                        window.location.href = "/";
+                        router.push('/')
                       }, 1000);
                     } else {
                       toast("Failed to delete account", "error");

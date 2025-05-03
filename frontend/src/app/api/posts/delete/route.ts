@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 import { checkPermissions } from "@/components/serverSide/permCheck";
-import { auth } from "@/core/auth";
+import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
 
 // Why is this not a DELETE?

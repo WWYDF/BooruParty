@@ -5,7 +5,7 @@ import { prisma } from "@/core/prisma";
 import { fetchAllImplications } from "@/core/recursiveImplications";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { reportAudit } from "@/components/serverSide/auditLog";
-import { auth } from "@/core/auth";
+import { auth } from "@/core/authServer";
 
 export async function GET(req: Request, context: { params: Promise<{ name: string }> }) {
   const tagName = (await context.params).name;

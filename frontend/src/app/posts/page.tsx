@@ -1,5 +1,5 @@
 import { prisma } from "@/core/prisma";
-import { auth } from "@/core/auth";
+import { auth } from "@/core/authServer";
 import ClientPostsPage from "@/components/clientSide/Posts/PostsPage";
 import BackToTop from "@/components/clientSide/BackToTop";
 import { checkPermissions } from "@/components/serverSide/permCheck";

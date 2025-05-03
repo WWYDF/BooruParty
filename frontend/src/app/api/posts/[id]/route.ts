@@ -1,6 +1,6 @@
-import { reportAudit } from "@/components/serverSide/auditLog";
+import { buildPostChangeDetails, reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
-import { auth } from "@/core/auth";
+import { auth } from "@/core/authServer";
 import { getConversionType } from "@/core/dictionary";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
@@ -132,6 +132,17 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       return NextResponse.json({ error: "Invalid tags format" }, { status: 400 });
     }
 
+    const originalPost = await prisma.posts.findUnique({
+      where: { id: postId },
+      select: {
+        tags: { select: { id: true } },
+        sources: true,
+        notes: true,
+        safety: true,
+        anonymous: true,
+      }
+    });
+
     const updatedPost = await prisma.posts.update({
       where: { id: postId },
       data: {
@@ -150,10 +161,11 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       },
     });
 
-    // Log action - Wish this could be more detailed, but idk how to go about that
+    // Log action, but log nothing if nothing changed.
     const forwarded = req.headers.get("x-forwarded-for");
     const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
-    await reportAudit(session.user.id, 'EDIT', 'POST', ip, `Edited Post: ${postId}`);
+    const changeDetails = buildPostChangeDetails(originalPost, updatedPost);
+    if (changeDetails.includes("Changes:")) { await reportAudit(session.user.id, 'EDIT', 'POST', ip, changeDetails); }
 
     return NextResponse.json(updatedPost);
   } catch (error) {

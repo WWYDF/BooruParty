@@ -1,4 +1,4 @@
-import { auth } from "@/core/auth";
+import { auth } from "@/core/authServer";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
 

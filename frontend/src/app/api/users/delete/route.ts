@@ -1,6 +1,6 @@
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
-import { auth } from "@/core/auth";
+import { auth } from "@/core/authServer";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
 
@@ -76,12 +76,13 @@ export async function DELETE(req: Request) {
         data: { uploadedById: "0" },
       });
 
+      // Report BEFORE deleting the user lol
+      await reportAudit(session.user.id, 'ARCHIVE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}`);
+
       // Now run delete function (Settings, favorites, likes, etc.)
       await prisma.user.delete({
         where: { id: targetUserId },
       });
-
-      await reportAudit(session.user.id, 'ARCHIVE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}`);
 
     } else { // User wants to delete everything
       if (!isSelfDelete && !canDeleteOthers) { return NextResponse.json({ error: "You lack the required permissions to delete other users' profiles." }, { status: 403 }); }
@@ -107,12 +108,13 @@ export async function DELETE(req: Request) {
         }
       }
 
+      // Report BEFORE deleting the user lol
+      await reportAudit(session.user.id, 'DELETE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}`);
+
       // Fully cascade delete (Posts, settings, favorites, likes, etc.)
       await prisma.user.delete({
         where: { id: targetUserId },
       });
-
-      await reportAudit(session.user.id, 'DELETE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}`);
     }
 
     // Regardless, ask Fastify to remove their avatar history

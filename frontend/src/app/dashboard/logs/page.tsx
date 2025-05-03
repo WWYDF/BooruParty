@@ -2,7 +2,7 @@
 
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { auditLogColors } from "@/core/dictionary";
-import { Trash } from "phosphor-react";
+import { CaretDown, CaretUp, Trash } from "phosphor-react";
 import { useEffect, useState } from "react";
 
 type AuditLog = {
@@ -28,6 +28,47 @@ function useDebouncedValue<T>(value: T, delay: number): T {
   }, [value, delay]);
 
   return debounced;
+}
+
+function AuditLogRow({ log }: { log: AuditLog }) {
+  const [open, setOpen] = useState(false);
+  const hasChanges = log.details?.includes("Changes:");
+
+  return (
+    <div className="p-3 border-b border-zinc-800 last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div className="w-full">
+        <div className={`text-sm font-medium ${auditLogColors[log.category] || "text-subtle"}`}>
+          {log.category} → {log.actionType}
+        </div>
+
+        {hasChanges ? (
+          <>
+            <button
+              onClick={() => setOpen(!open)}
+              className="flex items-center gap-1 text-xs text-accent hover:underline mt-1"
+            >
+              {open ? "Hide changes" : "Show changes"}
+              {open ? <CaretUp size={14} /> : <CaretDown size={14} />}
+            </button>
+            {open && (
+              <pre className="mt-2 p-2 rounded text-xs bg-zinc-900 border border-zinc-800 whitespace-pre-wrap">
+                {log.details}
+              </pre>
+            )}
+          </>
+        ) : (
+          <div className="text-xs text-subtle">{log.details}</div>
+        )}
+      </div>
+
+      <div className="text-xs text-subtle whitespace-nowrap">
+        {new Date(log.executedAt).toLocaleString()}<br />
+        From: {log.address}<br />
+        by <strong>{log.user.username}</strong>
+        <RoleBadge role={log.user.role.name} classes="text-2xs" />
+      </div>
+    </div>
+  );
 }
 
 export default function AuditLogPage() {
@@ -106,26 +147,9 @@ export default function AuditLogPage() {
       </div>
 
       <div className="border rounded-lg overflow-hidden border-zinc-800">
-        {logs.map((log, i) => (
-          <div
-            key={i}
-            className="p-3 border-b border-zinc-800 last:border-b-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-          >
-            <div>
-              <div
-                className={`text-sm font-medium ${auditLogColors[log.category] || "text-subtle"}`}
-              >
-                {log.category} → {log.actionType}
-              </div>
-              <div className="text-xs text-subtle">{log.details}</div>
-            </div>
-            <div className="text-xs text-subtle whitespace-nowrap">
-              {new Date(log.executedAt).toLocaleString()}<br />
-              From: {log.address}<br />
-              by <strong>{log.user.username}</strong><RoleBadge role={log.user.role.name} classes={'text-2xs'} />
-            </div>
-          </div>
-        ))}
+      {logs.map((log, i) => (
+        <AuditLogRow key={i} log={log} />
+      ))}
       </div>
 
       <div className="flex justify-between items-center">

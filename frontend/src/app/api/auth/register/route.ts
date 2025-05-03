@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
   }
 
-  if (!process.env.REGISTRATION) {
+  if (process.env.REGISTRATION == 'false') {
     return NextResponse.json({ error: 'Registration is disabled' }, { status: 403 });
   }
 

@@ -1,4 +1,4 @@
-import { auth } from "@/core/auth";
+import { auth } from "@/core/authServer";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
