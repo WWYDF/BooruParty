@@ -121,6 +121,7 @@ model Posts {
   anonymous     Boolean
   safety        SafetyType
   tags          Tags[]       @relation("PostTags")
+  pools         PoolItems[]
   sources       String[]
   notes         String?
   flags         String[]
@@ -241,4 +242,31 @@ model Audits {
 
   @@id([executedAt, userId])
   @@index([category, actionType])
+}
+
+model Pools {
+  id            Int             @id @default(autoincrement())
+  name          String          @unique
+  items         PoolItems[]
+
+  artist        String?
+  description   String?
+  
+  lastEdited    DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+}
+
+model PoolItems {
+  id            Int             @id @default(autoincrement())
+  index         Int
+  pool          Pools           @relation(fields: [poolId], references: [id])
+  post          Posts           @relation(fields: [postId], references: [id])
+  notes         String?
+
+  postId        Int
+  poolId        Int
+
+  @@unique([poolId, postId])
+  @@unique([poolId, index])
+  @@index([poolId, index])
 }
