@@ -45,14 +45,14 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
               loop
               muted
               preload="metadata"
-              className="max-h-[70vh] w-auto h-auto object-contain rounded-xl"
+              className="max-h-[75vh] w-auto h-auto object-contain rounded-xl"
             />
           ) : (
             <img
               loading="lazy"
               src={showFull ? fullSrc : post.previewPath}
               alt={`Error accessing ${fullSrc}`}
-              className="max-h-[70vh] w-auto h-auto object-contain rounded-xl"
+              className="max-h-[75vh] w-auto h-auto object-contain rounded-xl"
             />
           )}
         </motion.div>

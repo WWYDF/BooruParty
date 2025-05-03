@@ -1,11 +1,12 @@
 import { prisma } from "@/core/prisma";
+import { SafetyType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import sanitizeHtml from "sanitize-html";
 
 // Listing current POOLS
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  
+
   const query = searchParams.get("search")?.trim() || "";
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "25");
@@ -43,7 +44,6 @@ export async function GET(req: Request) {
                   aspectRatio: true,
                   previewPath: true,
                   anonymous: true,
-                  safety: true,
                   flags: true,
                   score: true,
                   _count: {
@@ -89,9 +89,14 @@ export async function POST(req: Request) {
   const name = body?.name?.trim();
   const artist = body?.artist?.trim();
   let description = body?.description?.trim();
+  const safety = body?.safety?.trim();
 
   if (!name) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  }
+
+  if (!safety || safety != SafetyType) {
+    return NextResponse.json({ error: "Safety must be either 'SAFE', 'SKETCHY', or 'UNSAFE'" }, { status: 400 });
   }
 
   if (description) {
@@ -113,7 +118,8 @@ export async function POST(req: Request) {
       data: {
         name,
         artist,
-        description
+        description,
+        safety
       }
     });
 

@@ -5,11 +5,11 @@ type Pool = {
   id: number;
   name: string;
   artist?: string | null;
+  safety: 'SAFE' | 'UNSAFE' | 'SKETCHY';
   _count: { items: number };
   items: {
     post: {
       previewPath: string;
-      safety: 'SAFE' | 'UNSAFE' | 'SKETCHY'
     };
   }[];
 };
@@ -62,7 +62,7 @@ export default async function PoolsPage({ searchParams }: { searchParams: Promis
               name={pool.name}
               artist={pool.artist ?? "Unknown"}
               coverUrl={pool.items?.[0]?.post?.previewPath}
-              safety={pool.items?.[0]?.post?.safety}
+              safety={pool.safety}
               linkTo={`/pools/${pool.id}`}
             />
           ))

@@ -6,37 +6,7 @@ import { PoolEditForm } from "./EditMetadata";
 import { PoolReorderGrid } from "./PoolReorderGrid";
 import { motion } from "framer-motion";
 import { useToast } from "../../Toast";
-
-export type PoolItem = {
-  id: number;
-  index: number;
-  notes: string | null;
-  post: {
-    id: number;
-    previewPath: string;
-    safety: "SAFE" | "UNSAFE" | "SKETCHY";
-    score: number;
-    aspectRatio: number | null;
-    uploadedById: string;
-    createdAt: string;
-    _count: {
-      favoritedBy: number;
-    };
-  };
-};
-
-type Pool = {
-  id: number;
-  name: string;
-  artist: string | null;
-  description: string | null;
-  lastEdited: string;
-  createdAt: string;
-  _count: {
-    items: number;
-  };
-  items: PoolItem[];
-};
+import { Pool } from "@/core/types/pools";
 
 export default function ClientPoolPage({ pool }: { pool: Pool }) {
   const [editMode, setEditMode] = useState(false);
@@ -44,6 +14,7 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
   const [name, setName] = useState(poolData.name);
   const [artist, setArtist] = useState(poolData.artist || "");
   const [description, setDescription] = useState(poolData.description || "");
+  const [safety, setSafety] = useState(poolData.safety || "");
   const [order, setOrder] = useState<{ id: number; index: number }[] | null>(null);
   const toast = useToast();
 
@@ -83,9 +54,9 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        {pool.items[0]?.post.previewPath && (
+        {pool.items[1]?.post.previewPath && (
           <img
-            src={pool.items[0].post.previewPath}
+            src={pool.items[1].post.previewPath}
             alt="Cover"
             className="absolute inset-0 w-full h-full object-cover"
           />
@@ -99,9 +70,11 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
               name={name}
               artist={artist}
               description={description}
+              safety={safety}
               onNameChange={setName}
               onArtistChange={setArtist}
               onDescriptionChange={setDescription}
+              onSafetyChange={setSafety}
             />
           ) : (
             <>
