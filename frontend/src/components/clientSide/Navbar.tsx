@@ -3,9 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { List, X, UserCircle, ImageSquare, Users, ChartPie, UploadSimple, House } from 'phosphor-react';
-import { usePathname } from "next/navigation";
-import { Images, Panorama } from '@phosphor-icons/react';
+import { Images, List, X, UserCircle, Users, ChartPie, UploadSimple, House } from '@phosphor-icons/react';
 import { NavItem } from './NavItem';
 
 type UserInfo = {
@@ -25,7 +23,6 @@ export default function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
-  const pathname = usePathname();
 
   useEffect(() => {
     fetch('/api/users/self')
@@ -76,9 +73,6 @@ export default function Navbar() {
   const hasPerm = (perm: string) =>
     user?.role?.permissions?.some((p) => p.name === perm);
 
-  const linkClass = (href: string) =>
-    `hover:text-white transition ${pathname === href ? "text-accent" : "text-subtle"}`;  
-
   return (
     <>
       {/* Main Navbar */}
@@ -95,6 +89,9 @@ export default function Navbar() {
         {/* Desktop Links */}
         <div className="hidden md:flex gap-4 items-center text-sm text-subtle">
           <NavItem href="/posts">Posts</NavItem>
+          {hasPerm('post_view') && (
+            <NavItem href="/pools">Pools</NavItem>
+          )}
           {hasPerm('post_create') && (
             <NavItem href="/upload">Upload</NavItem>
           )}

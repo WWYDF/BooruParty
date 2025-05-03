@@ -24,8 +24,13 @@ export async function GET(req: Request) {
 
       prisma.pools.findMany({
         where: query
-          ? { name: { contains: query, mode: "insensitive" } }
-          : undefined,
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { artist: { contains: query, mode: "insensitive" } }
+            ]
+          }
+        : undefined,
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,

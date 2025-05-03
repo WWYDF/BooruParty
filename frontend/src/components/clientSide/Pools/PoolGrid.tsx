@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PoolCard } from "@/components/clientSide/Pools/PoolCard";
 import { CreatePoolModal } from "./CreateModal";
@@ -11,24 +11,50 @@ type Props = {
 
 export function ClientPoolGrid({ pools }: Props) {
   const [showModal, setShowModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+
+  const filteredPools = pools.filter((pool) =>
+    (pool.name + " " + (pool.artist ?? "")).toLowerCase().includes(debouncedQuery.toLowerCase())
+  );
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 250); // adjust debounce delay here
+  
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+  
 
   return (
     <>
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold text-white">Pools</h1>
+      <h1 className="text-xl font-bold text-white mb-4">Pools</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+        <motion.input
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search pools..."
+          className="w-full sm:max-w-xs px-3 py-2 rounded-md bg-secondary border border-secondary-border text-subtle focus:outline-none focus:ring-2 focus:ring-zinc-800"
+        />
+
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           onClick={() => setShowModal(true)}
-          className="ml-4 px-4 py-2 rounded-md bg-darkerAccent text-white hover:bg-darkerAccent/80 transition"
+          className="w-full sm:w-auto px-4 py-2 rounded-md bg-darkerAccent text-white hover:bg-darkerAccent/80 transition"
         >
           + Add Pool
         </motion.button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {pools.map((pool, i) => (
+        {filteredPools.map((pool, i) => (
           <motion.div
             key={pool.id}
             initial={{ opacity: 0, y: 20 }}
