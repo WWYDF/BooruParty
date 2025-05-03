@@ -1,6 +1,6 @@
 import { buildPostChangeDetails, reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
-import { auth } from "@/core/authServer";
+import { auth } from "@/core/auth";
 import { getConversionType } from "@/core/dictionary";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";

@@ -1,6 +1,6 @@
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
-import { auth } from "@/core/authServer";
+import { auth } from "@/core/auth";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
 

@@ -1,4 +1,4 @@
-import { auth } from '@/core/authServer';
+import { auth } from '@/core/auth';
 import { fileTypeFromBuffer } from 'file-type';
 import { prisma } from '@/core/prisma';
 

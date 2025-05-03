@@ -7,7 +7,7 @@ import { List, X, UserCircle, Users, ChartPie, UploadSimple, House } from 'phosp
 import { usePathname } from "next/navigation";
 import { Images } from '@phosphor-icons/react';
 import { NavItem } from './NavItem';
-import { useUser } from './UserContext';
+import { useSession } from 'next-auth/react';
 
 type UserInfo = {
   id: string;
@@ -26,11 +26,8 @@ export default function Navbar() {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const pathname = usePathname();
-  const { user, refreshUser } = useUser();
-
-  // useEffect(() => {
-  //   refreshUser(); // Only runs once when Navbar mounts
-  // }, []);
+  const { data: session } = useSession();
+  const user = session?.user;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

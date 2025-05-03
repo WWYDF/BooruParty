@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
-import { auth } from '@/core/authServer';
+import { auth } from '@/core/auth';
 import { checkPermissions } from '@/components/serverSide/permCheck';
 import { reportAudit } from '@/components/serverSide/auditLog';
 

@@ -6,6 +6,11 @@ declare module 'next-auth' {
       id: string;
       email: string;
       username: string;
+      avatar: string;
+      role: {
+        name: string;
+        permissions: { name: string }[];
+      }
     };
   }
 

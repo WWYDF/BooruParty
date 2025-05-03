@@ -1,5 +1,5 @@
 import { checkPermissions } from "@/components/serverSide/permCheck";
-import { auth } from "@/core/authServer";
+import { auth } from "@/core/auth";
 import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";

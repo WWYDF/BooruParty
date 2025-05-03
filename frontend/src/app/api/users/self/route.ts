@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
-import { auth } from '@/core/authServer';
+import { auth } from '@/core/auth';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { setAvatarUrl } from '@/core/reformatProfile';

@@ -1,4 +1,4 @@
-import { auth } from "@/core/authServer";
+import { auth } from "@/core/auth";
 import { NextResponse } from "next/server";
 
 export async function GET() {

@@ -4,6 +4,7 @@ import { compare } from 'bcryptjs';
 import { JWT } from 'next-auth/jwt';
 import { AuthOptions, Session, User } from 'next-auth';
 import { prisma } from "@/core/prisma";
+import { setAvatarUrl } from './reformatProfile';
 
 export function auth() {
   return getServerSession(authOptions)
@@ -45,10 +46,28 @@ export const authOptions: AuthOptions = {
     signIn: '/login',
   },
   callbacks: {
-      async jwt({ token, user }: { token: JWT; user?: User }) {
+    async jwt({ token, user }: { token: JWT; user?: User }) {
       if (user) {
-        token.id = user.id;
-        token.username = user.name ?? '';
+        // Fetch full user info from DB on first login
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: {
+            role: {
+              select: {
+                name: true,
+                permissions: { select: { name: true } }
+              }
+            }
+          }
+        });
+    
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.username = dbUser.username;
+          token.avatar = setAvatarUrl(dbUser.avatar)
+          token.role = dbUser.role?.name || 'GUEST';
+          token.permissions = dbUser.role?.permissions.map(p => p.name) || [];
+        }
       }
       return token;
     },
@@ -66,8 +85,16 @@ export const authOptions: AuthOptions = {
         return null as unknown as Session;
       }
     
-      session.user.id = token.id as string;
-      session.user.username = token.username as string;
+      session.user = {
+        ...session.user, // Keep default values (like email)
+        id: token.id as string,
+        username: token.username as string,
+        avatar: token.avatar as string,
+        role: {
+          name: token.role as string,
+          permissions: (token.permissions as string[]).map(p => ({ name: p }))
+        }
+      };
     
       return session;
     },

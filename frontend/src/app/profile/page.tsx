@@ -2,7 +2,7 @@ import AvatarUpload from "@/components/clientSide/UserSettings/AvatarUpload";
 import InfoForm from "@/components/clientSide/UserSettings/InfoForm";
 import PasswordChangeForm from "@/components/clientSide/UserSettings/PasswordForm";
 import PreferencesForm from "@/components/clientSide/UserSettings/Preferences";
-import { auth } from "@/core/authServer";
+import { auth } from "@/core/auth";
 import { redirect } from "next/navigation";
 
 

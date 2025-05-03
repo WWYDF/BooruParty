@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { reportAudit } from "@/components/serverSide/auditLog";
-import { auth } from "@/core/authServer";
+import { auth } from "@/core/auth";
 
 export async function POST(req: Request) {
   const { name, categoryId } = await req.json();

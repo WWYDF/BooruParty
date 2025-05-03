@@ -1,7 +1,6 @@
 'use client';
 
 import { useToast } from '@/components/clientSide/Toast';
-import { useUser } from '@/components/clientSide/UserContext';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -10,7 +9,6 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const router = useRouter();
   const toast = useToast();
-  const { user, refreshUser } = useUser();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -27,8 +25,6 @@ export default function LoginPage() {
     if (res?.error) {
       toast('Unable to sign in.', 'error');
     } else {
-      await new Promise((r) => setTimeout(r, 100));
-      await refreshUser();
       await new Promise((r) => setTimeout(r, 100));
       router.push('/posts');
     }

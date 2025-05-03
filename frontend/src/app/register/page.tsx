@@ -1,7 +1,6 @@
 'use client';
 
 import { useToast } from '@/components/clientSide/Toast';
-import { useUser } from '@/components/clientSide/UserContext';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -16,7 +15,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
   const router = useRouter();
-  const { refreshUser } = useUser();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -56,7 +54,6 @@ export default function RegisterPage() {
             router.push('/login');
           } else {
             await new Promise((r) => setTimeout(r, 100));
-            await refreshUser();
             router.push('/posts');
           }
         })();

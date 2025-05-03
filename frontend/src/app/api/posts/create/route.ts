@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
-import { auth } from '@/core/authServer';
+import { auth } from '@/core/auth';
 import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
 import { getConversionType, resolveFileType } from '@/core/dictionary';
 
