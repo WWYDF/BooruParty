@@ -28,125 +28,147 @@ export async function POST(req: Request) {
       },
     });
 
+    // Flush Permissions
+    await prisma.permission.deleteMany();
+
     // Setup Permissions
-    await prisma.role.upsert({     // DEFAULT REGISTRATION ROLE MUST BE FIRST!
-      where: { name: "MEMBER" },
-      update: {},
-      create: {
+    await prisma.permission.createMany({
+      data: [
+        { name: "post_view" },
+        { name: "post_create" },
+        { name: "post_edit_own" },
+        { name: "post_edit_others" },
+        { name: "post_delete_own" },
+        { name: "post_delete_others" },
+        { name: "post_feature" },
+        { name: "post_vote" },
+        { name: "post_favorite" },
+        { name: "comment_create" },
+        { name: "comment_embed_url" },
+        { name: "comment_embed_post" },
+        { name: "comment_edit_own" },
+        { name: "comment_edit_others" },
+        { name: "comment_delete_own" },
+        { name: "comment_delete_others" },
+        { name: "comment_vote" },
+        { name: "pool_create" },
+        { name: "pool_manage" },
+        { name: "pool_delete" },
+        { name: "pool_vote" },
+        { name: "profile_create" }, // Registration
+        { name: "profile_view" },
+        { name: "profile_edit_avatar" },
+        { name: "profile_edit_others" }, // Includes editing user's avatar
+        { name: "profile_archive_others" }, // Delete user but not posts
+        { name: "profile_delete_others" },  // Delete user and posts
+        { name: "upload_type_image" },
+        { name: "upload_type_animated" },
+        { name: "upload_type_video" },
+        { name: "limit_upload_ignore" },
+        { name: "tags_create" },
+        { name: "tags_edit" },
+        { name: "tags_delete" },
+        { name: "tags_categories_manage" }, // Create, Edit, and Delete
+        { name: "dashboard_view" },
+        { name: "dashboard_settings" },
+        { name: "dashboard_edit_perms" },
+        { name: "dashboard_audit_log" },
+        { name: "administrator" },
+      ]
+    })
+
+    // Create Roles   DEFAULT REGISTRATION ROLE MUST BE FIRST!
+    const roleNames = ["MEMBER", "POWER USER", "MODERATOR", "ADMIN"];
+    for (const name of roleNames) {
+      await prisma.role.upsert({
+        where: { name },
+        update: {},
+        create: { name },
+      });
+    }
+
+    // Setup Permissions - Ordered by increasing power
+    const roleOrder: { name: string; ownPermissions: string[] }[] = [
+      {
         name: "MEMBER",
-        permissions: {
-          connectOrCreate: [
-            { where: { name: "post_create" }, create: { name: "post_create" } },
-            { where: { name: "post_edit_own" }, create: { name: "post_edit_own" } },
-            { where: { name: "post_delete_own" }, create: { name: "post_delete_own" } },
-            { where: { name: "comment_create" }, create: { name: "comment_create" } },
-            { where: { name: "comment_delete_own" }, create: { name: "comment_delete_own" } },
-            { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
-            { where: { name: "profile_edit_avatar" }, create: { name: "profile_edit_avatar" } },
-            { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
-            { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
-            { where: { name: "tags_view" }, create: { name: "tags_view" } },
-            { where: { name: "posts_view" }, create: { name: "posts_view" } },
-          ],
-        },
+        ownPermissions: [
+          "post_view",
+          "post_create",
+          "post_edit_own",
+          "post_delete_own",
+          "post_vote",
+          "post_favorite",
+          "comment_create",
+          "comment_embed_post",
+          "comment_delete_own",
+          "comment_vote",
+          "pool_vote",
+          "profile_create",
+          "profile_view",
+          "profile_edit_avatar",
+          "upload_type_image",
+          "upload_type_animated",
+        ]
       },
-    });
-
-    await prisma.role.upsert({
-      where: { name: "POWER USER" },
-      update: {},
-      create: {
+      {
         name: "POWER USER",
-        permissions: {
-          connectOrCreate: [
-            { where: { name: "post_create" }, create: { name: "post_create" } },
-            { where: { name: "post_edit_own" }, create: { name: "post_edit_own" } },
-            { where: { name: "post_delete_own" }, create: { name: "post_delete_own" } },
-            { where: { name: "comment_create" }, create: { name: "comment_create" } },
-            { where: { name: "comment_delete_own" }, create: { name: "comment_delete_own" } },
-            { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
-            { where: { name: "profile_edit_avatar" }, create: { name: "profile_edit_avatar" } },
-            { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
-            { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
-            { where: { name: "upload_type_video" }, create: { name: "upload_type_video" } },
-            { where: { name: "limit_upload_ignore" }, create: { name: "limit_upload_ignore" } },
-            { where: { name: "tags_view" }, create: { name: "tags_view" } },
-            { where: { name: "posts_view" }, create: { name: "posts_view" } },
-          ],
-        },
+        ownPermissions: [
+          "post_edit_others",
+          "comment_embed_url",
+          "upload_type_video",
+          "tags_create",
+          "tags_edit"
+        ]
       },
-    });
-
-    await prisma.role.upsert({
-      where: { name: "MODERATOR" },
-      update: {},
-      create: {
+      {
         name: "MODERATOR",
-        permissions: {
-          connectOrCreate: [
-            { where: { name: "post_create" }, create: { name: "post_create" } },
-            { where: { name: "post_edit_own" }, create: { name: "post_edit_own" } },
-            { where: { name: "post_edit_others" }, create: { name: "post_edit_others" } },
-            { where: { name: "post_delete_own" }, create: { name: "post_delete_own" } },
-            { where: { name: "post_delete_others" }, create: { name: "post_delete_others" } },
-            { where: { name: "comment_create" }, create: { name: "comment_create" } },
-            { where: { name: "comment_delete_own" }, create: { name: "comment_delete_own" } },
-            { where: { name: "comment_delete_others" }, create: { name: "comment_delete_others" } },
-            { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
-            { where: { name: "profile_edit_avatar" }, create: { name: "profile_edit_avatar" } },
-            { where: { name: "profile_edit_others" }, create: { name: "profile_edit_others" } },
-            { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
-            { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
-            { where: { name: "upload_type_video" }, create: { name: "upload_type_video" } },
-            { where: { name: "limit_upload_ignore" }, create: { name: "limit_upload_ignore" } },
-            { where: { name: "tags_view" }, create: { name: "tags_view" } },
-            { where: { name: "tags_edit" }, create: { name: "tags_edit" } },
-            { where: { name: "tags_delete" }, create: { name: "tags_delete" } },
-            { where: { name: "tags_create" }, create: { name: "tags_create" } },
-            { where: { name: "dashboard_view" }, create: { name: "dashboard_view" } },
-            { where: { name: "posts_view" }, create: { name: "posts_view" } },
-          ],
-        },
+        ownPermissions: [
+          "post_delete_others",
+          "post_feature",
+          "comment_edit_others",
+          "comment_delete_others",
+          "pool_create",
+          "pool_manage",
+          "pool_delete",
+          "profile_archive_others",
+          "limit_upload_ignore",
+          "tags_delete",
+          "dashboard_view",
+          "dashboard_audit_log"
+        ]
       },
-    });
-
-
-    const adminRole = await prisma.role.upsert({
-      where: { name: "ADMIN" },
-      update: {},
-      create: {
+      {
         name: "ADMIN",
-        permissions: {
-          connectOrCreate: [
-            { where: { name: "administrator" }, create: { name: "administrator" } },
-            { where: { name: "post_create" }, create: { name: "post_create" } },
-            { where: { name: "post_edit_own" }, create: { name: "post_edit_own" } },
-            { where: { name: "post_edit_others" }, create: { name: "post_edit_others" } },
-            { where: { name: "post_delete_own" }, create: { name: "post_delete_own" } },
-            { where: { name: "post_delete_others" }, create: { name: "post_delete_others" } },
-            { where: { name: "comment_create" }, create: { name: "comment_create" } },
-            { where: { name: "comment_delete_own" }, create: { name: "comment_delete_own" } },
-            { where: { name: "comment_delete_others" }, create: { name: "comment_delete_others" } },
-            { where: { name: "profile_edit_own" }, create: { name: "profile_edit_own" } },
-            { where: { name: "profile_edit_avatar" }, create: { name: "profile_edit_avatar" } },
-            { where: { name: "profile_edit_others" }, create: { name: "profile_edit_others" } },
-            { where: { name: "profile_delete_others" }, create: { name: "profile_delete_others" } },
-            { where: { name: "upload_type_image" }, create: { name: "upload_type_image" } },
-            { where: { name: "upload_type_animated" }, create: { name: "upload_type_animated" } },
-            { where: { name: "upload_type_video" }, create: { name: "upload_type_video" } },
-            { where: { name: "limit_upload_ignore" }, create: { name: "limit_upload_ignore" } },
-            { where: { name: "tags_view" }, create: { name: "tags_view" } },
-            { where: { name: "tags_edit" }, create: { name: "tags_edit" } },
-            { where: { name: "tags_delete" }, create: { name: "tags_delete" } },
-            { where: { name: "tags_create" }, create: { name: "tags_create" } },
-            { where: { name: "tags_categories_manage" }, create: { name: "tags_categories_manage" } },
-            { where: { name: "dashboard_view" }, create: { name: "dashboard_view" } },
-            { where: { name: "dashboard_settings" }, create: { name: "dashboard_settings" } },
-            { where: { name: "posts_view" }, create: { name: "posts_view" } },
-          ],
-        },
-      },
-    });
+        ownPermissions: [
+          "profile_edit_others",
+          "profile_delete_others",
+          "tags_categories_manage",
+          "dashboard_settings",
+          "dashboard_edit_perms",
+          "administrator"
+        ]
+      }
+    ];
+
+    // Get all permissions
+    const allPermissions = await prisma.permission.findMany();
+    const permissionMap = Object.fromEntries(allPermissions.map(p => [p.name, { name: p.name }]));
+
+    // Accumulate permissions and assign
+    let cumulativePermissions: string[] = [];
+
+    for (const role of roleOrder) {
+      cumulativePermissions = [...cumulativePermissions, ...role.ownPermissions];
+
+      await prisma.role.update({
+        where: { name: role.name },
+        data: {
+          permissions: {
+            set: cumulativePermissions.map(name => permissionMap[name])
+          }
+        }
+      });
+    }
 
     // Setup deleted account
     await prisma.user.upsert({
@@ -178,7 +200,7 @@ export async function POST(req: Request) {
           email,
           username,
           password: hashed,
-          roleId: adminRole.id,
+          roleId: 4, // Admin Role is in position 4
         },
       });
     }
