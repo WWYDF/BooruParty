@@ -66,8 +66,9 @@ export async function GET(_: NextRequest, context: { params: Promise<{ id: strin
 }
 
 // Edit Pool Data
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const id = parseInt(params.id);
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const prams = await context.params;
+  const id = parseInt(prams.id);
   if (isNaN(id)) {
     return NextResponse.json({ error: "Invalid pool ID" }, { status: 400 });
   }
