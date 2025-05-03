@@ -9,6 +9,7 @@ type Props = {
   post: Post;
   user?: PostUserStatus;
   showVoting?: boolean;
+  skeletonAspectRatio?: number;
 };
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;

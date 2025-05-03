@@ -1,4 +1,3 @@
-import PostDisplay from "@/components/clientSide/Posts/Individual/PostDisplay";
 import PostMetadata from "@/components/clientSide/Posts/Individual/PostMetadata";
 import PostNavigator from "@/components/clientSide/Posts/Individual/PostNavigator";
 import PostCommentForm from "@/components/clientSide/Posts/Individual/PostCommentForm";
@@ -6,6 +5,7 @@ import PostCommentList from "@/components/clientSide/Posts/Individual/PostCommen
 import { Comments } from "@/core/types/comments";
 import { cookies } from "next/headers";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import PostDisplayWrapper from "@/components/clientSide/Posts/Individual/PostDisplayWrapper";
 
 async function fetchPostData(postId: string) {
   const cookieStore = cookies();
@@ -101,7 +101,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
       {/* RIGHT COLUMN - Main content + Comments */}
       <div className="order-1 md:order-2 space-y-6">
         <PostNavigator postId={postData.post.id} />
-        <PostDisplay post={postData.post} user={postData.user} />
+        <PostDisplayWrapper post={postData.post} user={postData.user} />
 
         {/* Comments - In column 2 only */}
         <section className="order-4 border-t border-secondary-border pt-4 space-y-4">
