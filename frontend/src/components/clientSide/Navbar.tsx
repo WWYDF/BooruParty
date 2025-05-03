@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { List, X, UserCircle, ImageSquare, Users, ChartPie, UploadSimple, House } from 'phosphor-react';
+import { List, X, UserCircle, Users, ChartPie, UploadSimple, House } from 'phosphor-react';
 import { usePathname } from "next/navigation";
-import { Images, Panorama } from '@phosphor-icons/react';
+import { Images } from '@phosphor-icons/react';
 import { NavItem } from './NavItem';
+import { useUser } from './UserContext';
 
 type UserInfo = {
   id: string;
@@ -19,23 +20,17 @@ type UserInfo = {
 };
 
 export default function Navbar() {
-  const [user, setUser] = useState<UserInfo | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const pathname = usePathname();
+  const { user, refreshUser } = useUser();
 
-  useEffect(() => {
-    fetch('/api/users/self')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.username) setUser(data);
-        else if (data?.role?.name === 'GUEST') setUser(data);
-        else setUser(null);
-      });
-  }, []);
+  // useEffect(() => {
+  //   refreshUser(); // Only runs once when Navbar mounts
+  // }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
