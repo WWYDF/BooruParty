@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { PoolCard } from "@/components/clientSide/Pools/PoolCard";
-import { PoolEditForm } from "./EditPool";
+import { PoolEditForm } from "./EditMetadata";
 import { PoolReorderGrid } from "./PoolReorderGrid";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useToast } from "../../Toast";
 
 export type PoolItem = {
   id: number;
@@ -41,34 +41,36 @@ type Pool = {
 export default function ClientPoolPage({ pool }: { pool: Pool }) {
   const [editMode, setEditMode] = useState(false);
   const [poolData, setPoolData] = useState(pool);
-  const [name, setName] = useState(pool.name);
-  const [artist, setArtist] = useState(pool.artist || "");
-  const [description, setDescription] = useState(pool.description || "");
+  const [name, setName] = useState(poolData.name);
+  const [artist, setArtist] = useState(poolData.artist || "");
+  const [description, setDescription] = useState(poolData.description || "");
   const [order, setOrder] = useState<{ id: number; index: number }[] | null>(null);
-  const router = useRouter();
+  const toast = useToast();
 
   const handleSave = async () => {
-    const patch = fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools/${pool.id}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools/${pool.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, artist, description }),
+      body: JSON.stringify({
+        name,
+        artist,
+        description,
+        order: order ?? undefined
+      })
     });
-
-    const reorder = order
-      ? fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools/${pool.id}/reorder`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ order }),
-        })
-      : Promise.resolve();
-
-    await Promise.all([patch, reorder]);
-
+  
+    if (!res.ok) {
+      console.error("Failed to save pool");
+      toast('Failed to save changes.', 'error');
+      return;
+    }
+  
     const refreshed = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools/${pool.id}`);
     if (refreshed.ok) {
       setPoolData(await refreshed.json());
       setEditMode(false);
       setOrder(null);
+      toast('Saved Changes!', 'success');
     }
   };
 
@@ -104,9 +106,9 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
           ) : (
             <>
               <div className="flex flex-wrap items-end gap-x-3 mb-1">
-                <h1 className="text-3xl font-bold text-white">{pool.name}</h1>
-                {pool.artist && (
-                  <div className="text-sm text-white/80 font-medium">{pool.artist}</div>
+                <h1 className="text-3xl font-bold text-white">{poolData.name}</h1>
+                {poolData.artist && (
+                  <div className="text-sm text-white/80 font-medium">by {poolData.artist}</div>
                 )}
                 <button
                   onClick={() => setEditMode(true)}
@@ -115,8 +117,8 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
                   Edit
                 </button>
               </div>
-              {pool.description && (
-                <p className="text-sm text-white/80 max-w-2xl">{pool.description}</p>
+              {poolData.description && (
+                <p className="text-sm text-white/80 max-w-2xl">{poolData.description}</p>
               )}
             </>
           )}
@@ -167,7 +169,7 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
                   coverUrl={item.post.previewPath}
                   safety={item.post.safety}
                   showOverlay={false}
-                  linkTo={`/posts/${item.post.id}`}
+                  linkTo={`/post/${item.post.id}`}
                 />
               </motion.div>
             ))}

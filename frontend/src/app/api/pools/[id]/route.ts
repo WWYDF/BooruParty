@@ -65,7 +65,7 @@ export async function GET(_: NextRequest, context: { params: Promise<{ id: strin
   }
 }
 
-// Edit Pool Data
+// Edit Order of Posts AND/OR Edit Pool Metadata
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const prams = await context.params;
   const id = parseInt(prams.id);
@@ -76,6 +76,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   const body = await req.json();
   const updates: { name?: string; artist?: string; description?: string } = {};
 
+  // === Metadata update handling ===
   if (body.name !== undefined) updates.name = body.name.trim();
   if (body.artist !== undefined) updates.artist = body.artist.trim();
   if (body.description !== undefined) {
@@ -87,17 +88,86 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   }
 
   try {
-    const updated = await prisma.pools.update({
-      where: { id },
+    // Apply metadata if provided
+    if (Object.keys(updates).length > 0) {
+      await prisma.pools.update({
+        where: { id },
+        data: {
+          ...updates,
+          lastEdited: new Date()
+        }
+      });
+    }
+
+    // === Reordering handling ===
+    if (Array.isArray(body.order)) {
+      const tempOffset = 10000; // high enough to not conflict
+
+      // Step 1: temporarily offset all indices
+      await Promise.all(
+        body.order.map(({ id }: any) =>
+          prisma.poolItems.update({
+            where: { id },
+            data: { index: { increment: tempOffset } }
+          })
+        )
+      );
+
+      // Step 2: apply correct final indices
+      await Promise.all(
+        body.order.map(({ id, index }: { id: number; index: number }) =>
+          prisma.poolItems.update({
+            where: { id },
+            data: { index }
+          })
+        )
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Failed to update pool", err);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
+}
+
+// Add Posts to this Pool
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const prams = await context.params;
+  const poolId = parseInt(prams.id);
+  if (isNaN(poolId)) {
+    return NextResponse.json({ error: "Invalid pool ID" }, { status: 400 });
+  }
+
+  const body = await req.json();
+  const postId = parseInt(body?.postId);
+
+  if (!postId || isNaN(postId)) {
+    return NextResponse.json({ error: "Missing or invalid postId" }, { status: 400 });
+  }
+
+  try {
+    const existing = await prisma.poolItems.findUnique({
+      where: { poolId_postId: { poolId, postId } }
+    });
+
+    if (existing) {
+      return NextResponse.json({ error: "Post already in pool" }, { status: 409 });
+    }
+
+    const currentCount = await prisma.poolItems.count({ where: { poolId } });
+
+    const newItem = await prisma.poolItems.create({
       data: {
-        ...updates,
-        lastEdited: new Date()
+        poolId,
+        postId,
+        index: currentCount
       }
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json(newItem, { status: 201 });
   } catch (err) {
-    console.error("Failed to update pool", err);
+    console.error("Failed to add post to pool", err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

@@ -1,9 +1,5 @@
 import ClientPoolPage from "@/components/clientSide/Pools/Individual/ClientPoolPage";
 
-type Props = {
-  params: { id: string };
-};
-
 export default async function PoolPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools/${id}`, {

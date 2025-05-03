@@ -12,6 +12,7 @@ import {
 } from "@dnd-kit/core";
 import {
   arrayMove,
+  rectSortingStrategy,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
@@ -70,10 +71,10 @@ export function PoolReorderGrid({ items, onReorderDone }: Props) {
       onDragStart={(event) => setActiveId(Number(event.active.id))}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={localItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={localItems.map((item) => item.id)} strategy={rectSortingStrategy}>
         <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {localItems.map((item) => (
-            <SortablePoolItem key={item.id} item={item} />
+            <SortablePoolItem key={item.id} item={item} activeId={activeId} />
           ))}
         </div>
       </SortableContext>
@@ -95,7 +96,8 @@ export function PoolReorderGrid({ items, onReorderDone }: Props) {
   );
 }
 
-function SortablePoolItem({ item }: { item: PoolItem }) {
+function SortablePoolItem({ item, activeId }: { item: PoolItem; activeId: number | null }) {
+  const isDragging = activeId === item.id;
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: item.id
   });
@@ -104,7 +106,8 @@ function SortablePoolItem({ item }: { item: PoolItem }) {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: transform ? 999 : undefined,
-    pointerEvents: transform ? "none" : undefined
+    pointerEvents: transform ? "none" : undefined,
+    opacity: isDragging ? 0 : 1
   };
 
   return (
