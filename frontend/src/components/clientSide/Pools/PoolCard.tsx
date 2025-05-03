@@ -23,11 +23,8 @@ export function PoolCard({
   showOverlay = true,
   linkTo,
 }: PoolCardProps) {
-  return (
-    <Link
-      href={linkTo || `/pools/${id}`}
-      className="relative aspect-[9/16] rounded-lg overflow-hidden bg-secondary border border-secondary-border group"
-    >
+  const content = (
+    <div className="relative aspect-[9/16] rounded-lg overflow-hidden bg-secondary border border-secondary-border group">
       {/* Safety Badge */}
       {safety && showOverlay && (
         <div className="absolute top-2 left-2 z-10 px-2 py-0.5 text-xs font-medium rounded bg-black/70 text-white">
@@ -35,7 +32,7 @@ export function PoolCard({
         </div>
       )}
 
-      {/* Cover Image or Fallback */}
+      {/* Cover */}
       {coverUrl ? (
         <img
           src={coverUrl}
@@ -48,19 +45,18 @@ export function PoolCard({
         </div>
       )}
 
-      {/* Optional Overlay */}
+      {/* Overlay */}
       {showOverlay && (
         <div className="absolute bottom-0 left-0 w-full z-10 pointer-events-none">
-          {/* Gradient above the box */}
           <div className="absolute -top-6 left-0 w-full h-6 bg-gradient-to-t from-black/70 to-transparent" />
-
-          {/* Solid background box */}
           <div className="bg-black/70 px-3 pt-2 pb-1">
             <div className="text-sm font-semibold text-white truncate">{name}</div>
             <div className="text-xs text-white/70 truncate">{artist}</div>
           </div>
         </div>
       )}
-    </Link>
+    </div>
   );
+
+  return linkTo ? <Link href={linkTo}>{content}</Link> : content;
 }
