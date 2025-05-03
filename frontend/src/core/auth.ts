@@ -5,6 +5,7 @@ import { JWT } from 'next-auth/jwt';
 import { AuthOptions, Session, User } from 'next-auth';
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from './reformatProfile';
+import type { JWTArgs } from "next-auth";
 
 export function auth() {
   return getServerSession(authOptions)
@@ -46,7 +47,7 @@ export const authOptions: AuthOptions = {
     signIn: '/login',
   },
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user?: User }) {
+    async jwt({ token, user, trigger, session }: JWTArgs) {
       if (user) {
         // Fetch full user info from DB on first login
         const dbUser = await prisma.user.findUnique({
@@ -69,6 +70,12 @@ export const authOptions: AuthOptions = {
           token.permissions = dbUser.role?.permissions.map(p => p.name) || [];
         }
       }
+
+      if (trigger === 'update' && session) {
+        if (session.user?.username) token.username = session.user.username;
+        if (session.user?.avatar) token.avatar = session.user.avatar;
+      }
+
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {

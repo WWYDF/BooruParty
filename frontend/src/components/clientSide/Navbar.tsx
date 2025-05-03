@@ -28,6 +28,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
+  console.log(session?.user)
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

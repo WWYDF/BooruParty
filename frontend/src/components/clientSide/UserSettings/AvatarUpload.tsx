@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { useToast } from '../Toast';
+import { useRouter } from 'next/navigation';
+import { getSession } from 'next-auth/react';
 
 export default function AvatarUpload() {
   const [current, setCurrent] = useState('/user.png');
@@ -12,6 +14,7 @@ export default function AvatarUpload() {
   const [status, setStatus] = useState('');
   const [canEdit, setCanEdit] = useState(false);
   const toast = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     (async () => {
@@ -70,6 +73,8 @@ export default function AvatarUpload() {
       setPreview(null);
       setFile(null);
       toast('Avatar Updated!', 'success');
+      await getSession()
+      router.refresh();
     } catch (err: any) {
       toast(err.message || 'Error uploading avatar', 'error');
     }

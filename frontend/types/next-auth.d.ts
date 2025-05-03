@@ -19,6 +19,13 @@ declare module 'next-auth' {
     email: string;
     username: string;
   }
+
+  interface JWTArgs {
+    token: JWT;
+    user?: User;
+    trigger?: 'signIn' | 'signUp' | 'update' | 'signOut';
+    session?: Partial<Session>
+  }
 }
 
 declare module 'next-auth/jwt' {

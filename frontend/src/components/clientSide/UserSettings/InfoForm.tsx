@@ -7,6 +7,8 @@ import { useToast } from '../Toast';
 import { Trash } from 'phosphor-react';
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from 'next/navigation';
+import { getSession } from "next-auth/react";
+import { refreshAuth } from '@/components/serverSide/refreshAuth';
 
 export default function InfoForm() {
   const [username, setUsername] = useState('');
@@ -35,6 +37,9 @@ export default function InfoForm() {
     try {
       await updateUser({ username, email, description });
       toast('Saved!', 'success');
+      await refreshAuth({ username: username });
+      await getSession()
+      router.refresh();
     } catch (err: any) {
       toast(err.message, 'error');
     }

@@ -3,11 +3,14 @@
 import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useState } from 'react';
 import { useToast } from '../Toast';
+import { getSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function PasswordChangeForm() {
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
     const toast = useToast();
+    const router = useRouter();
   
     const save = async () => {
       if (password !== confirm) {
@@ -20,6 +23,8 @@ export default function PasswordChangeForm() {
         setPassword('');
         setConfirm('');
         toast('Password Updated!', 'success');
+        await getSession()
+        router.refresh();
       } catch (err: any) {
         toast(`Error: ${err.message}`, 'error');
       }
