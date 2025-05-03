@@ -157,7 +157,7 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
                   coverUrl={item.post.previewPath}
                   safety={item.post.safety}
                   showOverlay={false}
-                  linkTo={`/post/${item.post.id}`}
+                  linkTo={`/post/${item.post.id}?pool=${pool.id}`}
                 />
               </motion.div>
             ))}

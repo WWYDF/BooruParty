@@ -48,8 +48,17 @@ async function fetchComments(postId: string): Promise<Comments[]> {
   return rawComments;
 }
 
-export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PostPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ pool?: string }>;
+}) {
+
   const { id } = await params;
+  const poolId = (await searchParams)?.pool;
+
   const postId = id;
   const postPromise = fetchPostData(postId);
   const commentsPromise = fetchComments(postId);
@@ -100,7 +109,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
 
       {/* RIGHT COLUMN - Main content + Comments */}
       <div className="order-1 md:order-2 space-y-6">
-        <PostNavigator postId={postData.post.id} />
+        <PostNavigator postId={postData.post.id} poolId={poolId ? parseInt(poolId) : undefined} />
         <PostDisplay post={postData.post} user={postData.user} />
 
         {/* Comments - In column 2 only */}
