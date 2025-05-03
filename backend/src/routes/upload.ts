@@ -5,15 +5,17 @@ import Busboy from 'busboy';
 import { processPreview } from '../utils/processPreview';
 import { generateThumbnails } from '../utils/generateThumbnails';
 import { resolveFileType } from '../types/mediaTypes';
+import { getAspectRatio } from '../utils/aspectRatio';
 
 const uploadRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/upload', async (req, reply) => {
     return new Promise<void>((resolve, reject) => {
       let postId: string | undefined;
       let finalFileName = '';
-      let fileFolder = '';
+      let fileFormat = '';
       let filePath = '';
       let previewScale: number | null = null;
+      let ratio: number | null = null;
 
       const busboy = Busboy({ headers: req.headers });
 
@@ -32,10 +34,10 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
         }
 
         const ext = path.extname(filename);
-        fileFolder = resolveFileType(ext); // will be 'image', 'animated', 'video', or 'other'
+        fileFormat = resolveFileType(ext); // will be 'image', 'animated', 'video', or 'other'
 
         finalFileName = `${postId}${ext}`;
-        filePath = path.join(process.cwd(), 'data/uploads', fileFolder, finalFileName);
+        filePath = path.join(process.cwd(), 'data/uploads', fileFormat, finalFileName);
         fs.mkdirSync(path.dirname(filePath), { recursive: true });
 
         const writeStream = fs.createWriteStream(filePath);
@@ -44,11 +46,18 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
         writeStream.on('finish', async () => {
           fastify.log.info(`✅ File saved: ${filePath}`);
 
-          if (fileFolder === 'image' || fileFolder === 'animated' || fileFolder === 'video') {
+          if (fileFormat === 'image' || fileFormat === 'animated' || fileFormat === 'video') {
             try {
               previewScale = await processPreview(filePath, Number(postId));
               if (previewScale == null) {
                 throw new Error('PreviewScale came back null.');
+              }
+
+              // Get Aspect Ratio
+              try {
+                ratio = await getAspectRatio(filePath, fileFormat);
+              } catch (err) {
+                fastify.log.warn(`Media reported no aspect ratio: ${err}`);
               }
           
               // 🛠️ ADD THIS CHECK HERE:
@@ -79,8 +88,8 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             }
           }
 
-          if (fileFolder === 'image' || fileFolder === 'animated' || fileFolder === 'video') {
-            const thumbs = await generateThumbnails(filePath, fileFolder as any, Number(postId));
+          if (fileFormat === 'image' || fileFormat === 'animated' || fileFormat === 'video') {
+            const thumbs = await generateThumbnails(filePath, fileFormat as any, Number(postId));
             fastify.log.info(`🖼️ Generated thumbnails:`, thumbs);
           }
 
@@ -88,6 +97,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             status: 'success',
             postId: Number(postId),
             previewScale,
+            aspectRatio: ratio,
           });
           resolve();
         });

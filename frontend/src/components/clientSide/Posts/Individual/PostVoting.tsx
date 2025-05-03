@@ -1,3 +1,4 @@
+'use client'
 import { ThumbsUp, ThumbsDown, Star } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";

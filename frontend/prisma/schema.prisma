@@ -116,6 +116,7 @@ model Posts {
   id            Int          @id @default(autoincrement())
   fileExt       String
   previewPath   String?
+  aspectRatio   Float?
   uploadedBy    User         @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
   anonymous     Boolean
   safety        SafetyType

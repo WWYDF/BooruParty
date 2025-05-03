@@ -2,6 +2,7 @@ export type Post = {
   id: number;
   fileExt: string;
   previewPath: string;
+  aspectRatio?: number;
   anonymous: boolean;
   safety: 'SAFE' | 'SKETCHY' | 'UNSAFE';
   sources: string[];

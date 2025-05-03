@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
     where: { id: postId },
     data: {
       previewScale: fastifyResult.previewScale,
-      previewPath: previewSrc
+      previewPath: previewSrc,
+      aspectRatio: fastifyResult.aspectRatio
     },
   })
 
