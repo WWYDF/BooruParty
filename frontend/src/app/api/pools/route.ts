@@ -1,5 +1,4 @@
 import { prisma } from "@/core/prisma";
-import { SafetyType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import sanitizeHtml from "sanitize-html";
 
@@ -87,15 +86,15 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = await req.json();
   const name = body?.name?.trim();
+  const safety = body?.safety?.trim();
   const artist = body?.artist?.trim();
   let description = body?.description?.trim();
-  const safety = body?.safety?.trim();
 
   if (!name) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  if (!safety || safety != SafetyType) {
+  if (!["SAFE", "SKETCHY", "UNSAFE"].includes(safety)) {
     return NextResponse.json({ error: "Safety must be either 'SAFE', 'SKETCHY', or 'UNSAFE'" }, { status: 400 });
   }
 

@@ -47,7 +47,9 @@ export default function ConfirmModal({
           onClick={(e) => e.stopPropagation()} // prevent close on inner click
         >
           <h2 className="text-white text-lg font-semibold mb-4">{title}</h2>
-          <p className="text-subtle mb-6">{description}</p>
+          <p className="text-subtle whitespace-pre-line mb-6">
+            {description}
+          </p>
 
           <div className="flex gap-4 justify-center">
             <button

@@ -7,6 +7,8 @@ import { PoolReorderGrid } from "./PoolReorderGrid";
 import { motion } from "framer-motion";
 import { useToast } from "../../Toast";
 import { Pool } from "@/core/types/pools";
+import ConfirmModal from "../../ConfirmModal";
+import { useRouter } from "next/navigation";
 
 export default function ClientPoolPage({ pool }: { pool: Pool }) {
   const [editMode, setEditMode] = useState(false);
@@ -16,6 +18,8 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
   const [description, setDescription] = useState(poolData.description || "");
   const [safety, setSafety] = useState(poolData.safety || "");
   const [order, setOrder] = useState<{ id: number; index: number }[] | null>(null);
+  const [showConfirmDel, setShowConfirmDel] = useState(false);
+  const router = useRouter();
   const toast = useToast();
 
   const handleSave = async () => {
@@ -25,6 +29,7 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
       body: JSON.stringify({
         name,
         artist,
+        safety,
         description,
         order: order ?? undefined
       })
@@ -85,7 +90,7 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
                 )}
                 <button
                   onClick={() => setEditMode(true)}
-                  className="text-xs px-2 py-1 border rounded bg-black/40 text-white ml-auto hover:bg-white/10"
+                  className="text-base px-2 py-1 border border-black rounded-lg bg-zinc-950 hover:bg-zinc-900 transition text-white ml-auto"
                 >
                   Edit
                 </button>
@@ -100,24 +105,34 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
 
       {/* Edit Mode Buttons */}
       {editMode && (
-        <div className="max-w-screen-2xl mx-auto px-4 mt-4 flex gap-3">
+        <div className="max-w-screen-2xl mx-auto px-4 pt-4 flex justify-between items-center">
+          <div className="flex gap-3">
+            <button
+              onClick={handleSave}
+              className="bg-green-600 hover:bg-green-700 transition text-white px-4 py-1.5 rounded text-sm"
+              >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                setEditMode(false);
+                setName(poolData.name);
+                setArtist(poolData.artist || "");
+                setSafety(poolData.safety || "");
+                setDescription(poolData.description || "");
+                setOrder(null);
+              }}
+              className="bg-zinc-700 hover:bg-zinc-800 transition text-white px-4 py-1.5 rounded text-sm"
+              >
+              Cancel
+            </button>
+          </div>
+
           <button
-            onClick={handleSave}
-            className="bg-green-600 text-white px-4 py-1.5 rounded text-sm"
+            onClick={() => setShowConfirmDel(true)}
+            className="text-sm text-red-500 border border-red-500 hover:bg-red-500 hover:text-white transition px-3 py-1.5 rounded"
           >
-            Save
-          </button>
-          <button
-            onClick={() => {
-              setEditMode(false);
-              setName(poolData.name);
-              setArtist(poolData.artist || "");
-              setDescription(poolData.description || "");
-              setOrder(null);
-            }}
-            className="bg-neutral-700 text-white px-4 py-1.5 rounded text-sm"
-          >
-            Cancel
+            Delete Pool
           </button>
         </div>
       )}
@@ -149,6 +164,26 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
           </div>
         )}
       </section>
+
+      <ConfirmModal
+        open={showConfirmDel}
+        onClose={() => setShowConfirmDel(false)}
+        onConfirm={async () => {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools/${pool.id}`, {
+            method: "DELETE"
+          });
+          if (res.ok) {
+            router.push('/pools');
+            toast("Pool deleted!", "success");
+          } else {
+            toast("Failed to delete pool.", "error");
+          }
+        }}
+        title="Delete this pool?"
+        description={`This will permanently delete the pool, though not the posts associated.\nThis cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </main>
   );
 }

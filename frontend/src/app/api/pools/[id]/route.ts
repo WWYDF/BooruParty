@@ -74,11 +74,12 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   }
 
   const body = await req.json();
-  const updates: { name?: string; artist?: string; description?: string } = {};
+  const updates: { name?: string; artist?: string; safety?: 'SAFE' | 'SKETCHY' | 'UNSAFE'; description?: string } = {};
 
   // === Metadata update handling ===
   if (body.name !== undefined) updates.name = body.name.trim();
   if (body.artist !== undefined) updates.artist = body.artist.trim();
+  if (body.safety !== undefined) updates.safety = body.safety.trim();
   if (body.description !== undefined) {
     const desc = body.description.trim();
     if (desc.length > 256) {
@@ -168,6 +169,22 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     return NextResponse.json(newItem, { status: 201 });
   } catch (err) {
     console.error("Failed to add post to pool", err);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
+}
+
+// Deleting POOL (Does not delete posts)
+export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const poolId = parseInt(id);
+  if (isNaN(poolId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+
+  try {
+    await prisma.poolItems.deleteMany({ where: { poolId } });
+    await prisma.pools.delete({ where: { id: poolId } });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Failed to delete pool:", err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
