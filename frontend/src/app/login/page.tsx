@@ -1,14 +1,26 @@
 'use client';
 
 import { useToast } from '@/components/clientSide/Toast';
-import { signIn } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const router = useRouter();
   const toast = useToast();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      if (session) {
+        router.replace('/posts');
+        toast('You have been logged in.', 'success');
+      }
+    };
+  
+    checkSession();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -25,7 +37,10 @@ export default function LoginPage() {
     if (res?.error) {
       toast('Unable to sign in.', 'error');
     } else {
-      router.push('/profile');
+      router.push('/posts');
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     }
   };
 

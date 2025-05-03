@@ -4,6 +4,7 @@ import { compare } from 'bcryptjs';
 import { JWT } from 'next-auth/jwt';
 import { AuthOptions, Session, User } from 'next-auth';
 import { prisma } from "@/core/prisma";
+import { updateLastSeen } from '@/components/serverSide/lastSeen';
 
 export function auth() {
   return getServerSession(authOptions)
@@ -65,6 +66,9 @@ export const authOptions: AuthOptions = {
         // Assert as known return type even though we know it will invalidate the session
         return null as unknown as Session;
       }
+
+      // Update Last Login
+      await updateLastSeen(token.id);
     
       session.user.id = token.id as string;
       session.user.username = token.username as string;

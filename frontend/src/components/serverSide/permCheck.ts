@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { updateLastSeen } from "./lastSeen";
 
 export async function checkPermissions(
   perms: string | string[]
@@ -33,6 +34,10 @@ export async function checkPermissions(
   const userPerms: string[] = data.permissions ?? [];
 
   const hasAdmin = userPerms.includes("administrator");
+
+  try {
+    await updateLastSeen(data.userId);
+  } catch {}
 
   return Object.fromEntries(
     permissions.map((p) => [p, hasAdmin || userPerms.includes(p)])

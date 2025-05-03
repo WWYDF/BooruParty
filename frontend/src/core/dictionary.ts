@@ -87,5 +87,5 @@ export const auditLogColors: Record<string, string> = {
   DELETE: "text-red-500",
   CREATE: "text-green-500",
   UPDATE: "text-blue-400",
-  ARCHIVE: "text-pink-400",
+  ARCHIVE: "text-pink",
 };

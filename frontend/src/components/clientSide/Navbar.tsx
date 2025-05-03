@@ -104,10 +104,10 @@ export default function Navbar() {
           {hasPerm('posts_view') && (
             <NavItem href="/users">Users</NavItem>
           )}
-          {user?.username && user.avatar ? (
+          {user?.username ? (
             <Link href="/profile">
               <img
-                src={user.avatar}
+                src={user.avatar || `/user.png`}
                 alt={user.username}
                 className="w-8 h-8 rounded-full object-cover border border-zinc-700 hover:border-accent transition"
               />

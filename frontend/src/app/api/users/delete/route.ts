@@ -77,7 +77,13 @@ export async function DELETE(req: Request) {
       });
 
       // Report BEFORE deleting the user lol
-      await reportAudit(session.user.id, 'ARCHIVE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}`);
+      await reportAudit(session.user.id, 'ARCHIVE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}, Executed From: ${session.user.username}`);
+
+      // Move audits relating to them to deleted user.
+      await prisma.audits.updateMany({
+        where: { userId: targetUserId },
+        data: { userId: '0' }
+      })
 
       // Now run delete function (Settings, favorites, likes, etc.)
       await prisma.user.delete({
@@ -109,7 +115,13 @@ export async function DELETE(req: Request) {
       }
 
       // Report BEFORE deleting the user lol
-      await reportAudit(session.user.id, 'DELETE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}`);
+      await reportAudit(session.user.id, 'DELETE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}, Executed From: ${session.user.username}`);
+
+      // Move audits relating to them to deleted user.
+      await prisma.audits.updateMany({
+        where: { userId: targetUserId },
+        data: { userId: '0' }
+      })
 
       // Fully cascade delete (Posts, settings, favorites, likes, etc.)
       await prisma.user.delete({

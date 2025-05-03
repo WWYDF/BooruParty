@@ -1,8 +1,9 @@
 'use client';
 
 import { useToast } from '@/components/clientSide/Toast';
+import { getSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -14,6 +15,17 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      if (session) {
+        router.replace('/posts');
+      }
+    };
+  
+    checkSession();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -37,7 +49,21 @@ export default function RegisterPage() {
     } else {
       toast('Successfully registered! Redirecting...', 'success');
       setTimeout(() => {
-        router.push('/login');
+        (async () => {
+          const res = await signIn('credentials', {
+            redirect: false,
+            email: form.email,
+            password: form.password,
+          });
+      
+          if (res?.error) {
+            toast('Unable to sign in automatically.', 'error');
+            router.push('/login');
+          } else {
+            await new Promise((r) => setTimeout(r, 100));
+            window.location.reload();
+          }
+        })();
       }, 1250);
     }
   };

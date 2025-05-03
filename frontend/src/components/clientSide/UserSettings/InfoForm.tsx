@@ -139,7 +139,7 @@ export default function InfoForm() {
                     if (res.status === 204) {
                       toast("Account deleted", "success");
                       setTimeout(() => {
-                        router.push('/')
+                        window.location.reload();
                       }, 1000);
                     } else {
                       toast("Failed to delete account", "error");

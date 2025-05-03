@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatRelativeTime } from "@/core/formats";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
+import { cookies } from "next/headers";
 
 type User = {
   id: string;
@@ -17,8 +18,16 @@ type User = {
 };
 
 async function getUsersData(page: number) {
+  const cookieStore = cookies();
+  const cookieHeader = (await cookieStore).getAll()
+    .map((c: any) => `${c.name}=${c.value}`)
+    .join("; ");
+
   const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/users?page=${page}`, {
     cache: "no-store",
+    headers: {
+      Cookie: cookieHeader,
+    },
   });
 
   if (!res.ok) throw new Error("Failed to fetch users");
@@ -51,7 +60,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               className="bg-secondary rounded-xl p-4 hover:bg-secondary-border transition flex flex-col items-center text-center"
             >
               <img
-                src={user.avatar}
+                src={user.avatar || `/user.png`}
                 alt={user.username}
                 className="w-20 h-20 rounded-full object-cover mb-3"
               />
