@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Images, List, X, UserCircle, Users, ChartPie, UploadSimple, House } from '@phosphor-icons/react';
 import { NavItem } from './NavItem';
+import { usePathname } from "next/navigation";
+import { FolderOpen } from 'phosphor-react';
+
 
 type UserInfo = {
   id: string;
@@ -23,6 +26,8 @@ export default function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
+  const pathname = usePathname();
+  const isFullscreen = pathname?.includes("/fullscreen");
 
   useEffect(() => {
     fetch('/api/users/self')
@@ -72,6 +77,8 @@ export default function Navbar() {
 
   const hasPerm = (perm: string) =>
     user?.role?.permissions?.some((p) => p.name === perm);
+
+  if (isFullscreen) return null;
 
   return (
     <>
@@ -189,6 +196,11 @@ export default function Navbar() {
                 <NavItem href="/posts" icon={<Images size={18} />} onClick={() => setSidebarOpen(false)}>
                   Posts
                 </NavItem>
+                {hasPerm('post_view') && (
+                  <NavItem href="/pools" icon={<FolderOpen size={18} />} onClick={() => setSidebarOpen(false)}>
+                    Pools
+                  </NavItem>
+                )}
                 {hasPerm('post_create') && (
                   <NavItem href="/upload" icon={<UploadSimple size={18} />} onClick={() => setSidebarOpen(false)}>
                     Upload

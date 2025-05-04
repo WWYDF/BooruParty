@@ -5,6 +5,8 @@ import PostVoting from "./PostVoting";
 import { resolveFileType } from "@/core/dictionary";
 import { Post, PostUserStatus } from "@/core/types/posts";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "../../Toast";
 
 type Props = {
   post: Post;
@@ -17,6 +19,10 @@ const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
 export default function PostDisplay({ post, user, showVoting = true }: Props) {
   const [showFull, setShowFull] = useState(post.previewScale === 100 || post.previewScale == null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const poolId = searchParams.get("pool");
+  const toast = useToast();
 
   const fileType = resolveFileType(`.${post.fileExt}`);
 
@@ -52,6 +58,12 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
               loading="lazy"
               src={showFull ? fullSrc : post.previewPath}
               alt={`Error accessing ${fullSrc}`}
+              onClick={() => {
+                router.push(`/post/${post.id}/fullscreen${poolId ? `?pool=${poolId}` : ""}`);
+                if (window.innerWidth >= 768) {
+                  toast('Press ESC to exit', 'info');
+                };
+              }}
               className="max-h-[75vh] w-auto h-auto object-contain rounded-xl"
             />
           )}
