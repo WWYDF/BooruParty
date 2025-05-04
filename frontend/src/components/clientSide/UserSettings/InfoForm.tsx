@@ -1,27 +1,24 @@
 'use client';
 
-import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useEffect, useState } from 'react';
 import { useToast } from '../Toast';
 import { Trash } from 'phosphor-react';
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from 'next/navigation';
+import { UserSelf } from '@/core/types/users';
 
-export default function InfoForm() {
+export default function InfoForm({ user }: { user: UserSelf }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [description, setDescription] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteMode, setDeleteMode] = useState<"delete" | "transfer">("transfer");
-  const router = useRouter();
   const toast = useToast();
 
   useEffect(() => {
     (async () => {
       try {
-        const user = await getCurrentUser();
         setUsername(user.username || '');
         setEmail(user.email || '');
         setDescription(user.description || '');
@@ -33,7 +30,7 @@ export default function InfoForm() {
 
   const save = async () => {
     try {
-      await updateUser({ username, email, description });
+      await updateUser(username, { username, email, description });
       toast('Saved!', 'success');
     } catch (err: any) {
       toast(err.message, 'error');
@@ -132,7 +129,7 @@ export default function InfoForm() {
                 <button
                   onClick={async () => {
                     setDeleting(true);
-                    const res = await fetch(`/api/users/delete?mode=${deleteMode}`, {
+                    const res = await fetch(`/api/users/${user.username}/delete?mode=${deleteMode}`, {
                       method: "DELETE",
                     });
 

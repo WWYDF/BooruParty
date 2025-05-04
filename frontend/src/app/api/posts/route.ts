@@ -1,74 +1,217 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/core/prisma";
-import { appLogger } from "@/core/logger";
+import { SafetyType } from "@prisma/client";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { auth } from "@/core/authServer";
+import { reportAudit } from "@/components/serverSide/auditLog";
 
-const querySchema = z.object({
-  search: z.string().optional(),
-  safety: z.string().optional(),
-  tags: z.string().optional(),
-  sort: z.enum(["new", "old"]).optional(),
-  page: z.coerce.number().default(1),
-  perPage: z.coerce.number().default(30),
-});
+function parseSearch(input: string) {
+  const terms = input.split(/\s+/).filter(Boolean);
 
-export async function GET(req: NextRequest) {
+  const includeTags: string[] = [];
+  const excludeTags: string[] = [];
+  const systemOptions: Record<string, string> = {};
+
+  for (const term of terms) {
+    if (term.startsWith("-")) {
+      excludeTags.push(term.substring(1));
+    } else if (term.includes(":")) {
+      const [key, value] = term.split(":");
+      if (key && value) {
+        systemOptions[key] = value;
+      }
+    } else {
+      includeTags.push(term);
+    }
+  }
+
+  return { includeTags, excludeTags, systemOptions };
+}
+
+// Fetch all posts with optional tags, sorting, etc.
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+
+  const search = searchParams.get("query") || "";
+  const page = parseInt(searchParams.get("page") || "1");
+  const perPage = parseInt(searchParams.get("perPage") || "50");
+  const safetyValues = searchParams.getAll("safety");
+
+  const { includeTags, excludeTags, systemOptions } = parseSearch(search);
+
+  const orderValue = systemOptions.order || "createdAt"; // default to createdAt
+  let orderBy: any = { createdAt: "desc" };
+
+  if (orderValue.startsWith("score")) {
+    orderBy = { score: orderValue.endsWith("_asc") ? "asc" : "desc" };
+  } else if (orderValue.startsWith("favorites")) {
+    orderBy = { favoritedBy: { _count: orderValue.endsWith("_asc") ? "asc" : "desc" } };
+  } else if (orderValue.startsWith("tag_count")) {
+    orderBy = { tags: { _count: orderValue.endsWith("_asc") ? "asc" : "desc" } };
+  } else {
+    orderBy = { createdAt: "desc" }; // fallback
+  }
+
+  const uploaderWhere = systemOptions.posts
+  ? {
+      uploadedBy: {
+        is: {
+          username: systemOptions.posts,
+        },
+      },
+    }
+  : {};
+
+  const favoriterWhere = systemOptions.favorites
+  ? {
+      favoritedBy: {
+        some: {
+          user: {
+            username: systemOptions.favorites,
+          },
+        },
+      },
+    }
+  : {};
+
+  const posts = await prisma.posts.findMany({
+    where: {
+      AND: [
+        uploaderWhere,
+        favoriterWhere,
+        ...(safetyValues.length > 0
+          ? [{ safety: { in: safetyValues as SafetyType[] } }]
+          : []),
+        ...includeTags.map((tagName) => ({
+          tags: { some: { name: tagName } },
+        })),
+        ...excludeTags.map((tagName) => ({
+          tags: { none: { name: tagName } },
+        })),
+      ],
+    },
+    skip: (page - 1) * perPage,
+    take: perPage,
+    orderBy,
+    select: {
+      id: true,
+      fileExt: true,
+      safety: true,
+      uploadedBy: {
+        select: { id: true, username: true }
+      },
+      anonymous: true,
+      flags: true,
+      score: true,
+      favoritedBy: {
+        select: {
+          userId: true
+        }
+      },
+      comments: {
+        select: {
+          authorId: true,
+          content: true
+        }
+      },
+      createdAt: true,
+      tags: { select: { id: true, name: true } },
+    },
+  });
+
+  const totalCount = await prisma.posts.count({
+    where: {
+      AND: [
+        uploaderWhere,
+        ...includeTags.map((tagName) => ({
+          tags: { some: { name: tagName } },
+        })),
+        ...excludeTags.map((tagName) => ({
+          tags: { none: { name: tagName } },
+        })),
+      ],
+    },
+  });
+
+  const totalPages = Math.ceil(totalCount / perPage);
+
+  return NextResponse.json({
+    posts,
+    totalPages,
+  });
+}
+
+
+// Delete one or more posts by supplying an array body
+// Deletes posts the user has access to and skips over ones they dont
+export async function DELETE(req: NextRequest) {
+  const body = await req.json();
+  let { postIds } = body;
+
+  if (typeof postIds === "number") postIds = [postIds];
+
+  if (!Array.isArray(postIds) || postIds.some((id) => typeof id !== "number")) {
+    return NextResponse.json({ error: "Invalid postIds array" }, { status: 400 });
+  }
+
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const perms = await checkPermissions(["post_delete_own", "post_delete_others"]);
+  const canDeleteOwn = perms["post_delete_own"];
+  const canDeleteOthers = perms["post_delete_others"];
+
+  if (!canDeleteOwn && !canDeleteOthers) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
+
+  const foundPosts = await prisma.posts.findMany({
+    where: { id: { in: postIds } },
+    select: { id: true, uploadedById: true }
+  });
+
+  const deletable: number[] = [];
+  const skipped: { id: number; reason: string }[] = [];
+
+  for (const id of postIds) {
+    const post = foundPosts.find(p => p.id === id);
+
+    if (!post) {
+      skipped.push({ id, reason: "Post not found" });
+      continue;
+    }
+
+    const isOwner = post.uploadedById === session.user.id;
+    if (isOwner && canDeleteOwn) {
+      deletable.push(id);
+    } else if (!isOwner && canDeleteOthers) {
+      deletable.push(id);
+    } else {
+      skipped.push({ id, reason: "Not authorized" });
+    }
+  }
+
   try {
-    const permCheck = (await checkPermissions(['posts_view']))['posts_view'];
-    if (!permCheck) { return NextResponse.json({ error: "You are unauthorized to view posts." }, { status: 401 }); }
+    if (deletable.length > 0) {
+      await prisma.posts.deleteMany({ where: { id: { in: deletable } } });
 
-    const url = new URL(req.url);
-    const query = querySchema.parse(Object.fromEntries(url.searchParams.entries()));
+      await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/posts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postIds: deletable }),
+      });
 
-    const { search, safety, tags, sort = "new", page, perPage } = query;
-
-    const whereClause: any = {};
-
-    if (search) {
-      whereClause.OR = [
-        { fileName: { contains: search, mode: "insensitive" } },
-        { notes: { contains: search, mode: "insensitive" } },
-        { tags: { hasSome: [search.toLowerCase()] } },
-      ];
+      const forwarded = req.headers.get("x-forwarded-for");
+      const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+      await reportAudit(session.user.id, 'DELETE', 'POST', ip, `Deleted Posts: ${deletable}`);
     }
 
-    if (safety) {
-      whereClause.safety = safety;
-    }
-
-    if (tags) {
-      const tagArray = tags.split(",").map((t) => t.trim().toLowerCase());
-      whereClause.tags = { hasEvery: tagArray };
-    }
-
-    const posts = await prisma.posts.findMany({
-      where: whereClause,
-      include: {
-        favoritedBy: {
-          select: {
-            userId: true
-          }
-        },
-        uploadedBy: {
-          select: {
-            id: true,
-            username: true,
-            role: true,
-            avatar: true,
-          }
-        },
-      },
-      orderBy: {
-        createdAt: sort === "old" ? "asc" : "desc",
-      },
-      skip: (page - 1) * perPage,
-      take: perPage,
-    });
-
-    return NextResponse.json(posts);
-  } catch (error) {
-    appLogger.error("[GET /api/posts]", error);
-    return NextResponse.json({ error: "Failed to fetch posts." }, { status: 500 });
+    const statusCode = deletable.length > 0 && skipped.length > 0 ? 207 : 200;
+    return NextResponse.json({ deleted: deletable, skipped }, { status: statusCode });
+  } catch (err) {
+    console.error("Delete error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

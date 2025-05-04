@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 // GET endpoint to retrieve a single post by ID
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const permCheck = (await checkPermissions(['posts_view']))['posts_view'];
+    const permCheck = (await checkPermissions(['post_view']))['post_view'];
     if (!permCheck) { return NextResponse.json({ error: "You are unauthorized to view posts." }, { status: 401 }); }
   } catch {}
 
@@ -173,3 +173,5 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     return NextResponse.json({ error: "Failed to update post" }, { status: 500 });
   }
 }
+
+// Use DELETE /api/posts with a single-value array to delete a single post.

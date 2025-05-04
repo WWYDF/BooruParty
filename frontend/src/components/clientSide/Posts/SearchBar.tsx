@@ -44,7 +44,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
     debounceRef.current = setTimeout(() => {
       setIsSearching(true);
 
-      fetch(`/api/tags/search?query=${encodeURIComponent(lastWord.replace("-", ""))}`)
+      fetch(`/api/tags/autocomplete?query=${encodeURIComponent(lastWord.replace("-", ""))}`)
         .then((res) => res.json())
         .then((data: TagType[]) => {
           setSuggestions(data.slice(0, 10)); // limit to 10

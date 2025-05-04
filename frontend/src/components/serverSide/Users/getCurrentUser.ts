@@ -1,5 +1,9 @@
-export async function getCurrentUser() {
-    const res = await fetch('/api/users/self', {
+'use client'
+
+import { UserSelf } from "@/core/types/users";
+
+export async function getCurrentUser(): Promise<UserSelf> {
+    const res = await fetch(`/api/users/self`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });

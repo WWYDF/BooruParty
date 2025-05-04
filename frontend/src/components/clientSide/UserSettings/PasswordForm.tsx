@@ -3,8 +3,9 @@
 import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useState } from 'react';
 import { useToast } from '../Toast';
+import { UserSelf } from '@/core/types/users';
 
-export default function PasswordChangeForm() {
+export default function PasswordChangeForm({ user }: { user: UserSelf }) {
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
     const toast = useToast();
@@ -16,7 +17,7 @@ export default function PasswordChangeForm() {
       }
   
       try {
-        await updateUser({ password });
+        await updateUser(user.username, { password });
         setPassword('');
         setConfirm('');
         toast('Password Updated!', 'success');

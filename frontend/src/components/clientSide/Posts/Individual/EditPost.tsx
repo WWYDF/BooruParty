@@ -6,6 +6,7 @@ import Link from "next/link";
 import TagSelector, { TagType } from "../../TagSelector";
 import TagSuggestionPopup from "../../Tags/SuggestionPopup";
 import ConfirmModal from "../../ConfirmModal";
+import { useToast } from "../../Toast";
 
 type PostType = {
   id: number;
@@ -36,6 +37,7 @@ export default function EditPost({
   const [initialOrderedTags, setInitialOrderedTags] = useState<TagType[]>([]);
   const [newlyAddedTags, setNewlyAddedTags] = useState<TagType[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const toast = useToast();
 
   // One-time init
   useEffect(() => {
@@ -123,7 +125,7 @@ export default function EditPost({
           <select
             value={safety}
             onChange={(e) => setSafety(e.target.value as PostType["safety"])}
-            className="bg-secondary p-2 rounded text-sm text-white w-full"
+            className="bg-secondary p-2 rounded text-sm text-white w-full focus:outline-none focus:ring-2 focus:ring-zinc-800"
           >
             <option value="SAFE">Safe</option>
             <option value="SKETCHY">Sketchy</option>
@@ -148,7 +150,7 @@ export default function EditPost({
           <input
             value={sources}
             onChange={(e) => setSources(e.target.value)}
-            className="w-full p-2 rounded bg-secondary text-sm text-white"
+            className="w-full p-2 rounded bg-secondary text-sm text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
           />
         </div>
 
@@ -158,7 +160,7 @@ export default function EditPost({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className="w-full p-2 rounded bg-secondary text-sm text-white"
+            className="w-full p-2 rounded bg-secondary text-sm text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
           />
         </div>
       </div>
@@ -234,13 +236,22 @@ export default function EditPost({
         open={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={async () => {
-          await fetch("/api/posts/delete/", {
-            method: "POST",
+          const res = await fetch("/api/posts", {
+            method: "DELETE",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ postIds: [post.id] }),
           });
+        
+          const result = await res.json();
+        
           setShowDeleteModal(false);
-          onDeleteSuccess();
+        
+          if (res.ok && result.deleted?.includes(post.id)) {
+            onDeleteSuccess();
+          } else {
+            console.warn("Delete failed or unauthorized:", result);
+            toast(`Failed to delete Post #${post.id}.`, 'error');
+          }
         }}
         title="Delete Post?"
         description="This will permanently remove the post and its data. Are you sure?"

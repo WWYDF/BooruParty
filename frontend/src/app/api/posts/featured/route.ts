@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(`Successfully removed featured for ${type}.`, { status: 200 });
   }
 
-  // --- Check for embed permission
+  // Check for feature permission
   const hasPerms = (await checkPermissions(['post_feature']))['post_feature'];
-  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to view the contents of this page." }, { status: 403 }); }
+  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
   // Create or update the specialPost
   await prisma.specialPosts.upsert({

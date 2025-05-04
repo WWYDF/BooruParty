@@ -7,8 +7,6 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   const poolIdInt = parseInt(id);
   const current = Number(url.searchParams.get("current"));
 
-  console.log("Pool ID:", poolIdInt, "Current Post ID:", current);
-
   if (isNaN(poolIdInt) || isNaN(current)) {
     return NextResponse.json({ error: "Invalid poolId or current ID" }, { status: 400 });
   }

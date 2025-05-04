@@ -4,13 +4,15 @@ import { auth } from "@/core/authServer";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
 
+// Fetch all tag categories.
+// Add `default=true` to make the default category first in the return.
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const ignoreDefault = searchParams.get("ignoreDefault") === "true";
+  const showDefaultFirst = searchParams.get("default") === "true";
 
-  const orderBy = ignoreDefault
-    ? [{ order: "asc" }]
-    : [{ isDefault: "desc" }, { order: "asc" }];
+  const orderBy = showDefaultFirst
+    ? [{ isDefault: "desc" }, { order: "asc" }]
+    : [{ order: "asc" }];
 
   const categories = await prisma.tagCategories.findMany({
     orderBy: orderBy as { order?: "asc" | "desc"; isDefault?: "asc" | "desc" }[],

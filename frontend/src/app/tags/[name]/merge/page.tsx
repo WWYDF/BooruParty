@@ -9,7 +9,6 @@ export default function MergeTagPage() {
   const { name } = useParams<{ name: string }>();
   const router = useRouter();
 
-  const [targetName, setTargetName] = useState("");
   const [makeAlias, setMakeAlias] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [merging, setMerging] = useState(false);
@@ -22,7 +21,7 @@ export default function MergeTagPage() {
     setMerging(true);
   
     try {
-      const res = await fetch(`/api/tags/${encodeURIComponent(name)}/merge`, {
+      const res = await fetch(`/api/tags/${encodeURIComponent(name)}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

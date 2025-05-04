@@ -25,10 +25,14 @@ export function CreateTagModal({ open, onClose, onCreated }: CreateTagModalProps
 
   useEffect(() => {
     if (open) {
-      // Fetch categories when modal opens
-      fetch("/api/tag-categories")
+      fetch("/api/tag-categories?default=true")
         .then((res) => res.json())
-        .then((data) => setCategories(data))
+        .then((data: TagCategory[]) => {
+          setCategories(data);
+          if (data.length > 0) {
+            setCategoryId(data[0].id); // 👈 set first category as default
+          }
+        })
         .catch((err) => console.error("Failed to load categories", err));
     }
   }, [open]);

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import TagSubNavbar from "@/components/clientSide/Tags/Layout/TagSubNavbar";
 
 export type Tag = {
   id: number;

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { useToast } from '../Toast';
+import { UserSelf } from '@/core/types/users';
 
-export default function AvatarUpload() {
+export default function AvatarUpload({ user }: { user: UserSelf }) {
   const [current, setCurrent] = useState('/user.png');
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -16,12 +16,8 @@ export default function AvatarUpload() {
   useEffect(() => {
     (async () => {
       try {
-        const user = await getCurrentUser();
-  
         setCurrent(user.avatar || '/user.png');
-  
         const perms = user.role?.permissions?.map((p: any) => p.name) || [];
-  
         if (perms.includes("profile_edit_avatar") || perms.includes("administrator")) {
           setCanEdit(true);
         }
@@ -48,7 +44,7 @@ export default function AvatarUpload() {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = new Uint8Array(arrayBuffer);
 
-      const res = await fetch('/api/users/avatar', {
+      const res = await fetch(`/api/users/${user.username}/avatar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',

@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 import { auth } from "@/core/authServer";
 
-export async function POST(req: NextRequest) {
+// Vote on a specific comment
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -10,10 +12,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { commentId, vote } = await req.json();
+  const commentId = parseInt(id);
+  if (isNaN(commentId)) {
+    return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 });
+  }
 
-  if (!commentId || ![-1, 0, 1].includes(vote)) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  const { vote } = await req.json();
+  if (![1, 0, -1].includes(vote)) {
+    return NextResponse.json({ error: "Invalid vote" }, { status: 400 });
   }
 
   try {
@@ -46,12 +52,9 @@ export async function POST(req: NextRequest) {
       _sum: { vote: true },
     });
 
-    return NextResponse.json({
-      success: true,
-      score: _sum.vote ?? 0,
-    });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    return NextResponse.json({ success: true, score: _sum.vote ?? 0 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

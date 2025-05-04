@@ -61,7 +61,7 @@ export default function TagSelector({
     debounceTimeout.current = setTimeout(() => {
       setIsSearching(true);
 
-      fetch(`/api/tags/search?query=${encodeURIComponent(cleanQuery)}`)
+      fetch(`/api/tags/autocomplete?query=${encodeURIComponent(cleanQuery)}`)
         .then((res) => res.json())
         .then((data: TagType[]) => {
           const filtered = data.filter(
@@ -169,7 +169,7 @@ export default function TagSelector({
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full bg-secondary border border-secondary-border p-2 rounded text-zinc-100"
+        className="w-full bg-secondary border border-secondary-border p-2 rounded text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
       />
 
       {results.length > 0 && (

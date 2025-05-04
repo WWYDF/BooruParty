@@ -1,13 +1,39 @@
 import { auth } from '@/core/authServer';
 import { fileTypeFromBuffer } from 'file-type';
 import { prisma } from '@/core/prisma';
+import { checkPermissions } from '@/core/permissions';
+import { NextResponse } from 'next/server';
 
-export async function POST(req: Request) {
+// Change Avatar
+export async function POST(req: Request, context: { params: Promise<{ username: string }> }) {
+  const prams = await context.params;
   const session = await auth();
-  const userId = session?.user?.id;
+  if (!session?.user?.id) { return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }); }
 
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  const targetUser = await prisma.user.findUnique({
+    where: { username: prams.username },
+    select: { id: true },
+  });
+
+  if (!targetUser) {
+    return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
+  }
+
+  const isSelf = session.user.id === targetUser.id;
+
+  const perms = await checkPermissions([
+    'profile_edit_avatar',
+    'profile_edit_others'
+  ]);
+
+  if (isSelf) {
+    if (!perms['profile_edit_avatar']) {
+      return NextResponse.json({ error: "You are unauthorized to edit your avatar." }, { status: 403 });
+    }
+  } else {
+    if (!perms['profile_edit_others']) {
+      return NextResponse.json({ error: "You are unauthorized to edit other users' avatars." }, { status: 403 });
+    }
   }
 
   const arrayBuffer = await req.arrayBuffer();
@@ -18,11 +44,11 @@ export async function POST(req: Request) {
     return new Response(JSON.stringify({ error: `Unsupported or invalid image type. '${fileType?.mime}'` }), { status: 400 });
   }
 
-  const formData = new FormData();
   const blob = new Blob([buffer], { type: fileType.mime });
   const file = new File([blob], `avatar.${fileType.ext}`, { type: fileType.mime });
 
-  formData.append('userId', userId);
+  const formData = new FormData();
+  formData.append('userId', targetUser.id);
   formData.append('avatar', file);
 
   const fastifyUrl = process.env.NEXT_PUBLIC_FASTIFY;
@@ -42,7 +68,7 @@ export async function POST(req: Request) {
   }
 
   await prisma.user.update({
-    where: { id: userId },
+    where: { id: targetUser.id },
     data: { avatar: `/data${data.url}` },
   });
 
