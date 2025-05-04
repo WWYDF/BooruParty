@@ -66,7 +66,7 @@ export default function TagSelector({
             (tag) => !disabledTags.some((disabled) => disabled.id === tag.id)
           );
           setResults(filtered);
-          setHighlightedIndex(filtered.length > 0 ? 0 : -1);
+          setHighlightedIndex(-1);
         })
         .catch(() => {
           setResults([]);
@@ -85,10 +85,12 @@ export default function TagSelector({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setHighlightedIndex((prev) => (prev + 1) % results.length);
+      const max = Math.min(5, results.length);
+      setHighlightedIndex((prev) => (prev + 1) % max);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlightedIndex((prev) => (prev - 1 + results.length) % results.length);
+      const max = Math.min(5, results.length);
+      setHighlightedIndex((prev) => (prev - 1 + max) % max);
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (highlightedIndex >= 0 && results[highlightedIndex]) {
@@ -135,7 +137,7 @@ export default function TagSelector({
 
       {results.length > 0 && (
         <div className="absolute mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-10 max-h-60 overflow-y-auto">
-          {results.map((tag, idx) => (
+          {results.slice(0, 5).map((tag, idx) => (
             <div
               key={tag.id}
               onClick={() => handleClickResult(tag)}
