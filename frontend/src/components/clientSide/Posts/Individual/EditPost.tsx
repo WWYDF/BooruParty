@@ -125,7 +125,7 @@ export default function EditPost({
           <select
             value={safety}
             onChange={(e) => setSafety(e.target.value as PostType["safety"])}
-            className="bg-secondary p-2 rounded text-sm text-white w-full"
+            className="bg-secondary p-2 rounded text-sm text-white w-full focus:outline-none focus:ring-2 focus:ring-zinc-800"
           >
             <option value="SAFE">Safe</option>
             <option value="SKETCHY">Sketchy</option>
@@ -150,7 +150,7 @@ export default function EditPost({
           <input
             value={sources}
             onChange={(e) => setSources(e.target.value)}
-            className="w-full p-2 rounded bg-secondary text-sm text-white"
+            className="w-full p-2 rounded bg-secondary text-sm text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
           />
         </div>
 
@@ -160,7 +160,7 @@ export default function EditPost({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className="w-full p-2 rounded bg-secondary text-sm text-white"
+            className="w-full p-2 rounded bg-secondary text-sm text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
           />
         </div>
       </div>

@@ -135,7 +135,7 @@ export default function TagEditPage() {
 
               setNames(sanitized);
             }}
-            className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-200"
+            className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-800"
             placeholder="tag_name"
           />
           <p className="text-zinc-600 text-xs mt-1">
@@ -151,7 +151,7 @@ export default function TagEditPage() {
           <select
             value={categoryId ?? ""}
             onChange={(e) => setCategoryId(Number(e.target.value))}
-            className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100"
+            className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
           >
             <option value="">(none)</option>
             {categories
@@ -186,7 +186,7 @@ export default function TagEditPage() {
             {implications.map((imp) => (
               <div
                 key={imp.id}
-                className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm"
+                className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-800"
               >
                 <a href={`/dashboard/tag/${encodeURIComponent(imp.name)}`} className="hover:underline">
                   {imp.name}
@@ -227,7 +227,7 @@ export default function TagEditPage() {
             {suggestions.map((sugg) => (
               <div
                 key={sugg.id}
-                className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm"
+                className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-800"
               >
                 <a href={`/dashboard/tag/${encodeURIComponent(sugg.name)}`} className="hover:underline">
                   {sugg.name}
@@ -252,7 +252,7 @@ export default function TagEditPage() {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1"
+            className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-zinc-800"
             rows={6}
           />
         </div>

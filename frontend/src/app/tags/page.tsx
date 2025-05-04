@@ -17,7 +17,7 @@ type TagListType = {
   aliases: { alias: string }[];
   implications: { name: string }[];
   suggestions: { name: string }[];
-  posts: { id: number }[];
+  _count: { posts: number };
   createdAt: string;
 };
 
@@ -165,7 +165,7 @@ export default function TagListPage() {
 
                     {/* Usage */}
                     <td className="py-2 px-2">
-                      {tag.posts.length}
+                      {tag._count.posts}
                     </td>
 
                     {/* Created */}
@@ -212,7 +212,7 @@ export default function TagListPage() {
         onClose={() => setCreateModalOpen(false)}
         onCreated={() => {
           setTimeout(() => {
-            router.refresh();
+            window.location.reload();
           }, 200);
         }}
       />

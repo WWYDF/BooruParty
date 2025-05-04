@@ -169,7 +169,7 @@ export default function TagSelector({
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="w-full bg-secondary border border-secondary-border p-2 rounded text-zinc-100"
+        className="w-full bg-secondary border border-secondary-border p-2 rounded text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
       />
 
       {results.length > 0 && (
