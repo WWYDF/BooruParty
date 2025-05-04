@@ -42,7 +42,7 @@ export default function PasswordChangeForm() {
             onChange={(e) => setConfirm(e.target.value)}
             className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
         />
-        <button onClick={save} className="bg-darkerAccent text-white px-4 py-2 rounded">Update Password</button>
+        <button onClick={save} className="bg-darkerAccent hover:bg-darkerAccent/80 transition text-white px-4 py-2 rounded">Update Password</button>
         </section>
     );
 }

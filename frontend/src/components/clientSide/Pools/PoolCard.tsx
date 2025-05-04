@@ -51,7 +51,7 @@ export function PoolCard({
           <div className="absolute -top-6 left-0 w-full h-6 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="bg-black/70 px-3 pt-2 pb-1">
             <div className="text-sm font-semibold text-white truncate">{name}</div>
-            <div className="text-xs text-white/70 truncate">{artist}</div>
+            <div className="text-xs text-white/70 truncate">by {artist}</div>
           </div>
         </div>
       )}

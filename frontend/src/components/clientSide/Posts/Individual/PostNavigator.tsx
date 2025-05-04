@@ -72,7 +72,7 @@ export default function PostNavigator({ postId, poolId }: Props) {
           <button
             disabled={!previousPostId}
             onClick={() => router.push(`/post/${previousPostId}?pool=${poolId}`)}
-            className="flex items-center gap-1 text-subtle hover:text-accent disabled:opacity-40"
+            className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40"
           >
             <CaretLeft size={28} weight="bold" />
             <span className="text-sm">Previous</span>
@@ -81,7 +81,7 @@ export default function PostNavigator({ postId, poolId }: Props) {
           <button
             disabled={!nextPostId}
             onClick={() => router.push(`/post/${nextPostId}?pool=${poolId}`)}
-            className="flex items-center gap-1 text-subtle hover:text-accent disabled:opacity-40"
+            className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40"
           >
             <span className="text-sm">Next</span>
             <CaretRight size={28} weight="bold" />
@@ -92,7 +92,7 @@ export default function PostNavigator({ postId, poolId }: Props) {
           <button
             disabled={!nextPostId}
             onClick={() => router.push(`/post/${nextPostId}`)}
-            className="flex items-center gap-1 text-subtle hover:text-accent disabled:opacity-40"
+            className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40"
           >
             <CaretLeft size={28} weight="bold" />
             <span className="text-sm">Next</span>
@@ -101,7 +101,7 @@ export default function PostNavigator({ postId, poolId }: Props) {
           <button
             disabled={!previousPostId}
             onClick={() => router.push(`/post/${previousPostId}`)}
-            className="flex items-center gap-1 text-subtle hover:text-accent disabled:opacity-40"
+            className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40"
           >
             <span className="text-sm">Previous</span>
             <CaretRight size={28} weight="bold" />

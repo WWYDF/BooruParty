@@ -75,7 +75,7 @@ export default function PreferencesForm() {
             </div>
         </div>
 
-        <button onClick={save} className="bg-darkerAccent text-white px-4 py-2 rounded">Save Preferences</button>
+        <button onClick={save} className="bg-darkerAccent hover:bg-darkerAccent/80 transition text-white px-4 py-2 rounded">Save Preferences</button>
       </section>
     );
 }

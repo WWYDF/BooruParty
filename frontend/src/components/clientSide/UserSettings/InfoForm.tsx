@@ -64,12 +64,12 @@ export default function InfoForm() {
             type="text"
             className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
         />
-        <button onClick={save} className="bg-darkerAccent text-white px-4 py-2 rounded">Save Info</button>
+        <button onClick={save} className="bg-darkerAccent hover:bg-darkerAccent/80 transition text-white px-4 py-2 rounded">Save Info</button>
 
         {/* Trash button */}
         <button
           onClick={() => setShowConfirm(true)}
-          className="absolute bottom-4 right-4 bg-red-600 hover:bg-red-700 text-white p-2 rounded-md shadow"
+          className="absolute bottom-4 right-4 bg-red-600 hover:bg-red-700 transition text-white p-2 rounded-md shadow"
           title="Delete Account"
         >
           <Trash size={20} weight="bold" />
@@ -125,7 +125,7 @@ export default function InfoForm() {
               <div className="flex justify-end gap-4 pt-2">
                 <button
                   onClick={() => setShowConfirm(false)}
-                  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600"
+                  className="px-4 py-2 bg-zinc-700 rounded hover:bg-zinc-600 transition"
                 >
                   Cancel
                 </button>
@@ -148,7 +148,7 @@ export default function InfoForm() {
                     }
                   }}
                   disabled={deleting}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 transition rounded text-white"
                 >
                   {deleting ? "Deleting..." : "Yes, delete"}
                 </button>

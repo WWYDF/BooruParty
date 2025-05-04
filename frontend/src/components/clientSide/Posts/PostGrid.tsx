@@ -3,6 +3,7 @@
 import { Post } from '@/core/types/posts';
 import PostCard from './PostCard';
 import Masonry from 'react-masonry-css';
+import { motion } from "framer-motion";
 
 type ViewMode = 'GRID' | 'COLLAGE';
 
@@ -29,7 +30,13 @@ export default function PostGrid({
       >
         {externalPosts.map((post, index) => (
           <div key={`${post.id}-${index}`} className="mb-4">
-            <PostCard post={post} viewMode="COLLAGE" />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04, duration: 0.3 }}
+            >
+              <PostCard key={`${post.id}`} post={post} viewMode="COLLAGE" />
+            </motion.div>
           </div>
         ))}
       </Masonry>
@@ -40,7 +47,13 @@ export default function PostGrid({
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
       {externalPosts.map((post, index) => (
-        <PostCard key={`${post.id}-${index}`} post={post} viewMode="GRID" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.04, duration: 0.3 }}
+        >
+          <PostCard key={`${post.id}`} post={post} viewMode="GRID" />
+        </motion.div>
       ))}
     </div>
   );

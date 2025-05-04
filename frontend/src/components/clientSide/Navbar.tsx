@@ -98,11 +98,11 @@ export default function Navbar() {
           {hasPerm('dashboard_view') && (
             <NavItem href="/dashboard">Dashboard</NavItem>
           )}
-          {hasPerm('posts_view') && (
+          {hasPerm('post_view') && (
             <NavItem href="/users">Users</NavItem>
           )}
           {user?.username ? (
-            <Link href="/profile">
+            <Link href={`/users/${user?.username}`}>
               <img
                 src={user.avatar || `/user.png`}
                 alt={user.username}
@@ -205,7 +205,7 @@ export default function Navbar() {
                   </NavItem>
                 )}
                 {user?.username ? (
-                  <NavItem href="/profile" icon={<UserCircle size={18} />} onClick={() => setSidebarOpen(false)}>
+                  <NavItem href={`/users/${user?.username}`} icon={<UserCircle size={18} />} onClick={() => setSidebarOpen(false)}>
                     My Profile
                   </NavItem>
                 ) : (

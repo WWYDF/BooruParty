@@ -76,7 +76,11 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
       const data = await res.json();
 
       if (append) {
-        setPosts((prev) => [...prev, ...(data.posts || [])]);
+        setPosts((prev) => {
+          const existing = new Set(prev.map(p => p.id));
+          const filtered = (data.posts || []).filter((p: any) => !existing.has(p.id));
+          return [...prev, ...filtered];
+        });        
       } else {
         setPosts(data.posts || []);
         updateUrl(queryOverride, safetyOverride); // ONLY update URL on new search, not scroll
@@ -114,7 +118,8 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
 
       const scrolled = (scrollY + windowHeight) / fullHeight;
 
-      if (scrolled > 0.75 && !isLoadingMore && hasMore) {
+      // Percentage of the way through the screen:
+      if (scrolled > 0.55 && !isLoadingMore && hasMore) {
         setIsLoadingMore(true);
         const nextPage = page + 1;
         setPage(nextPage);
