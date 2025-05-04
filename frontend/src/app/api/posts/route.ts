@@ -1,74 +1,139 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
-import { appLogger } from "@/core/logger";
-import { checkPermissions } from "@/components/serverSide/permCheck";
+import { SafetyType } from "@prisma/client";
 
-const querySchema = z.object({
-  search: z.string().optional(),
-  safety: z.string().optional(),
-  tags: z.string().optional(),
-  sort: z.enum(["new", "old"]).optional(),
-  page: z.coerce.number().default(1),
-  perPage: z.coerce.number().default(30),
-});
+function parseSearch(input: string) {
+  const terms = input.split(/\s+/).filter(Boolean);
 
-export async function GET(req: NextRequest) {
-  try {
-    const permCheck = (await checkPermissions(['posts_view']))['posts_view'];
-    if (!permCheck) { return NextResponse.json({ error: "You are unauthorized to view posts." }, { status: 401 }); }
+  const includeTags: string[] = [];
+  const excludeTags: string[] = [];
+  const systemOptions: Record<string, string> = {};
 
-    const url = new URL(req.url);
-    const query = querySchema.parse(Object.fromEntries(url.searchParams.entries()));
-
-    const { search, safety, tags, sort = "new", page, perPage } = query;
-
-    const whereClause: any = {};
-
-    if (search) {
-      whereClause.OR = [
-        { fileName: { contains: search, mode: "insensitive" } },
-        { notes: { contains: search, mode: "insensitive" } },
-        { tags: { hasSome: [search.toLowerCase()] } },
-      ];
+  for (const term of terms) {
+    if (term.startsWith("-")) {
+      excludeTags.push(term.substring(1));
+    } else if (term.includes(":")) {
+      const [key, value] = term.split(":");
+      if (key && value) {
+        systemOptions[key] = value;
+      }
+    } else {
+      includeTags.push(term);
     }
-
-    if (safety) {
-      whereClause.safety = safety;
-    }
-
-    if (tags) {
-      const tagArray = tags.split(",").map((t) => t.trim().toLowerCase());
-      whereClause.tags = { hasEvery: tagArray };
-    }
-
-    const posts = await prisma.posts.findMany({
-      where: whereClause,
-      include: {
-        favoritedBy: {
-          select: {
-            userId: true
-          }
-        },
-        uploadedBy: {
-          select: {
-            id: true,
-            username: true,
-            role: true,
-            avatar: true,
-          }
-        },
-      },
-      orderBy: {
-        createdAt: sort === "old" ? "asc" : "desc",
-      },
-      skip: (page - 1) * perPage,
-      take: perPage,
-    });
-
-    return NextResponse.json(posts);
-  } catch (error) {
-    appLogger.error("[GET /api/posts]", error);
-    return NextResponse.json({ error: "Failed to fetch posts." }, { status: 500 });
   }
+
+  return { includeTags, excludeTags, systemOptions };
+}
+
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+
+  const search = searchParams.get("query") || "";
+  const page = parseInt(searchParams.get("page") || "1");
+  const perPage = parseInt(searchParams.get("perPage") || "50");
+  const safetyValues = searchParams.getAll("safety");
+
+  const { includeTags, excludeTags, systemOptions } = parseSearch(search);
+
+  const orderValue = systemOptions.order || "createdAt"; // default to createdAt
+  let orderBy: any = { createdAt: "desc" };
+
+  if (orderValue.startsWith("score")) {
+    orderBy = { score: orderValue.endsWith("_asc") ? "asc" : "desc" };
+  } else if (orderValue.startsWith("favorites")) {
+    orderBy = { favoritedBy: { _count: orderValue.endsWith("_asc") ? "asc" : "desc" } };
+  } else if (orderValue.startsWith("tag_count")) {
+    orderBy = { tags: { _count: orderValue.endsWith("_asc") ? "asc" : "desc" } };
+  } else {
+    orderBy = { createdAt: "desc" }; // fallback
+  }
+
+  const uploaderWhere = systemOptions.posts
+  ? {
+      uploadedBy: {
+        is: {
+          username: systemOptions.posts,
+        },
+      },
+    }
+  : {};
+
+  const favoriterWhere = systemOptions.favorites
+  ? {
+      favoritedBy: {
+        some: {
+          user: {
+            username: systemOptions.favorites,
+          },
+        },
+      },
+    }
+  : {};
+
+  const posts = await prisma.posts.findMany({
+    where: {
+      AND: [
+        uploaderWhere,
+        favoriterWhere,
+        ...(safetyValues.length > 0
+          ? [{ safety: { in: safetyValues as SafetyType[] } }]
+          : []),
+        ...includeTags.map((tagName) => ({
+          tags: { some: { name: tagName } },
+        })),
+        ...excludeTags.map((tagName) => ({
+          tags: { none: { name: tagName } },
+        })),
+      ],
+    },
+    skip: (page - 1) * perPage,
+    take: perPage,
+    orderBy,
+    select: {
+      id: true,
+      fileExt: true,
+      safety: true,
+      uploadedBy: {
+        select: { id: true, username: true }
+      },
+      anonymous: true,
+      flags: true,
+      score: true,
+      favoritedBy: {
+        select: {
+          userId: true
+        }
+      },
+      comments: {
+        select: {
+          authorId: true,
+          content: true
+        }
+      },
+      createdAt: true,
+      tags: { select: { id: true, name: true } },
+    },
+  });
+
+  const totalCount = await prisma.posts.count({
+    where: {
+      AND: [
+        uploaderWhere,
+        ...includeTags.map((tagName) => ({
+          tags: { some: { name: tagName } },
+        })),
+        ...excludeTags.map((tagName) => ({
+          tags: { none: { name: tagName } },
+        })),
+      ],
+    },
+  });
+
+  const totalPages = Math.ceil(totalCount / perPage);
+
+  return NextResponse.json({
+    posts,
+    totalPages,
+  });
 }

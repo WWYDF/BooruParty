@@ -72,7 +72,7 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
     safetyOverride.forEach((s) => params.append("safety", s));
 
     try {
-      const res = await fetch(`/api/posts/search?${params.toString()}`);
+      const res = await fetch(`/api/posts?${params.toString()}`);
       const data = await res.json();
 
       if (append) {
