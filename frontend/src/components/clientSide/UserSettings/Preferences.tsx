@@ -5,7 +5,7 @@ import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useEffect, useState } from 'react';
 import { useToast } from '../Toast';
 
-export default function PreferencesForm() {
+export default function PreferencesForm({ username }: { username: string }) {
     const [layout, setLayout] = useState<'GRID' | 'COLLAGE'>('GRID');
     const [theme, setTheme] = useState<'DARK' | 'LIGHT'>('DARK');
     const [postsPerPage, setPPP] = useState<number>(30);
@@ -26,7 +26,7 @@ export default function PreferencesForm() {
   
     const save = async () => {
       try {
-        await updateUser({ layout, theme, postsPerPage });
+        await updateUser(username, { layout, theme, postsPerPage });
         toast('Preferences Saved!', 'success');
       } catch (err: any) {
         toast(err.message, 'error');

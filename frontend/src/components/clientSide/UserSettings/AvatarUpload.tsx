@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { useToast } from '../Toast';
 
-export default function AvatarUpload() {
+export default function AvatarUpload({ username }: { username: string }) {
   const [current, setCurrent] = useState('/user.png');
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -48,7 +48,7 @@ export default function AvatarUpload() {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = new Uint8Array(arrayBuffer);
 
-      const res = await fetch('/api/users/avatar', {
+      const res = await fetch(`/api/users/${username}/avatar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',

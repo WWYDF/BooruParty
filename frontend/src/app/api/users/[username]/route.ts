@@ -1,7 +1,24 @@
+import { reportAudit } from "@/components/serverSide/auditLog";
+import { auth } from "@/core/authServer";
+import { checkPermissions } from "@/core/permissions";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
+import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
+const updateUserSchema = z.object({
+  username: z.string().min(3).max(32).optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(6).optional(),
+  description: z.string().max(64).optional(),
+  layout: z.enum(['GRID', 'COLLAGE']).optional(),
+  theme: z.enum(['DARK', 'LIGHT']).optional(),
+  postsPerPage: z.number().default(30),
+  avatar: z.string().url().optional(),
+});
+
+// Returns non-sensitive information on the user
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ username: string }> }
@@ -71,4 +88,249 @@ export async function GET(
     ...user,
     avatar: setAvatarUrl(user?.avatar)
   });
+}
+
+
+
+// Edit Profile
+export async function PATCH(req: NextRequest, { params }: { params: { username: string } }) {
+  const session = await auth();
+  if (!session?.user) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  const targetUser = await prisma.user.findUnique({
+    where: { username: params.username },
+    select: { id: true, username: true },
+  });
+
+  if (!targetUser) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  const isSelf = session.user.id === targetUser.id;
+
+  const canEditOthers = (await checkPermissions(['permission_string']))['permission_string'];
+
+  if (!isSelf && !canEditOthers) {
+    return NextResponse.json({ error: 'You are unauthorized to edit other users.' }, { status: 403 });
+  }
+
+  const json = await req.json();
+  const parsed = updateUserSchema.safeParse(json);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid data', issues: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const { username, email, description, password, layout, theme, postsPerPage } = parsed.data;
+
+  const updates: any = {};
+  if (username) updates.username = username;
+  if (email) updates.email = email;
+  updates.description = description;
+  if (password) updates.password = await bcrypt.hash(password, 10);
+
+  const prefUpdates: any = {};
+  if (layout) prefUpdates.layout = layout;
+  if (theme) prefUpdates.theme = theme;
+  if (postsPerPage) prefUpdates.postsPerPage = postsPerPage;
+
+  try {
+    const current = await prisma.user.findUnique({
+      where: { id: targetUser.id },
+      select: { username: true },
+    });
+
+    const update = await prisma.user.update({
+      where: { id: targetUser.id },
+      data: {
+        ...updates,
+        preferences: Object.keys(prefUpdates).length
+          ? {
+              upsert: {
+                update: prefUpdates,
+                create: prefUpdates,
+              },
+            }
+          : undefined,
+      },
+    });
+
+    if (current?.username !== update.username) {
+      const forwarded = req.headers.get('x-forwarded-for');
+      const ip = forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || undefined;
+      await reportAudit(session.user.id, 'UPDATE', 'PROFILE', ip, `Username Change: (${current!.username}) -> (${update.username})`);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    if (err.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Duplicate entry: username or email already exists' },
+        { status: 409 }
+      );
+    }
+
+    console.error('Update error:', err);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+
+
+// Delete User
+export async function DELETE(req: NextRequest, context: { params: Promise<{ username: string }> }) {
+  const prams = await context.params;
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const url = new URL(req.url);
+  const mode = url.searchParams.get("mode"); // "delete" | "transfer"
+  
+  const targetUser = await prisma.user.findUnique({
+    where: { username: prams.username },
+    select: { id: true, username: true },
+  });
+  
+  if (!targetUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+  
+  const targetUserId = targetUser.id;
+
+  const isSelfDelete = targetUserId === session.user.id;
+  let ip = undefined; // We don't want to log the IPs of users trying to delete their account.
+
+  // If attempting to delete someone else, check permission
+  let canArchiveOthers = false;
+  let canDeleteOthers = false;
+  if (!isSelfDelete) {
+    const perms = await checkPermissions([
+      'profile_archive_others',
+      'profile_delete_others'
+    ]);
+    
+    canArchiveOthers = perms['profile_archive_others'];
+    canDeleteOthers = perms['profile_delete_others'];
+
+    const forwarded = req.headers.get("x-forwarded-for");
+    ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+  }
+  
+  try {
+    // Remove User's Votes on Posts.
+    // Step 1: Get all votes by this user
+    const votes = await prisma.votes.findMany({
+      where: { userId: targetUserId },
+      select: {
+        postId: true,
+        type: true,
+      },
+    });
+
+    // Step 2: Calculate vote impact per post
+    const postScoreMap = new Map<number, number>();
+
+    for (const vote of votes) {
+      const delta = vote.type === "UPVOTE" ? -1 : 1; // Reverse effect of vote
+      postScoreMap.set(vote.postId, (postScoreMap.get(vote.postId) ?? 0) + delta);
+    }
+
+    // Step 3: Update each post’s score
+    await Promise.all(
+      Array.from(postScoreMap.entries()).map(([postId, delta]) =>
+        prisma.posts.update({
+          where: { id: postId },
+          data: {
+            score: {
+              increment: delta,
+            },
+          },
+        })
+      )
+    );
+
+
+    if (mode === "transfer") {
+      if (!isSelfDelete && !canArchiveOthers) { return NextResponse.json({ error: "You lack the required permissions to archive other users' profiles." }, { status: 403 }); }
+
+      // Retain posts: Reassign to system user with id "0" (deleted)
+      await prisma.posts.updateMany({
+        where: { uploadedById: targetUserId },
+        data: { uploadedById: "0" },
+      });
+
+      // Report BEFORE deleting the user lol
+      await reportAudit(session.user.id, 'ARCHIVE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}, Executed From: ${session.user.username}`);
+
+      // Move audits relating to them to deleted user.
+      await prisma.audits.updateMany({
+        where: { userId: targetUserId },
+        data: { userId: '0' }
+      })
+
+      // Now run delete function (Settings, favorites, likes, etc.)
+      await prisma.user.delete({
+        where: { id: targetUserId },
+      });
+
+    } else { // User wants to delete everything
+      if (!isSelfDelete && !canDeleteOthers) { return NextResponse.json({ error: "You lack the required permissions to delete other users' profiles." }, { status: 403 }); }
+
+      // Gather postIds to ask Fastify to purge them
+      const postsToDelete = await prisma.posts.findMany({
+        where: { uploadedById: targetUserId },
+        select: { id: true },
+      });
+
+      const postIds = postsToDelete.map((p) => p.id);
+
+      // If there are posts, notify Fastify of them
+      if (postIds.length > 0) {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/posts`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ postIds }),
+          });
+        } catch (err) {
+          console.error("Failed to notify Fastify to delete post files:", err);
+        }
+      }
+
+      // Report BEFORE deleting the user lol
+      await reportAudit(session.user.id, 'DELETE', 'PROFILE', ip, `Target ID: ${targetUserId}, isOwner: ${isSelfDelete}, Executed From: ${session.user.username}`);
+
+      // Move audits relating to them to deleted user.
+      await prisma.audits.updateMany({
+        where: { userId: targetUserId },
+        data: { userId: '0' }
+      })
+
+      // Fully cascade delete (Posts, settings, favorites, likes, etc.)
+      await prisma.user.delete({
+        where: { id: targetUserId },
+      });
+    }
+
+    // Regardless, ask Fastify to remove their avatar history
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/avatar/${targetUserId}`, {
+        method: "DELETE",
+      });
+    } catch (err) {
+      console.error("Failed to delete avatar files from Fastify:", err);
+    }
+
+    return new Response(null, { status: 204 });
+  } catch (err) {
+    console.error("User deletion failed:", err);
+    return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
+  }
 }

@@ -6,16 +6,14 @@ import { useEffect, useState } from 'react';
 import { useToast } from '../Toast';
 import { Trash } from 'phosphor-react';
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from 'next/navigation';
 
-export default function InfoForm() {
+export default function InfoForm({ currentUsername }: { currentUsername: string }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [description, setDescription] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteMode, setDeleteMode] = useState<"delete" | "transfer">("transfer");
-  const router = useRouter();
   const toast = useToast();
 
   useEffect(() => {
@@ -33,7 +31,7 @@ export default function InfoForm() {
 
   const save = async () => {
     try {
-      await updateUser({ username, email, description });
+      await updateUser(username, { username, email, description });
       toast('Saved!', 'success');
     } catch (err: any) {
       toast(err.message, 'error');
@@ -132,7 +130,7 @@ export default function InfoForm() {
                 <button
                   onClick={async () => {
                     setDeleting(true);
-                    const res = await fetch(`/api/users/delete?mode=${deleteMode}`, {
+                    const res = await fetch(`/api/users/${currentUsername}/delete?mode=${deleteMode}`, {
                       method: "DELETE",
                     });
 

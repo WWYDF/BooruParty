@@ -23,14 +23,14 @@ export default async function ProfileSettingsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left Column */}
         <div className="space-y-6">
-          <InfoForm />
-          <PasswordChangeForm />
+          <InfoForm currentUsername={session.user.username} />
+          <PasswordChangeForm username={session.user.username} />
         </div>
 
         {/* Right Column */}
         <div className="space-y-6">
-          <AvatarUpload />
-          <PreferencesForm />
+          <AvatarUpload username={session.user.username} />
+          <PreferencesForm username={session.user.username} />
         </div>
       </div>
     </div>
