@@ -198,11 +198,14 @@ export default function PostCommentList({
 
     const newVote = current.userVote === vote ? 0 : vote;;
 
-    const res = await fetch("/api/comments/vote", {
-      method: "POST",
-      body: JSON.stringify({ commentId, vote: newVote }),
+    const res = await fetch(`/api/comments/${commentId}/vote`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ vote: newVote }),
     });
-  
+    
     if (!res.ok) {
       const data = await res.json();
       if (data?.error?.toLowerCase().includes("unauthorized")) {
