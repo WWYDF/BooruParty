@@ -173,3 +173,5 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     return NextResponse.json({ error: "Failed to update post" }, { status: 500 });
   }
 }
+
+// Use DELETE /api/posts with a single-value array to delete a single post.
