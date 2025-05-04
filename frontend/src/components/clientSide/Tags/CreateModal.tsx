@@ -93,10 +93,11 @@ export function CreateTagModal({ open, onClose, onCreated }: CreateTagModalProps
                 <label className="text-zinc-600 text-sm">Name</label>
                 <input
                   type="text"
-                  className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100"
+                  className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
                   placeholder="example_tag"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  required
                 />
               </div>
 
@@ -104,7 +105,7 @@ export function CreateTagModal({ open, onClose, onCreated }: CreateTagModalProps
               <div>
                 <label className="text-zinc-600 text-sm">Description (optional)</label>
                 <textarea
-                  className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100"
+                  className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
                   placeholder="Describe the tag here..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -118,9 +119,10 @@ export function CreateTagModal({ open, onClose, onCreated }: CreateTagModalProps
                 <select
                   value={categoryId ?? ""}
                   onChange={(e) => setCategoryId(Number(e.target.value))}
-                  className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100"
+                  className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                  required
                 >
-                  <option value="">Select category</option>
+                  <option value="" disabled>Select category</option>
                   {categories
                     .sort((a, b) => a.order - b.order)
                     .map((cat) => (

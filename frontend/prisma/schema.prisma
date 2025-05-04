@@ -195,10 +195,11 @@ model TagAlias {
 
 model TagCategories {
   id         Int          @id @default(autoincrement())
-  name       String
+  name       String       @unique
   color      String
   order      Int?
   tags       Tags[]
+  isDefault  Boolean      @default(false)
 
   updatedAt  DateTime     @updatedAt
 }

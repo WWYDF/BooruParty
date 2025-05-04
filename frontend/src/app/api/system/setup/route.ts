@@ -205,6 +205,28 @@ export async function POST(req: Request) {
       });
     }
 
+    // Create default Tag Category if one doesn't exist
+    const tagCategories = await prisma.tagCategories.findFirst({
+      where: { isDefault: true }
+    });
+
+    // Update default if it does exist but isn't default for whatever reason
+    // Otherwise, just create it (most cases)
+    if (!tagCategories) {
+      await prisma.tagCategories.upsert({
+        where: { name: "Default" },
+        update: {
+          isDefault: true,
+        },
+        create: {
+          name: "Default",
+          color: "#3c9aff", //blue
+          isDefault: true,
+          order: 999 // last
+        }
+      })
+    }
+
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error("Setup error:", e);

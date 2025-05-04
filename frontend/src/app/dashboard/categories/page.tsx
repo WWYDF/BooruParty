@@ -22,7 +22,7 @@ export default function Page() {
   // Fetch categories once
   useEffect(() => {
     const fetchCategories = async () => {
-      const res = await fetch('/api/tag-categories', { cache: 'no-store' });
+      const res = await fetch('/api/tag-categories?ignoreDefault=true', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setCategories(data);

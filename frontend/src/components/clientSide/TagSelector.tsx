@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useToast } from "./Toast";
 
 export type TagType = {
   id: number;
@@ -40,6 +41,7 @@ export default function TagSelector({
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const toast = useToast();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -95,8 +97,17 @@ export default function TagSelector({
       e.preventDefault();
       if (highlightedIndex >= 0 && results[highlightedIndex]) {
         handleSelect(results[highlightedIndex]);
-      } else if (onEnter) {
-        onEnter(query.trim());
+      } else {
+        const trimmed = query.trim();
+        const isNegated = allowNegation && trimmed.startsWith("-");
+        const nameToCreate = isNegated ? trimmed.slice(1) : trimmed;
+    
+        const exists = results.some(r => r.name.toLowerCase() === nameToCreate.toLowerCase());
+        if (!exists) {
+          tryCreateTag(nameToCreate);
+        } else if (onEnter) {
+          onEnter(query.trim());
+        }
       }
     } else if (e.key === "Escape") {
       setResults([]);
@@ -122,6 +133,32 @@ export default function TagSelector({
   const handleClickResult = (tag: TagType) => {
     handleSelect(tag);
   };
+
+  const tryCreateTag = async (name: string) => {
+    try {
+      const res = await fetch("/api/tags/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+  
+      if (res.status === 403) {
+        toast("You don't have permission to create tags.", "error");
+        return;
+      }
+  
+      if (!res.ok) {
+        toast("Failed to create tag.", "error");
+        return;
+      }
+  
+      const created: TagType = await res.json();
+      handleSelect(created);
+    } catch {
+      toast("Failed to create tag.", "error");
+    }
+  };
+  
 
   return (
     <div className="relative w-full">
