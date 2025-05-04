@@ -61,7 +61,7 @@ export default function TagSelector({
     debounceTimeout.current = setTimeout(() => {
       setIsSearching(true);
 
-      fetch(`/api/tags/search?query=${encodeURIComponent(cleanQuery)}`)
+      fetch(`/api/tags/autocomplete?query=${encodeURIComponent(cleanQuery)}`)
         .then((res) => res.json())
         .then((data: TagType[]) => {
           const filtered = data.filter(

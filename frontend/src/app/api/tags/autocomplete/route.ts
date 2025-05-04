@@ -46,7 +46,6 @@ export async function GET(req: Request) {
         },
       },
     },
-    take: LIMIT * 2,
   });
 
   // Flatten aliases to tags
