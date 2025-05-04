@@ -1,11 +1,11 @@
 'use client';
 
-import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useEffect, useState } from 'react';
 import { useToast } from '../Toast';
+import { UserSelf } from '@/core/types/users';
 
-export default function PreferencesForm({ username }: { username: string }) {
+export default function PreferencesForm({ user }: { user: UserSelf }) {
     const [layout, setLayout] = useState<'GRID' | 'COLLAGE'>('GRID');
     const [theme, setTheme] = useState<'DARK' | 'LIGHT'>('DARK');
     const [postsPerPage, setPPP] = useState<number>(30);
@@ -14,7 +14,6 @@ export default function PreferencesForm({ username }: { username: string }) {
     useEffect(() => {
       (async () => {
         try {
-          const user = await getCurrentUser();
           setLayout(user.preferences?.layout || 'GRID');
           setTheme(user.preferences?.theme || 'DARK');
           setPPP(user.preferences?.postsPerPage || 30);
@@ -26,7 +25,7 @@ export default function PreferencesForm({ username }: { username: string }) {
   
     const save = async () => {
       try {
-        await updateUser(username, { layout, theme, postsPerPage });
+        await updateUser(user.username, { layout, theme, postsPerPage });
         toast('Preferences Saved!', 'success');
       } catch (err: any) {
         toast(err.message, 'error');

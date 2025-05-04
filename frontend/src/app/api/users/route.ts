@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const users = await prisma.user.findMany({
     skip: (page - 1) * TAKE,
     take: 50,
-    orderBy: { lastLogin: "asc" },
+    orderBy: { lastLogin: 'desc' },
     select: {
       id: true,
       username: true,

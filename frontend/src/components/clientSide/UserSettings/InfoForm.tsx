@@ -1,13 +1,13 @@
 'use client';
 
-import { getCurrentUser } from '@/components/serverSide/Users/getCurrentUser';
 import { updateUser } from '@/components/serverSide/Users/updateUser';
 import { useEffect, useState } from 'react';
 import { useToast } from '../Toast';
 import { Trash } from 'phosphor-react';
 import { motion, AnimatePresence } from "framer-motion";
+import { UserSelf } from '@/core/types/users';
 
-export default function InfoForm({ currentUsername }: { currentUsername: string }) {
+export default function InfoForm({ user }: { user: UserSelf }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [description, setDescription] = useState('');
@@ -19,7 +19,6 @@ export default function InfoForm({ currentUsername }: { currentUsername: string 
   useEffect(() => {
     (async () => {
       try {
-        const user = await getCurrentUser();
         setUsername(user.username || '');
         setEmail(user.email || '');
         setDescription(user.description || '');
@@ -130,7 +129,7 @@ export default function InfoForm({ currentUsername }: { currentUsername: string 
                 <button
                   onClick={async () => {
                     setDeleting(true);
-                    const res = await fetch(`/api/users/${currentUsername}/delete?mode=${deleteMode}`, {
+                    const res = await fetch(`/api/users/${user.username}/delete?mode=${deleteMode}`, {
                       method: "DELETE",
                     });
 
