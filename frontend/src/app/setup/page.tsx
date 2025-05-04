@@ -22,7 +22,7 @@ export default function SetupPage() {
   const toast = useToast();
 
   useEffect(() => {
-    fetch("/api/system/setup/status")
+    fetch("/api/system/setup")
       .then((res) => res.json())
       .then((data) => {
         if (data.setupComplete) router.push("/");

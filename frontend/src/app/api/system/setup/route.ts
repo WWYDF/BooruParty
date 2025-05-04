@@ -3,6 +3,18 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { DISALLOWED_USERNAMES } from "@/core/dictionary";
 
+// Get setup status
+export async function GET() {
+  const setup = await prisma.siteSettings.findUnique({ where: { id: 1 } });
+  const user = await prisma.user.findFirst();
+
+  return NextResponse.json({
+    setupComplete: setup?.setupComplete ?? false,
+    userExists: !!user,
+  });
+}
+
+// Setup Server (tries to keep everything intact so this can be ran to update too)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
