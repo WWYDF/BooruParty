@@ -96,7 +96,7 @@ export default function TagEditPage() {
   
       if (res.ok) {
         toast("Tag updated successfully!", "success");
-        router.push(`/dashboard/tags/${encodeURIComponent(names[0])}`);
+        router.replace(`/tags/${encodeURIComponent(names[0])}`);
       } else {
         const data = await res.json();
         toast(data.error || "Failed to save changes.", "error");

@@ -67,7 +67,7 @@ export default function Page() {
   const saveEdit = async (id: number) => {
     try {
       const res = await fetch(`/api/tag-categories/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify({
           name: editForm.name,
           color: editForm.color,
@@ -93,7 +93,7 @@ export default function Page() {
       const responses = await Promise.all(
         categories.map((cat, idx) =>
           fetch(`/api/tag-categories/${cat.id}`, {
-            method: "PUT",
+            method: "PATCH",
             body: JSON.stringify({ order: idx }),
           })
         )

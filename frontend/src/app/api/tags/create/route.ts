@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     const forwarded = req.headers.get("x-forwarded-for");
     const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
-    await reportAudit(session.user.id, 'CREATE', 'TAG', `Tag Name: ${name}, Category: ${setCategory}`);
+    await reportAudit(session.user.id, 'CREATE', 'TAG', ip, `Tag Name: ${name}, Category: ${setCategory}`);
 
     return NextResponse.json(created);
   } catch (err) {

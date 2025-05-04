@@ -278,7 +278,7 @@ export default function PostMetadata({ post }: Props) {
                         className="inline-flex items-center gap-1 border border-zinc-900 px-2 py-1 rounded-full w-fit"
                         style={{ color: tag.category?.color || "#fff" }}
                       >
-                        <Link href={`/dashboard/tags/${tag.name}`} title="Edit tag">
+                        <Link href={`/tags/${tag.name}`} title="Edit tag">
                           <Tag size={14} />
                         </Link>
 

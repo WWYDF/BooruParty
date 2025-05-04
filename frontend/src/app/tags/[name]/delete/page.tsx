@@ -41,7 +41,7 @@ export default function TagDeletePage() {
 
     if (res.ok) {
       toast(`Successfully deleted tag '${tag.name}'.`, 'success')
-      router.push("/dashboard/tags");
+      router.push("/tags");
     } else {
       const data = await res.json();
       setError(data.error || "Failed to delete tag.");

@@ -15,8 +15,8 @@ export default function TagSubNavbar({ tag }: { tag: string }) {
     <nav className="flex gap-4 text-subtle border-b border-secondary-border pb-2 mb-4">
       {sections.map((section) => {
         const href = section === "" 
-          ? `/dashboard/tags/${tag}` 
-          : `/dashboard/tags/${tag}/${section}`;
+          ? `/tags/${tag}` 
+          : `/tags/${tag}/${section}`;
         const label = section === "" ? "Summary" : section[0].toUpperCase() + section.slice(1);
         
         // Normalize both paths before comparison

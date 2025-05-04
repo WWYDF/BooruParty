@@ -197,7 +197,7 @@ model TagCategories {
   id         Int          @id @default(autoincrement())
   name       String       @unique
   color      String
-  order      Int?
+  order      Int          @default(autoincrement())
   tags       Tags[]
   isDefault  Boolean      @default(false)
 

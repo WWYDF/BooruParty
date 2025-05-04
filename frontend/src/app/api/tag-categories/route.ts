@@ -21,11 +21,14 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { name, color, order } = body;
+  let { name, color, order } = body;
   const session = await auth();
 
   const hasPerms = (await checkPermissions(['tags_categories_manage']))['tags_categories_manage'];
   if (!session || !hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
+
+  if (!color) color = '#3c9aff';
+  order - parseInt(order);
 
   const category = await prisma.tagCategories.create({
     data: { name, color, order },

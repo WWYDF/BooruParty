@@ -189,7 +189,7 @@ export default function EditPost({
                 <X size={16} />
               </button>
 
-              <Link href={`/dashboard/tags/${tag.name}`} className="hover:opacity-80">
+              <Link href={`/tags/${tag.name}`} className="hover:opacity-80">
                 <TagIcon size={16} />
               </Link>
 

@@ -1,6 +1,5 @@
-import { auth } from "@/core/authServer";
 import { prisma } from "@/core/prisma";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 export async function GET(req: Request) {
@@ -50,11 +49,16 @@ export async function GET(req: Request) {
           name: true
         }
       },
-      posts: {
+      _count: {
         select: {
-          id: true
+          posts: true
         }
       },
+      // posts: {
+      //   select: {
+      //     id: true
+      //   }
+      // },
       createdAt: true,
     },
   });

@@ -35,7 +35,7 @@ export default function MergeTagPage() {
   
       if (res.ok) {
         toast("Tag merged successfully!", "success");
-        router.push(`/dashboard/tags/${encodeURIComponent(target.name)}`);
+        router.replace(`/tags/${encodeURIComponent(target.name)}`);
       } else {
         const data = await res.json();
         toast(data.error || "Failed to merge tag.", "error");
