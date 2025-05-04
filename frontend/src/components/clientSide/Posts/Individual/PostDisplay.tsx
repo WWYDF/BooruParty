@@ -91,7 +91,7 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
           transition={{ duration: 0.25, ease: "easeInOut" }}
           onAnimationComplete={() => {
             router.push(`/post/${post.id}/fullscreen${poolId ? `?pool=${poolId}` : ""}`);
-            if (window.innerWidth >= 768) {
+            if (window.innerWidth >= 1280) {
               toast('Press ESC to exit', 'info');
             };
           }}

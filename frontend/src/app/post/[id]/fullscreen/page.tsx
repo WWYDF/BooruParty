@@ -121,14 +121,14 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
       </div>
 
         {post?.id && (
-          <div className="md:hidden sticky bottom-0 w-full bg-black/90 backdrop-blur-sm z-50 border-t border-zinc-800 px-4 py-3">
+          <div className="2xl:hidden bottom-0 w-full bg-black/90 backdrop-blur-sm z-50 border-t border-zinc-800 px-4 py-3">
             <button
               onClick={() =>
                 router.push(poolId
                   ? `/post/${post.id}?pool=${poolId}`
                   : `/post/${post.id}`)
               }
-              className="w-full py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-medium"
+              className="w-full py-2 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition text-white font-medium"
             >
               ← Return to Post
             </button>

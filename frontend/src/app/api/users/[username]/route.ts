@@ -93,14 +93,15 @@ export async function GET(
 
 
 // Edit Profile
-export async function PATCH(req: NextRequest, { params }: { params: { username: string } }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ username: string }> }) {
+  const prams = await context.params;
   const session = await auth();
   if (!session?.user) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
   const targetUser = await prisma.user.findUnique({
-    where: { username: params.username },
+    where: { username: prams.username },
     select: { id: true, username: true },
   });
 
