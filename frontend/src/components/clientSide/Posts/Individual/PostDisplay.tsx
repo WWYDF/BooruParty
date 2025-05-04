@@ -23,6 +23,7 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
   const searchParams = useSearchParams();
   const poolId = searchParams.get("pool");
   const toast = useToast();
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const fileType = resolveFileType(`.${post.fileExt}`);
 
@@ -58,13 +59,11 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
               loading="lazy"
               src={showFull ? fullSrc : post.previewPath}
               alt={`Error accessing ${fullSrc}`}
+              title="Click to enter fullscreen mode"
               onClick={() => {
-                router.push(`/post/${post.id}/fullscreen${poolId ? `?pool=${poolId}` : ""}`);
-                if (window.innerWidth >= 768) {
-                  toast('Press ESC to exit', 'info');
-                };
+                setIsAnimating(true);
               }}
-              className="max-h-[75vh] w-auto h-auto object-contain rounded-xl"
+              className="max-h-[75vh] w-auto h-auto object-contain rounded-xl cursor-pointer"
             />
           )}
         </motion.div>
@@ -82,6 +81,22 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
       ) : null}
 
       {showVoting && <PostVoting post={post} user={userNull} />}
+
+      {isAnimating && (
+        <motion.div
+          className="fixed top-0 left-0 w-full h-full bg-black z-50"
+          initial={{ scale: 0.1, opacity: 0 }}
+          animate={{ scale: 1.1, opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
+          onAnimationComplete={() => {
+            router.push(`/post/${post.id}/fullscreen${poolId ? `?pool=${poolId}` : ""}`);
+            if (window.innerWidth >= 768) {
+              toast('Press ESC to exit', 'info');
+            };
+          }}
+        />
+      )}
     </div>
   );
 }
