@@ -1,6 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/core/prisma";
 import { SafetyType } from "@prisma/client";
+import { checkPermissions } from "@/components/serverSide/permCheck";
+import { auth } from "@/core/authServer";
+import { reportAudit } from "@/components/serverSide/auditLog";
 
 function parseSearch(input: string) {
   const terms = input.split(/\s+/).filter(Boolean);
@@ -25,7 +28,7 @@ function parseSearch(input: string) {
   return { includeTags, excludeTags, systemOptions };
 }
 
-
+// Fetch all posts with optional tags, sorting, etc.
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
@@ -136,4 +139,79 @@ export async function GET(req: Request) {
     posts,
     totalPages,
   });
+}
+
+
+// Delete one or more posts by supplying an array body
+// Deletes posts the user has access to and skips over ones they dont
+export async function DELETE(req: NextRequest) {
+  const body = await req.json();
+  let { postIds } = body;
+
+  if (typeof postIds === "number") postIds = [postIds];
+
+  if (!Array.isArray(postIds) || postIds.some((id) => typeof id !== "number")) {
+    return NextResponse.json({ error: "Invalid postIds array" }, { status: 400 });
+  }
+
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const perms = await checkPermissions(["post_delete_own", "post_delete_others"]);
+  const canDeleteOwn = perms["post_delete_own"];
+  const canDeleteOthers = perms["post_delete_others"];
+
+  if (!canDeleteOwn && !canDeleteOthers) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  }
+
+  const foundPosts = await prisma.posts.findMany({
+    where: { id: { in: postIds } },
+    select: { id: true, uploadedById: true }
+  });
+
+  const deletable: number[] = [];
+  const skipped: { id: number; reason: string }[] = [];
+
+  for (const id of postIds) {
+    const post = foundPosts.find(p => p.id === id);
+
+    if (!post) {
+      skipped.push({ id, reason: "Post not found" });
+      continue;
+    }
+
+    const isOwner = post.uploadedById === session.user.id;
+    if (isOwner && canDeleteOwn) {
+      deletable.push(id);
+    } else if (!isOwner && canDeleteOthers) {
+      deletable.push(id);
+    } else {
+      skipped.push({ id, reason: "Not authorized" });
+    }
+  }
+
+  try {
+    if (deletable.length > 0) {
+      await prisma.posts.deleteMany({ where: { id: { in: deletable } } });
+
+      await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/posts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postIds: deletable }),
+      });
+
+      const forwarded = req.headers.get("x-forwarded-for");
+      const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+      await reportAudit(session.user.id, 'DELETE', 'POST', ip, `Deleted Posts: ${deletable}`);
+    }
+
+    const statusCode = deletable.length > 0 && skipped.length > 0 ? 207 : 200;
+    return NextResponse.json({ deleted: deletable, skipped }, { status: statusCode });
+  } catch (err) {
+    console.error("Delete error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

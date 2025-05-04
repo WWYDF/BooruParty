@@ -6,6 +6,7 @@ import Link from "next/link";
 import TagSelector, { TagType } from "../../TagSelector";
 import TagSuggestionPopup from "../../Tags/SuggestionPopup";
 import ConfirmModal from "../../ConfirmModal";
+import { useToast } from "../../Toast";
 
 type PostType = {
   id: number;
@@ -36,6 +37,7 @@ export default function EditPost({
   const [initialOrderedTags, setInitialOrderedTags] = useState<TagType[]>([]);
   const [newlyAddedTags, setNewlyAddedTags] = useState<TagType[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const toast = useToast();
 
   // One-time init
   useEffect(() => {
@@ -234,13 +236,22 @@ export default function EditPost({
         open={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={async () => {
-          await fetch("/api/posts/delete/", {
-            method: "POST",
+          const res = await fetch("/api/posts", {
+            method: "DELETE",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ postIds: [post.id] }),
           });
+        
+          const result = await res.json();
+        
           setShowDeleteModal(false);
-          onDeleteSuccess();
+        
+          if (res.ok && result.deleted?.includes(post.id)) {
+            onDeleteSuccess();
+          } else {
+            console.warn("Delete failed or unauthorized:", result);
+            toast(`Failed to delete Post #${post.id}.`, 'error');
+          }
         }}
         title="Delete Post?"
         description="This will permanently remove the post and its data. Are you sure?"
