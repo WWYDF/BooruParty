@@ -190,7 +190,7 @@ model TagAlias {
   id      Int    @id @default(autoincrement())
   alias   String @unique
   tagId   Int
-  tag     Tags   @relation(fields: [tagId], references: [id])
+  tag     Tags   @relation(fields: [tagId], references: [id], onDelete: Cascade)
 }
 
 model TagCategories {
@@ -243,6 +243,17 @@ model Audits {
 
   @@id([executedAt, userId])
   @@index([category, actionType])
+}
+
+model LiveLogger {
+  view          String
+  accessorId    String
+  details       String[]
+
+  createdAt     DateTime        @default(now())
+  lastLogged    DateTime        @default(now())
+
+  @@id([view, accessorId])
 }
 
 model Pools {
