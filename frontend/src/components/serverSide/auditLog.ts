@@ -27,10 +27,17 @@ export function buildPostChangeDetails(original: any, updated: any): string {
   if (original.anonymous !== updated.anonymous)
     changes.push(`anonymous: ${original.anonymous} → ${updated.anonymous}`);
 
-  const originalTagIds = original.tags.map((t: any) => t.id).sort();
-  const updatedTagIds = updated.tags.map((t: any) => t.id).sort();
-  if (JSON.stringify(originalTagIds) !== JSON.stringify(updatedTagIds)) {
-    changes.push(`tags: [${originalTagIds.join(", ")}] → [${updatedTagIds.join(", ")}]`);
+  const originalTagNames = original.tags.map((t: any) => t.name);
+  const updatedTagNames = updated.tags.map((t: any) => t.name);
+
+  const addedTags = updatedTagNames.filter((name: string) => !originalTagNames.includes(name)).sort();
+  const removedTags = originalTagNames.filter((name: string) => !updatedTagNames.includes(name)).sort();
+
+  if (addedTags.length > 0 || removedTags.length > 0) {
+    const changesList = [];
+    if (addedTags.length > 0) changesList.push(`+[${addedTags.join(", ")}]`);
+    if (removedTags.length > 0) changesList.push(`-[${removedTags.join(", ")}]`);
+    changes.push(`tags: ${changesList.join(", ")}`);
   }
 
   return changes.length ? `Edited Post: ${updated.id}\nChanges:\n- ${changes.join("\n- ")}` : `Edited Post: ${updated.id}`;

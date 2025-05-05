@@ -2,22 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-
-export type Tag = {
-  id: number;
-  name: string;
-  description: string;
-  category: {
-    id: number;
-    name: string;
-    color: string;
-    order: number;
-    updatedAt: Date;
-  };
-  aliases: { id: number; alias: string }[];
-  implications: { id: number; name: string }[];
-  suggestions: { id: number; name: string }[];
-};
+import { Tag } from "@/core/types/tags";
 
 export default function TagSummaryPage() {
   const { name } = useParams<{ name: string }>();
@@ -65,13 +50,17 @@ export default function TagSummaryPage() {
   if (loading) return <p className="text-zinc-600">Loading...</p>;
   if (error || !tag) return <p className="text-red-500">{error || "Tag not found."}</p>;
 
+  const aliases = tag.aliases ?? [];
+  const implications = tag.implications ?? [];
+  const suggestions = tag.suggestions ?? [];
+
   return (
     <div className="space-y-6">
       <div className="text-sm space-y-2">
         <div>
           <span className="text-subtle">Category:</span>{" "}
           <a
-            href={`/dashboard/tags/categories`}
+            href={`/dashboard/categories`}
             style={{ color: tag.category.color }}
             className="hover:underline"
           >
@@ -81,47 +70,60 @@ export default function TagSummaryPage() {
 
         <div>
           <span className="text-subtle">Aliases:</span>{" "}
-          {tag.aliases.length > 0
-            ? tag.aliases.map((a, i) => (
-              <a
-                key={a.id}
-                href={`/dashboard/tags/${encodeURIComponent(a.alias)}`}
-                className="text-accent hover:underline"
-              >
-                {a.alias}{i < tag.aliases.length - 1 && ", "}
-              </a>
+          {aliases.length > 0
+            ? aliases.map((a, i) => (
+              <span key={a.id} className="text-subtle">
+                <a
+                  key={a.id}
+                  href={`/tags/${encodeURIComponent(a.alias)}`}
+                  className="text-accent hover:underline"
+                >
+                  {a.alias}
+                </a>
+                {i < aliases.length - 1 && ", "}
+              </span>
             ))
           : <span className="text-zinc-600">(none)</span>}
         </div>
 
         <div>
           <span className="text-subtle">Implications:</span>{" "}
-          {tag.implications.length > 0
-            ? tag.implications.map((imp, i) => (
+          {implications.length > 0 ? (
+            implications.map((imp, i) => (
+              <span key={imp.id} className="text-subtle">
                 <a
-                  key={imp.id}
-                  href={`/dashboard/tags/${encodeURIComponent(imp.name)}`}
-                  className="text-accent hover:underline"
+                  href={`/tags/${encodeURIComponent(imp.name)}`}
+                  style={{ color: imp.category.color }}
+                  className="hover:underline"
                 >
-                  {imp.name}{i < tag.implications.length - 1 && ", "}
+                  {imp.name}
                 </a>
-              ))
-            : <span className="text-zinc-600">(none)</span>}
+                {i < implications.length - 1 && ", "}
+              </span>
+            ))
+          ) : (
+            <span className="text-zinc-600">(none)</span>
+          )}
         </div>
 
         <div>
           <span className="text-subtle">Suggestions:</span>{" "}
-          {tag.suggestions.length > 0
-            ? tag.suggestions.map((sugg, i) => (
+          {suggestions.length > 0 ? (
+            suggestions.map((sugg, i) => (
+              <span key={sugg.id} className="text-subtle">
                 <a
-                  key={sugg.id}
-                  href={`/dashboard/tags/${encodeURIComponent(sugg.name)}`}
-                  className="text-accent hover:underline"
+                  href={`/tags/${encodeURIComponent(sugg.name)}`}
+                  style={{ color: sugg.category.color }}
+                  className="hover:underline"
                 >
-                  {sugg.name}{i < tag.suggestions.length - 1 && ", "}
+                  {sugg.name}
                 </a>
-              ))
-            : <span className="text-zinc-600">(none)</span>}
+                {i < suggestions.length - 1 && ", "}
+              </span>
+            ))
+          ) : (
+            <span className="text-zinc-600">(none)</span>
+          )}
         </div>
       </div>
 

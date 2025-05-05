@@ -136,7 +136,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     const originalPost = await prisma.posts.findUnique({
       where: { id: postId },
       select: {
-        tags: { select: { id: true } },
+        tags: { select: { id: true, name: true } },
         sources: true,
         notes: true,
         safety: true,

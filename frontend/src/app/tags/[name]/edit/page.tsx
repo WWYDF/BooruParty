@@ -4,25 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import TagSelector from "@/components/clientSide/TagSelector";
 import { useToast } from "@/components/clientSide/Toast";
-
-type Tag = {
-  id: number;
-  name: string;
-  description: string;
-  category: {
-    id: number;
-    name: string;
-    color: string;
-  };
-  aliases: { id: number; alias: string }[];
-  implications: { id: number; name: string }[];
-  suggestions: { id: number; name: string }[];
-};
-
-type MiniTag = {
-  id: number;
-  name: string;
-};
+import { Tag } from "@/core/types/tags";
 
 type Category = {
   id: number;
@@ -37,8 +19,8 @@ export default function TagEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [names, setNames] = useState<string[]>([]);
   const [description, setDescription] = useState<string>("");
-  const [implications, setImplications] = useState<MiniTag[]>([]);
-  const [suggestions, setSuggestions] = useState<MiniTag[]>([]);
+  const [implications, setImplications] = useState<Tag[]>([]);
+  const [suggestions, setSuggestions] = useState<Tag[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
@@ -170,17 +152,11 @@ export default function TagEditPage() {
           <TagSelector
             onSelect={(tag) => {
               if (!implications.some((t) => t.id === tag.id)) {
-                setImplications((prev) => [...prev, { id: tag.id, name: tag.name }]);
+                setImplications((prev) => [...prev, tag]);
               }
             }}
             placeholder="Add an implication..."
-            disabledTags={implications.map((tag) => ({
-              id: tag.id,
-              name: tag.name,
-              description: "",
-              category: { id: 0, name: "", color: "#ffffff" }, // dummy category
-              aliases: [],
-            }))}
+            disabledTags={implications}
           />
           <div className="mt-2 flex flex-wrap gap-2">
             {implications.map((imp) => (
@@ -188,7 +164,11 @@ export default function TagEditPage() {
                 key={imp.id}
                 className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-800"
               >
-                <a href={`/dashboard/tag/${encodeURIComponent(imp.name)}`} className="hover:underline">
+                <a
+                  href={`/tag/${encodeURIComponent(imp.name)}`}
+                  className="hover:underline"
+                  style={{ color: imp.category.color }}
+                >
                   {imp.name}
                 </a>
                 {/* Remove button */}
@@ -211,17 +191,11 @@ export default function TagEditPage() {
           <TagSelector
             onSelect={(tag) => {
               if (!suggestions.some((t) => t.id === tag.id)) {
-                setSuggestions((prev) => [...prev, { id: tag.id, name: tag.name }]);
+                setSuggestions((prev) => [...prev, tag]);
               }
             }}
             placeholder="Add a suggestion..."
-            disabledTags={suggestions.map((tag) => ({
-              id: tag.id,
-              name: tag.name,
-              description: "",
-              category: { id: 0, name: "", color: "#ffffff" },
-              aliases: [],
-            }))}
+            disabledTags={suggestions}
           />
           <div className="mt-2 flex flex-wrap gap-2">
             {suggestions.map((sugg) => (
@@ -229,7 +203,11 @@ export default function TagEditPage() {
                 key={sugg.id}
                 className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-800"
               >
-                <a href={`/dashboard/tag/${encodeURIComponent(sugg.name)}`} className="hover:underline">
+                <a
+                  href={`/tag/${encodeURIComponent(sugg.name)}`}
+                  className="hover:underline"
+                  style={{ color: sugg.category.color }}
+                >
                   {sugg.name}
                 </a>
                 {/* Remove button */}

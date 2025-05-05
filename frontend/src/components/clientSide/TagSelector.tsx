@@ -2,28 +2,29 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useToast } from "./Toast";
+import { Tag } from "@/core/types/tags";
 
-export type TagType = {
-  id: number;
-  name: string;
-  description?: string;
-  category: {
-    id: number;
-    name: string;
-    color: string;
-    order?: number;
-  };
-  aliases?: { id: number; alias: string }[];
-  suggestions?: TagType[];
-  implications?: TagType[];
-  allImplications?: TagType[];
-};
+// export type Tag = {
+//   id: number;
+//   name: string;
+//   description?: string;
+//   category: {
+//     id: number;
+//     name: string;
+//     color: string;
+//     order?: number;
+//   };
+//   aliases?: { id: number; alias: string }[];
+//   suggestions?: Tag[];
+//   implications?: Tag[];
+//   allImplications?: Tag[];
+// };
 
 type TagSelectorProps = {
-  onSelect: (tag: TagType, isNegated?: boolean, addImpliedTags?: boolean) => void;
+  onSelect: (tag: Tag, isNegated?: boolean, addImpliedTags?: boolean) => void;
   onEnter?: (text: string) => void;
   placeholder?: string;
-  disabledTags?: TagType[];
+  disabledTags?: Tag[];
   allowNegation?: boolean;
   addImpliedTags?: boolean;
 };
@@ -37,7 +38,7 @@ export default function TagSelector({
   addImpliedTags = false,
 }: TagSelectorProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<TagType[]>([]);
+  const [results, setResults] = useState<Tag[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -63,7 +64,7 @@ export default function TagSelector({
 
       fetch(`/api/tags/autocomplete?query=${encodeURIComponent(cleanQuery)}`)
         .then((res) => res.json())
-        .then((data: TagType[]) => {
+        .then((data: Tag[]) => {
           const filtered = data.filter(
             (tag) => !disabledTags.some((disabled) => disabled.id === tag.id)
           );
@@ -115,7 +116,7 @@ export default function TagSelector({
     }
   };
 
-  const handleSelect = (tag: TagType) => {
+  const handleSelect = (tag: Tag) => {
     const isNegated = allowNegation && query.trim().startsWith("-");
     
     // If negation is allowed, we prioritize that logic
@@ -130,7 +131,7 @@ export default function TagSelector({
     setHighlightedIndex(-1);
   };
 
-  const handleClickResult = (tag: TagType) => {
+  const handleClickResult = (tag: Tag) => {
     handleSelect(tag);
   };
 
@@ -152,7 +153,7 @@ export default function TagSelector({
         return;
       }
   
-      const created: TagType = await res.json();
+      const created: Tag = await res.json();
       handleSelect(created);
     } catch {
       toast("Failed to create tag.", "error");

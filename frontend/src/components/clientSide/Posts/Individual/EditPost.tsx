@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
-import TagSelector, { TagType } from "../../TagSelector";
+import TagSelector from "../../TagSelector";
 import TagSuggestionPopup from "../../Tags/SuggestionPopup";
 import ConfirmModal from "../../ConfirmModal";
 import { useToast } from "../../Toast";
+import { Tag } from "@/core/types/tags";
 
 type PostType = {
   id: number;
@@ -14,7 +15,7 @@ type PostType = {
   safety: "SAFE" | "SKETCHY" | "UNSAFE";
   sources: string[];
   notes: string | null;
-  tags: TagType[];
+  tags: Tag[];
 };
 
 export default function EditPost({
@@ -26,7 +27,7 @@ export default function EditPost({
   onSaveSuccess?: () => void;
   onDeleteSuccess?: () => void;
 }) {
-  const [orderedTags, setOrderedTags] = useState<TagType[]>([]);
+  const [orderedTags, setOrderedTags] = useState<Tag[]>([]);
   const [sources, setSources] = useState(post.sources.join(", "));
   const [notes, setNotes] = useState(post.notes || "");
   const [safety, setSafety] = useState(post.safety);
@@ -34,8 +35,8 @@ export default function EditPost({
   const [saving, setSaving] = useState(false);
   const [activeSuggestionTag, setActiveSuggestionTag] = useState<string | null>(null);
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
-  const [initialOrderedTags, setInitialOrderedTags] = useState<TagType[]>([]);
-  const [newlyAddedTags, setNewlyAddedTags] = useState<TagType[]>([]);
+  const [initialOrderedTags, setInitialOrderedTags] = useState<Tag[]>([]);
+  const [newlyAddedTags, setNewlyAddedTags] = useState<Tag[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const toast = useToast();
 
@@ -69,8 +70,8 @@ export default function EditPost({
     onSaveSuccess();
   };
 
-  const handleAddTag = async (tag: TagType, impliedEnabled = true) => {
-    let allTags: TagType[] = [tag];
+  const handleAddTag = async (tag: Tag, impliedEnabled = true) => {
+    let allTags: Tag[] = [tag];
   
     if (impliedEnabled) {
       if (tag.allImplications?.length) {

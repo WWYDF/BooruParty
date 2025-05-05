@@ -1,7 +1,8 @@
 "use client";
 
-import TagSelector, { TagType } from "@/components/clientSide/TagSelector";
+import TagSelector from "@/components/clientSide/TagSelector";
 import { useToast } from "@/components/clientSide/Toast";
+import { Tag } from "@/core/types/tags";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -12,7 +13,7 @@ export default function MergeTagPage() {
   const [makeAlias, setMakeAlias] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [merging, setMerging] = useState(false);
-  const [target, setTarget] = useState<TagType | null>(null);
+  const [target, setTarget] = useState<Tag | null>(null);
   const toast = useToast();
 
   const handleMerge = async () => {
