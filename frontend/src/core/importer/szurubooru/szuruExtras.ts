@@ -19,7 +19,7 @@ export async function processSzuruExtras(
 
     const aliases = tag.names.slice(1).map((a) => a.trim());
 
-    const impliedNames = tag.implications.flatMap((i) => i.names.map((n) => n.trim()));
+    const impliedNames = tag.implications.flatMap((i) => i.names.map((n) => n.trim().toLowerCase()));
     const impliedConnections = [];
 
     for (const impliedName of impliedNames) {
@@ -41,7 +41,7 @@ export async function processSzuruExtras(
       });
     }
 
-    const suggestedNames = tag.suggestions.flatMap((s) => s.names.map((n) => n.trim()));
+    const suggestedNames = tag.suggestions.flatMap((s) => s.names.map((n) => n.trim().toLowerCase()));
     const suggestedConnections = [];
 
     for (const suggestedName of suggestedNames) {

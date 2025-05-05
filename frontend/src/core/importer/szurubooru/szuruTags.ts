@@ -13,8 +13,8 @@ export async function processSzuruTags(
 
   for (const tag of tagsToProcess) {
     tagsDoneCount++;
-    const canonical = tag.names[0].trim();
-    const aliases = tag.names.slice(1).map((a) => a.trim());
+    const canonical = tag.names[0].trim().toLowerCase();
+    const aliases = tag.names.slice(1).map((a) => a.trim().toLowerCase());
     const categoryName = tag.category.trim();
 
     let category;
