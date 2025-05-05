@@ -7,6 +7,7 @@ import { CreateTagModal } from "@/components/clientSide/Tags/CreateModal";
 import { checkPermissions } from "@/core/permissions";
 import { CaretUpDown } from "@phosphor-icons/react";
 import { CaretDown, CaretUp } from "phosphor-react";
+import { formatRelativeTime } from "@/core/formats";
 
 type TagListType = {
   id: number;
@@ -127,7 +128,7 @@ export default function TagListPage() {
               <thead className="border-b border-secondary-border">
               <tr>
                 <th
-                  className="text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
+                  className="w-[10vh] text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
                   onClick={() => toggleSort("name")}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -141,7 +142,7 @@ export default function TagListPage() {
                 </th>
 
                 <th
-                  className="text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
+                  className="w-[5vh] text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
                   onClick={() => toggleSort("category")}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -154,12 +155,12 @@ export default function TagListPage() {
                   </span>
                 </th>
 
-                <th className="text-left py-2 px-2">Aliases</th>
-                <th className="text-left py-2 px-2">Implications</th>
-                <th className="text-left py-2 px-2">Suggestions</th>
+                <th className="w-[15vh] text-left py-2 px-2">Aliases</th>
+                <th className="w-[40vh] text-left py-2 px-2">Implications</th>
+                <th className="w-[10vh] text-left py-2 px-2">Suggestions</th>
 
                 <th
-                  className="text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
+                  className="w-[5vh] text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
                   onClick={() => toggleSort("usages")}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -173,7 +174,7 @@ export default function TagListPage() {
                 </th>
 
                 <th
-                  className="text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
+                  className="w-[5vh] text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
                   onClick={() => toggleSort("createdAt")}
                 >
                   <span className="inline-flex items-center gap-1">
@@ -241,7 +242,7 @@ export default function TagListPage() {
 
                       {/* Created */}
                       <td className="py-2 px-2">
-                        {new Date(tag.createdAt).toLocaleDateString()}
+                        {formatRelativeTime(tag.createdAt)}
                       </td>
                     </tr>
                   ))
