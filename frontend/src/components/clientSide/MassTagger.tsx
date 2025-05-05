@@ -10,9 +10,10 @@ type Props = {
   onChange: (tags: Tag[]) => void;
   label?: string;
   placeholder?: string;
+  compactBelow?: boolean;
 };
 
-export default function MassTagger({ value, onChange, label = "Tags", placeholder }: Props) {
+export default function MassTagger({ value, onChange, label, placeholder, compactBelow }: Props) {
   const [loadingImplications, setLoadingImplications] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
@@ -62,21 +63,35 @@ export default function MassTagger({ value, onChange, label = "Tags", placeholde
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between text-xs text-subtle mb-1">
-        <label>Tags</label>
-        <button
-          onClick={() => setShowModal(true)}
-          className="text-zinc-400 hover:text-white underline"
-        >
-          {value.length} tag{value.length !== 1 ? "s" : ""} selected
-        </button>
-      </div>
+      {!compactBelow ? (
+        <div className="flex items-center justify-between text-xs text-subtle mb-1">
+          <label>{label}</label>
+          <button
+            onClick={() => setShowModal(true)}
+            className="text-zinc-400 hover:text-white underline"
+          >
+            {value.length} tag{value.length !== 1 ? "s" : ""} selected
+          </button>
+        </div>
+      ) : null}
 
       <TagSelector
         onSelect={addTagWithImplications}
         disabledTags={value}
         placeholder={placeholder ?? "Add a tag..."}
       />
+
+      {compactBelow && (
+        <div className="flex items-center justify-between text-xs text-subtle mt-1">
+          <label>{label}</label>
+          <button
+            onClick={() => setShowModal(true)}
+            className="text-zinc-400 hover:text-white underline"
+          >
+            {value.length} tag{value.length !== 1 ? "s" : ""} selected
+          </button>
+        </div>
+      )}
 
       {loadingImplications && <p className="text-xs text-zinc-400 mt-1">Loading implications...</p>}
 
@@ -113,7 +128,12 @@ export default function MassTagger({ value, onChange, label = "Tags", placeholde
                       key={tag.id}
                       className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm"
                     >
-                      <span className="truncate">{tag.name}</span>
+                      <span
+                        className="truncate font-medium"
+                        style={{ color: tag.category.color }}
+                      >
+                        {tag.name}
+                      </span>
                       <button
                         onClick={() => removeTag(tag.id)}
                         className="ml-2 text-red-400 hover:text-red-500"

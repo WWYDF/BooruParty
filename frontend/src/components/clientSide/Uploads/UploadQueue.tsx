@@ -183,17 +183,8 @@ export default function UploadQueue() {
         <p className="text-subtle">Drag and drop your images, videos or gifs here</p>
       </div>
 
-      <div className="mt-2 flex">
-        <div className="w-full max-w-xs">
-          <MassTagger
-            value={globalTags}
-            onChange={setGlobalTags}
-          />
-        </div>
-      </div>
-
-      <div className="mt-4 mb-2 flex items-center gap-2">
-        <div className="flex items-center gap-4 mb-4">
+      <div className="mt-4 mb-2 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -225,6 +216,14 @@ export default function UploadQueue() {
               );
             })}
           </div>
+        </div>
+
+        <div className="max-w-xs w-full">
+          <MassTagger
+            value={globalTags}
+            onChange={setGlobalTags}
+            compactBelow
+          />
         </div>
       </div>
 
