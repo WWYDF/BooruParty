@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CreateTagModal } from "@/components/clientSide/Tags/CreateModal";
 import { checkPermissions } from "@/core/permissions";
+import { CaretUpDown } from "@phosphor-icons/react";
+import { CaretDown, CaretUp } from "phosphor-react";
 
 type TagListType = {
   id: number;
@@ -30,6 +32,8 @@ export default function TagListPage() {
   const [loading, setLoading] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [canCreateTag, setCanCreateTag] = useState(false);
+  const [sortField, setSortField] = useState<"name" | "category" | "usages" | "createdAt">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const router = useRouter();
 
   const perPage = 50;
@@ -56,9 +60,10 @@ export default function TagListPage() {
   const fetchTags = async (pageNumber = 1, searchTerm = "") => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/tags?page=${pageNumber}&perPage=${perPage}&search=${encodeURIComponent(searchTerm)}`, {
-        cache: 'no-store',
-      });
+      const res = await fetch(
+        `/api/tags?page=${pageNumber}&perPage=${perPage}&search=${encodeURIComponent(searchTerm)}&sort=${sortField}&order=${sortOrder}`,
+        { cache: "no-store" }
+      );
       const data = await res.json();
       setTags(data.tags);
       setTotalPages(data.totalPages);
@@ -69,10 +74,20 @@ export default function TagListPage() {
     }
   };
 
+  const toggleSort = (field: typeof sortField) => {
+    if (field === sortField) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+  
+
   // Refetch when page or debounced search changes
   useEffect(() => {
     fetchTags(page, debouncedSearch);
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, sortField, sortOrder]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -105,104 +120,207 @@ export default function TagListPage() {
   
       {!loading && (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-zinc-100 border-collapse">
-            <thead className="border-b border-secondary-border">
+          {loading ? (
+            <div className="text-center py-8 text-zinc-600">Loading...</div>
+          ) : (
+            <table className="w-full text-sm text-zinc-100 border-collapse">
+              <thead className="border-b border-secondary-border">
               <tr>
-                <th className="text-left py-2 px-2">Name</th>
-                <th className="text-left py-2 px-2">Category</th>
+                <th
+                  className="text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
+                  onClick={() => toggleSort("name")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Name
+                    {sortField === "name" ? (
+                      sortOrder === "asc" ? <CaretUp size={14} /> : <CaretDown size={14} />
+                    ) : (
+                      <CaretUpDown size={14} className="opacity-50" />
+                    )}
+                  </span>
+                </th>
+
+                <th
+                  className="text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
+                  onClick={() => toggleSort("category")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Category
+                    {sortField === "category" ? (
+                      sortOrder === "asc" ? <CaretUp size={14} /> : <CaretDown size={14} />
+                    ) : (
+                      <CaretUpDown size={14} className="opacity-50" />
+                    )}
+                  </span>
+                </th>
+
                 <th className="text-left py-2 px-2">Aliases</th>
                 <th className="text-left py-2 px-2">Implications</th>
                 <th className="text-left py-2 px-2">Suggestions</th>
-                <th className="text-left py-2 px-2">Usages</th>
-                <th className="text-left py-2 px-2">Created</th>
+
+                <th
+                  className="text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
+                  onClick={() => toggleSort("usages")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Usages
+                    {sortField === "usages" ? (
+                      sortOrder === "asc" ? <CaretUp size={14} /> : <CaretDown size={14} />
+                    ) : (
+                      <CaretUpDown size={14} className="opacity-50" />
+                    )}
+                  </span>
+                </th>
+
+                <th
+                  className="text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
+                  onClick={() => toggleSort("createdAt")}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Created
+                    {sortField === "createdAt" ? (
+                      sortOrder === "asc" ? <CaretUp size={14} /> : <CaretDown size={14} />
+                    ) : (
+                      <CaretUpDown size={14} className="opacity-50" />
+                    )}
+                  </span>
+                </th>
               </tr>
-            </thead>
-            <tbody>
-              {Array.isArray(tags) && tags.length > 0 ? (
-                tags.map((tag) => (
-                  <tr key={tag.id} className="border-b border-secondary-border">
-                    {/* Name */}
-                    <td className="py-2 px-2">
-                      <Link
-                        href={`/tags/${encodeURIComponent(tag.name)}`}
-                        className="hover:underline text-accent"
-                      >
-                        {tag.name}
-                      </Link>
-                    </td>
 
-                    {/* Category */}
-                    <td className="py-2 px-2">
-                      {tag.category ? (
-                        <span style={{ color: tag.category.color }}>
-                          {tag.category.name}
-                        </span>
-                      ) : (
-                        <span className="text-zinc-600">(none)</span>
-                      )}
-                    </td>
+              </thead>
+              <tbody>
+                {Array.isArray(tags) && tags.length > 0 ? (
+                  tags.map((tag) => (
+                    <tr key={tag.id} className="border-b border-secondary-border">
+                      {/* Name */}
+                      <td className="py-2 px-2">
+                        <Link
+                          href={`/tags/${encodeURIComponent(tag.name)}`}
+                          className="hover:underline text-accent"
+                        >
+                          {tag.name}
+                        </Link>
+                      </td>
 
-                    {/* Aliases */}
-                    <td className="py-2 px-2">
-                      {tag.aliases.length > 0
-                        ? tag.aliases.map((a) => a.alias).join(", ")
-                        : <span className="text-zinc-600">(none)</span>}
-                    </td>
+                      {/* Category */}
+                      <td className="py-2 px-2">
+                        {tag.category ? (
+                          <span style={{ color: tag.category.color }}>
+                            {tag.category.name}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-600">(none)</span>
+                        )}
+                      </td>
 
-                    {/* Implications */}
-                    <td className="py-2 px-2">
-                      {tag.implications.length > 0
-                        ? tag.implications.map((i) => i.name).join(", ")
-                        : <span className="text-zinc-600">(none)</span>}
-                    </td>
+                      {/* Aliases */}
+                      <td className="py-2 px-2">
+                        {tag.aliases.length > 0
+                          ? tag.aliases.map((a) => a.alias).join(", ")
+                          : <span className="text-zinc-600">(none)</span>}
+                      </td>
 
-                    {/* Suggestions */}
-                    <td className="py-2 px-2">
-                      {tag.suggestions.length > 0
-                        ? tag.suggestions.map((s) => s.name).join(", ")
-                        : <span className="text-zinc-600">(none)</span>}
-                    </td>
+                      {/* Implications */}
+                      <td className="py-2 px-2">
+                        {tag.implications.length > 0
+                          ? tag.implications.map((i) => i.name).join(", ")
+                          : <span className="text-zinc-600">(none)</span>}
+                      </td>
 
-                    {/* Usage */}
-                    <td className="py-2 px-2">
-                      {tag._count.posts}
-                    </td>
+                      {/* Suggestions */}
+                      <td className="py-2 px-2">
+                        {tag.suggestions.length > 0
+                          ? tag.suggestions.map((s) => s.name).join(", ")
+                          : <span className="text-zinc-600">(none)</span>}
+                      </td>
 
-                    {/* Created */}
-                    <td className="py-2 px-2">
-                      {new Date(tag.createdAt).toLocaleDateString()}
+                      {/* Usage */}
+                      <td className="py-2 px-2">
+                        {tag._count.posts}
+                      </td>
+
+                      {/* Created */}
+                      <td className="py-2 px-2">
+                        {new Date(tag.createdAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                ) : !loading ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-6 text-zinc-600">
+                      No tags found.
                     </td>
                   </tr>
-                ))
-              ) : !loading ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-6 text-zinc-600">
-                    No tags found.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
+                ) : null}
+              </tbody>
 
-          </table>
+            </table>
+          )}
         </div>
       )}
   
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-4 mt-6">
+        <div className="flex justify-center items-center gap-1 mt-6 text-sm">
+          {/* Prev Arrow */}
           <button
-            disabled={page === 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="bg-secondary-border hover:bg-secondary px-3 py-1 rounded disabled:opacity-50"
+            disabled={page === 1}
+            className="px-2 py-1 rounded bg-secondary-border hover:bg-secondary disabled:opacity-50"
           >
-            Previous
+            &lt;
           </button>
+
+          {/* First Page */}
           <button
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="bg-secondary-border hover:bg-secondary px-3 py-1 rounded disabled:opacity-50"
+            onClick={() => setPage(1)}
+            className={`px-3 py-1 rounded ${
+              page === 1 ? "bg-accent text-white" : "bg-secondary-border hover:bg-secondary"
+            }`}
           >
-            Next
+            1
+          </button>
+
+          {/* Left Ellipsis */}
+          {page > 3 && <span className="px-2 text-zinc-500">...</span>}
+
+          {/* Dynamic middle buttons */}
+          {Array.from({ length: 3 }, (_, i) => page - 1 + i)
+            .filter((p) => p > 1 && p < totalPages)
+            .map((p) => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`px-3 py-1 rounded ${
+                  p === page ? "bg-accent text-white" : "bg-secondary-border hover:bg-secondary"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+
+          {/* Right Ellipsis */}
+          {page < totalPages - 2 && <span className="px-2 text-zinc-500">...</span>}
+
+          {/* Last Page */}
+          {totalPages > 1 && (
+            <button
+              onClick={() => setPage(totalPages)}
+              className={`px-3 py-1 rounded ${
+                page === totalPages ? "bg-accent text-white" : "bg-secondary-border hover:bg-secondary"
+              }`}
+            >
+              {totalPages}
+            </button>
+          )}
+
+          {/* Next Arrow */}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-2 py-1 rounded bg-secondary-border hover:bg-secondary disabled:opacity-50"
+          >
+            &gt;
           </button>
         </div>
       )}
