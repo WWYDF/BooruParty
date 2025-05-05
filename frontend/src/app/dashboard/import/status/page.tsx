@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CaretCircleDown } from "@phosphor-icons/react";
+import { formatDuration } from "@/core/formats";
 
 type ImportLog = {
   timestamp: string;
@@ -17,6 +18,7 @@ type ImportSession = {
   status: string;
   createdAt: string;
   completedAt?: string;
+  duration?: number;
   logs: ImportLog[];
 };
 
@@ -31,23 +33,32 @@ export default function ImportStatusPage() {
 
   useEffect(() => {
     if (!sessionId) return;
-
+  
+    let interval: NodeJS.Timeout;
+    let pollRate = 500;
+  
     const fetchLogs = async () => {
       try {
         const res = await fetch(`/api/system/import?id=${sessionId}`);
         const data = await res.json();
-
+  
         if (!res.ok) throw new Error(data.error || "Failed to fetch logs");
-
+  
         setSession(data);
+  
+        // If it's done, turn off polling to not spam lol
+        if (["COMPLETED", "ERROR"].includes(data.status)) {
+          clearInterval(interval);
+        }
       } catch (err: any) {
         setError(err.message);
+        clearInterval(interval);
       }
     };
-
+  
     fetchLogs();
-    const interval = setInterval(fetchLogs, 10000);
-
+    interval = setInterval(fetchLogs, pollRate);
+  
     return () => clearInterval(interval);
   }, [sessionId]);
 
@@ -77,11 +88,19 @@ export default function ImportStatusPage() {
     return <div className="p-8 text-red-400">Error: {error}</div>;
   }
 
+  if (!session) {
+    return <div className="p-8 text-subtle">Loading data...</div>;
+  }
+
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-semibold text-white">Import Status</h1>
       <div className="text-subtle text-sm">Session ID: {session?.id}</div>
       <div className="text-subtle text-sm">Status: <span className={`font-semibold ${session?.status === "COMPLETED" ? "text-green-400" : session?.status === "ERROR" ? "text-red-400" : "text-yellow-400"}`}>{session?.status}</span></div>
+
+      <div className="text-subtle text-xs">
+        Duration: {formatDuration(Number(session.duration ?? 0))}
+      </div>
 
       {/* Log Viewer */}
       <div className="relative">
@@ -116,9 +135,9 @@ export default function ImportStatusPage() {
           {!autoScroll && (
             <motion.button
               key="scroll-btn"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               onClick={() => {
                 if (logContainerRef.current) {

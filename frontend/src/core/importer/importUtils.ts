@@ -17,3 +17,17 @@ export function makeImportLogger(sessionId: string) {
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export async function setSessionDuration(sessionId: string, start: Date, status: "COMPLETED" | "ERROR") {
+  const now = new Date();
+  const duration = now.getTime() - start.getTime();
+
+  await prisma.importSession.update({
+    where: { id: sessionId },
+    data: {
+      status,
+      completedAt: now,
+      duration,
+    },
+  });
+}

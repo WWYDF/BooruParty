@@ -1,7 +1,7 @@
 import { prisma } from "@/core/prisma";
 import { Buffer } from "buffer";
 import { SzuruTag, SzuruResponse } from "@/core/types/imports/szuru";
-import { makeImportLogger, sleep } from "./importUtils";
+import { makeImportLogger, setSessionDuration, sleep } from "./importUtils";
 
 interface RunSzuruImportOptions {
   url: string;
@@ -12,6 +12,7 @@ interface RunSzuruImportOptions {
 
 export async function runSzuruImport({ url, username, password, sessionId }: RunSzuruImportOptions) {
   const log = makeImportLogger(sessionId);
+  const startTime = new Date();
 
   const auth = "Basic " + Buffer.from(`${username}:${password}`).toString("base64");
 
@@ -175,8 +176,11 @@ export async function runSzuruImport({ url, username, password, sessionId }: Run
 
     await log("success", `Finished importing ${tagsDoneCount} tags.`);
     await sleep(900);
+
   
     // Phase 2: Implications and suggestions
+    const missingImpliedTags = new Set<string>();
+    const missingSuggestTags = new Set<string>();
     await log('info', `Phase 2: Adding Implications and Suggestions...`);
     await sleep(1200);
     let insDoneCount = 0;
@@ -201,7 +205,10 @@ export async function runSzuruImport({ url, username, password, sessionId }: Run
           insDoneCount++;
           // await log('info', `Implication: ${canonical} → ${implied.name}`);
         } else {
-          await log('error', `Skipped missing implied tag: ${impliedName}`);
+          if (!missingImpliedTags.has(impliedName)) {
+            missingImpliedTags.add(impliedName);
+            await log("error", `Skipped missing implied tag: ${impliedName}`);
+          }
         }
       }
   
@@ -227,7 +234,10 @@ export async function runSzuruImport({ url, username, password, sessionId }: Run
           insDoneCount++;
           // await log('info', `Suggestion: ${canonical} → ${suggested.name}`);
         } else {
-          await log('error', `Skipped missing suggested tag: ${suggestedName}`);
+          if (!missingSuggestTags.has(suggestedName)) {
+            missingSuggestTags.add(suggestedName);
+            await log('error', `Skipped missing suggested tag: ${suggestedName}`);
+          }
         }
       }
   
@@ -261,6 +271,8 @@ export async function runSzuruImport({ url, username, password, sessionId }: Run
       }
     });
 
+    await setSessionDuration(sessionId, startTime, "COMPLETED");
+
     return;
 
   } catch (e: any) {
@@ -272,5 +284,6 @@ export async function runSzuruImport({ url, username, password, sessionId }: Run
       }
     });
     await log("error", `Import failed: ${e.message}`);
+    await setSessionDuration(sessionId, startTime, "ERROR");
   }
 };

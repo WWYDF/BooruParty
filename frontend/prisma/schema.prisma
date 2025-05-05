@@ -280,13 +280,14 @@ model ImportSession {
   status      String        @default("PENDING")
   createdAt   DateTime      @default(now())
   completedAt DateTime?
+  duration    Int?
   logs        ImportLog[]
 }
 
 model ImportLog {
   id         Int          @id @default(autoincrement())
   sessionId  String
-  session    ImportSession @relation(fields: [sessionId], references: [id])
+  session    ImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   message    String
   level      String
   timestamp  DateTime     @default(now())

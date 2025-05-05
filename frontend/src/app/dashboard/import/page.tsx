@@ -1,8 +1,10 @@
 // app/dashboard/import/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ImportSession } from "@prisma/client";
+import { formatDuration } from "@/core/formats";
 
 const IMPORTERS = [
   { key: "szuru", label: "Szurubooru" },
@@ -16,6 +18,7 @@ export default function ImportDashboardPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previous, setPrevious] = useState<ImportSession[]>([]);
 
   const router = useRouter();
 
@@ -36,12 +39,23 @@ export default function ImportDashboardPage() {
         throw new Error(data.error || "Unknown error");
       }
 
+      await fetchImportSessions();
       router.push(`/dashboard/import/status?id=${data.sessionId}`);
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
     }
   };
+
+  const fetchImportSessions = async () => {
+    const res = await fetch("/api/system/import/sessions");
+    const data = await res.json();
+    if (Array.isArray(data)) setPrevious(data);
+  };
+  
+  useEffect(() => {
+    fetchImportSessions();
+  }, []);
 
   return (
     <div className="max-w-xl mx-auto p-8 space-y-6">
@@ -106,6 +120,31 @@ export default function ImportDashboardPage() {
       >
         {loading ? "Starting..." : "Start Import"}
       </button>
+
+      {previous.length > 0 && (
+        <div className="pt-8 space-y-2">
+          <h2 className="text-xl font-semibold text-white">Previous Imports</h2>
+          <div className="space-y-1">
+            {previous.map((imp) => (
+              <div key={imp.id} className="flex items-center justify-between border border-zinc-800 rounded p-3 bg-zinc-900">
+                <div>
+                  <div className="text-sm font-semibold text-white">Type: {imp.type}</div>
+                  <div className="text-xs text-zinc-400">Status: {imp.status} — {new Date(imp.createdAt).toLocaleString()}</div>
+                  <div className="text-xs text-zinc-400">
+                    Duration: {imp.duration ? formatDuration(imp.duration) : "—"}
+                  </div>
+                </div>
+                <a
+                  href={`/dashboard/import/status?id=${imp.id}`}
+                  className="text-sm bg-darkerAccent px-3 py-1 rounded text-white hover:bg-darkerAccent/80"
+                >
+                  View Logs
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
