@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Images, List, X, UserCircle, Users, ChartPie, UploadSimple, House } from '@phosphor-icons/react';
 import { NavItem } from './NavItem';
 import { usePathname } from "next/navigation";
-import { FolderOpen } from 'phosphor-react';
+import { FolderOpen, Tag } from 'phosphor-react';
 
 
 type UserInfo = {
@@ -101,6 +101,9 @@ export default function Navbar() {
           )}
           {hasPerm('post_create') && (
             <NavItem href="/upload">Upload</NavItem>
+          )}
+          {hasPerm('post_view') && (
+            <NavItem href="/tags">Tags</NavItem>
           )}
           {hasPerm('dashboard_view') && (
             <NavItem href="/dashboard">Dashboard</NavItem>
@@ -199,6 +202,11 @@ export default function Navbar() {
                 {hasPerm('post_view') && (
                   <NavItem href="/pools" icon={<FolderOpen size={18} />} onClick={() => setSidebarOpen(false)}>
                     Pools
+                  </NavItem>
+                )}
+                {hasPerm('post_view') && (
+                  <NavItem href="/tags" icon={<Tag size={18} />} onClick={() => setSidebarOpen(false)}>
+                    Tags
                   </NavItem>
                 )}
                 {hasPerm('post_create') && (

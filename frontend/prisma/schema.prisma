@@ -245,17 +245,6 @@ model Audits {
   @@index([category, actionType])
 }
 
-model LiveLogger {
-  view          String
-  accessorId    String
-  details       String[]
-
-  createdAt     DateTime        @default(now())
-  lastLogged    DateTime        @default(now())
-
-  @@id([view, accessorId])
-}
-
 model Pools {
   id            Int             @id @default(autoincrement())
   name          String          @unique
@@ -282,4 +271,23 @@ model PoolItems {
   @@unique([poolId, postId])
   @@unique([poolId, index])
   @@index([poolId, index])
+}
+
+model ImportSession {
+  id          String        @id @default(cuid())
+  userId      String
+  type        String        // "SZURU", etc.
+  status      String        @default("PENDING")
+  createdAt   DateTime      @default(now())
+  completedAt DateTime?
+  logs        ImportLog[]
+}
+
+model ImportLog {
+  id         Int          @id @default(autoincrement())
+  sessionId  String
+  session    ImportSession @relation(fields: [sessionId], references: [id])
+  message    String
+  level      String
+  timestamp  DateTime     @default(now())
 }

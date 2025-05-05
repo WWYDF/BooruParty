@@ -8,6 +8,7 @@ const links = [
   { name: "Categories", href: "/dashboard/categories" },
   { name: "Settings", href: "/dashboard/settings" },
   { name: "Audit Log", href: "/dashboard/logs" },
+  { name: "Importer", href: "/dashboard/import" },
 ];
 
 export function DashNav() {
