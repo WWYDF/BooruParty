@@ -1,0 +1,107 @@
+import { Tag } from "@/core/types/tags";
+import { makeImportLogger } from "../importUtils";
+import { Session } from "next-auth";
+
+export async function processSzuruPosts({
+  sessionId,
+  url,
+  username,
+  password,
+  userCookie,
+  limit = Infinity,
+}: {
+  sessionId: string;
+  url: string;
+  username: string;
+  password: string;
+  userCookie: string;
+  limit?: number;
+}) {
+  let offset = 0;
+  let processed = 0;
+  const log = makeImportLogger(sessionId);
+  const auth = "Basic " + Buffer.from(`${username}:${password}`).toString("base64");
+
+  await log("info", "Starting post import from Szuru...");
+
+  while (processed < limit) {
+    const res = await fetch(`${url}/api/posts?limit=100&offset=${offset}`, {
+      headers: { 
+        "Authorization": auth,
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+    });
+
+    if (!res.ok) {
+      await log("error", `Failed to fetch posts: ${res.statusText}`);
+      return false;
+    }
+
+    const data = await res.json();
+    const posts = data.results;
+    if (!posts.length) break;
+
+    for (const post of posts) {
+      if (processed >= limit) break;
+
+      if (!["image", "animation", "video"].includes(post.type)) {
+        await log("error", `Unsupported post type "${post.type}" for post ${post.id}!`);
+        break;
+      }
+
+      const fullUrl = `${url}/${post.contentUrl}`;
+      let fileBlob: Blob;
+
+      try {
+        const fileRes = await fetch(fullUrl, { headers: { Authorization: auth } });
+        const buffer = await fileRes.arrayBuffer();
+        fileBlob = new Blob([buffer], { type: post.mimeType });
+      } catch (e) {
+        await log("error", `Failed to download post ${post.id}: ${e}`);
+        return false;
+      }
+
+      const tags = [
+        ...new Set([
+          ...post.tags.map((t: any) => t.names[0].toLowerCase()),
+        ]),
+      ];
+
+      const form = new FormData();
+      form.append("file", fileBlob, `szuru-${post.id}.${post.mimeType.split("/")[1]}`);
+      form.append("safety", post.safety.toUpperCase());
+      form.append("source", post.source ?? "");
+      form.append("notes", post.comments?.[0]?.text ?? "");
+      form.append("tags", JSON.stringify(tags));
+      form.append("anonymous", "true");
+
+      try {
+        const uploadRes = await fetch(`${process.env.NEXTAUTH_URL}/api/posts/create`, {
+          method: "POST",
+          headers: {
+            "Cookie": userCookie
+          },
+          body: form,
+        });
+
+        if (!uploadRes.ok) {
+          const err = await uploadRes.text();
+          await log("error", `Upload failed for post ${post.id}: ${err}`);
+          return false;
+        } else {
+          await log("info", `Imported post ${post.id}`);
+          processed++;
+        }
+      } catch (e) {
+        await log("error", `Exception during post ${post.id} upload: ${e}`);
+        return false;
+      }
+    }
+
+    offset += 100;
+  }
+
+  await log("info", `Post import complete. Imported ${processed} post${processed !== 1 ? "s" : ""}.`);
+  return true;
+}

@@ -23,13 +23,19 @@ type ImportSession = {
 };
 
 export default function ImportStatusPage() {
-  const searchParams = useSearchParams();
-  const sessionId = searchParams.get("id");
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const [session, setSession] = useState<ImportSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const logContainerRef = useRef<HTMLDivElement | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+
+  useEffect(() => {
+    const search = window.location.search; // e.g., "?id=abc123"
+    const params = new URLSearchParams(search);
+    const id = params.get("id");
+    setSessionId(id);
+  }, []);
 
   useEffect(() => {
     if (!sessionId) return;

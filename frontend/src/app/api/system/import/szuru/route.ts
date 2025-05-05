@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
-import { getServerSession } from "next-auth"; // or your auth system
 import { auth } from "@/core/authServer";
-import { runSzuruImport } from "@/core/importer/szuruManager";
+import { runSzuruImport } from "@/core/importer/szurubooru/szuruManager";
+import { cookies } from "next/headers";
 
 export async function POST(req: NextRequest) {
   const { url, username, password } = await req.json();
@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
+
+  const cookieHeader = cookies().toString();
 
   // Create a new import session
   const importSession = await prisma.importSession.create({
@@ -32,6 +34,7 @@ export async function POST(req: NextRequest) {
     username,
     password,
     sessionId: importSession.id,
+    userCookie: cookieHeader,
   }).catch(async (err: any) => {
     await prisma.importSession.update({
       where: { id: importSession.id },
