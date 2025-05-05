@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
 
   const anonymous = formData.get('anonymous') === 'true';
   const safety = formData.get('safety') as 'SAFE' | 'SKETCHY' | 'UNSAFE';
+  const rawTags = formData.get('tags') as string | null;
 
   const createdPost = await prisma.posts.create({
     data: {
@@ -81,6 +82,46 @@ export async function POST(request: NextRequest) {
       aspectRatio: fastifyResult.aspectRatio
     },
   })
+
+  // Mass Tagger on Upload
+  if (rawTags) {
+    let tagNames: string[];
+    try {
+      tagNames = JSON.parse(rawTags);
+      if (!Array.isArray(tagNames)) throw new Error();
+    } catch {
+      return NextResponse.json({ error: "Invalid tag list format." }, { status: 400 });
+    }
+  
+    // Force lowercase on all tag names
+    tagNames = tagNames.map((n) => n.toLowerCase());
+  
+    const tags = await prisma.tags.findMany({
+      where: {
+        name: {
+          in: tagNames,
+        },
+      },
+    });
+  
+    if (tags.length !== tagNames.length) {
+      const foundNames = tags.map((t) => t.name);
+      const missing = tagNames.filter((n) => !foundNames.includes(n));
+      return NextResponse.json(
+        { error: `Invalid tag(s): ${missing.join(", ")}` },
+        { status: 400 }
+      );
+    }
+  
+    await prisma.posts.update({
+      where: { id: postId },
+      data: {
+        tags: {
+          connect: tags.map((t) => ({ id: t.id })),
+        },
+      },
+    });
+  }
 
   return NextResponse.json({ success: true, postId, fileName: fastifyResult.fileName });
 }

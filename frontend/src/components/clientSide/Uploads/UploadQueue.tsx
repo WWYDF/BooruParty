@@ -7,6 +7,9 @@ import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from 
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SortableUploads from './SortableUploads'
 import { useToast } from '../Toast'
+import { Tag } from '@/core/types/tags'
+import TagSelector from '../TagSelector'
+import MassTagger from '../MassTagger'
 
 type UploadFile = {
   id: string
@@ -23,6 +26,7 @@ export default function UploadQueue() {
   const [anonymous, setAnonymous] = useState(false)
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
   const [bulkSafety, setBulkSafety] = useState<"SAFE" | "SKETCHY" | "UNSAFE">("SAFE");
+  const [globalTags, setGlobalTags] = useState<Tag[]>([]);
   const toast = useToast();
 
   const moveItem = (index: number, direction: 'up' | 'down') => {
@@ -36,7 +40,7 @@ export default function UploadQueue() {
       newQueue[targetIndex] = temp
       return newQueue
     })
-  }  
+  }
 
   const onDrop = (acceptedFiles: File[]) => {
     const validTypes = ['image/', 'video/', 'media/'];
@@ -100,6 +104,7 @@ export default function UploadQueue() {
       formData.append('file', item.file);
       formData.append('anonymous', anonymous.toString());
       formData.append('safety', item.safety);
+      formData.append("tags", JSON.stringify(globalTags.map((t) => t.name)));
   
       try {
         const res = await fetch('/api/posts/create', {
@@ -154,6 +159,16 @@ export default function UploadQueue() {
     );
     // toast(`Marked all as ${newSafety.toUpperCase()}.`, 'success');
   };
+
+  const handleAddGlobalTag = (tag: Tag) => {
+    if (!globalTags.some((t) => t.id === tag.id)) {
+      setGlobalTags((prev) => [...prev, tag]);
+    }
+  };
+  
+  const handleRemoveGlobalTag = (tagId: number) => {
+    setGlobalTags((prev) => prev.filter((t) => t.id !== tagId));
+  };
     
 
   return (
@@ -166,6 +181,15 @@ export default function UploadQueue() {
       >
         <input {...getInputProps()} />
         <p className="text-subtle">Drag and drop your images, videos or gifs here</p>
+      </div>
+
+      <div className="mt-2 flex">
+        <div className="w-full max-w-xs">
+          <MassTagger
+            value={globalTags}
+            onChange={setGlobalTags}
+          />
+        </div>
       </div>
 
       <div className="mt-4 mb-2 flex items-center gap-2">
