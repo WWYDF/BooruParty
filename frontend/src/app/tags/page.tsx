@@ -261,7 +261,7 @@ export default function TagListPage() {
   
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-1 mt-6 text-sm">
+        <div className="flex justify-center items-center gap-1 mt-6 text-sm pb-6">
           {/* Prev Arrow */}
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}

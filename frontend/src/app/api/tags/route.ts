@@ -8,6 +8,8 @@ export async function GET(req: Request) {
   const page = parseInt(searchParams.get("page") || "1");
   const perPage = parseInt(searchParams.get("perPage") || "50");
   const search = searchParams.get("search") || "";
+  const sort = searchParams.get("sort") || "name";
+  const order = searchParams.get("order") === "desc" ? "desc" : "asc";
 
   const where = search
   ? {
@@ -18,11 +20,24 @@ export async function GET(req: Request) {
     }
   : {};
 
+  let orderBy: Prisma.TagsFindManyArgs["orderBy"] = { name: order };
+  let skip = (page - 1) * perPage;
+  let take = perPage;
+
+  if (sort === "usages") {
+    skip = 0;
+    take = 99999;
+  } else if (sort === "category") {
+    orderBy = { category: { name: order } };
+  } else if (sort === "createdAt") {
+    orderBy = { createdAt: order };
+  }
+
   const tags = await prisma.tags.findMany({
     where,
-    skip: (page - 1) * perPage,
-    take: perPage,
-    orderBy: { name: "asc" },
+    skip,
+    take,
+    orderBy,
     select: {
       id: true,
       name: true,
@@ -63,11 +78,19 @@ export async function GET(req: Request) {
     },
   });
 
+  const sortedTags = sort === "usages"
+  ? tags.sort((a, b) =>
+      order === "asc"
+        ? a._count.posts - b._count.posts
+        : b._count.posts - a._count.posts
+    ).slice((page - 1) * perPage, page * perPage)
+  : tags;
+
   const totalCount = await prisma.tags.count({ where });
   const totalPages = Math.ceil(totalCount / perPage);
 
   return NextResponse.json({
-    tags,
+    tags: sortedTags,
     totalPages,
   });
 }
