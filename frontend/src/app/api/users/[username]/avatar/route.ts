@@ -1,8 +1,8 @@
 import { auth } from '@/core/authServer';
 import { fileTypeFromBuffer } from 'file-type';
 import { prisma } from '@/core/prisma';
-import { checkPermissions } from '@/core/permissions';
 import { NextResponse } from 'next/server';
+import { checkPermissions } from '@/components/serverSide/permCheck';
 
 // Change Avatar
 export async function POST(req: Request, context: { params: Promise<{ username: string }> }) {

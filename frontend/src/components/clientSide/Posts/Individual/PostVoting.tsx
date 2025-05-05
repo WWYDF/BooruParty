@@ -2,6 +2,7 @@
 import { ThumbsUp, ThumbsDown, Star } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { PostUserStatus } from "@/core/types/posts";
 
 type VoteType = "UPVOTE" | "DOWNVOTE" | null;
 
@@ -11,21 +12,17 @@ type Props = {
     score: number;
     favorites?: number;
   },
-  user: {
-    vote: 'UPVOTE' | 'DOWNVOTE' | null,
-    favorited: boolean
-  }
+  user: PostUserStatus;
 };
 
 export default function PostVoting({ post, user }: Props) {
-  const { data: session } = useSession();
   const [vote, setVote] = useState<VoteType>(user.vote);
   const [favorited, setFavorited] = useState(user.favorited);
   const [loading, setLoading] = useState(false);
   const postId = post.id;
 
   const handleVote = async (type: VoteType) => {
-    if (!session) return;
+    if (user.signedIn == false) return;
 
     const newVote = vote === type ? null : type;
     setVote(newVote);
@@ -41,7 +38,7 @@ export default function PostVoting({ post, user }: Props) {
   };
 
   const toggleFavorite = async () => {
-    if (!session) return;
+    if (user.signedIn == false) return;
     const res = await fetch(`/api/posts/favorite`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

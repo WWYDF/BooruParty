@@ -29,11 +29,6 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
 
   const fullSrc = `${fastify}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
 
-  const userNull: PostUserStatus = {
-    vote: null,
-    favorited: false
-  }
-
   return (
     <div className="flex flex-col items-center gap-4">
       <AnimatePresence>
@@ -80,7 +75,7 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
         </button>
       ) : null}
 
-      {showVoting && <PostVoting post={post} user={userNull} />}
+      {showVoting && user && user.signedIn == true && <PostVoting post={post} user={user} />}
 
       {isAnimating && (
         <motion.div

@@ -99,6 +99,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   const userFormatted = {
     vote: voteType,
     favorited: hasFavorited,
+    signedIn: !!session?.user
   }
 
   return NextResponse.json({post: postFormatted, user: userFormatted});

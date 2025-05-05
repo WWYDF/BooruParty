@@ -38,6 +38,7 @@ export type Post = {
 export type PostUserStatus = {
   vote: 'UPVOTE' | 'DOWNVOTE' | null,
   favorited: boolean
+  signedIn: boolean
 }
 
 export type PostNavigatorType = {

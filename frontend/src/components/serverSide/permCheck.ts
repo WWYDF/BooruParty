@@ -6,9 +6,9 @@ export async function checkPermissions(
 ): Promise<Record<string, boolean>> {
   const permissions = Array.isArray(perms) ? perms : [perms];
 
-  // Shortcut: allow all if permission is posts_view and GUEST_VIEWING is enabled
+  // Shortcut: Allow all to view posts if permission is post_view and GUEST_VIEWING is enabled
   if (
-    permissions.includes("posts_view") &&
+    permissions.includes("post_view") &&
     process.env.GUEST_VIEWING === "true"
   ) {
     return Object.fromEntries(permissions.map((p) => [p, true]));
