@@ -172,8 +172,8 @@ export default function UserProfilePage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {user.favorites.slice(0, 10).map((fav: any) => (
               <a
-              key={fav.id}
-              href={`/post/${fav.id}`}
+              key={fav.postId}
+              href={`/post/${fav.postId}`}
               className="block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
             >
               <img
