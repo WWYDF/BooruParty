@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 type Props = {
   open: boolean;
@@ -13,6 +14,7 @@ export function CreatePoolModal({ open, onClose }: Props) {
   const [artist, setArtist] = useState("");
   const [description, setDescription] = useState("");
   const [safety, setSafety] = useState<"" | "SAFE" | "UNSAFE" | "SKETCHY">("");
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +24,7 @@ export function CreatePoolModal({ open, onClose }: Props) {
       body: JSON.stringify({ name, artist, description, safety }),
     });
     onClose(); // close after submit
+    router.refresh();
   };
 
   return (
