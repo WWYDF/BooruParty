@@ -14,7 +14,7 @@ export default function MassSelectionBar({
   onClear: () => void;
 }) {
   return (
-    <div className="flex justify-end items-center gap-2 my-4">
+    <div className="flex justify-end items-center gap-2">
       {!selectionMode ? (
         <button
           className="bg-zinc-800 border border-secondary-border px-4 py-2 rounded hover:bg-zinc-700 transition"

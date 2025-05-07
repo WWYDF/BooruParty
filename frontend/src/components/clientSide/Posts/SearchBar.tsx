@@ -1,5 +1,7 @@
 "use client";
 
+import { MagnifyingGlass, Trash } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
 type TagType = {
@@ -24,6 +26,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const router = useRouter();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -100,52 +103,68 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
     onSubmit(input.trim());
   };
 
+  const handleClear = () => {
+    setInput("");
+    onSubmit("");
+  };
+
   return (
-    <div className="relative w-full md:w-1/3">
-      <input
-        ref={inputRef}
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setTimeout(() => setIsFocused(false), 100)}
-        placeholder="Search by tags (example: cat -dog)"
-        className="w-full bg-secondary border border-secondary-border p-2 rounded text-zinc-100 focus:outline-none focus:ring-1 focus:ring-darkerAccent"
-      />
+    <div className="relative w-full flex md:w-1/2">
+      <div className="relative flex-grow">
+        <input
+          ref={inputRef}
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 100)}
+          placeholder="Search by tags (example: cat -dog)"
+          className="w-full rounded bg-secondary border border-secondary-border py-2 pr-12 pl-4 text-white focus:outline-none focus:ring-1 focus:ring-darkerAccent"
+        />
 
-      {isFocused && suggestions.length > 0 && (
-        <div className="absolute mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-10 max-h-60 overflow-y-auto">
-          {suggestions.map((tag, idx) => (
-            <div
-              key={tag.id}
-              onClick={() => handleSuggestionClick(tag.name)}
-              className={`flex items-center px-3 py-2 text-sm cursor-pointer ${
-                highlightedIndex === idx
-                  ? "bg-zinc-700 text-white"
-                  : "hover:bg-secondary-border"
-              }`}
-            >
+        {isFocused && suggestions.length > 0 && (
+          <div className="absolute mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-10 max-h-60 overflow-y-auto">
+            {suggestions.map((tag, idx) => (
               <div
-                className="mr-2"
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  backgroundColor: tag.category.color,
-                }}
-              />
-              <span>{input.trim().split(/\s+/).pop()?.startsWith("-") ? `-${tag.name}` : tag.name}</span>
-            </div>
-          ))}
-        </div>
-      )}
+                key={tag.id}
+                onClick={() => handleSuggestionClick(tag.name)}
+                className={`flex items-center px-3 py-2 text-sm cursor-pointer ${
+                  highlightedIndex === idx
+                    ? "bg-zinc-700 text-white"
+                    : "hover:bg-secondary-border"
+                }`}
+              >
+                <div
+                  className="mr-2"
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    backgroundColor: tag.category.color,
+                  }}
+                />
+                <span>{input.trim().split(/\s+/).pop()?.startsWith("-") ? `-${tag.name}` : tag.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
+        <button
+          onClick={handleSubmit}
+          className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300"
+        >
+          <MagnifyingGlass size={18} weight="duotone" />
+        </button>
+      </div>
+
+      {/* Trash button outside the bar */}
       <button
-        onClick={handleSubmit}
-        className="absolute right-2 top-2 text-zinc-400 hover:text-zinc-100"
+        onClick={handleClear}
+        className="ml-2 w-10 rounded-md flex items-center justify-center bg-zinc-800 hover:bg-red-600 text-white transition-colors border border-secondary-border"
+        title="Clear search"
       >
-        🔍
+        <Trash size={18} weight="duotone" />
       </button>
     </div>
   );

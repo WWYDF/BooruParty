@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getSession } from "next-auth/react";
 import MassSelectionBar from "./MassSelectBar";
 import MassEditor from "./MassEditor";
+import PostToolbar from "./PostToolbar";
 
 export default function ClientPostsPage({ initialPosts, postsPerPage }: { initialPosts: any[]; postsPerPage: number; }) {
   const searchParams = useSearchParams();
@@ -65,11 +66,16 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
     searchPosts(searchText, nextSafeties);
   };
 
-  const searchPosts = async (
-    queryOverride: string = searchText,
-    safetyOverride: string[] = selectedSafeties,
-    pageOverride: number = 1,
-    append: boolean = false
+  const searchPosts: (
+    queryOverride?: string,
+    safetyOverride?: string[],
+    pageOverride?: number,
+    append?: boolean
+  ) => Promise<void> = async (
+    queryOverride = searchText,
+    safetyOverride = selectedSafeties,
+    pageOverride = 1,
+    append = false
   ) => {
     const params = new URLSearchParams();
     params.set("query", queryOverride);
@@ -142,31 +148,18 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
 
   return (
     <>
-      <section className="flex flex-col md:flex-row gap-4">
-        <SearchBar
-          input={searchText}
-          setInput={setSearchText}
-          onSubmit={(query) => {
-            setSearchText(query ?? "");
-            searchPosts(query ?? "");
-          }}
-        />
-        <Filters
-          selectedSafeties={selectedSafeties}
-          toggleSafety={toggleSafety}
-          triggerSearch={() => searchPosts()}
-        />
-        <MassSelectionBar
-          selectionMode={selectionMode}
-          selectedCount={selectedPostIds.length}
-          onToggle={() => {
-            setSelectionMode(true);
-            setSelectedPostIds([]);
-          }}
-          onClear={() => setSelectionMode(false)}
-          onEdit={() => setModalOpen(true)}
-        />
-      </section>
+      <PostToolbar
+        searchText={searchText}
+        setSearchText={setSearchText}
+        selectedSafeties={selectedSafeties}
+        toggleSafety={toggleSafety}
+        searchPosts={searchPosts}
+        selectionMode={selectionMode}
+        selectedPostIds={selectedPostIds}
+        setSelectionMode={setSelectionMode}
+        setSelectedPostIds={setSelectedPostIds}
+        setModalOpen={setModalOpen}
+      />
 
       <Suspense fallback={<p className="text-subtle">Loading posts...</p>}>
         {!loadingViewMode ? (

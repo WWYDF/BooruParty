@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Images, List, X, UserCircle, Users, ChartPie, UploadSimple, House } from '@phosphor-icons/react';
 import { NavItem } from './NavItem';
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FolderOpen, Tag } from 'phosphor-react';
 
 
@@ -28,6 +28,7 @@ export default function Navbar() {
   const touchStartX = useRef<number | null>(null);
   const pathname = usePathname();
   const isFullscreen = pathname?.includes("/fullscreen");
+  const router = useRouter();
 
   useEffect(() => {
     fetch('/api/users/self')
@@ -95,7 +96,17 @@ export default function Navbar() {
 
         {/* Desktop Links */}
         <div className="hidden md:flex gap-4 items-center text-sm text-subtle">
-          <NavItem href="/posts">Posts</NavItem>
+          <NavItem
+            href={pathname === "/posts" ? "#" : "/posts"}
+            onClick={(e) => {
+              if (pathname === "/posts") {
+                e.preventDefault();
+                window.location.href = "/posts";
+              }
+            }}
+          >
+            Posts
+          </NavItem>
           {hasPerm('post_view') && (
             <NavItem href="/pools">Pools</NavItem>
           )}
@@ -196,7 +207,17 @@ export default function Navbar() {
                 <NavItem href="/" icon={<House size={18} />} onClick={() => setSidebarOpen(false)}>
                   Home
                 </NavItem>
-                <NavItem href="/posts" icon={<Images size={18} />} onClick={() => setSidebarOpen(false)}>
+                <NavItem
+                  href={pathname === "/posts" ? "#" : "/posts"}
+                  icon={<Images size={18} />}
+                  onClick={(e) => {
+                    setSidebarOpen(false)
+                    if (pathname === "/posts") {
+                      e.preventDefault();
+                      window.location.href = "/posts";
+                    }
+                  }}
+                >
                   Posts
                 </NavItem>
                 {hasPerm('post_view') && (

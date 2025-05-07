@@ -9,7 +9,7 @@ type NavItemProps = {
   href: string;
   icon?: ReactNode;
   children: ReactNode;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   className?: string;
 };
 
