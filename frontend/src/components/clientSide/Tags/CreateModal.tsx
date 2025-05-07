@@ -102,6 +102,7 @@ export function CreateTagModal({ open, onClose, onCreated }: CreateTagModalProps
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  maxLength={64}
                 />
               </div>
 
@@ -114,6 +115,7 @@ export function CreateTagModal({ open, onClose, onCreated }: CreateTagModalProps
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
+                  maxLength={500}
                 />
               </div>
 

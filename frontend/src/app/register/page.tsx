@@ -85,6 +85,7 @@ export default function RegisterPage() {
             onChange={handleChange}
             value={form.email}
             required
+            maxLength={128}
           />
   
           <input
@@ -95,6 +96,7 @@ export default function RegisterPage() {
             onChange={handleChange}
             value={form.username}
             required
+            maxLength={24}
           />
   
           <input
@@ -105,6 +107,7 @@ export default function RegisterPage() {
             onChange={handleChange}
             value={form.password}
             required
+            maxLength={128}
           />
   
           <button

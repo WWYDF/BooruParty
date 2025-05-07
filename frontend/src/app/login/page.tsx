@@ -61,6 +61,7 @@ export default function LoginPage() {
             onChange={handleChange}
             value={form.email}
             required
+            maxLength={128}
           />
   
           <input
@@ -71,6 +72,7 @@ export default function LoginPage() {
             onChange={handleChange}
             value={form.password}
             required
+            maxLength={128}
           />
   
           <button

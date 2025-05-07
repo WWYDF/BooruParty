@@ -46,6 +46,7 @@ export default function InfoForm({ user }: { user: UserSelf }) {
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Username"
             className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            maxLength={24}
         />
         <input
             value={email}
@@ -53,6 +54,7 @@ export default function InfoForm({ user }: { user: UserSelf }) {
             placeholder="Email"
             type="email"
             className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            maxLength={128}
         />
         <input
             value={description}
@@ -60,6 +62,7 @@ export default function InfoForm({ user }: { user: UserSelf }) {
             placeholder="About Me"
             type="text"
             className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            maxLength={256}
         />
         <button onClick={save} className="bg-darkerAccent hover:bg-darkerAccent/80 transition text-white px-4 py-2 rounded">Save Info</button>
 

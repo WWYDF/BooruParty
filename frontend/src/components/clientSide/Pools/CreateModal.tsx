@@ -59,6 +59,7 @@ export function CreatePoolModal({ open, onClose }: Props) {
                 onChange={(e) => setName(e.target.value)}
                 className="w-full p-2 rounded bg-secondary text-subtle focus:outline-none focus:ring-2 focus:ring-zinc-800"
                 required
+                maxLength={48}
               />
               <input
                 type="text"
@@ -66,12 +67,14 @@ export function CreatePoolModal({ open, onClose }: Props) {
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
                 className="w-full p-2 rounded bg-secondary text-subtle focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                maxLength={32}
               />
               <textarea
                 placeholder="Description (optional)"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full p-2 rounded bg-secondary text-subtle focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                maxLength={500}
               />
               <select
                 value={safety}

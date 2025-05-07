@@ -282,7 +282,7 @@ export default function PostCommentList({
 
               {/* Content */}
               <div className="flex-1">
-                <div className="text-muted text-sm mb-1 text-zinc-400">
+                <div className="text-muted text-sm mb-1 text-zinc-400 overflow-hidden break-all">
                   <Link
                     href={`/users/${encodeURIComponent(comment.author.username)}`}
                     className="text-accent hover:underline"
@@ -293,7 +293,7 @@ export default function PostCommentList({
 
                   <a className="ml-1 text-xs text-zinc-500">{new Date(comment.createdAt).toLocaleString()}</a>
                 </div>
-                <div className="text-base text-zinc-400 whitespace-pre-wrap">
+                <div className="text-base text-zinc-400 whitespace-pre-wrap break-all">
                 {(() => {
                   const embeds = comment.isEmbed
                   ? extractEmbeds(comment.content, previewMap, blurUnsafeEmbeds, parentPostSafety)
@@ -335,7 +335,7 @@ export default function PostCommentList({
                     </div>
                   ) : (
                   <>
-                    <div className="text-base text-zinc-400 whitespace-pre-wrap">
+                    <div className="text-base text-zinc-400 whitespace-pre-wrap break-all">
                       {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
                         const match = chunk.match(/^:(\d+):$/);
                         if (match) {
@@ -358,6 +358,7 @@ export default function PostCommentList({
                         return (
                           <span
                             key={idx}
+                            className="break-all"
                             dangerouslySetInnerHTML={{
                               __html: sanitizeHtml(chunk, {
                                 allowedTags: [], // no tags allowed at all
@@ -373,7 +374,7 @@ export default function PostCommentList({
                 );
                 })()}
                 </div>
-                <div className="flex gap-2 text-2xs mt-1 text-zinc-600">
+                <div className="flex gap-2 text-2xs mt-1 text-zinc-600 overflow-hidden break-all">
                   {comment.canEdit && (
                     <button
                       onClick={() => {

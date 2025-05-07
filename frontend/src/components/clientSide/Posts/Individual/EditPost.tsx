@@ -180,6 +180,7 @@ export default function EditPost({
             value={sources}
             onChange={(e) => setSources(e.target.value)}
             className="w-full p-2 rounded bg-secondary text-sm text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            // maxLength={128}
           />
         </div>
 
@@ -190,6 +191,7 @@ export default function EditPost({
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             className="w-full p-2 rounded bg-secondary text-sm text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            maxLength={500}
           />
         </div>
       </div>

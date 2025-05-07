@@ -200,6 +200,7 @@ export default function Page() {
                       className="bg-secondary-border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-darkerAccent"
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      maxLength={64}
                     />
                     <input
                       type="color"

@@ -119,6 +119,7 @@ export default function TagEditPage() {
             }}
             className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-800"
             placeholder="tag_name"
+            maxLength={128}
           />
           <p className="text-zinc-600 text-xs mt-1">
             Separate names with spaces. First name is primary. No spaces allowed inside names (use underscores).
@@ -232,6 +233,7 @@ export default function TagEditPage() {
             onChange={(e) => setDescription(e.target.value)}
             className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-zinc-800"
             rows={6}
+            maxLength={500}
           />
         </div>
 
@@ -239,7 +241,7 @@ export default function TagEditPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-accent text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
+          className="bg-darkerAccent hover:bg-darkerAccent/80 transition text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>

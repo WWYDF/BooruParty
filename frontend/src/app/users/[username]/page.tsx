@@ -9,6 +9,7 @@ import clsx from "clsx";
 import { GearSix } from "phosphor-react";
 import { useSession } from "next-auth/react";
 import { formatRelativeTime } from "@/core/formats";
+import sanitizeHtml from "sanitize-html";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -226,7 +227,15 @@ export default function UserProfilePage() {
                 className="block border border-zinc-800 p-3 rounded-lg hover:border-zinc-700 transition"
               >
                 <div className="text-sm text-subtle whitespace-pre-wrap">
-                  {cleanedText}
+                  <span
+                    className="inline-block break-all max-w-full"
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeHtml(cleanedText, {
+                        allowedTags: [], // Disallow everything
+                        allowedAttributes: {},
+                      }),
+                    }}
+                  />
                   {renderCommentEmbeds(embeds)}
                 </div>
                 <div className="text-xs text-zinc-500 mt-2">
