@@ -7,18 +7,45 @@ import { ThumbsUp, Heart, FilmStrip, Chats } from "phosphor-react";
 interface PostCardProps {
   post: Post;
   viewMode: 'GRID' | 'COLLAGE';
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  toggleSelect?: (postId: number) => void;
 }
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
-export default function PostCard({ post, viewMode }: PostCardProps) {
+export default function PostCard({ post, viewMode, selectionMode, isSelected, toggleSelect }: PostCardProps) {
   const thumbnailUrl = `${fastify}/data/thumbnails/${post.id}`;
 
   // Assume post.fileExt tells us if it's a gif or video
   const isAnimated = post.fileExt === "gif" || post.fileExt === "mp4" || post.fileExt === "webm";
 
   return (
-    <Link href={`/post/${post.id}`} className="block group relative">
+    <Link
+      href={selectionMode ? "#" : `/post/${post.id}`}
+      onClick={(e) => {
+        if (selectionMode) {
+          e.preventDefault();
+          toggleSelect?.(post.id);
+        }
+      }}
+      className="block group relative"
+    >
+      {/* Mass Editing */}
+      {selectionMode && (
+        <div className="absolute top-2 right-2 z-20">
+          <div
+            className={`w-5 h-5 border-2 rounded-sm flex items-center justify-center cursor-pointer transition ${
+              isSelected
+                ? "bg-green-600 border-green-400"
+                : "bg-zinc-800 border-zinc-600"
+            }`}
+          >
+            {isSelected && <div className="w-2 h-2 bg-white rounded-sm" />}
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl bg-secondary-border overflow-hidden relative">
         {viewMode === 'GRID' ? (
           <div className="aspect-square">

@@ -191,10 +191,6 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     const body = await req.json();
     const { tags, sources, notes, safety, anonymous, relatedPosts, pools } = body;
 
-    if (!Array.isArray(tags) || !tags.every((t) => typeof t === "number")) {
-      return NextResponse.json({ error: "Invalid tags format" }, { status: 400 });
-    }
-
     const originalPost = await prisma.posts.findUnique({
       where: { id: postId },
       select: {
@@ -203,27 +199,40 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
         notes: true,
         safety: true,
         anonymous: true,
-      }
+      },
     });
+
+    if (!originalPost) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    const updateData: any = {};
+
+    // Optional field: tags
+    if (tags !== undefined) {
+      if (!Array.isArray(tags) || !tags.every((t) => typeof t === "number")) {
+        return NextResponse.json({ error: "Invalid tags format" }, { status: 400 });
+      }
+      updateData.tags = {
+        set: tags.map((tagId) => ({ id: tagId })),
+      };
+    }
+
+    // Optional fields: strings, enums, booleans
+    if (sources !== undefined) updateData.sources = sources;
+    if (notes !== undefined) updateData.notes = notes;
+    if (safety !== undefined) updateData.safety = safety;
+    if (anonymous !== undefined) updateData.anonymous = anonymous;
 
     const updatedPost = await prisma.posts.update({
       where: { id: postId },
-      data: {
-        tags: {
-          set: tags.map((tagId) => ({ id: tagId })),
-        },
-        sources,
-        notes,
-        safety,
-        anonymous,
-      },
+      data: updateData,
       include: {
-        tags: {
-          include: { category: true },
-        },
+        tags: { include: { category: true } },
       },
     });
 
+    // Optional side effects
     if (relatedPosts !== undefined) {
       await syncPostRelations(postId, relatedPosts);
     }

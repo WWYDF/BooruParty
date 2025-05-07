@@ -9,10 +9,16 @@ type ViewMode = 'GRID' | 'COLLAGE';
 
 export default function PostGrid({
   externalPosts = [],
-  viewMode = 'GRID'
+  viewMode = 'GRID',
+  selectionMode,
+  selectedPostIds,
+  toggleSelect
 }: {
   externalPosts?: Post[];
   viewMode?: ViewMode;
+  selectionMode: boolean;
+  selectedPostIds: number[];
+  toggleSelect: (postId: number) => void;
 }) {
   if (viewMode === 'COLLAGE') {
     const breakpointColumnsObj = {
@@ -35,7 +41,14 @@ export default function PostGrid({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.04, duration: 0.3 }}
             >
-              <PostCard key={`${post.id}`} post={post} viewMode="COLLAGE" />
+              <PostCard 
+                key={`${post.id}`} 
+                post={post} 
+                viewMode="COLLAGE"
+                selectionMode={selectionMode}
+                isSelected={selectedPostIds.includes(post.id)}
+                toggleSelect={toggleSelect}
+              />
             </motion.div>
           </div>
         ))}
@@ -52,7 +65,14 @@ export default function PostGrid({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.04, duration: 0.3 }}
         >
-          <PostCard key={`${post.id}`} post={post} viewMode="GRID" />
+          <PostCard 
+            key={`${post.id}`} 
+            post={post} 
+            viewMode="GRID"
+            selectionMode={selectionMode}
+            isSelected={selectedPostIds.includes(post.id)}
+            toggleSelect={toggleSelect}
+          />
         </motion.div>
       ))}
     </div>

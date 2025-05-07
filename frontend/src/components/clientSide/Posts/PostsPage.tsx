@@ -6,6 +6,8 @@ import PostGrid from "@/components/clientSide/Posts/PostGrid";
 import Filters from "@/components/clientSide/Posts/Filters";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSession } from "next-auth/react";
+import MassSelectionBar from "./MassSelectBar";
+import MassEditor from "./MassEditor";
 
 export default function ClientPostsPage({ initialPosts, postsPerPage }: { initialPosts: any[]; postsPerPage: number; }) {
   const searchParams = useSearchParams();
@@ -23,6 +25,10 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedPostIds, setSelectedPostIds] = useState<number[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const isFirstLoad = useRef(true);
 
@@ -150,15 +156,42 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
           toggleSafety={toggleSafety}
           triggerSearch={() => searchPosts()}
         />
+        <MassSelectionBar
+          selectionMode={selectionMode}
+          selectedCount={selectedPostIds.length}
+          onToggle={() => {
+            setSelectionMode(true);
+            setSelectedPostIds([]);
+          }}
+          onClear={() => setSelectionMode(false)}
+          onEdit={() => setModalOpen(true)}
+        />
       </section>
 
       <Suspense fallback={<p className="text-subtle">Loading posts...</p>}>
         {!loadingViewMode ? (
-          <PostGrid externalPosts={posts} viewMode={viewMode} />
+          <PostGrid
+            externalPosts={posts}
+            viewMode={viewMode}
+            selectionMode={selectionMode}
+            selectedPostIds={selectedPostIds}
+            toggleSelect={(id) =>
+              setSelectedPostIds((prev) =>
+                prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+              )
+            }
+          />
         ) : (
           <p className="text-subtle">Loading layout preference...</p>
         )}
       </Suspense>
+      <MassEditor
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        postIds={selectedPostIds}
+        setSelectedPostIds={setSelectedPostIds}
+        setSelectionMode={setSelectionMode}
+      />
     </>
   );
 }
