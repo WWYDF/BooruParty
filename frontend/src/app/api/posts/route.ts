@@ -5,6 +5,7 @@ import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { FILE_TYPE_MAP } from "@/core/dictionary";
+import { buildPostWhereAndOrder } from "@/components/serverSide/Posts/filters";
 
 export function parseSearch(input: string) {
   const terms = input.split(/\s+/).filter(Boolean);
@@ -47,79 +48,12 @@ export async function GET(req: Request) {
   const page = parseInt(searchParams.get("page") || "1");
   const perPage = parseInt(searchParams.get("perPage") || "50");
   const safetyValues = searchParams.getAll("safety");
+  const sort = (searchParams.get("sort") ?? "new") as "new" | "old";
 
-  const { includeTags, excludeTags, systemOptions, includeTypes, excludeTypes } = parseSearch(search);
-
-  const orderValue = systemOptions.order || "createdAt"; // default to createdAt
-  let orderBy: any = { createdAt: "desc" };
-
-  if (orderValue.startsWith("score")) {
-    orderBy = { score: orderValue.endsWith("_asc") ? "asc" : "desc" };
-  } else if (orderValue.startsWith("favorites")) {
-    orderBy = { favoritedBy: { _count: orderValue.endsWith("_asc") ? "asc" : "desc" } };
-  } else if (orderValue.startsWith("tags")) {
-    orderBy = { tags: { _count: orderValue.endsWith("_asc") ? "asc" : "desc" } };
-  } else {
-    orderBy = { createdAt: "desc" }; // fallback
-  }
-
-  let fileTypeWhere: Record<string, any> = {};
-  const resolveExts = (types: string[]) =>
-    types.flatMap(t => {
-      if (t in FILE_TYPE_MAP) return FILE_TYPE_MAP[t as keyof typeof FILE_TYPE_MAP];
-      return [t]; // fallback: treat as literal extension
-    }).map(ext => ext.replace(/^\./, ""));
-
-  const includeExts = resolveExts(includeTypes);
-  const excludeExts = resolveExts(excludeTypes);
-
-  fileTypeWhere = {
-    AND: [
-      includeExts.length > 0 ? { fileExt: { in: includeExts } } : {},
-      excludeExts.length > 0 ? { fileExt: { notIn: excludeExts } } : {},
-    ],
-  };
-  
-
-  const uploaderWhere = systemOptions.posts
-  ? {
-      uploadedBy: {
-        is: {
-          username: systemOptions.posts,
-        },
-      },
-    }
-  : {};
-
-  const favoriterWhere = systemOptions.favorites
-  ? {
-      favoritedBy: {
-        some: {
-          user: {
-            username: systemOptions.favorites,
-          },
-        },
-      },
-    }
-  : {};
+  const { where, orderBy } = buildPostWhereAndOrder(search, safetyValues.join("-"), sort);
 
   const posts = await prisma.posts.findMany({
-    where: {
-      AND: [
-        uploaderWhere,
-        favoriterWhere,
-        fileTypeWhere,
-        ...(safetyValues.length > 0
-          ? [{ safety: { in: safetyValues as SafetyType[] } }]
-          : []),
-        ...includeTags.map((tagName) => ({
-          tags: { some: { name: tagName } },
-        })),
-        ...excludeTags.map((tagName) => ({
-          tags: { none: { name: tagName } },
-        })),
-      ],
-    },
+    where,
     skip: (page - 1) * perPage,
     take: perPage,
     orderBy,
@@ -128,41 +62,33 @@ export async function GET(req: Request) {
       fileExt: true,
       safety: true,
       uploadedBy: {
-        select: { id: true, username: true }
+        select: { id: true, username: true },
       },
       anonymous: true,
       flags: true,
       score: true,
       favoritedBy: {
         select: {
-          userId: true
-        }
+          userId: true,
+          user: {
+            select: {
+              username: true
+            }
+          }
+        },
       },
       comments: {
         select: {
           authorId: true,
-          content: true
-        }
+          content: true,
+        },
       },
       createdAt: true,
       tags: { select: { id: true, name: true } },
     },
   });
 
-  const totalCount = await prisma.posts.count({
-    where: {
-      AND: [
-        uploaderWhere,
-        ...includeTags.map((tagName) => ({
-          tags: { some: { name: tagName } },
-        })),
-        ...excludeTags.map((tagName) => ({
-          tags: { none: { name: tagName } },
-        })),
-      ],
-    },
-  });
-
+  const totalCount = await prisma.posts.count({ where });
   const totalPages = Math.ceil(totalCount / perPage);
 
   return NextResponse.json({

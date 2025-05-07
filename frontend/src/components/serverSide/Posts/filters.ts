@@ -29,9 +29,11 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
     where.AND.push({
       favoritedBy: {
         some: {
-          username: {
-            equals: systemOptions.favorites,
-            mode: "insensitive",
+          user: {
+            username: {
+              equals: systemOptions.favorites,
+              mode: "insensitive",
+            },
           },
         },
       },
