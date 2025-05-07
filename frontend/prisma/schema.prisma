@@ -113,15 +113,17 @@ model Permission {
 }
 
 model Posts {
-  id            Int          @id @default(autoincrement())
+  id            Int                 @id @default(autoincrement())
   fileExt       String
   previewPath   String?
   aspectRatio   Float?
-  uploadedBy    User         @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedBy    User                @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
   anonymous     Boolean
   safety        SafetyType
-  tags          Tags[]       @relation("PostTags")
+  tags          Tags[]              @relation("PostTags")
   pools         PoolItems[]
+  relatedTo     PostRelation[]      @relation("RelatedTo")
+  relatedFrom   PostRelation[]      @relation("RelatedFrom")
   sources       String[]
   notes         String?
   flags         String[]
@@ -137,6 +139,16 @@ model Posts {
   fileSize      Int?
 
   createdAt     DateTime     @default(now())
+}
+
+model PostRelation {
+  fromId        Int
+  toId          Int
+
+  from          Posts @relation("RelatedFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to            Posts @relation("RelatedTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@id([fromId, toId])
 }
 
 model Comments {
