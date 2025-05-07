@@ -42,6 +42,24 @@ export default async function PostsPage() {
   const initialPosts = await prisma.posts.findMany({
     orderBy: { createdAt: "desc" },
     take: postsPerPage, // Limit page 1 properly
+    include: {
+      favoritedBy: {
+        select: {
+          userId: true,
+          user: {
+            select: {
+              username: true
+            }
+          }
+        },
+      },
+      comments: {
+        select: {
+          authorId: true,
+          content: true,
+        },
+      },
+    }
   });
 
   return (

@@ -17,6 +17,8 @@ const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 export default function PostCard({ post, viewMode, selectionMode, isSelected, toggleSelect }: PostCardProps) {
   const thumbnailUrl = `${fastify}/data/thumbnails/${post.id}`;
 
+  console.log(post.comments?.length)
+
   // Assume post.fileExt tells us if it's a gif or video
   const isAnimated = post.fileExt === "gif" || post.fileExt === "mp4" || post.fileExt === "webm";
 
@@ -83,21 +85,21 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
         <div className="absolute bottom-2 right-2 flex items-center gap-2">
           {post.comments?.length > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Chats size={16} />
+              <Chats size={16} className="text-yellow-500" weight="bold" />
               <span>{post.comments.length}</span>
             </div>
           )}
 
           {post.score > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <ThumbsUp size={16} />
+              <ThumbsUp size={16} className="text-green-500" weight="bold" />
               <span>{post.score}</span>
             </div>
           )}
 
           {post.favoritedBy?.length > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Heart size={16} />
+              <Heart size={16} className="text-red-500" weight="bold" />
               <span>{post.favoritedBy.length}</span>
             </div>
           )}
