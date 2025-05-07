@@ -11,6 +11,7 @@ import { JSX, useEffect, useState } from "react";
 import { useToast } from "../../Toast";
 import clsx from "clsx";
 import ConfirmModal from "../../ConfirmModal";
+import sanitizeHtml from "sanitize-html";
 
 type ExtractedEmbed =
   | { type: "url"; value: string }
@@ -354,7 +355,17 @@ export default function PostCommentList({
                             );
                           }
                         }
-                        return <span key={idx}>{chunk}</span>;
+                        return (
+                          <span
+                            key={idx}
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtml(chunk, {
+                                allowedTags: [], // no tags allowed at all
+                                allowedAttributes: {}, // no attributes allowed
+                              }),
+                            }}
+                          />
+                        );
                       })}
                       {comment.isEmbed && renderEmbeds(embeds)}
                     </div>
