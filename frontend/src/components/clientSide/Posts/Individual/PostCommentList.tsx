@@ -118,7 +118,7 @@ function renderEmbeds(embeds: ExtractedEmbed[]): JSX.Element[] {
     if (embed.type === "post") {
       return (
         <div key={index} className="mt-2">
-          <a href={`/post/${embed.postId}`} className="block max-w-xs rounded-lg overflow-hidden border border-zinc-700 hover:border-accent transition">
+          <a href={`/post/${embed.postId}`} className="block max-w-xs rounded-lg overflow-hidden hover:border-accent transition">
             <img
               src={embed.previewPath}
               alt={`Post #${embed.postId}`}
