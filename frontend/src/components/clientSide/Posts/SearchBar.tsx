@@ -109,8 +109,9 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
   };
 
   return (
-    <div className="relative w-full flex md:w-1/2">
-      <div className="relative flex-grow">
+    <div className="relative w-full flex items-center gap-2">
+      {/* Input + search button group */}
+      <div className="relative flex items-center bg-secondary border border-secondary-border rounded w-full pl-3 pr-2">
         <input
           ref={inputRef}
           type="text"
@@ -120,11 +121,20 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 100)}
           placeholder="Search by tags (example: cat -dog)"
-          className="w-full rounded bg-secondary border border-secondary-border py-2 pr-12 pl-4 text-white focus:outline-none focus:ring-1 focus:ring-darkerAccent"
+          className="w-full bg-secondary text-white py-2 text-sm focus:outline-none"
         />
 
+        <button
+          onClick={handleSubmit}
+          className="ml-2 w-8 h-8 flex items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300 shrink-0"
+          title="Search"
+        >
+          <MagnifyingGlass size={16} weight="duotone" />
+        </button>
+
+        {/* Autocomplete dropdown */}
         {isFocused && suggestions.length > 0 && (
-          <div className="absolute mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-10 max-h-60 overflow-y-auto">
+          <div className="absolute top-full left-0 mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-50 max-h-60 overflow-y-auto">
             {suggestions.map((tag, idx) => (
               <div
                 key={tag.id}
@@ -144,24 +154,21 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
                     backgroundColor: tag.category.color,
                   }}
                 />
-                <span>{input.trim().split(/\s+/).pop()?.startsWith("-") ? `-${tag.name}` : tag.name}</span>
+                <span>
+                  {input.trim().split(/\s+/).pop()?.startsWith("-")
+                    ? `-${tag.name}`
+                    : tag.name}
+                </span>
               </div>
             ))}
           </div>
         )}
-
-        <button
-          onClick={handleSubmit}
-          className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300"
-        >
-          <MagnifyingGlass size={18} weight="duotone" />
-        </button>
       </div>
 
-      {/* Trash button outside the bar */}
+      {/* Trash button */}
       <button
         onClick={handleClear}
-        className="ml-2 w-10 rounded-md flex items-center justify-center bg-zinc-800 hover:bg-red-600 text-white transition-colors border border-secondary-border"
+        className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-md bg-zinc-800 hover:bg-red-600 text-white transition-colors border border-secondary-border"
         title="Clear search"
       >
         <Trash size={18} weight="duotone" />

@@ -33,7 +33,7 @@ export default function PostToolbar({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
     >
-      <section className="flex flex-wrap md:flex-nowrap items-stretch gap-3 px-4 py-3">
+      <section className="flex flex-wrap md:flex-nowrap items-stretch gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3">
         <div className="flex-grow">
           <SearchBar
             input={searchText}
