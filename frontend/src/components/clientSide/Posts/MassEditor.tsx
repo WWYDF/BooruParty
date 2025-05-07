@@ -181,7 +181,11 @@ export default function MassEditor({
               <label className="text-sm font-medium text-red-400 mb-1 block">Delete Posts</label>
               <button
                 onClick={() => setConfirmDeleteOpen(true)}
-                className="text-sm text-red-500 hover:text-red-300"
+                className={`px-3 py-2 mt-1 rounded text-sm border transition-colors
+                  ${pendingDelete
+                    ? "bg-red-600 border-red-500 text-white hover:bg-red-500"
+                    : "bg-zinc-800 border-secondary-border text-red-400 hover:text-red-200"}
+                `}
               >
                 Permanently delete {postIds.length} post{postIds.length > 1 ? "s" : ""}
               </button>
@@ -194,7 +198,17 @@ export default function MassEditor({
           </div>
 
           <div className="flex justify-end mt-6 gap-2">
-            <button onClick={onClose} className="bg-zinc-700 px-4 py-2 rounded hover:bg-zinc-600">
+            <button
+              onClick={() => {
+                onClose(); // closes the modal
+                setPendingDelete(false);
+                setTags([]);
+                setRelatedPosts([]);
+                setPools([]);
+                setSafety("");
+              }}
+              className="bg-zinc-700 px-4 py-2 rounded hover:bg-zinc-600"
+            >
               Cancel
             </button>
             <button

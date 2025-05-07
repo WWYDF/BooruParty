@@ -3,6 +3,7 @@
 import { MagnifyingGlass, Trash } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
+import { motion } from 'framer-motion';
 
 type TagType = {
   id: number;
@@ -134,7 +135,13 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
 
         {/* Autocomplete dropdown */}
         {isFocused && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-50 max-h-60 overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-full left-0 mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-50 max-h-60 overflow-y-auto"
+          >
             {suggestions.map((tag, idx) => (
               <div
                 key={tag.id}
@@ -161,7 +168,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
                 </span>
               </div>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
 
