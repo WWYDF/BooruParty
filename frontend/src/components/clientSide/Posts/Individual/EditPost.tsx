@@ -23,6 +23,13 @@ type PostType = {
   relatedTo: {
     from: { id: number };
   }[];
+  pools: {
+    poolId: number;
+    pool: {
+      id: number;
+      name: string;
+    };
+  }[];
 };
 
 export default function EditPost({
@@ -45,6 +52,7 @@ export default function EditPost({
   const [initialOrderedTags, setInitialOrderedTags] = useState<Tag[]>([]);
   const [newlyAddedTags, setNewlyAddedTags] = useState<Tag[]>([]);
   const [relatedPosts, setRelatedPosts] = useState<number[]>([]);
+  const [pools, setPools] = useState<number[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const toast = useToast();
 
@@ -65,7 +73,9 @@ export default function EditPost({
   ];
   setRelatedPosts([...new Set(related)]);
 
-  }, [post.tags, post.relatedFrom, post.relatedTo]);
+  setPools(post.pools.map(p => p.pool.id));
+
+  }, [post.tags, post.relatedFrom, post.relatedTo, post.pools]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -80,6 +90,7 @@ export default function EditPost({
         safety,
         anonymous,
         relatedPosts,
+        pools,
       }),
     });
 
@@ -187,6 +198,13 @@ export default function EditPost({
       <div className="col-span-2">
         <label className="text-white font-medium block mb-1">Related Posts</label>
         <RelatedPostInput value={relatedPosts} onChange={setRelatedPosts} />
+      </div>
+
+      {/* Current Pools */}
+      <div className="col-span-2">
+        <label className="text-white font-medium block mb-1">Pools</label>
+        {/* This component is actually reusable for this, might rename later */}
+        <RelatedPostInput value={pools} onChange={setPools} />
       </div>
 
       {/* Tag selector */}

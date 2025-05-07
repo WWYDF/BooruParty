@@ -49,6 +49,24 @@ type Props = {
         previewPath: string | null;
       };
     }[];
+    pools: {
+      poolId: number;
+      pool: {
+        id: number;
+        name: string;
+        safety: "SAFE" | "SKETCHY" | "UNSAFE";
+        _count: {
+          items: number;
+        },
+        items: {
+          index: number;
+          post: {
+            id: number;
+            previewPath: string | null;
+          };
+        }[];
+      };
+    }[];
     uploadedBy: {
       id: string;
       username: string;
@@ -273,6 +291,61 @@ export default function PostMetadata({ post }: Props) {
               </div>
             </div>
           )}
+
+
+          {/* Pools */}
+          {post.pools.length > 0 && (
+            <div className="mt-4">
+              <p className="text-white font-medium text-sm mb-1">Pools:</p>
+              <div className="flex flex-wrap gap-4">
+                {post.pools.map(({ poolId, pool }) => {
+                  const cover = pool.items[0]?.post;
+                  const match = pool.items.find(item => item.post.id === post.id);
+                  const currentIndex = match?.index ?? 0;
+                  const total = pool._count.items;
+
+                  return (
+                    <Link
+                      key={pool.id}
+                      href={`/pools/${pool.id}`}
+                      className="flex items-center gap-3 group"
+                    >
+                      <div className="w-[54px] h-[96px] overflow-hidden rounded border border-secondary-border bg-zinc-800">
+                        {cover?.previewPath ? (
+                          <img
+                            src={cover.previewPath}
+                            alt={`Pool ${pool.name}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-zinc-500">
+                            No preview
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p
+                          className={`text-sm font-medium ${
+                            pool.safety === "SAFE"
+                              ? "text-green-400"
+                              : pool.safety === "SKETCHY"
+                              ? "text-yellow-400"
+                              : "text-red-400"
+                          }`}
+                        >
+                          {pool.name}
+                        </p>
+                        <p className="text-xs text-zinc-400 mt-0.5">
+                          Page {currentIndex + 1} of {total}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
 
 
           {/* Sources */}

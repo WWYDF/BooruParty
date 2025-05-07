@@ -1,5 +1,6 @@
 import { buildPostChangeDetails, reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { syncPostPools } from "@/components/serverSide/Posts/syncPools";
 import { syncPostRelations } from "@/components/serverSide/Posts/syncRelations";
 import { auth } from "@/core/authServer";
 import { getConversionType } from "@/core/dictionary";
@@ -59,6 +60,33 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
           }
         }
       },
+      pools: {
+        select: {
+          poolId: true,
+          pool: {
+            select: {
+              id: true,
+              name: true,
+              safety: true,
+              _count: {
+                select: { items: true }
+              },
+              items: {
+                orderBy: { index: "asc" },
+                select: {
+                  index: true,
+                  post: {
+                    select: {
+                      id: true,
+                      previewPath: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       uploadedBy: {
         select: {
           id: true,
@@ -115,7 +143,20 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       : null,
     previewExt,
     previewPath: `${process.env.NEXT_PUBLIC_FASTIFY}${post.previewPath}`,
-  }
+    pools: post.pools.map((poolItem) => ({
+      ...poolItem,
+      pool: {
+        ...poolItem.pool,
+        items: poolItem.pool.items.map((item) => ({
+          ...item,
+          post: {
+            ...item.post,
+            previewPath: `${process.env.NEXT_PUBLIC_FASTIFY}${item.post.previewPath}`,
+          },
+        })),
+      },
+    })),
+  };
 
   const userFormatted = {
     vote: voteType,
@@ -148,7 +189,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
 
   try {
     const body = await req.json();
-    const { tags, sources, notes, safety, anonymous, relatedPosts } = body;
+    const { tags, sources, notes, safety, anonymous, relatedPosts, pools } = body;
 
     if (!Array.isArray(tags) || !tags.every((t) => typeof t === "number")) {
       return NextResponse.json({ error: "Invalid tags format" }, { status: 400 });
@@ -185,6 +226,10 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
 
     if (relatedPosts !== undefined) {
       await syncPostRelations(postId, relatedPosts);
+    }
+
+    if (pools !== undefined) {
+      await syncPostPools(postId, pools);
     }
 
     // Log action, but log nothing if nothing changed.
