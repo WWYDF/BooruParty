@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Reorder, motion } from "framer-motion";
 import { useToast } from "@/components/clientSide/Toast";
 import { Trash } from "@phosphor-icons/react";
+import ConfirmModal from "@/components/clientSide/ConfirmModal";
 
 type TagCategory = {
   id: number;
@@ -17,6 +18,9 @@ export default function Page() {
   const [form, setForm] = useState({ name: "", color: "#ffffff", order: "" });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ name: "", color: "#ffffff", order: "" });
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [purgeChoice, setPurgeChoice] = useState("keep");
   const toast = useToast();
 
   // Fetch categories once
@@ -221,7 +225,10 @@ export default function Page() {
                       Save
                     </button>
                     <button
-                      onClick={() => deleteCategory(cat.id)}
+                      onClick={() => {
+                        setSelectedCategoryId(cat.id);
+                        setShowConfirm(true);
+                      }}
                       className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg flex items-center justify-center transition-colors"
                     >
                       <Trash size={20} />
@@ -245,6 +252,38 @@ export default function Page() {
           ))}
         </Reorder.Group>
       </div>
+      <ConfirmModal
+        open={showConfirm}
+        onClose={() => {
+          setShowConfirm(false);
+          setSelectedCategoryId(null);
+          setPurgeChoice("keep");
+        }}
+        onConfirm={async () => {
+          if (!selectedCategoryId) return;
+          const res = await fetch(`/api/tag-categories/${selectedCategoryId}?purgeTags=${purgeChoice === "purge"}`,
+            { method: "DELETE" }
+          );
+          if (res.ok) {
+            setCategories(categories.filter((cat) => cat.id !== selectedCategoryId));
+            toast("Category deleted!", "success");
+          } else {
+            toast("Failed to delete category.", "error");
+          }
+          setShowConfirm(false);
+          setSelectedCategoryId(null);
+        }}
+        title="Delete Tag Category?"
+        description={`Should we delete just the category, or also remove all tags associated with it?\nThis cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        radioOptions={[
+          { label: "Only delete the category", value: "keep", color: "orange" },
+          { label: "Delete category and all tags", value: "purge", color: "red" },
+        ]}
+        selectedRadio={purgeChoice}
+        setSelectedRadio={setPurgeChoice}
+      />
     </div>
   );
 }

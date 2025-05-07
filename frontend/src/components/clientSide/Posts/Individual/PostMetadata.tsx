@@ -377,10 +377,10 @@ export default function PostMetadata({ post }: Props) {
 
           {/* Tags */}
           {post.tags.length > 0 && (
-            <div className="flex flex-col gap-4 mt-4">
+            <div className="flex flex-col gap-3">
               {sortedCategories.map(([categoryName, items]) => (
                 <div key={categoryName}>
-                  <p className="text-white text-base font-semibold mb-1">{categoryName}</p>
+                  <p className="text-subtle text-sm mb-1">{categoryName}</p>
                   <div className="flex flex-col gap-2">
                     {items.map(({ tag }) => (
                       <div

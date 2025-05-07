@@ -10,6 +10,7 @@ import { ArrowFatDown, ArrowFatUp, Trash, PencilSimple, Check, X } from "phospho
 import { JSX, useEffect, useState } from "react";
 import { useToast } from "../../Toast";
 import clsx from "clsx";
+import ConfirmModal from "../../ConfirmModal";
 
 type ExtractedEmbed =
   | { type: "url"; value: string }
@@ -169,6 +170,8 @@ export default function PostCommentList({
   const [previewMap, setPreviewMap] = useState<Record<number, PreviewData>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState<string>("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
 
   console.log(`Voting: ${canVoteOnComments}`)
 
@@ -242,19 +245,9 @@ export default function PostCommentList({
     }
   };  
   
-  const handleDelete = async (commentId: number) => {
-    if (!confirm("Are you sure you want to delete this comment?")) return;
-  
-    const res = await fetch(`/api/comments/${commentId}`, {
-      method: "DELETE",
-    });
-  
-    if (!res.ok) {
-      toast("Failed to delete comment", "error");
-    } else {
-      toast("Comment deleted!", "success");
-      router.refresh();
-    }
+  const handleDelete = (commentId: number) => {
+    setCommentToDelete(commentId);
+    setShowConfirm(true);
   };
     
 
@@ -456,6 +449,35 @@ export default function PostCommentList({
           </motion.div>
         ))}
       </AnimatePresence>
+
+      <ConfirmModal
+        open={showConfirm}
+        onClose={() => {
+          setShowConfirm(false);
+          setCommentToDelete(null);
+        }}
+        onConfirm={async () => {
+          if (!commentToDelete) return;
+
+          const res = await fetch(`/api/comments/${commentToDelete}`, {
+            method: "DELETE",
+          });
+
+          if (!res.ok) {
+            toast("Failed to delete comment", "error");
+          } else {
+            toast("Comment deleted!", "success");
+            router.refresh();
+          }
+
+          setShowConfirm(false);
+          setCommentToDelete(null);
+        }}
+        title="Delete Comment?"
+        description="Are you sure you want to delete this comment? This cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 }
