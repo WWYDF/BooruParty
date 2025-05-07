@@ -111,7 +111,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
 
   const isSelf = session.user.id === targetUser.id;
 
-  const canEditOthers = (await checkPermissions(['permission_string']))['permission_string'];
+  const canEditOthers = (await checkPermissions(['profile_edit_others']))['profile_edit_others'];
 
   if (!isSelf && !canEditOthers) {
     return NextResponse.json({ error: 'You are unauthorized to edit other users.' }, { status: 403 });

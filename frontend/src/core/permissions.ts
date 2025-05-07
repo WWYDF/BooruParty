@@ -5,7 +5,7 @@ export async function checkPermissions(
   const permissions = Array.isArray(perms) ? perms : [perms];
 
   try {
-    const res = await fetch("/api/users/permissions", { cache: "no-store" });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/users/permissions`, { cache: "no-store" });
     if (!res.ok) {
       return Object.fromEntries(permissions.map((p) => [p, false]));
     }

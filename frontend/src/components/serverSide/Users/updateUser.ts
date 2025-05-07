@@ -11,7 +11,7 @@ export async function updateUser(
     avatar: string;
   }>
 ) {
-  const res = await fetch(`/api/users/${username}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/users/${username}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

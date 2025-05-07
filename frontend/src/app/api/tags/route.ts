@@ -11,14 +11,52 @@ export async function GET(req: Request) {
   const sort = searchParams.get("sort") || "name";
   const order = searchParams.get("order") === "desc" ? "desc" : "asc";
 
-  const where = search
-  ? {
-      OR: [
-        { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
-        { aliases: { some: { alias: { contains: search, mode: Prisma.QueryMode.insensitive } } } },
-      ],
-    }
-  : {};
+  let categoryFilter: string | null = null;
+  let strippedSearch = search;
+
+  // Extract category:<name>
+  const categoryMatch = search.match(/category:([^\s]+)/);
+  if (categoryMatch) {
+    categoryFilter = categoryMatch[1].toLowerCase();
+    strippedSearch = search.replace(categoryMatch[0], "").trim();
+  }
+
+  const where = {
+    AND: [
+      categoryFilter
+        ? {
+            category: {
+              name: {
+                equals: categoryFilter,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          }
+        : {},
+      strippedSearch
+        ? {
+            OR: [
+              {
+                name: {
+                  contains: strippedSearch,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+              {
+                aliases: {
+                  some: {
+                    alias: {
+                      contains: strippedSearch,
+                      mode: Prisma.QueryMode.insensitive,
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : {},
+    ],
+  };
 
   let orderBy: Prisma.TagsFindManyArgs["orderBy"] = { name: order };
   let skip = (page - 1) * perPage;

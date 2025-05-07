@@ -14,9 +14,32 @@ export function ClientPoolGrid({ pools }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
 
-  const filteredPools = pools.filter((pool) =>
-    (pool.name + " " + (pool.artist ?? "")).toLowerCase().includes(debouncedQuery.toLowerCase())
-  );
+  const query = debouncedQuery.toLowerCase();
+  const yearMatch = query.match(/year:(\d{4})/);
+  const orderMatch = query.match(/order:(score_asc|score)/);
+
+  const queryText = query
+    .replace(/year:\d{4}/, "")
+    .replace(/order:(score_asc|score)/, "")
+    .trim();
+
+  const filteredPools = pools
+    .filter((pool) => {
+      const matchesText =
+        (pool.name + " " + (pool.artist ?? "")).toLowerCase().includes(queryText);
+
+      const matchesYear =
+        !yearMatch || pool.yearStart?.toString() === yearMatch[1];
+
+      return matchesText && matchesYear;
+    })
+    .sort((a, b) => {
+      if (!orderMatch) return 0;
+      return orderMatch[1] === "score_asc"
+        ? a.score - b.score
+        : b.score - a.score;
+    });
+
 
   useEffect(() => {
     const timeout = setTimeout(() => {

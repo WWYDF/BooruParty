@@ -4,8 +4,9 @@ import { SafetyType } from "@prisma/client";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
+import { FILE_TYPE_MAP } from "@/core/dictionary";
 
-function parseSearch(input: string) {
+export function parseSearch(input: string) {
   const terms = input.split(/\s+/).filter(Boolean);
 
   const includeTags: string[] = [];
@@ -25,7 +26,17 @@ function parseSearch(input: string) {
     }
   }
 
-  return { includeTags, excludeTags, systemOptions };
+  const typeMatches = [...input.matchAll(/(-)?type:([^\s]+)/g)];
+  const includeTypes: string[] = [];
+  const excludeTypes: string[] = [];
+
+  for (const [, isNegated, val] of typeMatches) {
+    const lower = val.toLowerCase();
+    if (isNegated) excludeTypes.push(lower);
+    else includeTypes.push(lower);
+  }
+
+  return { includeTags, excludeTags, includeTypes, excludeTypes, systemOptions };
 }
 
 // Fetch all posts with optional tags, sorting, etc.
@@ -37,7 +48,7 @@ export async function GET(req: Request) {
   const perPage = parseInt(searchParams.get("perPage") || "50");
   const safetyValues = searchParams.getAll("safety");
 
-  const { includeTags, excludeTags, systemOptions } = parseSearch(search);
+  const { includeTags, excludeTags, systemOptions, includeTypes, excludeTypes } = parseSearch(search);
 
   const orderValue = systemOptions.order || "createdAt"; // default to createdAt
   let orderBy: any = { createdAt: "desc" };
@@ -46,11 +57,29 @@ export async function GET(req: Request) {
     orderBy = { score: orderValue.endsWith("_asc") ? "asc" : "desc" };
   } else if (orderValue.startsWith("favorites")) {
     orderBy = { favoritedBy: { _count: orderValue.endsWith("_asc") ? "asc" : "desc" } };
-  } else if (orderValue.startsWith("tag_count")) {
+  } else if (orderValue.startsWith("tags")) {
     orderBy = { tags: { _count: orderValue.endsWith("_asc") ? "asc" : "desc" } };
   } else {
     orderBy = { createdAt: "desc" }; // fallback
   }
+
+  let fileTypeWhere: Record<string, any> = {};
+  const resolveExts = (types: string[]) =>
+    types.flatMap(t => {
+      if (t in FILE_TYPE_MAP) return FILE_TYPE_MAP[t as keyof typeof FILE_TYPE_MAP];
+      return [t]; // fallback: treat as literal extension
+    }).map(ext => ext.replace(/^\./, ""));
+
+  const includeExts = resolveExts(includeTypes);
+  const excludeExts = resolveExts(excludeTypes);
+
+  fileTypeWhere = {
+    AND: [
+      includeExts.length > 0 ? { fileExt: { in: includeExts } } : {},
+      excludeExts.length > 0 ? { fileExt: { notIn: excludeExts } } : {},
+    ],
+  };
+  
 
   const uploaderWhere = systemOptions.posts
   ? {
@@ -79,6 +108,7 @@ export async function GET(req: Request) {
       AND: [
         uploaderWhere,
         favoriterWhere,
+        fileTypeWhere,
         ...(safetyValues.length > 0
           ? [{ safety: { in: safetyValues as SafetyType[] } }]
           : []),
