@@ -265,6 +265,8 @@ model Pools {
   artist        String?
   description   String?
   safety        SafetyType
+  yearStart     Int?
+  yearEnd       Int?
   
   lastEdited    DateTime        @default(now())
   createdAt     DateTime        @default(now())

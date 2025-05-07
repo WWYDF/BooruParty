@@ -18,6 +18,8 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
   const [description, setDescription] = useState(poolData.description || "");
   const [safety, setSafety] = useState(poolData.safety || "");
   const [order, setOrder] = useState<{ id: number; index: number }[] | null>(null);
+  const [yearStart, setYearStart] = useState<number | null>(poolData.yearStart ?? null);
+  const [yearEnd, setYearEnd] = useState<number | null>(poolData.yearEnd ?? null);
   const [showConfirmDel, setShowConfirmDel] = useState(false);
   const router = useRouter();
   const toast = useToast();
@@ -31,6 +33,8 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
         artist,
         safety,
         description,
+        yearStart,
+        yearEnd,
         order: order ?? undefined
       })
     });
@@ -76,10 +80,14 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
               artist={artist}
               description={description}
               safety={safety}
+              yearStart={yearStart}
+              yearEnd={yearEnd}
               onNameChange={setName}
               onArtistChange={setArtist}
               onDescriptionChange={setDescription}
               onSafetyChange={setSafety}
+              onYearStartChange={setYearStart}
+              onYearEndChange={setYearEnd}
             />
           ) : (
             <>
@@ -96,7 +104,14 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
                 </button>
               </div>
               {poolData.description && (
-                <p className="text-sm text-white/80 max-w-2xl">{poolData.description}</p>
+                <p className="text-sm text-white/80 max-w-2xl mb-1">{poolData.description}</p>
+              )}
+              {poolData.yearStart && (
+                <p className="text-sm text-subtle font-medium">
+                  {poolData.yearStart}{" "}
+                  <span className="mx-1 text-white/40">——</span>{" "}
+                  {poolData.yearEnd ?? "Present"}
+                </p>
               )}
             </>
           )}

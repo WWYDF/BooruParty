@@ -68,6 +68,8 @@ export function ClientPoolGrid({ pools }: Props) {
               coverUrl={pool.items?.[0]?.post?.previewPath}
               safety={pool.safety}
               linkTo={`/pools/${pool.id}`}
+              yearStart={pool.yearStart}
+              yearEnd={pool.yearEnd}
             />
           </motion.div>
         ))}

@@ -74,7 +74,14 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   }
 
   const body = await req.json();
-  const updates: { name?: string; artist?: string; safety?: 'SAFE' | 'SKETCHY' | 'UNSAFE'; description?: string } = {};
+  const updates: {
+    name?: string;
+    artist?: string;
+    safety?: 'SAFE' | 'SKETCHY' | 'UNSAFE';
+    description?: string;
+    yearStart?: number | null;
+    yearEnd?: number | null;
+  } = {};
 
   // === Metadata update handling ===
   if (body.name !== undefined) updates.name = body.name.trim();
@@ -87,6 +94,18 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     }
     updates.description = desc;
   }
+
+  if (body.yearStart !== undefined) {
+    const start = parseInt(body.yearStart);
+    if (!isNaN(start)) updates.yearStart = start;
+    else updates.yearStart = null;
+  }
+  
+  if (body.yearEnd !== undefined) {
+    const end = parseInt(body.yearEnd);
+    updates.yearEnd = isNaN(end) ? null : end;
+  }
+  
 
   try {
     // Apply metadata if provided

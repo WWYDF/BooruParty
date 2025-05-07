@@ -31,7 +31,7 @@ export async function GET(req: Request) {
             ]
           }
         : undefined,
-        orderBy: { createdAt: "desc" },
+        orderBy: { lastEdited: "desc" },
         skip,
         take: limit,
         include: {

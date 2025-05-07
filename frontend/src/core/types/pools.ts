@@ -6,6 +6,8 @@ export type Pool = {
   artist: string | null;
   description: string | null;
   safety: SafetyType;
+  yearStart: number | null;
+  yearEnd: number | null;
   lastEdited: string;
   createdAt: string;
   _count: {

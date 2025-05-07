@@ -11,6 +11,8 @@ type PoolCardProps = {
   safety?: "SAFE" | "UNSAFE" | "SKETCHY";
   showOverlay?: boolean;
   linkTo?: string;
+  yearStart?: number | null;
+  yearEnd?: number | null;
 };
 
 
@@ -22,6 +24,8 @@ export function PoolCard({
   safety,
   showOverlay = true,
   linkTo,
+  yearStart,
+  yearEnd,
 }: PoolCardProps) {
   const content = (
     <div className="relative aspect-[9/16] rounded-lg overflow-hidden bg-secondary border border-secondary-border group">
@@ -52,6 +56,13 @@ export function PoolCard({
           <div className="bg-black/70 px-3 pt-2 pb-1">
             <div className="text-sm font-semibold text-white truncate">{name}</div>
             <div className="text-xs text-white/70 truncate">by {artist}</div>
+            {yearStart && (
+              <div className="text-[10px] text-subtle truncate">
+                {yearStart}{" "}
+                <span className="text-white/30">—</span>{" "}
+                {yearEnd ?? "Present"}
+              </div>
+            )}
           </div>
         </div>
       )}

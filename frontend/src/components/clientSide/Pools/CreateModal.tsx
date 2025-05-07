@@ -14,6 +14,8 @@ export function CreatePoolModal({ open, onClose }: Props) {
   const [artist, setArtist] = useState("");
   const [description, setDescription] = useState("");
   const [safety, setSafety] = useState<"" | "SAFE" | "UNSAFE" | "SKETCHY">("");
+  const [yearStart, setYearStart] = useState<number | null>(null);
+  const [yearEnd, setYearEnd] = useState<number | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,6 +84,38 @@ export function CreatePoolModal({ open, onClose }: Props) {
                 <option value="SKETCHY">Sketchy</option>
                 <option value="UNSAFE">Unsafe</option>
               </select>
+              <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Start Year"
+                value={yearStart ?? ""}
+                onChange={(e) =>
+                  setYearStart(e.target.value ? parseInt(e.target.value) : null)
+                }
+                className="w-full p-2 rounded bg-secondary text-subtle focus:outline-none focus:ring-2 focus:ring-zinc-800"
+              />
+              <input
+                type="number"
+                placeholder="End Year"
+                value={yearEnd ?? ""}
+                onChange={(e) =>
+                  setYearEnd(e.target.value ? parseInt(e.target.value) : null)
+                }
+                disabled={yearEnd === null}
+                className="w-full p-2 rounded bg-secondary text-subtle focus:outline-none focus:ring-2 focus:ring-zinc-800 disabled:opacity-40"
+              />
+            </div>
+            <label className="text-sm text-subtle flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={yearEnd === null}
+                onChange={(e) =>
+                  setYearEnd(e.target.checked ? null : new Date().getFullYear())
+                }
+                className="accent-accent"
+              />
+              Present (no end year)
+            </label>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"

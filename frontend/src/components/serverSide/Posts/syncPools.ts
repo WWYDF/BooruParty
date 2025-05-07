@@ -34,8 +34,19 @@ export async function syncPostPools(postId: number, desiredPoolIds: number[]) {
     })
   );
 
+  // Step 1: Perform the transaction
   await prisma.$transaction([
     prisma.poolItems.deleteMany({ where: { postId, poolId: { in: toRemove } } }),
     prisma.poolItems.createMany({ data: addData }),
   ]);
+
+  // Step 2: Update lastEdited on all modified pools
+  const affectedPools = [...new Set([...toAdd, ...toRemove])];
+
+  if (affectedPools.length > 0) {
+    await prisma.pools.updateMany({
+      where: { id: { in: affectedPools } },
+      data: { lastEdited: new Date() },
+    });
+  }
 }
