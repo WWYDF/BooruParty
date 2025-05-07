@@ -8,6 +8,7 @@ import TagSuggestionPopup from "../../Tags/SuggestionPopup";
 import ConfirmModal from "../../ConfirmModal";
 import { useToast } from "../../Toast";
 import { Tag } from "@/core/types/tags";
+import RelatedPostInput from "./PostRelation";
 
 type PostType = {
   id: number;
@@ -16,6 +17,12 @@ type PostType = {
   sources: string[];
   notes: string | null;
   tags: Tag[];
+  relatedFrom: {
+    to: { id: number };
+  }[];
+  relatedTo: {
+    from: { id: number };
+  }[];
 };
 
 export default function EditPost({
@@ -37,6 +44,7 @@ export default function EditPost({
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null);
   const [initialOrderedTags, setInitialOrderedTags] = useState<Tag[]>([]);
   const [newlyAddedTags, setNewlyAddedTags] = useState<Tag[]>([]);
+  const [relatedPosts, setRelatedPosts] = useState<number[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const toast = useToast();
 
@@ -49,7 +57,15 @@ export default function EditPost({
       });
       setInitialOrderedTags(sorted);
     }
-  }, [post.tags]);
+
+  // Initialize related post IDs
+  const related = [
+    ...post.relatedFrom.map(r => r.to.id),
+    ...post.relatedTo.map(r => r.from.id),
+  ];
+  setRelatedPosts([...new Set(related)]);
+
+  }, [post.tags, post.relatedFrom, post.relatedTo]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -63,6 +79,7 @@ export default function EditPost({
         notes,
         safety,
         anonymous,
+        relatedPosts,
       }),
     });
 
@@ -120,7 +137,7 @@ export default function EditPost({
       </div>
 
       {/* Form inputs */}
-      <div className="grid grid-cols-2 gap-y-2 gap-x-4 mt-2">
+      <div className="grid grid-cols-2 gap-y-4 gap-x-4 mt-2">
         <div>
           <label className="text-white font-medium block mb-1">Safety</label>
           <select
@@ -166,8 +183,15 @@ export default function EditPost({
         </div>
       </div>
 
+      {/* Related Posts */}
+      <div className="col-span-2">
+        <label className="text-white font-medium block mb-1">Related Posts</label>
+        <RelatedPostInput value={relatedPosts} onChange={setRelatedPosts} />
+      </div>
+
       {/* Tag selector */}
       <div className="mt-2">
+      <label className="text-white font-medium block mb-1">Tags</label>
         <TagSelector
           onSelect={handleAddTag}
           disabledTags={orderedTags}

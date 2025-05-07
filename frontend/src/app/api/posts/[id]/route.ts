@@ -1,5 +1,6 @@
 import { buildPostChangeDetails, reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { syncPostRelations } from "@/components/serverSide/Posts/syncRelations";
 import { auth } from "@/core/authServer";
 import { getConversionType } from "@/core/dictionary";
 import { prisma } from "@/core/prisma";
@@ -34,6 +35,26 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
             select: {
               id: true,
               alias: true
+            }
+          }
+        }
+      },
+      relatedFrom: {
+        include: {
+          to: {
+            select: {
+              id: true,
+              previewPath: true
+            }
+          }
+        }
+      },
+      relatedTo: {
+        include: {
+          from: {
+            select: {
+              id: true,
+              previewPath: true
             }
           }
         }
@@ -127,7 +148,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
 
   try {
     const body = await req.json();
-    const { tags, sources, notes, safety, anonymous } = body;
+    const { tags, sources, notes, safety, anonymous, relatedPosts } = body;
 
     if (!Array.isArray(tags) || !tags.every((t) => typeof t === "number")) {
       return NextResponse.json({ error: "Invalid tags format" }, { status: 400 });
@@ -161,6 +182,10 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
         },
       },
     });
+
+    if (relatedPosts !== undefined) {
+      await syncPostRelations(postId, relatedPosts);
+    }
 
     // Log action, but log nothing if nothing changed.
     const forwarded = req.headers.get("x-forwarded-for");

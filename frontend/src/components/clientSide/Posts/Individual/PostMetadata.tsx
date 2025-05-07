@@ -37,6 +37,18 @@ type Props = {
         alias: string;
       }[];
     }[];
+    relatedFrom: {
+      to: {
+        id: number;
+        previewPath: string | null;
+      };
+    }[];
+    relatedTo: {
+      from: {
+        id: number;
+        previewPath: string | null;
+      };
+    }[];
     uploadedBy: {
       id: string;
       username: string;
@@ -237,6 +249,31 @@ export default function PostMetadata({ post }: Props) {
               </p>
             )}
           </div>
+
+
+          {/* Related Posts */}
+          {(post.relatedFrom.length > 0 || post.relatedTo.length > 0) && (
+            <div className="mt-4">
+              <p className="text-white font-medium text-sm mb-1">Related Posts:</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  ...post.relatedFrom.map(r => r.to),
+                  ...post.relatedTo.map(r => r.from),
+                ]
+                  .filter((v, i, a) => v && a.findIndex(x => x.id === v.id) === i)
+                  .map((related) => (
+                    <Link key={related.id} href={`/post/${related.id}`}>
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${related.id}_small.webp`}
+                        alt={`Related post ${related.id}`}
+                        className="w-16 h-16 object-cover rounded border border-secondary-border hover:scale-105 transition"
+                      />
+                    </Link>
+                  ))}
+              </div>
+            </div>
+          )}
+
 
           {/* Sources */}
           {post.sources.length > 0 && (
