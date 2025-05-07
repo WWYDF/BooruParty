@@ -13,11 +13,13 @@ import { useToast } from "../../Toast";
 
 const AVATAR_URL = "/user.png";
 
+// Dunno when I'm gonna change this to use the Universal Post Type lol
 type Props = {
   post: {
     id: number;
     anonymous: boolean;
     fileExt: string;
+    previewPath: string;
     safety: "SAFE" | "SKETCHY" | "UNSAFE";
     sources: string[];
     notes: string | null;
@@ -266,6 +268,51 @@ export default function PostMetadata({ post }: Props) {
                 {post._count?.favoritedBy}
               </p>
             )}
+
+            {post.sources.length > 0 && (
+              <p className="flex items-start gap-1 text-xs text-subtle">
+                <span className="text-white font-medium w-[80px]">Sources:</span>
+                <span className="flex-1 text-xs">
+                  {post.sources.map((src, i) => {
+                    try {
+                      const url = new URL(src);
+                      return (
+                        <span key={i}>
+                          <Link
+                            href={src}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-accent"
+                            title={src}
+                          >
+                            {url.hostname}
+                          </Link>
+                          {i < post.sources.length - 1 && (
+                            <span className="text-subtle">, </span>
+                          )}
+                        </span>
+                      );
+                    } catch {
+                      return null;
+                    }
+                  })}
+                </span>
+              </p>
+            )}
+
+            {post.previewPath && (
+              <p className="flex items-start gap-1 text-xs text-subtle">
+                <span className="text-white font-medium w-[80px]">Search:</span>
+                <Link
+                  href={`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(post.previewPath)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent"
+                >
+                  Google Images
+                </Link>
+              </p>
+            )}
           </div>
 
 
@@ -348,27 +395,11 @@ export default function PostMetadata({ post }: Props) {
 
 
 
-          {/* Sources */}
-          {post.sources.length > 0 && (
-            <div className="mt-4">
-              <p className="text-white font-medium text-sm mb-1">Sources:</p>
-              <div className="bg-zinc-900 px-4 py-2 rounded border border-secondary-border text-sm space-y-1 mr-3">
-                {post.sources.map((src, i) => (
-                  <p key={i} className="break-all">
-                    <Link href={src} target="_blank" className="text-accent underline">
-                      {src}
-                    </Link>
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Notes */}
           {post.notes && (
             <div className="mt-3">
               <p className="text-white font-medium text-sm mb-1">Notes:</p>
-              <div className="bg-zinc-900 px-4 py-2 rounded border border-secondary-border text-sm whitespace-pre-wrap text-subtle mr-3">
+              <div className="bg-zinc-900/75 px-4 py-2 rounded border border-secondary-border text-sm whitespace-pre-wrap text-subtle mr-3">
                 {post.notes}
               </div>
             </div>
