@@ -38,6 +38,9 @@ type Props = {
         id: number;
         alias: string;
       }[];
+      _count: {
+        posts: number;
+      };
     }[];
     relatedFrom: {
       to: {
@@ -419,10 +422,26 @@ export default function PostMetadata({ post }: Props) {
                         className="inline-flex items-center gap-1 border border-zinc-900 px-2 py-1 rounded-full w-fit"
                         style={{ color: tag.category?.color || "#fff" }}
                       >
+                        <button
+                          onClick={() => modifyQuery("add", tag.name)}
+                          className="hover:text-accent"
+                          title="Add tag to search"
+                        >
+                          <Plus size={10} weight="bold" />
+                        </button>
+                      
+                        <button
+                          onClick={() => modifyQuery("exclude", tag.name)}
+                          className="hover:text-accent"
+                          title="Exclude tag from search"
+                        >
+                          <Minus size={10} weight="bold" />
+                        </button>
+                        
                         <Link href={`/tags/${tag.name}`} title="Edit tag">
                           <Tag size={14} />
                         </Link>
-
+                      
                         <button
                           onClick={() => modifyQuery("replace", tag.name)}
                           className="hover:underline"
@@ -430,22 +449,10 @@ export default function PostMetadata({ post }: Props) {
                         >
                           {tag.name}
                         </button>
-
-                        <button
-                          onClick={() => modifyQuery("add", tag.name)}
-                          className="hover:text-accent"
-                          title="Add tag to search"
-                        >
-                          <Plus size={14} weight="bold" />
-                        </button>
-
-                        <button
-                          onClick={() => modifyQuery("exclude", tag.name)}
-                          className="hover:text-accent"
-                          title="Exclude tag from search"
-                        >
-                          <Minus size={14} weight="bold" />
-                        </button>
+                      
+                        <span className="text-subtle text-xs ml-1">
+                          {tag._count.posts}
+                        </span>
                       </div>
                     ))}
                   </div>

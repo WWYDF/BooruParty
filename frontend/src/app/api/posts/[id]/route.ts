@@ -37,6 +37,11 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
               id: true,
               alias: true
             }
+          },
+          _count: {
+            select: {
+              posts: true
+            }
           }
         }
       },
