@@ -57,6 +57,7 @@ model User {
   posts         Posts[]
   comments      Comments[]
   commentVotes  CommentVotes[]
+  poolVotes     PoolVotes[]
   audits        Audits[]
   roleId        Int?
   
@@ -267,6 +268,9 @@ model Pools {
   safety        SafetyType
   yearStart     Int?
   yearEnd       Int?
+
+  score         Int             @default(0)
+  votes         PoolVotes[]     @relation("PoolVotes")
   
   lastEdited    DateTime        @default(now())
   createdAt     DateTime        @default(now())
@@ -285,6 +289,18 @@ model PoolItems {
   @@unique([poolId, postId])
   @@unique([poolId, index])
   @@index([poolId, index])
+}
+
+model PoolVotes {
+  id        Int      @id @default(autoincrement())
+  poolId    Int
+  userId    String
+  vote      Int
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pool      Pools    @relation(fields: [poolId], references: [id], name: "PoolVotes", onDelete: Cascade)
+
+  @@unique([poolId, userId])
 }
 
 model ImportSession {

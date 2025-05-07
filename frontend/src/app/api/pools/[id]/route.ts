@@ -1,3 +1,4 @@
+import { auth } from "@/core/authServer";
 import { prisma } from "@/core/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -43,10 +44,33 @@ export async function GET(_: NextRequest, context: { params: Promise<{ id: strin
       return NextResponse.json({ error: "Pool not found" }, { status: 404 });
     }
 
+    const session = await auth();
+    let userVote: number | null = null;
+
+    if (session?.user?.id) {
+      const vote = await prisma.poolVotes.findUnique({
+        where: {
+          poolId_userId: {
+            poolId: pool.id,
+            userId: session.user.id,
+          },
+        },
+        select: { vote: true },
+      });
+
+      userVote = vote?.vote ?? 0;
+    }
+
+    const userStuff = {
+      vote: userVote,
+      signedIn: !!session
+    }
+
     // Normalize previewPath
     const base = process.env.NEXT_PUBLIC_FASTIFY?.replace(/\/$/, "");
     const withFullPaths = {
       ...pool,
+      score: pool.score,
       items: pool.items.map((item: any) => ({
         ...item,
         post: {
@@ -55,7 +79,8 @@ export async function GET(_: NextRequest, context: { params: Promise<{ id: strin
             ? `${base}${item.post.previewPath}`
             : null
         }
-      }))
+      })),
+      user: userStuff
     };
 
     return NextResponse.json(withFullPaths);

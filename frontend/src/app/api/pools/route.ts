@@ -94,6 +94,8 @@ export async function POST(req: Request) {
   const safety = body?.safety?.trim();
   const artist = body?.artist?.trim();
   let description = body?.description?.trim();
+  const yearStart = body?.yearStart?.trim();
+  const yearEnd = body?.yearEnd?.trim();
 
   if (!name) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -123,7 +125,9 @@ export async function POST(req: Request) {
         name,
         artist,
         description,
-        safety
+        safety,
+        yearEnd,
+        yearStart
       }
     });
 

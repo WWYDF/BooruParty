@@ -10,10 +10,15 @@ export type Pool = {
   yearEnd: number | null;
   lastEdited: string;
   createdAt: string;
+  score: number | 0;
   _count: {
     items: number;
   };
   items: PoolItem[];
+  user: {
+    vote: 1 | 0 | -1;
+    signedIn: boolean;
+  }
 };
 
 type PoolItem = {

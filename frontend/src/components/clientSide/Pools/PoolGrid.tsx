@@ -70,6 +70,7 @@ export function ClientPoolGrid({ pools }: Props) {
               linkTo={`/pools/${pool.id}`}
               yearStart={pool.yearStart}
               yearEnd={pool.yearEnd}
+              score={pool.score}
             />
           </motion.div>
         ))}

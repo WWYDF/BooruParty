@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PoolCard } from "@/components/clientSide/Pools/PoolCard";
 import { PoolEditForm } from "./EditMetadata";
 import { PoolReorderGrid } from "./PoolReorderGrid";
@@ -9,6 +9,7 @@ import { useToast } from "../../Toast";
 import { Pool } from "@/core/types/pools";
 import ConfirmModal from "../../ConfirmModal";
 import { useRouter } from "next/navigation";
+import { ArrowDown, ArrowFatDown, ArrowFatUp, ArrowUp } from "phosphor-react";
 
 export default function ClientPoolPage({ pool }: { pool: Pool }) {
   const [editMode, setEditMode] = useState(false);
@@ -21,8 +22,17 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
   const [yearStart, setYearStart] = useState<number | null>(poolData.yearStart ?? null);
   const [yearEnd, setYearEnd] = useState<number | null>(poolData.yearEnd ?? null);
   const [showConfirmDel, setShowConfirmDel] = useState(false);
+  const [currentVote, setCurrentVote] = useState<1 | -1 | 0>(pool.user.vote ?? 0);
+  const [score, setScore] = useState(pool.score ?? 0);
   const router = useRouter();
   const toast = useToast();
+
+  useEffect(() => {
+    setCurrentVote(poolData.user.vote);
+    setScore(poolData.score);
+  }, [poolData.user.vote, poolData.score]);
+
+  console.log(poolData.user.vote)
 
   const handleSave = async () => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools/${pool.id}`, {
@@ -51,6 +61,36 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
       setEditMode(false);
       setOrder(null);
       toast('Saved Changes!', 'success');
+    }
+  };
+
+  const handleVote = async (voteValue: 1 | -1) => {
+    try {
+      const res = await fetch(`/api/pools/${pool.id}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vote: voteValue }),
+      });
+  
+      const data = await res.json();
+      if (res.ok) {
+        setCurrentVote(data.vote);  // set immediately
+        setScore(data.score);       // set immediately
+  
+        // Optional: re-fetch full pool info to get updated .user.vote too
+        const refreshed = await fetch(`/api/pools/${pool.id}`);
+        if (refreshed.ok) {
+          const fresh = await refreshed.json();
+          setPoolData(fresh);
+          setCurrentVote(fresh.user.vote); // ← critical for full refresh correctness
+          setScore(fresh.score);
+        }
+      } else {
+        toast(data.error || "Failed to vote", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      toast("Voting failed", "error");
     }
   };
 
@@ -102,6 +142,29 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
                 >
                   Edit
                 </button>
+                <div className="absolute bottom-6 right-4 z-30 flex items-center gap-2">
+                  <button
+                    onClick={() => handleVote(1)}
+                    className={`p-1 rounded hover:bg-white/10 transition ${
+                      currentVote === 1 ? "text-accent" : "text-white/60"
+                    }`}
+                    title="Upvote"
+                  >
+                    <ArrowFatUp size={20} weight={currentVote === 1 ? "fill" : "regular"} />
+                  </button>
+
+                  <span className="text-sm text-subtle">{score}</span>
+
+                  <button
+                    onClick={() => handleVote(-1)}
+                    className={`p-1 rounded hover:bg-white/10 transition ${
+                      currentVote === -1 ? "text-accent" : "text-white/60"
+                    }`}
+                    title="Downvote"
+                  >
+                    <ArrowFatDown size={20} weight={currentVote === -1 ? "fill" : "regular"} />
+                  </button>
+                </div>
               </div>
               {poolData.description && (
                 <p className="text-sm text-white/80 max-w-2xl mb-1">{poolData.description}</p>

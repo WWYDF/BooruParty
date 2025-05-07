@@ -1,9 +1,14 @@
 import ClientPoolPage from "@/components/clientSide/Pools/Individual/ClientPoolPage";
+import { cookies } from "next/headers";
 
 export default async function PoolPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const cookie = (await cookies()).toString();
   const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools/${id}`, {
-    cache: "no-store"
+    cache: "no-store",
+    headers: {
+      cookie,
+    }
   });
 
   if (!res.ok) {
