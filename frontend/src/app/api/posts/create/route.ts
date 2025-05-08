@@ -23,6 +23,13 @@ export async function POST(request: NextRequest) {
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
   const fileType = resolveFileType(`.${extension}`);
 
+  if (fileType === 'other') {
+    return NextResponse.json(
+      { error: `File type .${extension} is not supported.` },
+      { status: 415 } // 415 Unsupported Media Type
+    );
+  }
+
   // Begin processing stuff
   const buffer = Buffer.from(await file.arrayBuffer());
   const checkMatch = await checkFile(buffer, extension, fileType);

@@ -41,7 +41,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
         filePath = path.join(process.cwd(), 'data/uploads', fileFormat, finalFileName);
         fs.mkdirSync(path.dirname(filePath), { recursive: true });
 
-        const targetExts = ['.jpg', '.jpeg', '.webp'];
+        const targetExts = ['.jpg', '.jpeg', '.webp', '.avif'];
         const shouldStrip = fileFormat === 'image' && targetExts.includes(ext.toLowerCase());
 
         const chunks: Buffer[] = [];

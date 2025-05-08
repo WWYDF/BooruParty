@@ -291,7 +291,15 @@ export default function PostCommentList({
                   </Link>
                   <RoleBadge role={comment.author.role.name} />
 
-                  <a className="ml-1 text-xs text-zinc-500">{new Date(comment.createdAt).toLocaleString()}</a>
+                  <a className="ml-1 text-xs text-zinc-500">
+                    {new Date(comment.createdAt).toLocaleString(undefined, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </a>
                 </div>
                 <div className="text-base text-zinc-400 whitespace-pre-wrap break-all">
                 {(() => {
