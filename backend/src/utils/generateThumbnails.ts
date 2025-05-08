@@ -14,7 +14,7 @@ const sizes = {
 
 export async function generateThumbnails(
   filePath: string,
-  type: 'image' | 'video' | 'animated',
+  type: 'image' | 'video' | 'animated' | 'other',
   postId: number
 ) {
   const outputDir = path.join(process.cwd(), 'data/thumbnails');

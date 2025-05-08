@@ -9,6 +9,7 @@ import ConfirmModal from "../../ConfirmModal";
 import { useToast } from "../../Toast";
 import { Tag } from "@/core/types/tags";
 import RelatedPostInput from "./PostRelation";
+import { useDropzone } from "react-dropzone";
 
 type PostType = {
   id: number;
@@ -54,6 +55,7 @@ export default function EditPost({
   const [relatedPosts, setRelatedPosts] = useState<number[]>([]);
   const [pools, setPools] = useState<number[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [replacementFile, setReplacementFile] = useState<File | null>(null);
   const toast = useToast();
 
   // One-time init
@@ -94,6 +96,23 @@ export default function EditPost({
       }),
     });
 
+    if (replacementFile) {
+      const formData = new FormData();
+      formData.append("file", replacementFile);
+      formData.append("postId", post.id.toString());
+  
+      const res = await fetch("/api/posts/replace", {
+        method: "POST",
+        body: formData,
+      });
+  
+      if (!res.ok) {
+        toast(`Failed to replace file: ${(await res.json()).error}`, "error");
+        setSaving(false);
+        return;
+      }
+    }
+
     setSaving(false);
     onSaveSuccess();
   };
@@ -124,6 +143,18 @@ export default function EditPost({
     setNewlyAddedTags((prev) => prev.filter((t) => t.id !== tagId));
     setInitialOrderedTags((prev) => prev.filter((t) => t.id !== tagId));
   };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    multiple: false,
+    accept: {
+      "image/*": [],
+      "video/*": [],
+    },
+    onDrop: (acceptedFiles) => {
+      if (!acceptedFiles.length) return;
+      setReplacementFile(acceptedFiles[0]);
+    }
+  });
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -276,6 +307,21 @@ export default function EditPost({
           />
         </div>
       )}
+
+      <div className="w-full mt-4">
+        <label className="text-white font-medium block mb-1">Replace Post File</label>
+        <div
+          {...getRootProps()}
+          className="w-full h-28 border-2 border-dashed border-zinc-700 rounded-xl flex items-center justify-center text-sm text-subtle hover:border-zinc-400 cursor-pointer transition text-center px-4"
+        >
+          <input {...getInputProps()} />
+          {replacementFile
+            ? `Replacing with '${replacementFile.name}'`
+            : isDragActive
+              ? "Drop to replace"
+              : "Drop or click to replace the file"}
+        </div>
+      </div>
 
       <ConfirmModal
         open={showDeleteModal}

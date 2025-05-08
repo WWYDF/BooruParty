@@ -6,7 +6,7 @@ const execAsync = promisify(exec);
 /**
  * Gets aspect ratio for images, animated images, or videos
  */
-export async function getAspectRatio(filePath: string, fileType: 'image' | 'animated' | 'video'): Promise<number> {
+export async function getAspectRatio(filePath: string, fileType: 'image' | 'animated' | 'video' | 'other'): Promise<number> {
   if (fileType === 'image') {
     const { width, height } = await sharp(filePath).metadata();
     if (!width || !height) throw new Error("Sharp failed to get image dimensions");

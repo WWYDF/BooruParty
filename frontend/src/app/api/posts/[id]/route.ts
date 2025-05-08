@@ -186,7 +186,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   // Permissions Check
   const canEditOwnPost = perms['post_edit_own'];
   const canEditOtherPosts = perms['post_edit_others'];
-  if (!session || !canEditOwnPost && !canEditOtherPosts) { return NextResponse.json({ error: "You are unauthorized to view the contents of this page." }, { status: 403 }); }
+  if (!session || !canEditOwnPost && !canEditOtherPosts) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
   if (isNaN(postId)) {
     return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
@@ -204,11 +204,19 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
         notes: true,
         safety: true,
         anonymous: true,
+        uploadedById: true
       },
     });
 
     if (!originalPost) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    // Permissions Check (Self)
+    if (!canEditOtherPosts) {
+      if (originalPost.uploadedById !== session.user.id) {
+        return NextResponse.json({ error: "You are unauthorized to edit your own posts." }, { status: 403 });
+      }
     }
 
     const updateData: any = {};

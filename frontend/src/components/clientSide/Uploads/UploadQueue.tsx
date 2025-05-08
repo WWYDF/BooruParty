@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useState, useRef } from 'react'
+import { motion } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SortableUploads from './SortableUploads'
 import { useToast } from '../Toast'
 import { Tag } from '@/core/types/tags'
-import TagSelector from '../TagSelector'
 import MassTagger from '../MassTagger'
 
 type UploadFile = {
