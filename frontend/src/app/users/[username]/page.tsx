@@ -10,6 +10,7 @@ import { GearSix } from "phosphor-react";
 import { useSession } from "next-auth/react";
 import { formatRelativeTime } from "@/core/formats";
 import sanitizeHtml from "sanitize-html";
+import { checkPermissions } from "@/core/permissions";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -71,8 +72,10 @@ export default function UserProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { data: session } = useSession();
+  const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     fetch(`/api/users/${username}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -80,8 +83,33 @@ export default function UserProfilePage() {
         setLoading(false);
       });
   }, [username]);
+  
+  useEffect(() => {
+    if (!user || !session?.user) return;
+  
+    const check = async () => {
+      const isOwner = session.user.username === user.username;
+  
+      if (isOwner) {
+        setCanEdit(true);
+        return;
+      }
+  
+      const perms = await checkPermissions(["profile_edit_others"]);
+      setCanEdit(perms["profile_edit_others"]);
+    };
+  
+    check();
+  }, [user, session]);
 
-  if (loading) return <p className="p-6 text-subtle text-sm">Loading profile...</p>;
+  if (loading || !user) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent" />
+        <span className="sr-only">Loading...</span>
+      </div>
+    );
+  }
   if (!user) return <p className="p-6 text-red-500">User not found.</p>;
 
   return (
@@ -119,16 +147,21 @@ export default function UserProfilePage() {
             Member Since: {new Date(user.createdAt).toLocaleDateString()}
           </div>
         </div>
-        {session?.user?.username === user.username && (
-          <div className="self-start">
+        {canEdit && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="self-start"
+          >
             <a
-              href="/profile"
+              href={session?.user?.username === user.username ? "/profile" : `/profile?as=${user.username}`}
               className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
             >
               <GearSix size={16} weight="bold" />
               Edit Profile
             </a>
-          </div>
+          </motion.div>
         )}
       </div>
 

@@ -1,85 +1,47 @@
-'use client'
-
-import AvatarUpload from "@/components/clientSide/UserSettings/AvatarUpload";
-import InfoForm from "@/components/clientSide/UserSettings/InfoForm";
-import PasswordChangeForm from "@/components/clientSide/UserSettings/PasswordForm";
-import PreferencesForm from "@/components/clientSide/UserSettings/Preferences";
+import { notFound, redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { UserSelf } from "@/core/types/users";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { auth } from "@/core/authServer";
+import { checkPermissions } from "@/components/serverSide/permCheck";
+import ProfileSettingsClient from "@/components/clientSide/Profile/Profile";
 
+export default async function ProfileSettingsPage({ searchParams }: { searchParams: Promise<{ as?: string }>; }) {
+  const prams = await searchParams;
+  const session = await auth();
+  if (!session?.user) redirect("/login");
 
-export default function ProfileSettingsPage() {
-  const [user, setUser] = useState<UserSelf | null>(null);
-  const router = useRouter();
+  const impersonatingUser = prams.as;
+  let user: UserSelf | null = null;
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("/api/users/self");
-        if (res.status === 401 || res.status === 403) {
-          router.push("/login");
-          return;
-        }
+  const cookie = (await headers()).get("cookie") || "";
 
-        if (!res.ok) throw new Error("Failed to fetch user");
-        const data: UserSelf = await res.json();
-        setUser(data);
-      } catch (err) {
-        console.error(err);
-        router.push("/login");
-      }
-    };
+  // Impersonating another user
+  if (impersonatingUser && impersonatingUser !== session.user.username) {
+    const perms = await checkPermissions(["profile_edit_others"]);
+    if (!perms["profile_edit_others"]) notFound();
 
-    fetchUser();
-  }, [router]);
+    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/users/${impersonatingUser}`, {
+      headers: { cookie },
+      cache: "no-store",
+    });
 
-  if (!user) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent" />
-        <span className="sr-only">Loading...</span>
-      </div>
-    );
+    if (!res.ok) notFound();
+    user = await res.json();
+  } else {
+    // Viewing own profile
+    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/users/self`, {
+      headers: { cookie },
+      cache: "no-store",
+    });
+
+    if (!res.ok) notFound();
+    user = await res.json();
   }
 
-  return (
-    <motion.div
-      className="max-w-6xl mx-auto p-6"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-    >
-      <h1 className="text-3xl font-bold text-accent mb-8">Profile Settings</h1>
-      <a
-        href={`/users/${user.username}`}
-        className="inline-block mb-6 px-4 py-2 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
-      >
-        View My Public Profile →
-      </a>
+  if (!user) {
+    redirect(`/profile`);
+    return;
+  }
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <motion.div
-          className="space-y-6"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <InfoForm user={user} />
-          <PasswordChangeForm user={user} />
-        </motion.div>
-
-        <motion.div
-          className="space-y-6"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <AvatarUpload user={user} />
-          <PreferencesForm user={user} />
-        </motion.div>
-      </div>
-    </motion.div>
-  );
+  return <ProfileSettingsClient user={user} impersonating={user.username !== session.user.username} />;
 }
