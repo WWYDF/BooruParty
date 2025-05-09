@@ -6,11 +6,12 @@ import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { ALLOWED_EMBED_SOURCES, roleGlowMap } from "@/core/dictionary";
 import { motion } from "framer-motion";
 import clsx from "clsx";
-import { GearSix } from "phosphor-react";
-import { useSession } from "next-auth/react";
+import { GearSix, SignOut } from "phosphor-react";
+import { signOut, useSession } from "next-auth/react";
 import { formatRelativeTime } from "@/core/formats";
 import sanitizeHtml from "sanitize-html";
 import { checkPermissions } from "@/core/permissions";
+import { useToast } from "@/components/clientSide/Toast";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -73,6 +74,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const { data: session } = useSession();
   const [canEdit, setCanEdit] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     setLoading(true);
@@ -152,15 +154,28 @@ export default function UserProfilePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="self-start"
+            className="flex flex-col gap-2"
           >
-            <a
-              href={session?.user?.username === user.username ? "/profile" : `/profile?as=${user.username}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
-            >
-              <GearSix size={16} weight="bold" />
-              Edit Profile
-            </a>
+              <a
+                href={session?.user?.username === user.username ? "/profile" : `/profile?as=${user.username}`}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
+              >
+                <GearSix size={16} weight="bold" />
+                Edit Profile
+              </a>
+
+            {session?.user?.username === user.username && (
+              <button
+                onClick={() => {
+                  signOut({ callbackUrl: "/" })
+                  toast('Successfully logged out!', 'success');
+                }}
+                className="w-full inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-red-500 rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
+              >
+                <SignOut size={16} weight="bold" />
+                Log out
+              </button>
+            )}
           </motion.div>
         )}
       </div>

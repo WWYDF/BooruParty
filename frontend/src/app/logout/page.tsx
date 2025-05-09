@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
 export default function LogoutPage() {
+  const { status } = useSession();
+
   useEffect(() => {
-    // Trigger logout and redirect to home (or login)
-    signOut({ callbackUrl: "/" });
-  }, []);
+    if (status === "authenticated" || status === "unauthenticated") {
+      signOut({ callbackUrl: "/" });
+    }
+  }, [status]);
 
   return (
     <main className="min-h-screen flex items-center justify-center text-subtle">
