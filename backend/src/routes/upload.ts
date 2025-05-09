@@ -62,6 +62,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             }
 
             fastify.log.info(`File saved: ${filePath}`);
+            let deletedPreview = false;
 
             if (fileFormat === 'image' || fileFormat === 'animated' || fileFormat === 'video') {
               try {
@@ -90,6 +91,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
                       }
                     }, 50);
                     previewScale = null;
+                    deletedPreview = true;
                   }
                 }
 
@@ -107,6 +109,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
               postId: Number(postId),
               previewScale,
               aspectRatio: ratio,
+              deletedPreview,
             });
             resolve();
           } catch (err) {

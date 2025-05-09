@@ -45,6 +45,7 @@ export async function GET(req: Request) {
               post: {
                 select: {
                   id: true,
+                  fileExt: true,
                   aspectRatio: true,
                   previewPath: true,
                   anonymous: true,

@@ -8,6 +8,7 @@ import { resolveFileType } from '../types/mediaTypes';
 import { processPreview } from '../utils/processPreview';
 import { generateThumbnails } from '../utils/generateThumbnails';
 import { getAspectRatio } from '../utils/aspectRatio';
+import checkDeletePreview from '../utils/deletePreview';
 
 const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/replace', async (req, reply) => {
@@ -82,16 +83,19 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
           // 🛠 Re-generate previews & thumbnails
           let previewScale: number | null = null;
           let ratio: number | null = null;
+          let deletedPreview = false;
 
           try {
             previewScale = await processPreview(filePath, Number(postId));
+            deletedPreview = checkDeletePreview({filePath, postId, previewScale, fastify})
+
             ratio = await getAspectRatio(filePath, fileFormat);
             await generateThumbnails(filePath, fileFormat, Number(postId));
           } catch (err) {
             fastify.log.warn(`Preview/Thumbnail generation failed: ${err}`);
           }
 
-          return reply.send({ success: true, previewScale, aspectRatio: ratio });
+          return reply.send({ success: true, previewScale, aspectRatio: ratio, deletedPreview });
         } catch (err) {
           fastify.log.error(`Replace failed: ${err}`);
           return reply.code(500).send({ error: 'Failed to replace post file' });

@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/core/prisma';
 import { checkFile } from "@/components/serverSide/UploadProcessing/checkHash";
 import { auth } from "@/core/authServer";
-import { checkPermissions } from "@/core/permissions";
 import { reportAudit } from "@/components/serverSide/auditLog";
+import { checkPermissions } from "@/components/serverSide/permCheck";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -47,14 +47,14 @@ export async function POST(req: NextRequest) {
   const extension = file.name.split(".").pop()?.toLowerCase() || "";
   const fileType = resolveFileType(`.${extension}`);
   const conversionType = getConversionType(extension);
-  const previewSrc = `/data/previews/${fileType}/${postId}.${conversionType}`;
+  let previewSrc = `/data/previews/${fileType}/${postId}.${conversionType}`;
 
   const buffer = Buffer.from(await file.arrayBuffer());
   // run pHash duplicate detection
   const hashResult = await checkFile(buffer, extension, fileType);
 
   // Optional: reject duplicates
-  if (hashResult.status === true) {
+  if (hashResult.status === true && hashResult.postId != parseInt(postId)) {
     return NextResponse.json({ error: `This image already exists in post #${hashResult.postId}!`, duplicate: true, postId: hashResult.postId }, { status: 409 });
   }
 
@@ -73,6 +73,8 @@ export async function POST(req: NextRequest) {
   }
   
   const result = await fastifyResponse.json();
+  console.log(JSON.stringify(result, null, 1));
+  if (result.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${conversionType}`; }
   
   await prisma.posts.update({
     where: { id: Number(postId) },

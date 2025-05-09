@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowFatLineDown, ArrowFatLineUp, Heart } from "phosphor-react";
+import { ArrowFatLineDown, ArrowFatLineUp } from "phosphor-react";
 import React from "react";
 
 type PoolCardProps = {
@@ -19,7 +19,6 @@ type PoolCardProps = {
 
 
 export function PoolCard({
-  id,
   name,
   artist = "Unknown",
   coverUrl,
@@ -42,10 +41,10 @@ export function PoolCard({
       {/* Cover */}
       {coverUrl ? (
         <img
-          src={coverUrl}
-          alt={name}
-          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105 z-0"
-        />
+        src={coverUrl}
+        alt={name}
+        className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105 z-0"
+      />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-subtle text-sm">
           No cover

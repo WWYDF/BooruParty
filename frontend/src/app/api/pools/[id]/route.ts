@@ -24,6 +24,7 @@ export async function GET(_: NextRequest, context: { params: Promise<{ id: strin
             post: {
               select: {
                 id: true,
+                fileExt: true,
                 safety: true,
                 score: true,
                 previewPath: true,

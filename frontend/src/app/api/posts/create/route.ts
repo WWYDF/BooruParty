@@ -79,16 +79,8 @@ export async function POST(request: NextRequest) {
   const fastifyResult = await fastifyResponse.json();
   
   const conversionType = getConversionType(extension);
-  const previewSrc = `/data/previews/${fileType}/${postId}.${conversionType}`;
-
-  await prisma.posts.update({
-    where: { id: postId },
-    data: {
-      previewScale: fastifyResult.previewScale,
-      previewPath: previewSrc,
-      aspectRatio: fastifyResult.aspectRatio
-    },
-  })
+  let previewSrc = `/data/previews/${fileType}/${postId}.${conversionType}`;
+  if (fastifyResult.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${conversionType}`; }
 
   // Mass Tagger on Upload
   if (rawTags) {
@@ -119,15 +111,19 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-  
+
+    // Update post with received stuff from Fastify / Tags
     await prisma.posts.update({
       where: { id: postId },
       data: {
+        previewScale: fastifyResult.previewScale,
+        previewPath: previewSrc,
+        aspectRatio: fastifyResult.aspectRatio,
         tags: {
           connect: tags.map((t) => ({ id: t.id })),
         },
       },
-    });
+    })
   }
 
   return NextResponse.json({ success: true, postId, fileName: fastifyResult.fileName });
