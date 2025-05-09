@@ -59,6 +59,7 @@ export default function MergeTagPage() {
             }}
             placeholder="Search for target tag..."
             disabledTags={[]}
+            blacklist={[name]}
           />
           {target && (
             <div className="mt-2 text-zinc-100 text-sm">

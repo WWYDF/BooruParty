@@ -27,6 +27,7 @@ type TagSelectorProps = {
   disabledTags?: Tag[];
   allowNegation?: boolean;
   addImpliedTags?: boolean;
+  blacklist?: string[];
 };
 
 export default function TagSelector({
@@ -36,6 +37,7 @@ export default function TagSelector({
   disabledTags = [],
   allowNegation = false,
   addImpliedTags = false,
+  blacklist = [],
 }: TagSelectorProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Tag[]>([]);
@@ -66,7 +68,9 @@ export default function TagSelector({
         .then((res) => res.json())
         .then((data: Tag[]) => {
           const filtered = data.filter(
-            (tag) => !disabledTags.some((disabled) => disabled.id === tag.id)
+            (tag) =>
+              !disabledTags.some((disabled) => disabled.id === tag.id) &&
+              !blacklist.includes(encodeURIComponent(tag.name.toLowerCase()))
           );
           setResults(filtered);
           setHighlightedIndex(-1);

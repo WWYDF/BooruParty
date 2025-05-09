@@ -1,12 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import SearchBar from "@/components/clientSide/Posts/SearchBar";
 import PostGrid from "@/components/clientSide/Posts/PostGrid";
-import Filters from "@/components/clientSide/Posts/Filters";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSession } from "next-auth/react";
-import MassSelectionBar from "./MassSelectBar";
 import MassEditor from "./MassEditor";
 import PostToolbar from "./PostToolbar";
 

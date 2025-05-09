@@ -27,7 +27,6 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const [isFocused, setIsFocused] = useState(false);
-  const router = useRouter();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,8 +50,15 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
       fetch(`/api/tags/autocomplete?query=${encodeURIComponent(lastWord.replace("-", ""))}`)
         .then((res) => res.json())
         .then((data: TagType[]) => {
-          setSuggestions(data.slice(0, 10)); // limit to 10
-          setHighlightedIndex(data.length > 0 ? 0 : -1);
+          const words = input.toLowerCase().trim().split(/\s+/);
+          const finalizedTags = words.slice(0, -1).map(w => w.replace("-", ""));
+        
+          const filtered = data
+            .filter((tag) => !finalizedTags.includes(tag.name.toLowerCase()))
+            .slice(0, 10);
+        
+          setSuggestions(filtered);
+          setHighlightedIndex(filtered.length > 0 ? 0 : -1);
         })
         .catch(() => {
           setSuggestions([]);
@@ -81,7 +87,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
       if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
         insertTag(suggestions[highlightedIndex].name);
       } else {
-        onSubmit(input.trim());
+        onSubmit(input);
       }
     }
   };
@@ -101,7 +107,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
   };
 
   const handleSubmit = () => {
-    onSubmit(input.trim());
+    onSubmit(input);
   };
 
   const handleClear = () => {
