@@ -54,4 +54,7 @@ export type Tag = {
   suggestions?: Tag[];
   implications?: Tag[];
   allImplications?: Tag[];
+  _count?: {
+    posts: number;
+  };
 };

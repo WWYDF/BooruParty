@@ -1,44 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/core/prisma";
-import { SafetyType } from "@prisma/client";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
-import { FILE_TYPE_MAP } from "@/core/dictionary";
 import { buildPostWhereAndOrder } from "@/components/serverSide/Posts/filters";
-
-export function parseSearch(input: string) {
-  const terms = input.split(/\s+/).filter(Boolean);
-
-  const includeTags: string[] = [];
-  const excludeTags: string[] = [];
-  const systemOptions: Record<string, string> = {};
-
-  for (const term of terms) {
-    if (term.startsWith("-")) {
-      excludeTags.push(term.substring(1));
-    } else if (term.includes(":")) {
-      const [key, value] = term.split(":");
-      if (key && value) {
-        systemOptions[key] = value;
-      }
-    } else {
-      includeTags.push(term);
-    }
-  }
-
-  const typeMatches = [...input.matchAll(/(-)?type:([^\s]+)/g)];
-  const includeTypes: string[] = [];
-  const excludeTypes: string[] = [];
-
-  for (const [, isNegated, val] of typeMatches) {
-    const lower = val.toLowerCase();
-    if (isNegated) excludeTypes.push(lower);
-    else includeTypes.push(lower);
-  }
-
-  return { includeTags, excludeTags, includeTypes, excludeTypes, systemOptions };
-}
 
 // Fetch all posts with optional tags, sorting, etc.
 export async function GET(req: Request) {

@@ -1,3 +1,5 @@
+import { Tag } from "./tags";
+
 export type Post = {
   id: number;
   fileExt: string;
@@ -9,17 +11,18 @@ export type Post = {
   notes: string;
   flags: string[];
   previewScale: number;
+  fileSize?: number;
   pHash: string;
   score: number;
   uploadedById: string;
   createdAt: string;
-  favoritedBy: {
-    userId: string;
-  }[];
+  tags: Tag[];
   uploadedBy: {
     id: string;
     username: string;
-    role: string;
+    role: {
+      name: string;
+    };
     avatar: string;
   };
   comments: {
@@ -33,6 +36,45 @@ export type Post = {
     content: string;
     createdAt: string;
   }[];
+  specialPosts: {
+    id: number,
+    label: string,
+    postId: number,
+    createdAt: Date
+  }[];
+  relatedFrom: {
+    to: {
+      id: number;
+      previewPath: string | null;
+    };
+  }[];
+  relatedTo: {
+    from: {
+      id: number;
+      previewPath: string | null;
+    };
+  }[];
+  pools: {
+    poolId: number;
+    pool: {
+      id: number;
+      name: string;
+      safety: "SAFE" | "SKETCHY" | "UNSAFE";
+      _count: {
+        items: number;
+      },
+      items: {
+        index: number;
+        post: {
+          id: number;
+          previewPath: string | null;
+        };
+      }[];
+    };
+  }[];
+  _count: {
+    favoritedBy: number;
+  };
 }
 
 export type PostUserStatus = {

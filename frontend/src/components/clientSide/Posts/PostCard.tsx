@@ -97,10 +97,10 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
             </div>
           )}
 
-          {post.favoritedBy?.length > 0 && (
+          {post._count?.favoritedBy > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
               <Heart size={16} className="text-red-500" weight="bold" />
-              <span>{post.favoritedBy.length}</span>
+              <span>{post._count?.favoritedBy}</span>
             </div>
           )}
         </div>

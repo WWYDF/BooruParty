@@ -1,7 +1,7 @@
 // @/core/posts/filters.ts
 import { FILE_TYPE_MAP } from "@/core/dictionary";
 import { SafetyType } from "@prisma/client";
-import { parseSearch } from "@/app/api/posts/route";
+import { parseSearch } from "./parseSearch";
 
 export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: "new" | "old" = "new") {
   const { includeTags, excludeTags, includeTypes, excludeTypes, systemOptions } = parseSearch(rawQuery);

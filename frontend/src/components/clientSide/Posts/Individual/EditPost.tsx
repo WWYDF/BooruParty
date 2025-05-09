@@ -10,35 +10,39 @@ import { useToast } from "../../Toast";
 import { Tag } from "@/core/types/tags";
 import RelatedPostInput from "./PostRelation";
 import { useDropzone } from "react-dropzone";
+import { Post } from "@/core/types/posts";
 
-type PostType = {
-  id: number;
-  anonymous: boolean;
-  safety: "SAFE" | "SKETCHY" | "UNSAFE";
-  sources: string[];
-  notes: string | null;
-  tags: Tag[];
-  relatedFrom: {
-    to: { id: number };
-  }[];
-  relatedTo: {
-    from: { id: number };
-  }[];
-  pools: {
-    poolId: number;
-    pool: {
-      id: number;
-      name: string;
-    };
-  }[];
-};
+// type PostType = {
+//   id: number;
+//   anonymous: boolean;
+//   safety: "SAFE" | "SKETCHY" | "UNSAFE";
+//   sources: string[];
+//   notes: string | null;
+//   tags: Tag[];
+//   relatedFrom: {
+//     to: { id: number };
+//   }[];
+//   relatedTo: {
+//     from: { id: number };
+//   }[];
+//   pools: {
+//     poolId: number;
+//     pool: {
+//       id: number;
+//       name: string;
+//     };
+//   }[];
+//   specialPost: {
+
+//   }
+// };
 
 export default function EditPost({
   post,
   onSaveSuccess = () => {},
   onDeleteSuccess = () => {},
 }: {
-  post: PostType;
+  post: Post;
   onSaveSuccess?: () => void;
   onDeleteSuccess?: () => void;
 }) {
@@ -184,7 +188,7 @@ export default function EditPost({
           <label className="text-white font-medium block mb-1">Safety</label>
           <select
             value={safety}
-            onChange={(e) => setSafety(e.target.value as PostType["safety"])}
+            onChange={(e) => setSafety(e.target.value as Post["safety"])}
             className="bg-secondary p-2 rounded text-sm text-white w-full focus:outline-none focus:ring-2 focus:ring-zinc-800"
           >
             <option value="SAFE">Safe</option>
