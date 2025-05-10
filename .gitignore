@@ -1,12 +1,16 @@
-
+# Caching
 /frontend/.next
 /frontend/node_modules
 /backend/node_modules
+/frontend/prisma/client
+/frontend/data/temp
+
+# User-Generated-Content
 /backend/uploads
 /backend/dist
-/core/prisma/node_modules
-/core/prisma/client
-core/prisma/.env
 /backend/data
+
+
+# Sensitive Files
+core/prisma/.env
 frontend/.env
-/frontend/prisma/client
