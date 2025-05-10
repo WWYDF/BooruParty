@@ -9,6 +9,8 @@ import statsRoute from './routes/stats';
 import postDeleteRoute from './routes/delete/posts';
 import avatarDeleteRoute from './routes/delete/avatars';
 import postReplaceRoute from './routes/replace';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -44,6 +46,9 @@ async function buildServer() {
 }
 
 async function start() {
+  const filePath = path.join(process.cwd(), 'data');
+  fs.mkdirSync(filePath, { recursive: true });
+
   const server = await buildServer();
   try {
     await server.listen({ port: 3005, host: '0.0.0.0' });
