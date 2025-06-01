@@ -23,9 +23,12 @@ export default function PostGrid({
   if (viewMode === 'COLLAGE') {
     const breakpointColumnsObj = {
       default: 4,
+      3840: 8,
+      2560: 6,
+      1920: 4,
       1280: 3,
       768: 2,
-      640: 1
+      640: 2
     };
 
     return (
@@ -58,7 +61,7 @@ export default function PostGrid({
 
   // For GRID view (unchanged)
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
       {externalPosts.map((post, index) => (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
