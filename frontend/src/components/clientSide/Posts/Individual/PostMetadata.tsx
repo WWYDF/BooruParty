@@ -14,81 +14,6 @@ import { Post } from "@/core/types/posts";
 
 const AVATAR_URL = "/user.png";
 
-// Dunno when I'm gonna change this to use the Universal Post Type lol
-// type Props = {
-//   post: {
-//     id: number;
-//     anonymous: boolean;
-//     fileExt: string;
-//     previewPath: string;
-//     safety: "SAFE" | "SKETCHY" | "UNSAFE";
-//     sources: string[];
-//     notes: string | null;
-//     createdAt: string;
-//     score: number;
-//     tags: {
-//       id: number;
-//       name: string;
-//       category: {
-//         id: number;
-//         name: string;
-//         color: string;
-//         order: number;
-//       };
-//       aliases: {
-//         id: number;
-//         alias: string;
-//       }[];
-//       _count: {
-//         posts: number;
-//       };
-//     }[];
-//     relatedFrom: {
-//       to: {
-//         id: number;
-//         previewPath: string | null;
-//       };
-//     }[];
-//     relatedTo: {
-//       from: {
-//         id: number;
-//         previewPath: string | null;
-//       };
-//     }[];
-//     pools: {
-//       poolId: number;
-//       pool: {
-//         id: number;
-//         name: string;
-//         safety: "SAFE" | "SKETCHY" | "UNSAFE";
-//         _count: {
-//           items: number;
-//         },
-//         items: {
-//           index: number;
-//           post: {
-//             id: number;
-//             previewPath: string | null;
-//           };
-//         }[];
-//       };
-//     }[];
-//     uploadedBy: {
-//       id: string;
-//       username: string;
-//       role: {
-//         name: string;
-//       };
-//       avatar: string;
-//     },
-//     fileSize?: number;
-//     _count?: {
-//       favoritedBy: number;
-//     };
-//   };
-// };
-
-
 export default function PostMetadata({ post }: { post: Post }) {
   const [editing, setEditing] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState<number | null>(null);
@@ -188,7 +113,12 @@ export default function PostMetadata({ post }: { post: Post }) {
 
         <div className="flex-1">
           <p className="text-base text-white font-semibold flex items-center">
-            {displayName}
+            <Link
+              href={`/users/${encodeURIComponent(displayName)}`}
+              className="text-accent hover:underline"
+            >
+              <span>{displayName}</span>
+            </Link>
             {!post.anonymous && (
               <RoleBadge role={post.uploadedBy.role.name} />
             )}
