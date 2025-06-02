@@ -6,7 +6,7 @@ import { useToast } from '../Toast';
 import { UserSelf } from '@/core/types/users';
 
 export default function AvatarUpload({ user }: { user: UserSelf }) {
-  const [current, setCurrent] = useState('/user.png');
+  const [current, setCurrent] = useState('/i/user.png');
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState('');
@@ -16,7 +16,7 @@ export default function AvatarUpload({ user }: { user: UserSelf }) {
   useEffect(() => {
     (async () => {
       try {
-        setCurrent(user.avatar || '/user.png');
+        setCurrent(user.avatar || '/i/user.png');
         const perms = user.role?.permissions?.map((p: any) => p.name) || [];
         if (perms.includes("profile_edit_avatar") || perms.includes("administrator")) {
           setCanEdit(true);

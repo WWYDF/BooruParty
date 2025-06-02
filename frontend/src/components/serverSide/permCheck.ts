@@ -7,10 +7,7 @@ export async function checkPermissions(
   const permissions = Array.isArray(perms) ? perms : [perms];
 
   // Shortcut: Allow all to view posts if permission is post_view and GUEST_VIEWING is enabled
-  if (
-    permissions.includes("post_view") &&
-    process.env.GUEST_VIEWING === "true"
-  ) {
+  if ( permissions.includes("post_view") && process.env.GUEST_VIEWING === "true" ) {
     return Object.fromEntries(permissions.map((p) => [p, true]));
   }
 

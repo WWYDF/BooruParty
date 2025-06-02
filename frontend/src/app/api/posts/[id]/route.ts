@@ -11,9 +11,15 @@ import { NextRequest, NextResponse } from "next/server";
 // GET endpoint to retrieve a single post by ID
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const permCheck = (await checkPermissions(['post_view']))['post_view'];
+    let permCheck = (await checkPermissions(['post_view']))['post_view'];
+
+    const authHeader = req.headers.get('X-Override'); // Allow internal server pages to access regardless.
+    if (authHeader && authHeader == process.env.INTERNAL_API_SECRET) { permCheck = true }
+
     if (!permCheck) { return NextResponse.json({ error: "You are unauthorized to view posts." }, { status: 401 }); }
-  } catch {}
+  } catch (error) {
+    NextResponse.json({ error }, { status: 500 });
+  }
 
   const { id } = await context.params;
   const session = await auth();

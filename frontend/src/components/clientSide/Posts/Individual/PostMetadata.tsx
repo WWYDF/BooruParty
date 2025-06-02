@@ -12,7 +12,7 @@ import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { useToast } from "../../Toast";
 import { Post } from "@/core/types/posts";
 
-const AVATAR_URL = "/user.png";
+const AVATAR_URL = "/i/user.png";
 
 export default function PostMetadata({ post }: { post: Post }) {
   const [editing, setEditing] = useState(false);

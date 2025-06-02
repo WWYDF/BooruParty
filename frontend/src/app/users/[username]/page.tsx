@@ -127,7 +127,7 @@ export default function UserProfilePage() {
       {/* Avatar + Username + Bio */}
       <div className="grid grid-cols-1 md:grid-cols-[100px_1fr_auto] gap-4 items-start">
         <img
-          src={user.avatar || `/user.png`}
+          src={user.avatar || `/i/user.png`}
           alt={user.username}
           className="w-24 h-24 rounded-full object-cover border border-zinc-700"
         />

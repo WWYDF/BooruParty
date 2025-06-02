@@ -6,6 +6,12 @@ import PostCommentList from "@/components/clientSide/Posts/Individual/PostCommen
 import { Comments } from "@/core/types/comments";
 import { cookies } from "next/headers";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { Metadata } from "next";
+import Head from "next/head";
+import { resolveFileType } from "@/core/dictionary";
+import { Post } from "@/core/types/posts";
+import { formatStorageFromBytes } from "@/core/formats";
+import { Tag } from "@/core/types/tags";
 
 async function fetchPostData(postId: string) {
   const cookieStore = cookies();
@@ -46,6 +52,51 @@ async function fetchComments(postId: string): Promise<Comments[]> {
   const rawComments: Comments[] = response.formattedComments;
 
   return rawComments;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const prams = await params;
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/metadata/posts/${prams.id}`, {
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    return {
+      title: 'Error',
+      description: 'Something went wrong fetching metadata.',
+    };
+  }
+
+  const data = await res.json();
+
+  if (!data || !data.title || !data.description) {
+    console.log('3')
+    return {
+      title: `Post #${prams.id}`,
+      description: `Guest viewing is disabled for this site, please login to view this post.`,
+      openGraph: {  // The preview image for Discord, Twitter, etc.
+        images: [
+          {
+            url: '/i/private.png',
+            width: 500,
+            height: 500
+          }
+        ]
+      }
+    };
+  }
+
+  return {
+    title: `${data.title}`,
+    description: `${data.description}`,
+    openGraph: {  // The preview image for Discord, Twitter, etc.
+      images: [
+        {
+          url: `${data.previewUrl}`
+        }
+      ]
+    }
+  };
 }
 
 export default async function PostPage({
@@ -99,9 +150,25 @@ export default async function PostPage({
 
   const postData = postResult.value;
   const comments = commentsResult.status === 'fulfilled' ? commentsResult.value : [];
+  const post: Post = postData.post;
+
+  let artistText = '';
+    const firstArtist: Tag | undefined = post.tags.find(
+      (tag: any) => tag.category?.name === "Artist" || tag.category?.name === "Artists"
+    );
+    if (firstArtist) { artistText = ` by ${firstArtist.name}` }
+    
+    let fileTypeText = '';
+    const fileType = resolveFileType(`.${post.fileExt}`);
+    if (fileType != 'other') { fileTypeText = ` ${fileType}` }
+    const desc = `View this ${formatStorageFromBytes(post.fileSize ?? 0)}${fileTypeText}`
 
   return (
     <main className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 p-4">
+      <meta name="description" content={desc} />
+      <meta property="og:title" content={`Post #${post.id}${artistText} | ${process.env.SITE_NAME}`} />
+      <meta property="og:description" content={desc} />
+
       {/* LEFT COLUMN - Metadata */}
       <div className="order-3 md:order-1 md:col-span-1 mt-6 md:mt-0 border-r border-zinc-900">
         <PostMetadata post={postData.post} />

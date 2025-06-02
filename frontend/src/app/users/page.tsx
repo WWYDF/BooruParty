@@ -60,7 +60,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               className="bg-secondary rounded-xl p-4 hover:bg-secondary-border transition flex flex-col items-center text-center"
             >
               <img
-                src={user.avatar || `/user.png`}
+                src={user.avatar || `/i/user.png`}
                 alt={user.username}
                 className="w-20 h-20 rounded-full object-cover mb-3"
               />

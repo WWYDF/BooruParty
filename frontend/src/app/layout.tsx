@@ -7,25 +7,20 @@ import { ToastProvider } from '@/components/clientSide/Toast';
 import Footer from '@/components/clientSide/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
+const site_name = process.env.SITE_NAME || 'https://example.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com'),
   title: {
-    default: 'Home | Imageboard',
-    template: '%s | Imageboard'
+    default: `Home | ${site_name}`,
+    template: `%s | ${site_name}`
   },
-  description: "Description.",
+  description: "A Modern Imageboard written with NextJS & Fastify.",
   icons: { // Favicon
-   icon: '/i/misc/logo.svg'
+   icon: '/i/party.png'
   },
   openGraph: {  // The preview image for Discord, Twitter, etc.
-    images: [
-      {
-        url: '/i/misc/logo.webp',
-        width: 500,
-        height: 500
-      }
-    ]
+    images: []
   },
 }
 
