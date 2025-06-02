@@ -8,6 +8,11 @@ import { PRESET_MAP } from '../types/encoders';
 const execAsync = promisify(exec);
 
 export async function processVideoPreview(originalPath: string, postId: number): Promise<number | null> {
+  if (process.env.DISABLE_VIDEO_PREVIEWS == 'true') {
+    // console.debug('Skipping video encoding.')
+    return 100;
+  }
+
   const previewDir = path.join(__dirname, '../../data/previews/video');
   fs.mkdirSync(previewDir, { recursive: true });
 
