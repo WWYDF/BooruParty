@@ -32,7 +32,7 @@ async function loadHwaccels(): Promise<Set<string>> {
 
 async function isUsableEncoder(encoder: string): Promise<boolean> {
   try {
-    const testCmd = `ffmpeg -f lavfi -i testsrc -t 1 -c:v ${encoder} -f null - -y -loglevel error`;
+    const testCmd = `ffmpeg -f lavfi -i testsrc -pix_fmt yuv420p -t 1 -c:v ${encoder} -f null - -y -loglevel error`;
     await execAsync(testCmd);
     return true;
   } catch {

@@ -55,7 +55,7 @@ export default function UploadQueue() {
           id: `${idCounter.current++}`,
           file,
           preview: (!isImage || isTooLarge)
-            ? '/speed.png' // Fallback image in /public
+            ? '/i/speed.png' // Fallback image in /public/i
             : URL.createObjectURL(file),
           safety: 'SAFE' as const, // default
         };

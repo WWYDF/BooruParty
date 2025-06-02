@@ -3,7 +3,7 @@ import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 import { getBestEncoder } from './pickEncoder';
-import { PRESET_MAP } from '../types/encoders';
+import { ENCODER_OPTIONS_MAP } from '../types/encoders';
 
 const execAsync = promisify(exec);
 
@@ -18,21 +18,25 @@ export async function processVideoPreview(originalPath: string, postId: number):
 
   const previewPath = path.join(previewDir, `${postId}.mp4`);
   const encoder = await getBestEncoderFromEnv();
-  const preset = PRESET_MAP[encoder] || 'fast';
+  const encoderConfig = ENCODER_OPTIONS_MAP[encoder];
+  if (!encoderConfig) throw new Error(`No config for encoder "${encoder}"`);
 
 
-  const ffmpegCmd = `
-    ffmpeg -y
-    -i "${originalPath}"
-    -vf "scale=1280:-2"
-    -c:v ${encoder}
-    -crf 33
-    -b:v 0
-    -preset ${preset}
-    -c:a libopus
-    -b:a 128k
-    "${previewPath}"
-  `.replace(/\s+/g, ' ').trim();
+  const args = [
+    'ffmpeg', '-y',
+    '-i', `"${originalPath}"`,
+    '-vf', '"scale=1280:-2"',
+    '-c:v', encoderConfig.encoder,
+    encoderConfig.qualityFlag, encoderConfig.qualityValue.toString(),
+    ...(encoderConfig.preset ? ['-preset', encoderConfig.preset] : []),
+    ...(encoderConfig.profile ? ['-profile:v', encoderConfig.profile] : []),
+    ...(encoderConfig.extraArgs || []),
+    '-c:a', 'libopus',
+    '-b:a', '128k',
+    `"${previewPath}"`,
+  ];
+  
+  const ffmpegCmd = args.join(' ');
 
   try {
     await execAsync(ffmpegCmd);
