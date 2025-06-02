@@ -7,7 +7,7 @@ import { ToastProvider } from '@/components/clientSide/Toast';
 import Footer from '@/components/clientSide/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
-const site_name = process.env.SITE_NAME || 'https://example.com'
+const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com'),

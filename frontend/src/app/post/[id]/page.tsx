@@ -166,7 +166,7 @@ export default async function PostPage({
   return (
     <main className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 p-4">
       <meta name="description" content={desc} />
-      <meta property="og:title" content={`Post #${post.id}${artistText} | ${process.env.SITE_NAME}`} />
+      <meta property="og:title" content={`Post #${post.id}${artistText} | ${process.env.NEXT_PUBLIC_SITE_NAME}`} />
       <meta property="og:description" content={desc} />
 
       {/* LEFT COLUMN - Metadata */}

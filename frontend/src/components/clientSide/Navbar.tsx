@@ -91,7 +91,7 @@ export default function Navbar() {
         className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800"
       >
         <Link href="/" className="text-xl font-semibold text-white">
-          Imageboard
+          {process.env.NEXT_PUBLIC_SITE_NAME ?? 'Imageboard'}
         </Link>
 
         {/* Desktop Links */}

@@ -27,7 +27,7 @@ export default function HomePage() {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="text-4xl font-bold mb-2"
         >
-          Welcome to Imageboard
+          Welcome to {process.env.NEXT_PUBLIC_SITE_NAME ?? 'Imageboard'}
         </motion.h1>
 
         <motion.p
