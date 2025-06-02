@@ -26,6 +26,7 @@ const postDeleteRoute: FastifyPluginAsync = async (fastify) => {
         "data/uploads/animated",
         "data/previews/image",
         "data/previews/animated",
+        "data/previews/video",
         "data/thumbnails",
       ];
     

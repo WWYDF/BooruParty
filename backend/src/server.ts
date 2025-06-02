@@ -51,6 +51,7 @@ async function start() {
 
   const server = await buildServer();
   try {
+    console.clear();
     await server.listen({ port: 3005, host: '0.0.0.0' });
     console.log('🚀 Server running on http://localhost:3005');
   } catch (err) {

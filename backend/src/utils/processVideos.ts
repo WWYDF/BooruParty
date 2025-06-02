@@ -63,14 +63,26 @@ export async function processVideoPreview(originalPath: string, postId: number):
 
 
 async function getBestEncoderFromEnv(): Promise<string> {
+  const override = process.env.ENCODER_OVERRIDE?.trim();
+
+  if (override) {
+    if (ENCODER_OPTIONS_MAP[override]) {
+      console.log(`[Encoder] Using ENCODER_OVERRIDE: ${override}`);
+      return override;
+    } else {
+      console.warn(`[Encoder] ENCODER_OVERRIDE "${override}" is not valid. Skipping it...`);
+      console.warn(`[Encoder] Please refer to https://docs.booru.party/setup/encoders for list of valid encoders.`);
+    }
+  }
+
   const envCodec = (process.env.VIDEO_ENCODER || 'h264').toLowerCase();
 
-  if (!['h264', 'vp9', 'av1'].includes(envCodec)) {
+  if (!['h264', 'vp9', 'av1', 'h265'].includes(envCodec)) {
     console.warn(`Unsupported VIDEO_ENCODER "${envCodec}", falling back to h264`);
   }
 
-  const codec = ['h264', 'vp9', 'av1'].includes(envCodec) ? envCodec : 'h264';
-  const encoder = await getBestEncoder(codec as 'h264' | 'vp9' | 'av1');
+  const codec = ['h264', 'vp9', 'av1', 'h265'].includes(envCodec) ? envCodec : 'h264';
+  const encoder = await getBestEncoder(codec as 'h264' | 'vp9' | 'av1' | 'h265');
 
   return encoder;
 }
