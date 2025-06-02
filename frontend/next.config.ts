@@ -1,4 +1,10 @@
 import type { NextConfig } from "next";
+import { URL } from 'url';
+
+const fastifyUrl = process.env.NEXT_PUBLIC_FASTIFY || 'http://localhost:3005';
+const { hostname, port, protocol } = new URL(fastifyUrl);
+const nextjs = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3069');
+const parsedProtocol = protocol.replace(':', '') as 'http' | 'https';
 
 const nextConfig: NextConfig = {
   eslint: {
@@ -7,19 +13,20 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',    // Leave this entry here
-        port: '3005',             // Fastify server port
-        pathname: '/data/**',     // allow anything under /data/
+        protocol: parsedProtocol,
+        hostname,
+        port: port || '', // Optional: '' allows any
+        pathname: '/data/**',
       },
       {
         protocol: 'http',
-        hostname: '192.168.1.17', // Set this to your fastify server ip
-        port: '3005',             // Fastify server port
-        pathname: '/data/**',     // allow anything under /data/
+        hostname: 'localhost',
+        port: '3005',
+        pathname: '/data/**',
       },
     ],
-  }
+  },
+  allowedDevOrigins: [`${nextjs.hostname}`]
 };
 
 export default nextConfig;
