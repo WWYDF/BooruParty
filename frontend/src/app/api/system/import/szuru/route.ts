@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 import { auth } from "@/core/authServer";
 import { runSzuruImport } from "@/core/importer/szurubooru/szuruManager";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 
 export async function POST(req: NextRequest) {
   const { url, username, password } = await req.json();
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  const cookieHeader = cookies().toString();
+  const cookieHeader = (await headers()).get('cookie') ?? '';
 
   // Create a new import session
   const importSession = await prisma.importSession.create({

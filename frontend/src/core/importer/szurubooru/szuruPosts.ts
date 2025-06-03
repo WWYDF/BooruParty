@@ -1,4 +1,5 @@
 import { makeImportLogger } from "../importUtils";
+import { prisma } from "@/core/prisma";
 
 export async function processSzuruPosts({
   sessionId,
@@ -19,6 +20,9 @@ export async function processSzuruPosts({
   let processed = 0;
   const log = makeImportLogger(sessionId);
   const auth = "Basic " + Buffer.from(`${username}:${password}`).toString("base64");
+
+  const idMap = new Map<number, number>();
+  const postRelationPairs: Array<[number, number]> = [];
 
   await log("info", "Starting post import from Szuru...");
 
@@ -61,9 +65,11 @@ export async function processSzuruPosts({
       }
 
       const tags = [
-        ...new Set([
-          ...post.tags.map((t: any) => t.names[0].toLowerCase()),
-        ]),
+        ...new Set(
+          (post.tags ?? [])
+            .filter((t: any) => t?.names?.length)
+            .map((t: any) => t.names[0].toLowerCase())
+        ),
       ];
 
       const form = new FormData();
@@ -88,6 +94,15 @@ export async function processSzuruPosts({
           await log("error", `Upload failed for post ${post.id}: ${err}`);
           return false;
         } else {
+          const json = await uploadRes.json();
+          idMap.set(post.id, json.postId);
+
+          if (post.relations?.length) {
+            for (const rel of post.relations) {
+              postRelationPairs.push([post.id, rel.id]);
+            }
+          }
+
           await log("info", `Imported post ${post.id}`);
           processed++;
         }
@@ -99,6 +114,26 @@ export async function processSzuruPosts({
 
     offset += 100;
   }
+
+  await log("info", "Processing related posts...");
+  for (const [fromSzuruId, toSzuruId] of postRelationPairs) {
+    const fromId = idMap.get(fromSzuruId);
+    const toId = idMap.get(toSzuruId);
+    if (!fromId || !toId) continue;
+
+    try {
+      await prisma.postRelation.upsert({
+        where: { fromId_toId: { fromId, toId } },
+        update: {},
+        create: { fromId, toId },
+      });
+      await log("info", `Added related posts to #${toId}...`);
+    } catch (e) {
+      await log("error", `Failed to create relation ${fromSzuruId} → ${toSzuruId}: ${e}`);
+    }
+  }
+  await log("info", "Finished adding related posts...");
+  offset += 100;
 
   await log("info", `Post import complete. Imported ${processed} post${processed !== 1 ? "s" : ""}.`);
   return true;
