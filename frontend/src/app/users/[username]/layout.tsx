@@ -17,7 +17,8 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
       description: true,
       role: {
         select: {
-          name: true
+          name: true,
+          color: true,
         }
       },
       createdAt: true,
@@ -36,7 +37,9 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   }
 
   avatar = setAvatarUrl(user.avatar);
-  const description = `'${user.description}'\nRole: ${user.role?.name ?? 'Member'}\nPosts: ${user._count.posts}\nFavorites: ${user._count.favorites}\nComments: ${user._count.comments}\nMember Since: ${new Date(user.createdAt).toLocaleDateString()}`;
+  let motto = '';
+  if (user.description) { motto = `${user.description}\n` }
+  const description = `${motto}Role: ${user.role?.name ?? 'Member'}\nPosts: ${user._count.posts}\nFavorites: ${user._count.favorites}\nComments: ${user._count.comments}\nMember Since: ${new Date(user.createdAt).toLocaleDateString()}`;
 
   return {
     title: `${user.username}'s Profile`,
@@ -49,18 +52,6 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   };
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <head />
-      <meta property="og:image" content={avatar} />
-      <body className={`${inter.className} min-h-screen flex flex-col`}>
-        {children}
-      </body>
-    </html>
-  )
+export default function UserLayout({ children }: { children: React.ReactNode }) {
+  return children;
 }

@@ -115,186 +115,191 @@ export default function UserProfilePage() {
   if (!user) return <p className="p-6 text-red-500">User not found.</p>;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={clsx(
-        "max-w-6xl mx-auto mt-16 mb-20 p-6 rounded-2xl bg-secondary border border-zinc-800 space-y-10",
-        roleGlowMap[user.role.name] || "" // fallback no glow
-      )}
-    >
-      {/* Avatar + Username + Bio */}
-      <div className="grid grid-cols-1 md:grid-cols-[100px_1fr_auto] gap-4 items-start">
-        <img
-          src={user.avatar || `/i/user.png`}
-          alt={user.username}
-          className="w-24 h-24 rounded-full object-cover border border-zinc-700"
-        />
+    <main>
+      <meta property="og:image" content={user.avatar || `/i/user.png`} />
+      <meta name="theme-color" content={user.role?.color} />
 
-        <div className="">
-          <div className="flex items-center text-2xl font-bold text-accent">
-            {user.username}
-            <RoleBadge role={user.role.name} />
-          </div>
-
-          {user.description && (
-            <p className="text-subtle italic inline-block px-2 bg-zinc-800 rounded text-sm mt-1 mb-2">{user.description}</p>
-          )}
-
-          <div className="text-sm text-subtle">
-            Last seen: {formatRelativeTime(user.lastLogin)}
-          </div>
-          <div className="text-xs text-subtle">
-            Member Since: {new Date(user.createdAt).toLocaleDateString()}
-          </div>
-        </div>
-        {canEdit && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="flex flex-col gap-2"
-          >
-              <a
-                href={session?.user?.username === user.username ? "/profile" : `/profile?as=${user.username}`}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
-              >
-                <GearSix size={16} weight="bold" />
-                Edit Profile
-              </a>
-
-            {session?.user?.username === user.username && (
-              <button
-                onClick={() => {
-                  signOut({ callbackUrl: "/" })
-                  toast('Successfully logged out!', 'success');
-                }}
-                className="w-full inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-red-500 rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
-              >
-                <SignOut size={16} weight="bold" />
-                Log out
-              </button>
-            )}
-          </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={clsx(
+          "max-w-6xl mx-auto mt-16 mb-20 p-6 rounded-2xl bg-secondary border border-zinc-800 space-y-10",
+          roleGlowMap[user.role.name] || "" // fallback no glow
         )}
-      </div>
+      >
+        {/* Avatar + Username + Bio */}
+        <div className="grid grid-cols-1 md:grid-cols-[100px_1fr_auto] gap-4 items-start">
+          <img
+            src={user.avatar || `/i/user.png`}
+            alt={user.username}
+            className="w-24 h-24 rounded-full object-cover border border-zinc-700"
+          />
 
-      {/* Recent Posts */}
-      {user.posts?.length > 0 && (
-        <section>
-          <h2 className="text-lg font-semibold mb-2">Recent Posts <a className="text-sm text-subtle">({user._count.posts})</a></h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {user.posts.slice(0, 10).map((post: any) => (
-            <a
-              key={post.id}
-              href={`/post/${post.id}`}
-              className="block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
-            >
-              <img
-                src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${post.id}_small.webp`}
-                alt={`Post #${post.id}`}
-                className="w-full aspect-[4/3] object-cover rounded-lg"
-              />
-            </a>
-          ))}
-          {user.posts.length > 10 && (
-            <div className="mt-2">
-              <div className="flex pr-1">
-                <a
-                  href={`/posts?query=posts%3A${encodeURIComponent(user.username)}`}
-                  className="px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
-                >
-                  View all posts →
-                </a>
-              </div>
+          <div className="">
+            <div className="flex items-center text-2xl font-bold text-accent">
+              {user.username}
+              <RoleBadge role={user.role.name} />
             </div>
-          )}
-          </div>
-        </section>
-      )}
 
-      {/* Recent Favorites */}
-      {user.favorites?.length > 0 && (
-        <section>
-          <h2 className="text-lg font-semibold mb-2">Recent Favorites <a className="text-sm text-subtle">({user._count.favorites})</a></h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {user.favorites.slice(0, 10).map((fav: any) => (
-              <a
-              key={fav.postId}
-              href={`/post/${fav.postId}`}
-              className="block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
-            >
-              <img
-                src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${fav.postId}_small.webp`}
-                alt={`Post #${fav.postId}`}
-                className="w-full aspect-[4/3] object-cover rounded-lg"
-              />
-            </a>
-            ))}
+            {user.description && (
+              <p className="text-subtle italic inline-block px-2 bg-zinc-800 rounded text-sm mt-1 mb-2">{user.description}</p>
+            )}
 
-            {user.favorites.length > 10 && (
-            <div className="mt-2">
-              <div className="flex pr-1">
-                <a
-                  href={`/posts?query=favorites%3A${encodeURIComponent(user.username)}`}
-                  className="px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
-                >
-                  View all favorites →
-                </a>
-              </div>
+            <div className="text-sm text-subtle">
+              Last seen: {formatRelativeTime(user.lastLogin)}
             </div>
-          )}
+            <div className="text-xs text-subtle">
+              Member Since: {new Date(user.createdAt).toLocaleDateString()}
+            </div>
           </div>
-        </section>
-      )}
+          {canEdit && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-2"
+            >
+                <a
+                  href={session?.user?.username === user.username ? "/profile" : `/profile?as=${user.username}`}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
+                >
+                  <GearSix size={16} weight="bold" />
+                  Edit Profile
+                </a>
 
-      {/* Recent Comments */}
-      {user.comments?.length > 0 && (
-        <section>
-          <h2 className="text-lg font-semibold mb-2">Recent Comments <a className="text-sm text-subtle">({user._count.comments})</a></h2>
-          <div className="space-y-3">
-          {user.comments.map((comment: any) => {
-            const embeds = extractEmbeds(comment.content);
+              {session?.user?.username === user.username && (
+                <button
+                  onClick={() => {
+                    signOut({ callbackUrl: "/" })
+                    toast('Successfully logged out!', 'success');
+                  }}
+                  className="w-full inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-red-500 rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
+                >
+                  <SignOut size={16} weight="bold" />
+                  Log out
+                </button>
+              )}
+            </motion.div>
+          )}
+        </div>
 
-            // Strip matched embed references from the content
-            const cleanedText = embeds.reduce((text, embed) => {
-              if (embed.type === "url") {
-                return text.replace(embed.value, "").trim();
-              }
-              if (embed.type === "post") {
-                return text.replace(`:${embed.value}:`, "").trim();
-              }
-              return text;
-            }, comment.content);
-
-            return (
+        {/* Recent Posts */}
+        {user.posts?.length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold mb-2">Recent Posts <a className="text-sm text-subtle">({user._count.posts})</a></h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {user.posts.slice(0, 10).map((post: any) => (
               <a
-                key={comment.id}
-                href={`/post/${comment.postId}`}
-                className="block border border-zinc-800 p-3 rounded-lg hover:border-zinc-700 transition"
+                key={post.id}
+                href={`/post/${post.id}`}
+                className="block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
               >
-                <div className="text-sm text-subtle whitespace-pre-wrap">
-                  <span
-                    className="inline-block break-all max-w-full"
-                    dangerouslySetInnerHTML={{
-                      __html: sanitizeHtml(cleanedText, {
-                        allowedTags: [], // Disallow everything
-                        allowedAttributes: {},
-                      }),
-                    }}
-                  />
-                  {renderCommentEmbeds(embeds)}
-                </div>
-                <div className="text-xs text-zinc-500 mt-2">
-                  {new Date(comment.createdAt).toLocaleString()}
-                </div>
+                <img
+                  src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${post.id}_small.webp`}
+                  alt={`Post #${post.id}`}
+                  className="w-full aspect-[4/3] object-cover rounded-lg"
+                />
               </a>
-            );
-          })}
-          </div>
-        </section>
-      )}
-    </motion.div>
+            ))}
+            {user.posts.length > 10 && (
+              <div className="mt-2">
+                <div className="flex pr-1">
+                  <a
+                    href={`/posts?query=posts%3A${encodeURIComponent(user.username)}`}
+                    className="px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
+                  >
+                    View all posts →
+                  </a>
+                </div>
+              </div>
+            )}
+            </div>
+          </section>
+        )}
+
+        {/* Recent Favorites */}
+        {user.favorites?.length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold mb-2">Recent Favorites <a className="text-sm text-subtle">({user._count.favorites})</a></h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {user.favorites.slice(0, 10).map((fav: any) => (
+                <a
+                key={fav.postId}
+                href={`/post/${fav.postId}`}
+                className="block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
+              >
+                <img
+                  src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${fav.postId}_small.webp`}
+                  alt={`Post #${fav.postId}`}
+                  className="w-full aspect-[4/3] object-cover rounded-lg"
+                />
+              </a>
+              ))}
+
+              {user.favorites.length > 10 && (
+              <div className="mt-2">
+                <div className="flex pr-1">
+                  <a
+                    href={`/posts?query=favorites%3A${encodeURIComponent(user.username)}`}
+                    className="px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
+                  >
+                    View all favorites →
+                  </a>
+                </div>
+              </div>
+            )}
+            </div>
+          </section>
+        )}
+
+        {/* Recent Comments */}
+        {user.comments?.length > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold mb-2">Recent Comments <a className="text-sm text-subtle">({user._count.comments})</a></h2>
+            <div className="space-y-3">
+            {user.comments.map((comment: any) => {
+              const embeds = extractEmbeds(comment.content);
+
+              // Strip matched embed references from the content
+              const cleanedText = embeds.reduce((text, embed) => {
+                if (embed.type === "url") {
+                  return text.replace(embed.value, "").trim();
+                }
+                if (embed.type === "post") {
+                  return text.replace(`:${embed.value}:`, "").trim();
+                }
+                return text;
+              }, comment.content);
+
+              return (
+                <a
+                  key={comment.id}
+                  href={`/post/${comment.postId}`}
+                  className="block border border-zinc-800 p-3 rounded-lg hover:border-zinc-700 transition"
+                >
+                  <div className="text-sm text-subtle whitespace-pre-wrap">
+                    <span
+                      className="inline-block break-all max-w-full"
+                      dangerouslySetInnerHTML={{
+                        __html: sanitizeHtml(cleanedText, {
+                          allowedTags: [], // Disallow everything
+                          allowedAttributes: {},
+                        }),
+                      }}
+                    />
+                    {renderCommentEmbeds(embeds)}
+                  </div>
+                  <div className="text-xs text-zinc-500 mt-2">
+                    {new Date(comment.createdAt).toLocaleString()}
+                  </div>
+                </a>
+              );
+            })}
+            </div>
+          </section>
+        )}
+      </motion.div>
+    </main>
   );
 }
