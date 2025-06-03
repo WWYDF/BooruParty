@@ -20,7 +20,7 @@ export function DashNav() {
         <Link
           key={link.href}
           href={link.href}
-          className={`hover:text-accent ${
+          className={`hover:text-accent transition ${
             pathname === link.href ? "text-accent font-medium" : "text-subtle"
           }`}
         >
