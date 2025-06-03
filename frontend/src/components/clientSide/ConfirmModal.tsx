@@ -16,6 +16,7 @@ type ConfirmModalProps = {
   radioOptions?: RadioOption[];
   selectedRadio?: string;
   setSelectedRadio?: (val: string) => void;
+  maxWidth?: string;
 };
 
 type RadioOption = {
@@ -35,6 +36,7 @@ export default function ConfirmModal({
   radioOptions,
   selectedRadio,
   setSelectedRadio,
+  maxWidth = "max-w-sm",
 }: ConfirmModalProps) {
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -54,7 +56,7 @@ export default function ConfirmModal({
         onClick={onClose}
       >
         <motion.div
-          className="bg-zinc-900 border border-secondary-border rounded-xl p-6 w-full max-w-sm text-center"
+          className={`bg-zinc-900 border border-secondary-border rounded-xl p-6 w-full ${maxWidth} text-center`}
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}

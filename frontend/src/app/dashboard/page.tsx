@@ -1,4 +1,5 @@
 import AnalyticsOverview from "@/components/clientSide/Dashboard/AnalyticsBox";
+import DatabaseBackup from "@/components/clientSide/Dashboard/Backup";
 import UpdaterBox from "@/components/clientSide/Dashboard/Updater";
 
 export default function AdminDashboard() {
@@ -12,6 +13,7 @@ export default function AdminDashboard() {
       <div className="space-y-4">
         {/* Updater Component */}
         <UpdaterBox />
+        <DatabaseBackup />
       </div>
     </div>
   );

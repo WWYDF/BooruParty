@@ -26,7 +26,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  allowedDevOrigins: [`${nextjs.hostname}`]
+  allowedDevOrigins: [`${nextjs.hostname}`],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb'
+    }
+  }
 };
 
 export default nextConfig;
