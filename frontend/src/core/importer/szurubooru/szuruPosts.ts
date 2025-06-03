@@ -1,6 +1,4 @@
-import { Tag } from "@/core/types/tags";
 import { makeImportLogger } from "../importUtils";
-import { Session } from "next-auth";
 
 export async function processSzuruPosts({
   sessionId,
@@ -25,7 +23,7 @@ export async function processSzuruPosts({
   await log("info", "Starting post import from Szuru...");
 
   while (processed < limit) {
-    const res = await fetch(`${url}/api/posts?limit=100&offset=${offset}`, {
+    const res = await fetch(`${url}/api/posts?limit=100&offset=${offset}&query=*`, {
       headers: { 
         "Authorization": auth,
         "Accept": "application/json",

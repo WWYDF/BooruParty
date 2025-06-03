@@ -45,7 +45,7 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
               controls
               playsInline
               loop
-              muted
+              // muted
               preload="metadata"
               className="max-h-[75vh] w-auto h-auto object-contain rounded-xl"
             />
