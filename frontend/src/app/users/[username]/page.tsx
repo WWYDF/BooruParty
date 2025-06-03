@@ -183,7 +183,7 @@ export default function UserProfilePage() {
       {/* Recent Posts */}
       {user.posts?.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold mb-2">Recent Posts</h2>
+          <h2 className="text-lg font-semibold mb-2">Recent Posts <a className="text-sm text-subtle">({user._count.posts})</a></h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {user.posts.slice(0, 10).map((post: any) => (
             <a
@@ -217,7 +217,7 @@ export default function UserProfilePage() {
       {/* Recent Favorites */}
       {user.favorites?.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold mb-2">Recent Favorites</h2>
+          <h2 className="text-lg font-semibold mb-2">Recent Favorites <a className="text-sm text-subtle">({user._count.favorites})</a></h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {user.favorites.slice(0, 10).map((fav: any) => (
               <a
@@ -252,7 +252,7 @@ export default function UserProfilePage() {
       {/* Recent Comments */}
       {user.comments?.length > 0 && (
         <section>
-          <h2 className="text-lg font-semibold mb-2">Recent Comments</h2>
+          <h2 className="text-lg font-semibold mb-2">Recent Comments <a className="text-sm text-subtle">({user._count.comments})</a></h2>
           <div className="space-y-3">
           {user.comments.map((comment: any) => {
             const embeds = extractEmbeds(comment.content);

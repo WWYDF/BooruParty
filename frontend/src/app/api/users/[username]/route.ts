@@ -41,6 +41,19 @@ export async function GET(
           postsPerPage: true,
         }
       },
+      _count: {
+        select: {
+          posts: true,
+          comments: true,
+          favorites: true,
+          votes: {
+            where: {
+              user: { username }, // Make sure we're only pulling this user's votes.
+              type: 'UPVOTE'
+            }
+          }
+        }
+      },
       posts: {
         where: { anonymous: false },
         take: 25,
@@ -77,7 +90,6 @@ export async function GET(
           }
         }
       }
-      // add more fields if needed
     },
   });
 
