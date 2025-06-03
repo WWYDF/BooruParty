@@ -25,13 +25,14 @@ export async function POST(req: Request) {
   }
 
   const hashedPassword = await hash(password, 10);
+  const defaultRole = await prisma.role.findFirst({ where: { isDefault: true } });
 
   const user = await prisma.user.create({
     data: {
       email,
       username,
       password: hashedPassword,
-      roleId: 1
+      roleId: defaultRole?.id ?? 1
     },
   });
 

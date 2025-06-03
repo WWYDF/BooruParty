@@ -19,7 +19,7 @@ export default function MassSelectionBar({
     <div className="flex justify-end items-center gap-2">
       {!selectionMode ? (
         <button
-          className="w-10 h-10 flex items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-white"
+          className="w-10 h-10 flex items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-white focus:outline-none"
           onClick={onToggle}
           title="Select Posts"
         >
@@ -28,14 +28,14 @@ export default function MassSelectionBar({
       ) : (
         <>
           <button
-            className="bg-zinc-800 border border-secondary-border px-4 py-2 rounded hover:bg-zinc-700 transition"
+            className="bg-zinc-800 border border-secondary-border px-4 py-2 rounded hover:bg-zinc-700 transition focus:outline-none"
             onClick={onClear}
           >
             Cancel
           </button>
           <button
             disabled={selectedCount === 0}
-            className="bg-green-700 px-4 py-2 rounded disabled:opacity-50 hover:bg-green-600 transition"
+            className="bg-green-700 px-4 py-2 rounded disabled:opacity-50 hover:bg-green-600 transition focus:outline-none"
             onClick={onEdit}
           >
             Edit Selected ({selectedCount})
