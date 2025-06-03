@@ -22,7 +22,7 @@ export default function AnalyticsOverview() {
       .then(setData);
   }, []);
 
-  if (!data) return <p className="text-subtle">Loading...</p>;
+  if (!data) return;
 
   const safetyData = [
     { name: 'Safe', value: data.safePosts, color: COLORS.SAFE },

@@ -26,7 +26,7 @@ export default function DatabaseBackup() {
   };
 
   return (
-    <div className="mt-6 bg-secondary border border-secondary-border p-6 rounded-2xl shadow w-full">
+    <div className="bg-secondary border border-secondary-border p-6 rounded-2xl shadow w-full">
       <h2 className="text-xl font-semibold mb-4">Database Management</h2>
 
       <div className="flex gap-4">

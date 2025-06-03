@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { subDays } from 'date-fns';
+import { checkPermissions } from '@/components/serverSide/permCheck';
 
 export async function GET() {
+  const hasPerms = (await checkPermissions(['dashboard_analytics']))['dashboard_analytics'];
+  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
+
   const now = new Date();
   const weekAgo = subDays(now, 7);
   const dayAgo = subDays(now, 1);

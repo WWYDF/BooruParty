@@ -7,7 +7,6 @@ import { Comments } from "@/core/types/comments";
 import { cookies } from "next/headers";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { Metadata } from "next";
-import Head from "next/head";
 import { resolveFileType } from "@/core/dictionary";
 import { Post } from "@/core/types/posts";
 import { formatStorageFromBytes } from "@/core/formats";

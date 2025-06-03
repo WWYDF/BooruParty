@@ -82,6 +82,10 @@ export async function POST(req: Request) {
         { name: "tags_delete" },
         { name: "tags_categories_manage" }, // Create, Edit, and Delete
         { name: "dashboard_view" },
+        { name: "dashboard_analytics" },
+        { name: "dashboard_update" },
+        { name: "dashboard_backups" }, // Export AND Import
+        { name: "dashboard_import" }, // Import from other softwares (e.g. szurubooru)
         { name: "dashboard_settings" },
         { name: "dashboard_edit_perms" },
         { name: "dashboard_audit_log" },
@@ -146,6 +150,7 @@ export async function POST(req: Request) {
           "limit_upload_ignore",
           "tags_delete",
           "dashboard_view",
+          "dashboard_analytics",
           "dashboard_audit_log"
         ]
       },
@@ -155,6 +160,9 @@ export async function POST(req: Request) {
           "profile_edit_others",
           "profile_delete_others",
           "tags_categories_manage",
+          "dashboard_backups",
+          "dashboard_import",
+          "dashboard_update",
           "dashboard_settings",
           "dashboard_edit_perms",
           "administrator"

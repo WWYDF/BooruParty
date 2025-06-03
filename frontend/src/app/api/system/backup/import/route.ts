@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
+import { checkPermissions } from '@/components/serverSide/permCheck';
 import AdmZip from 'adm-zip';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  const hasPerms = (await checkPermissions(['dashboard_backups']))['dashboard_backups'];
+  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
+
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
