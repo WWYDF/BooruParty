@@ -28,7 +28,8 @@ export async function GET() {
     postsInPools,
     auditToday,
     specialPosts,
-    postsToday
+    postsToday,
+    postsDeletedToday
   ] = await Promise.all([
     prisma.posts.count(),
     prisma.posts.count({ where: { createdAt: { gte: weekAgo } } }),
@@ -46,18 +47,11 @@ export async function GET() {
     prisma.userFavorites.count(),
     prisma.pools.count(),
     prisma.poolItems.count(),
-    prisma.audits.count({ where: { executedAt: { gte: dayAgo } } }),
+    prisma.audits.count({ where: { executedAt: { gte: startOfDay } } }),
     prisma.specialPosts.count(),
+    prisma.posts.count({ where: { createdAt: { gte: startOfDay } } }),
     prisma.audits.count({ where: { category: 'DELETE', actionType: 'POST', executedAt: { gte: startOfDay } } })
   ]);
-
-  const postsDeletedToday = await prisma.audits.count({
-    where: {
-      category: 'DELETE',
-      actionType: 'POST',
-      executedAt: { gte: startOfDay },
-    },
-  });
 
   return NextResponse.json({
     totalPosts,

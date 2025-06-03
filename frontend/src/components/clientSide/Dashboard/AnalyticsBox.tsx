@@ -48,8 +48,7 @@ export default function AnalyticsOverview() {
     { label: 'Posts in Pools', value: data.postsInPools },
 
     // { label: 'Admins', value: data.admins },
-    { label: 'Audits (24h)', value: data.auditToday },
-    
+    { label: 'Audits (Today)', value: data.auditToday },
   ];
 
   function CustomTooltip({ active, payload, label }: any) {
