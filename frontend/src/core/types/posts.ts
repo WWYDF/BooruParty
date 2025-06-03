@@ -1,4 +1,4 @@
-import { Tag } from "./tags";
+import { Tag, TagGroup } from "./tags";
 
 export type Post = {
   id: number;
@@ -16,7 +16,7 @@ export type Post = {
   score: number;
   uploadedById: string;
   createdAt: string;
-  tags: Tag[];
+  tags: TagGroup[]
   uploadedBy: {
     id: string;
     username: string;

@@ -328,7 +328,6 @@ export default function PostMetadata({ post }: { post: Post }) {
           )}
 
 
-
           {/* Notes */}
           {post.notes && (
             <div className="mt-3">
@@ -343,11 +342,11 @@ export default function PostMetadata({ post }: { post: Post }) {
           {/* Tags */}
           {post.tags.length > 0 && (
             <div className="flex flex-col gap-3">
-              {sortedCategories.map(([categoryName, items]) => (
-                <div key={categoryName}>
-                  <p className="text-subtle text-sm mb-1">{categoryName}</p>
+              {post.tags.map(group => (
+                <div key={group.category.name}>
+                  <p className="text-subtle text-sm mb-1">{group.category.name}</p>
                   <div className="flex flex-col gap-2">
-                    {items.map(({ tag }) => (
+                    {group.tags.map(tag => (
                       <div
                         key={tag.id}
                         className="inline-flex items-center gap-1 border border-zinc-900 px-2 py-1 rounded-full w-fit"
@@ -360,7 +359,7 @@ export default function PostMetadata({ post }: { post: Post }) {
                         >
                           <Plus size={10} weight="bold" />
                         </button>
-                      
+
                         <button
                           onClick={() => modifyQuery("exclude", tag.name)}
                           className="hover:text-accent"
@@ -368,11 +367,11 @@ export default function PostMetadata({ post }: { post: Post }) {
                         >
                           <Minus size={10} weight="bold" />
                         </button>
-                        
+
                         <Link href={`/tags/${tag.name}`} title="Edit tag">
                           <Tag size={14} />
                         </Link>
-                      
+
                         <button
                           onClick={() => modifyQuery("replace", tag.name)}
                           className="hover:underline"
@@ -380,7 +379,7 @@ export default function PostMetadata({ post }: { post: Post }) {
                         >
                           {tag.name}
                         </button>
-                      
+
                         <span className="text-subtle text-xs ml-1">
                           {tag?._count?.posts ?? 0}
                         </span>

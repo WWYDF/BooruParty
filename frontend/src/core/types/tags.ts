@@ -58,3 +58,12 @@ export type Tag = {
     posts: number;
   };
 };
+
+export type TagGroup = {
+  category: {
+    name: string,
+    order: number,
+    color: string
+  },
+  tags: Tag[]
+}

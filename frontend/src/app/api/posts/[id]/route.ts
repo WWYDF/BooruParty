@@ -145,8 +145,32 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   // Might not need this anymore
   const previewExt = getConversionType(post.fileExt);
 
+  // Sort Tags by Category
+  const groupedTags = post.tags.reduce((acc, tag) => {
+    const categoryName = tag.category?.name || "Uncategorized";
+    if (!acc[categoryName]) acc[categoryName] = [];
+    acc[categoryName].push(tag);
+    return acc;
+  }, {} as Record<string, typeof post.tags>);
+
+  const sortedCategories = Object.entries(groupedTags).sort(
+    ([, tagsA], [, tagsB]) => {
+      const orderA = tagsA[0]?.category?.order ?? 0;
+      const orderB = tagsB[0]?.category?.order ?? 0;
+      return orderA - orderB;
+    }
+  );
+
   const postFormatted = {
     ...post,
+    tags: sortedCategories.map(([categoryName, tags]) => ({
+      category: {
+        name: categoryName,
+        order: tags[0]?.category?.order ?? 0,
+        color: tags[0]?.category?.color ?? "#fff"
+      },
+      tags
+    })),
     uploadedBy: post.uploadedBy
       ? {
           ...post.uploadedBy,

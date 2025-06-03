@@ -153,15 +153,18 @@ export default async function PostPage({
   const post: Post = postData.post;
 
   let artistText = '';
-    const firstArtist: Tag | undefined = post.tags.find(
-      (tag: any) => tag.category?.name === "Artist" || tag.category?.name === "Artists"
-    );
-    if (firstArtist) { artistText = ` by ${firstArtist.name}` }
+  const allTags = post.tags.flatMap(group => group.tags);
+  const firstArtist: Tag | undefined = allTags.find(
+    tag => tag.category?.name === "Artist" || tag.category?.name === "Artists"
+  );
+  if (firstArtist) {
+    artistText = ` by ${firstArtist.name}`;
+  }
     
-    let fileTypeText = '';
-    const fileType = resolveFileType(`.${post.fileExt}`);
-    if (fileType != 'other') { fileTypeText = ` ${fileType}` }
-    const desc = `View this ${formatStorageFromBytes(post.fileSize ?? 0)}${fileTypeText}`
+  let fileTypeText = '';
+  const fileType = resolveFileType(`.${post.fileExt}`);
+  if (fileType != 'other') { fileTypeText = ` ${fileType}` }
+  const desc = `View this ${formatStorageFromBytes(post.fileSize ?? 0)}${fileTypeText}`
 
   return (
     <main className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 p-4">

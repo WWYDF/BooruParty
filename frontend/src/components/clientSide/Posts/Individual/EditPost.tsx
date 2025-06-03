@@ -12,31 +12,6 @@ import RelatedPostInput from "./PostRelation";
 import { useDropzone } from "react-dropzone";
 import { Post } from "@/core/types/posts";
 
-// type PostType = {
-//   id: number;
-//   anonymous: boolean;
-//   safety: "SAFE" | "SKETCHY" | "UNSAFE";
-//   sources: string[];
-//   notes: string | null;
-//   tags: Tag[];
-//   relatedFrom: {
-//     to: { id: number };
-//   }[];
-//   relatedTo: {
-//     from: { id: number };
-//   }[];
-//   pools: {
-//     poolId: number;
-//     pool: {
-//       id: number;
-//       name: string;
-//     };
-//   }[];
-//   specialPost: {
-
-//   }
-// };
-
 export default function EditPost({
   post,
   onSaveSuccess = () => {},
@@ -62,25 +37,22 @@ export default function EditPost({
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
   const toast = useToast();
 
-  // One-time init
   useEffect(() => {
     if (post.tags) {
-      // preserve category-sorted order but flatten it
-      const sorted = [...post.tags].sort((a, b) => {
-        return a.category?.order ?? 0 - (b.category?.order ?? 0);
-      });
+      const sorted = [...post.tags]
+        .sort((a, b) => (a.category.order ?? 0) - (b.category.order ?? 0))
+        .flatMap(group => group.tags);
       setInitialOrderedTags(sorted);
+      setOrderedTags(sorted);
     }
 
-  // Initialize related post IDs
-  const related = [
-    ...post.relatedFrom.map(r => r.to.id),
-    ...post.relatedTo.map(r => r.from.id),
-  ];
-  setRelatedPosts([...new Set(related)]);
+    const related = [
+      ...post.relatedFrom.map(r => r.to.id),
+      ...post.relatedTo.map(r => r.from.id),
+    ];
+    setRelatedPosts([...new Set(related)]);
 
-  setPools(post.pools.map(p => p.pool.id));
-
+    setPools(post.pools.map(p => p.pool.id));
   }, [post.tags, post.relatedFrom, post.relatedTo, post.pools]);
 
   const handleSave = async () => {
@@ -123,29 +95,32 @@ export default function EditPost({
 
   const handleAddTag = async (tag: Tag, impliedEnabled = true) => {
     let allTags: Tag[] = [tag];
-  
+
     if (impliedEnabled) {
       if (tag.allImplications?.length) {
         allTags = [tag, ...tag.allImplications];
       } else {
-        // fallback fetch if no allImplications in search (e.g. from SuggestionPopup)
         const res = await fetch(`/api/tags/${encodeURIComponent(tag.name)}`);
         const data = await res.json();
         allTags = [tag, ...(data.allImplications ?? [])];
       }
     }
-  
+
     setNewlyAddedTags((prev) => {
       const existingIds = new Set([...prev, ...initialOrderedTags].map((t) => t.id));
       const newTags = allTags.filter((t) => !existingIds.has(t.id));
-      return [...newTags, ...prev];
+      const next = [...newTags, ...prev];
+      setOrderedTags([...initialOrderedTags, ...next]);
+      return next;
     });
   };
-  
 
   const handleRemoveTag = (tagId: number) => {
-    setNewlyAddedTags((prev) => prev.filter((t) => t.id !== tagId));
-    setInitialOrderedTags((prev) => prev.filter((t) => t.id !== tagId));
+    const nextNew = newlyAddedTags.filter((t) => t.id !== tagId);
+    const nextInitial = initialOrderedTags.filter((t) => t.id !== tagId);
+    setNewlyAddedTags(nextNew);
+    setInitialOrderedTags(nextInitial);
+    setOrderedTags([...nextInitial, ...nextNew]);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -159,6 +134,9 @@ export default function EditPost({
       setReplacementFile(acceptedFiles[0]);
     }
   });
+
+  const allTags = [...newlyAddedTags, ...initialOrderedTags];
+  const uniqueTags = Array.from(new Map(allTags.map(t => [t.id, t])).values());
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -256,9 +234,9 @@ export default function EditPost({
       </div>
 
       {/* Selected tags display */}
-      {(newlyAddedTags.length > 0 || initialOrderedTags.length > 0) && (
+      {uniqueTags.length > 0 && (
         <div className="flex flex-col gap-2">
-          {[...newlyAddedTags, ...initialOrderedTags].map((tag) => (
+          {uniqueTags.map((tag) => (
             <div
               key={tag.id}
               className="flex items-center gap-2 border border-zinc-900 px-3 py-1.5 rounded-2xl w-fit"

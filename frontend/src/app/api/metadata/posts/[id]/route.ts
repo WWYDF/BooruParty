@@ -23,7 +23,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const post: Post = data.post;
 
     let artistText = '';
-    const firstArtist: Tag | undefined = post.tags.find(
+    const allTags = post.tags.flatMap(group => group.tags);
+    const firstArtist: Tag | undefined = allTags.find(
       (tag: any) => tag.category?.name === "Artist" || tag.category?.name === "Artists"
     );
     if (firstArtist) { artistText = ` by ${firstArtist.name}` }
