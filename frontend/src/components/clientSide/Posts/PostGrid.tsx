@@ -18,7 +18,7 @@ export default function PostGrid({
   viewMode?: ViewMode;
   selectionMode: boolean;
   selectedPostIds: number[];
-  toggleSelect: (postId: number) => void;
+  toggleSelect: (postId: number, e: React.MouseEvent) => void;
 }) {
   if (viewMode === 'COLLAGE') {
     const breakpointColumnsObj = {
@@ -50,7 +50,7 @@ export default function PostGrid({
                 viewMode="COLLAGE"
                 selectionMode={selectionMode}
                 isSelected={selectedPostIds.includes(post.id)}
-                toggleSelect={toggleSelect}
+                toggleSelect={(postId: number, e: any) => toggleSelect(postId, e)}
               />
             </motion.div>
           </div>
@@ -74,7 +74,7 @@ export default function PostGrid({
             viewMode="GRID"
             selectionMode={selectionMode}
             isSelected={selectedPostIds.includes(post.id)}
-            toggleSelect={toggleSelect}
+            toggleSelect={(postId: number, e: any) => toggleSelect(postId, e)}
           />
         </motion.div>
       ))}

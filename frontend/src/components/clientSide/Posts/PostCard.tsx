@@ -9,7 +9,7 @@ interface PostCardProps {
   viewMode: 'GRID' | 'COLLAGE';
   selectionMode?: boolean;
   isSelected?: boolean;
-  toggleSelect?: (postId: number) => void;
+  toggleSelect?: (postId: number, e: React.MouseEvent) => void;
 }
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
@@ -28,7 +28,7 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
       onClick={(e) => {
         if (selectionMode) {
           e.preventDefault();
-          toggleSelect?.(post.id);
+          toggleSelect?.(post.id, e);
         }
       }}
       className="block group relative"

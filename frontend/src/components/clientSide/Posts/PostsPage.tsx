@@ -26,6 +26,7 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPostIds, setSelectedPostIds] = useState<number[]>([]);
+  const lastSelectedIndex = useRef<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   const isFirstLoad = useRef(true);
@@ -143,6 +144,11 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
     return () => window.removeEventListener("scroll", handleScroll);
   }, [page, searchText, selectedSafeties, isLoadingMore, hasMore]);
 
+  function setSelectMode(toggle: boolean) {
+    setSelectionMode(toggle);
+    if (toggle == false) { lastSelectedIndex.current = null }
+  }
+
   return (
     <>
       <PostToolbar
@@ -153,7 +159,7 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
         searchPosts={searchPosts}
         selectionMode={selectionMode}
         selectedPostIds={selectedPostIds}
-        setSelectionMode={setSelectionMode}
+        setSelectionMode={setSelectMode}
         setSelectedPostIds={setSelectedPostIds}
         setModalOpen={setModalOpen}
       />
@@ -165,11 +171,26 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
             viewMode={viewMode}
             selectionMode={selectionMode}
             selectedPostIds={selectedPostIds}
-            toggleSelect={(id) =>
-              setSelectedPostIds((prev) =>
-                prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-              )
-            }
+            toggleSelect={(id, e) => {
+              const clickedIndex = posts.findIndex((p) => p.id === id);
+            
+              setSelectedPostIds((prev) => {
+                if (e.shiftKey) {
+                  const anchor = lastSelectedIndex.current ?? 0; // ← fallback to top
+                  const [start, end] = [anchor, clickedIndex].sort((a, b) => a - b);
+                  const range = posts.slice(start, end + 1).map((p) => p.id);
+                  return range;
+                }
+            
+                const alreadySelected = prev.includes(id);
+                const next = alreadySelected
+                  ? prev.filter((i) => i !== id)
+                  : [...prev, id];
+            
+                lastSelectedIndex.current = clickedIndex;
+                return next;
+              });
+            }}
           />
         ) : (
           <p className="text-subtle">Loading layout preference...</p>
