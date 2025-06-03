@@ -105,6 +105,7 @@ model Role {
   name          String           @unique
   users         User[]
   permissions   Permission[]     @relation("RolePermissions")
+  isDefault     Boolean          @default(false)
 }
 
 model Permission {

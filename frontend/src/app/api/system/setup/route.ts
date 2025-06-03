@@ -94,7 +94,13 @@ export async function POST(req: Request) {
     })
 
     // Create Roles   DEFAULT REGISTRATION ROLE MUST BE FIRST!
-    const roleNames = ["MEMBER", "POWER USER", "MODERATOR", "ADMIN"];
+    await prisma.role.upsert({
+      where: { name: "MEMBER" },
+      update: {},
+      create: { name: "MEMBER", isDefault: true }
+    })
+
+    const roleNames = ["POWER USER", "MODERATOR", "ADMIN"];
     for (const name of roleNames) {
       await prisma.role.upsert({
         where: { name },
@@ -116,6 +122,7 @@ export async function POST(req: Request) {
           "post_favorite",
           "comment_create",
           "comment_embed_post",
+          "comment_edit_own",
           "comment_delete_own",
           "comment_vote",
           "pool_vote",
