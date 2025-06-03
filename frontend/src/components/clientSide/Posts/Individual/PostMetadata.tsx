@@ -95,6 +95,11 @@ export default function PostMetadata({ post }: { post: Post }) {
     }
   };
 
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(`${post.previewPath}`);
+    toast("Copied Preview URL!", "success");
+  };
+
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
       {/* Header with user info */}
@@ -247,6 +252,16 @@ export default function PostMetadata({ post }: { post: Post }) {
                 </Link>
               </p>
             )}
+
+            <p className="flex items-center gap-1 text-xs text-subtle">
+              <span className="text-white font-medium w-[80px]">Preview:</span>
+              <button
+                onClick={handleCopy}
+                className="text-accent hover:underline focus:outline-none"
+              >
+                Click to Copy
+              </button>
+            </p>
           </div>
 
 

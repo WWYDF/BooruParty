@@ -94,7 +94,7 @@ function renderEmbeds(embeds: ExtractedEmbed[]): JSX.Element[] {
               <img
                 src={embed.value}
                 alt="Embedded media"
-                className="rounded-lg max-w-xs max-h-64 object-contain"
+                className="rounded-lg max-w-1/2 max-h-64 object-contain"
               />
             </div>
           );
@@ -105,7 +105,7 @@ function renderEmbeds(embeds: ExtractedEmbed[]): JSX.Element[] {
             <div key={index} className="mt-2">
               <iframe
                 src={embed.value}
-                className="w-full max-w-md h-64 rounded"
+                className="w-full max-w-1/2 h-64 rounded"
                 allow="autoplay; encrypted-media"
                 allowFullScreen
               />
@@ -120,7 +120,7 @@ function renderEmbeds(embeds: ExtractedEmbed[]): JSX.Element[] {
     if (embed.type === "post") {
       return (
         <div key={index} className="mt-2">
-          <a href={`/post/${embed.postId}`} className="block max-w-xs rounded-lg overflow-hidden border hover:border-accent transition">
+          <a href={`/post/${embed.postId}`} className="block max-w-xs rounded-lg overflow-hidden border border-secondary-border hover:border-darkerAccent transition">
             <img
               src={embed.previewPath}
               alt={`Post #${embed.postId}`}
