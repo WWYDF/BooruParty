@@ -59,7 +59,7 @@ export const authOptions: AuthOptions = {
       // Validate user still exists
       const user = await prisma.user.findUnique({
         where: { id: token.id as string },
-        select: { id: true }
+        select: { id: true, username: true }
       });
     
       if (!user) {
@@ -71,7 +71,7 @@ export const authOptions: AuthOptions = {
       await updateLastSeen(token.id);
     
       session.user.id = token.id as string;
-      session.user.username = token.username as string;
+      session.user.username = user.username as string;
     
       return session;
     },

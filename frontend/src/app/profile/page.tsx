@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { UserSelf } from "@/core/types/users";
 import { auth } from "@/core/authServer";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import ProfileSettingsClient from "@/components/clientSide/Profile/Profile";
@@ -11,7 +10,7 @@ export default async function ProfileSettingsPage({ searchParams }: { searchPara
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const impersonatingUser = prams.as;
+  const impersonatingUser = prams?.as as string | undefined;
   let user;
 
   const cookie = (await headers()).get("cookie") || "";

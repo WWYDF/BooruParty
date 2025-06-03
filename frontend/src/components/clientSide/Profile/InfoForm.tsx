@@ -6,6 +6,8 @@ import { useToast } from '../Toast';
 import { Trash } from 'phosphor-react';
 import { motion, AnimatePresence } from "framer-motion";
 import { UserSelf } from '@/core/types/users';
+import { getSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function InfoForm({ user }: { user: UserSelf }) {
   const [username, setUsername] = useState('');
@@ -15,6 +17,8 @@ export default function InfoForm({ user }: { user: UserSelf }) {
   const [deleting, setDeleting] = useState(false);
   const [deleteMode, setDeleteMode] = useState<"delete" | "transfer">("transfer");
   const toast = useToast();
+  const router = useRouter();
+  const currentUsername = user.username;
 
   useEffect(() => {
     (async () => {
@@ -30,8 +34,10 @@ export default function InfoForm({ user }: { user: UserSelf }) {
 
   const save = async () => {
     try {
-      await updateUser(username, { username, email, description });
+      await updateUser(currentUsername, { username, email, description });
+      await getSession(); // Update user's session (re-fetch username)
       toast('Saved!', 'success');
+      router.refresh(); // Make sure changes show
     } catch (err: any) {
       toast(err.message, 'error');
     }
