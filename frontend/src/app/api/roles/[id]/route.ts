@@ -1,3 +1,4 @@
+import { checkPermissions } from "@/components/serverSide/permCheck";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
 
@@ -6,6 +7,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const prams = await params;
   const roleId = Number(prams.id);
   const { name, permissions, users, isDefault } = await req.json();
+
+  const hasPerms = (await checkPermissions(['dashboard_roles']))['dashboard_roles'];
+  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
   if (isDefault === false) {
     const current = await prisma.role.findUnique({
@@ -72,8 +76,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 // Remove a role
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
-  const roleId = Number(params.id);
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const prams = await params;
+  const roleId = Number(prams.id);
+
+  const hasPerms = (await checkPermissions(['dashboard_roles']))['dashboard_roles'];
+  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
   const role = await prisma.role.findUnique({
     where: { id: roleId },

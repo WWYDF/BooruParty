@@ -71,6 +71,7 @@ export async function POST(req: Request) {
         { name: "profile_view" },
         { name: "profile_edit_avatar" },
         { name: "profile_edit_others" }, // Includes editing user's avatar
+        { name: "profile_edit_roles" }, // Includes other users
         { name: "profile_archive_others" }, // Delete user but not posts
         { name: "profile_delete_others" },  // Delete user and posts
         { name: "upload_type_image" },
@@ -86,8 +87,7 @@ export async function POST(req: Request) {
         { name: "dashboard_update" },
         { name: "dashboard_backups" }, // Export AND Import
         { name: "dashboard_import" }, // Import from other softwares (e.g. szurubooru)
-        { name: "dashboard_settings" },
-        { name: "dashboard_edit_perms" },
+        { name: "dashboard_roles" },
         { name: "dashboard_audit_log" },
         { name: "administrator" },
       ]
@@ -165,13 +165,13 @@ export async function POST(req: Request) {
         name: "ADMIN",
         ownPermissions: [
           "profile_edit_others",
+          "profile_edit_roles",
           "profile_delete_others",
           "tags_categories_manage",
           "dashboard_backups",
           "dashboard_import",
           "dashboard_update",
-          "dashboard_settings",
-          "dashboard_edit_perms",
+          "dashboard_roles",
           "administrator"
         ]
       }

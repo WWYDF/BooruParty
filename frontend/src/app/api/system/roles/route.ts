@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from '@/core/prisma';
 
+// This should be moved to /api/roles but I'm leaving it here for now for compatibility...
 export async function GET() {
   try {
     const roles = await prisma.role.findMany({
