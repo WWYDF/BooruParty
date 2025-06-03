@@ -14,3 +14,4 @@
 # Sensitive Files
 core/prisma/.env
 frontend/.env
+backend/.env
