@@ -1,6 +1,22 @@
 import UploadQueue from "@/components/clientSide/Uploads/UploadQueue";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { Metadata } from "next";
 
+const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
+
+export const metadata: Metadata = {
+  title: {
+    default: `Upload`,
+    template: `%s | ${site_name}`
+  },
+  description: "A Modern Imageboard written with NextJS & Fastify.",
+  icons: { // Favicon
+   icon: '/i/party.png'
+  },
+  openGraph: {  // The preview image for Discord, Twitter, etc.
+    images: []
+  },
+}
 
 export default async function UploadPage() {
   const canUpload = (await checkPermissions(['post_create']))['post_create'];

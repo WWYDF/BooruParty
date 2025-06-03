@@ -1,5 +1,22 @@
 import { ReactNode } from "react";
 import { DashNav } from "@/components/clientSide/Dashboard/DashNav";
+import { Metadata } from "next";
+
+const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
+
+export const metadata: Metadata = {
+  title: {
+    default: `Dashboard`,
+    template: `%s | ${site_name}`
+  },
+  description: "A Modern Imageboard written with NextJS & Fastify.",
+  icons: { // Favicon
+   icon: '/i/party.png'
+  },
+  openGraph: {  // The preview image for Discord, Twitter, etc.
+    images: []
+  },
+}
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (

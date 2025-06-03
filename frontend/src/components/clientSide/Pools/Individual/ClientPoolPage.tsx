@@ -9,7 +9,7 @@ import { useToast } from "../../Toast";
 import { Pool } from "@/core/types/pools";
 import ConfirmModal from "../../ConfirmModal";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowFatDown, ArrowFatUp, ArrowUp } from "phosphor-react";
+import { ArrowFatDown, ArrowFatUp } from "phosphor-react";
 
 export default function ClientPoolPage({ pool }: { pool: Pool }) {
   const [editMode, setEditMode] = useState(false);
@@ -31,8 +31,6 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
     setCurrentVote(poolData.user.vote);
     setScore(poolData.score);
   }, [poolData.user.vote, poolData.score]);
-
-  console.log(poolData.user.vote)
 
   const handleSave = async () => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools/${pool.id}`, {

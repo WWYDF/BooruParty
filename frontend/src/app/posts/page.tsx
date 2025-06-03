@@ -3,6 +3,24 @@ import { auth } from "@/core/authServer";
 import ClientPostsPage from "@/components/clientSide/Posts/PostsPage";
 import BackToTop from "@/components/clientSide/BackToTop";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { Metadata } from "next";
+
+const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
+const totalPosts = await prisma.posts.count();
+
+export const metadata: Metadata = {
+  title: {
+    default: `All Posts`,
+    template: `%s | ${site_name}`
+  },
+  description: `Explore ${totalPosts} posts shared on ${site_name}.`,
+  icons: { // Favicon
+   icon: '/i/party.png'
+  },
+  openGraph: {  // The preview image for Discord, Twitter, etc.
+    images: []
+  },
+}
 
 export default async function PostsPage() {
   const session = await auth();

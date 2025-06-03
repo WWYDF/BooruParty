@@ -1,7 +1,23 @@
 import Link from "next/link";
 import { formatRelativeTime } from "@/core/formats";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
-import { cookies } from "next/headers";
+import { cookies } from "next/headers";import { Metadata } from "next";
+
+const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
+
+export const metadata: Metadata = {
+  title: {
+    default: `Users`,
+    template: `%s | ${site_name}`
+  },
+  description: "A Modern Imageboard written with NextJS & Fastify.",
+  icons: { // Favicon
+   icon: '/i/party.png'
+  },
+  openGraph: {  // The preview image for Discord, Twitter, etc.
+    images: []
+  },
+}
 
 type User = {
   id: string;

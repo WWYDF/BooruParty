@@ -1,21 +1,18 @@
 import '@/styles/globals.css';
 import { Inter } from 'next/font/google';
 import { Metadata } from 'next';
-import AuthProvider from '@/components/clientSide/AuthProvider';
-import Navbar from '@/components/clientSide/Navbar';
-import { ToastProvider } from '@/components/clientSide/Toast';
-import Footer from '@/components/clientSide/Footer';
+import { prisma } from '@/core/prisma';
 
 const inter = Inter({ subsets: ['latin'] });
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
+const totalPools = await prisma.pools.count();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com'),
   title: {
-    default: `${site_name}`,
+    default: `Pools`,
     template: `%s | ${site_name}`
   },
-  description: "A Modern Imageboard written with NextJS & Fastify.",
+  description: `Dive into ${totalPools} pools on ${site_name}.`,
   icons: { // Favicon
    icon: '/i/party.png'
   },
@@ -33,15 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <head />
       <body className={`${inter.className} min-h-screen flex flex-col`}>
-        <AuthProvider>
-          <Navbar />
-          <ToastProvider>
-            <main className="flex-grow">
-              {children}
-            </main>
-          </ToastProvider>
-        </AuthProvider>
-        <Footer />
+        {children}
       </body>
     </html>
   )
