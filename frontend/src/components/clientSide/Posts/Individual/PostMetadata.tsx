@@ -14,9 +14,13 @@ import { Post } from "@/core/types/posts";
 
 const AVATAR_URL = "/i/user.png";
 
-export default function PostMetadata({ post }: { post: Post }) {
+export interface canEdit {
+  ownPosts: boolean,
+  otherPosts: boolean
+}
+
+export default function PostMetadata({ post, editPerms, userId }: { post: Post, editPerms: canEdit, userId: string | undefined }) {
   const [editing, setEditing] = useState(false);
-  const [lastCheckTime, setLastCheckTime] = useState<number | null>(null);
   const router = useRouter();
   const toast = useToast();
 
@@ -46,48 +50,17 @@ export default function PostMetadata({ post }: { post: Post }) {
     router.push(`/posts?query=${encodeURIComponent(newQuery)}`);
   }
 
-  const displayName = post.anonymous ? "Anonymous" : post.uploadedBy?.username;
+  const displayName = post.uploadedBy?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : post.uploadedBy?.avatar || AVATAR_URL;
 
-  // 1. Group tags by category
-  const grouped = post.tags.reduce((acc: Record<string, { tag: typeof post.tags[0]; order: number }[]>, tag) => {
-    const name = tag.category?.name || "Uncategorized";
-    const order = tag.category?.order ?? 9999; // fallback to end
-    if (!acc[name]) acc[name] = [];
-    acc[name].push({ tag, order });
-    return acc;
-  }, {});
+  const isOwner = post.uploadedBy.id === userId;
+  
+  const canEdit =
+    (isOwner && editPerms.ownPosts) ||
+    (!isOwner && editPerms.otherPosts);
 
-  // 2. Sort category blocks by their `order` field
-  const sortedCategories = Object.entries(grouped).sort(
-    ([, tagsA], [, tagsB]) => (tagsA[0]?.order ?? 0) - (tagsB[0]?.order ?? 0)
-  );
 
   const checkEditPermissions = async () => {
-    const now = Date.now();
-  
-    // If user clicked too recently, block
-    if (lastCheckTime && now - lastCheckTime < 350) {
-      toast("Please wait before trying again.", "error");
-      return;
-    }
-  
-    setLastCheckTime(now);
-  
-    const res = await fetch("/api/users/permissions");
-    if (!res.ok) {
-      toast("Only users signed in can edit posts.", "error");
-      return;
-    }
-  
-    const data = await res.json();
-    const isOwner = post.uploadedBy.id === data.userId;
-    const perms: string[] = data.permissions;
-  
-    const canEdit =
-      (isOwner && perms.includes("post_edit_own")) ||
-      (!isOwner && perms.includes("post_edit_others"));
-  
     if (canEdit) {
       setEditing(true);
     } else {
@@ -117,18 +90,37 @@ export default function PostMetadata({ post }: { post: Post }) {
         )}
 
         <div className="flex-1">
-          <p className="text-base text-white font-semibold flex items-center">
-            <Link
-              href={`/users/${encodeURIComponent(displayName)}`}
-              className="text-accent hover:underline"
-            >
-              <span>{displayName}</span>
-            </Link>
+          <p className="text-base text-white font-semibold flex items-center gap-2">
+            {post.anonymous ? (
+              <>
+                <span className="text-zinc-500">Anonymous</span>
+                {editPerms.otherPosts && (
+                  <Link
+                    href={`/users/${encodeURIComponent(displayName)}`}
+                    className="text-subtle hover:underline"
+                    title="Visible to staff only"
+                  >
+                    ({displayName})
+                  </Link>
+                )}
+              </>
+            ) : (
+              <Link
+                href={`/users/${encodeURIComponent(displayName)}`}
+                className="text-accent hover:underline"
+              >
+                {displayName}
+              </Link>
+            )}
+
             {!post.anonymous && (
               <RoleBadge role={post.uploadedBy.role.name} />
             )}
           </p>
-          <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>
+
+          <p className="text-xs text-subtle">
+            {new Date(post.createdAt).toLocaleString()}
+          </p>
         </div>
 
         {editing ? (
@@ -138,14 +130,14 @@ export default function PostMetadata({ post }: { post: Post }) {
           >
             Cancel
           </button>
-        ) : (
+        ) : canEdit ? (
           <button
             onClick={checkEditPermissions}
             className="text-subtle hover:text-accent text-sm flex items-center gap-1 mr-4"
           >
             <PencilSimple size={16} /> Edit post
           </button>
-        )}
+        ) : null}
       </div>
 
       {editing ? (

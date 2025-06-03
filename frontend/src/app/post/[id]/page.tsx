@@ -1,5 +1,5 @@
 import PostDisplay from "@/components/clientSide/Posts/Individual/PostDisplay";
-import PostMetadata from "@/components/clientSide/Posts/Individual/PostMetadata";
+import PostMetadata, { canEdit } from "@/components/clientSide/Posts/Individual/PostMetadata";
 import PostNavigator from "@/components/clientSide/Posts/Individual/PostNavigator";
 import PostCommentForm from "@/components/clientSide/Posts/Individual/PostCommentForm";
 import PostCommentList from "@/components/clientSide/Posts/Individual/PostCommentList";
@@ -11,6 +11,7 @@ import { resolveFileType } from "@/core/dictionary";
 import { Post } from "@/core/types/posts";
 import { formatStorageFromBytes } from "@/core/formats";
 import { Tag } from "@/core/types/tags";
+import { auth } from "@/core/authServer";
 
 async function fetchPostData(postId: string) {
   const cookieStore = cookies();
@@ -108,18 +109,29 @@ export default async function PostPage({
 
   const { id } = await params;
   const poolId = (await searchParams)?.pool;
+  const session = await auth();
 
   const postId = id;
   const postPromise = fetchPostData(postId);
   const commentsPromise = fetchComments(postId);
   const perms = await checkPermissions([
     'comment_create',
-    'comment_vote'
+    'comment_vote',
+    'post_edit_others', // For showing anonymous post authors (req. for moderation)
+    'post_edit_own'
   ]);
 
   const canComment = perms['comment_create'];
   const canVote = perms['comment_vote'];
+  const canEditOthersPosts = perms['post_edit_others'];
+  const canEditOwnPosts = perms['post_edit_own'];
 
+  const passPerms: canEdit = {
+    ownPosts: canEditOwnPosts,
+    otherPosts: canEditOthersPosts
+  }
+
+  // Retrieve datas
   const [postResult, commentsResult] = await Promise.allSettled([
     postPromise,
     commentsPromise,
@@ -173,7 +185,7 @@ export default async function PostPage({
 
       {/* LEFT COLUMN - Metadata */}
       <div className="order-3 md:order-1 md:col-span-1 mt-6 md:mt-0 border-r border-zinc-900">
-        <PostMetadata post={postData.post} />
+        <PostMetadata post={postData.post} editPerms={passPerms} userId={session?.user.id} />
       </div>
 
       {/* RIGHT COLUMN - Main content + Comments */}

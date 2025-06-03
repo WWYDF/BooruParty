@@ -42,6 +42,7 @@ export async function GET(
         }
       },
       posts: {
+        where: { anonymous: false },
         take: 25,
         orderBy: { createdAt: 'desc' },
         select: {
