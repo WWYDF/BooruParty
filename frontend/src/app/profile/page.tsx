@@ -4,6 +4,7 @@ import { UserSelf } from "@/core/types/users";
 import { auth } from "@/core/authServer";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import ProfileSettingsClient from "@/components/clientSide/Profile/Profile";
+import { prisma } from '@/core/prisma';
 
 export default async function ProfileSettingsPage({ searchParams }: { searchParams: Promise<{ as?: string }>; }) {
   const prams = await searchParams;
@@ -11,7 +12,7 @@ export default async function ProfileSettingsPage({ searchParams }: { searchPara
   if (!session?.user) redirect("/login");
 
   const impersonatingUser = prams.as;
-  let user: UserSelf | null = null;
+  let user;
 
   const cookie = (await headers()).get("cookie") || "";
 
@@ -20,13 +21,37 @@ export default async function ProfileSettingsPage({ searchParams }: { searchPara
     const perms = await checkPermissions(["profile_edit_others"]);
     if (!perms["profile_edit_others"]) notFound();
 
-    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/users/${impersonatingUser}`, {
-      headers: { cookie },
-      cache: "no-store",
+    const sensUser = await prisma.user.findUnique({
+      where: { username: impersonatingUser },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        avatar: true,
+        description: true,
+        lastLogin: true,
+        createdAt: true,
+        preferences: {
+          select: {
+            layout: true,
+            theme: true,
+            postsPerPage: true,
+          }
+        },
+        role: {
+          include: {
+            permissions: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
+      },
     });
 
-    if (!res.ok) notFound();
-    user = await res.json();
+    user = sensUser;
+
   } else {
     // Viewing own profile
     const res = await fetch(`${process.env.NEXTAUTH_URL}/api/users/self`, {

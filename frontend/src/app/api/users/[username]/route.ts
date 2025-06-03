@@ -1,6 +1,6 @@
 import { reportAudit } from "@/components/serverSide/auditLog";
+import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/authServer";
-import { checkPermissions } from "@/core/permissions";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
 import bcrypt from "bcryptjs";

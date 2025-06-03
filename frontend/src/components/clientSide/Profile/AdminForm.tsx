@@ -33,14 +33,13 @@ export default function UserEditingForm({ user }: { user: UserSelf }) {
   const save = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/users/${user.username}`, {
+      const res = await fetch(`/api/users/${user.username}/role`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           roleId,
-          // restricted,
         }),
       });
 
