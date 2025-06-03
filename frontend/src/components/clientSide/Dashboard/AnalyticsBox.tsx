@@ -6,6 +6,7 @@ import {
   PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
 } from 'recharts';
+import FadeIn from '../Motion/FadeIn';
 
 const COLORS = {
   SAFE: '#22c55e',
@@ -65,65 +66,67 @@ export default function AnalyticsOverview() {
   }
 
   return (
-    <div className="bg-secondary border border-secondary-border p-6 rounded-2xl shadow w-full">
-      <h2 className="text-xl font-semibold mb-4">Site Analytics</h2>
+    <FadeIn>
+      <div className="bg-secondary border border-secondary-border p-6 rounded-2xl shadow w-full">
+        <h2 className="text-xl font-semibold mb-4">Site Analytics</h2>
 
-      {/* Safety Pie Chart */}
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="w-full md:w-1/2 flex justify-center">
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={safetyData}
-                dataKey="value"
-                nameKey="name"
-                label
-                stroke='border-secondary-border'
-              >
-                {safetyData.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
-              </Pie>
+        {/* Safety Pie Chart */}
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="w-full md:w-1/2 flex justify-center">
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={safetyData}
+                  dataKey="value"
+                  nameKey="name"
+                  label
+                  stroke='border-secondary-border'
+                >
+                  {safetyData.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} cursor={false} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Highlight Counter */}
+          <div className="flex flex-col justify-center gap-3 w-full md:w-1/2">
+            {summaryStats.slice(0, 4).map((stat, i) => (
+              <AnimatedStat key={i} label={stat.label} value={stat.value} />
+            ))}
+          </div>
+        </div>
+
+        {/* Bar Chart: Uploads and Comments */}
+        <div className="mt-6">
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart
+              data={[
+                { label: 'Uploads', value: data.uploadsThisWeek },
+                { label: 'Users (7d)', value: data.usersThisWeek },
+                { label: 'Votes', value: data.totalVotes },
+                { label: 'Comments', value: data.totalComments },
+              ]}
+              
+            >
+              <XAxis dataKey="label" />
+              <YAxis allowDecimals={false} />
               <Tooltip content={<CustomTooltip />} cursor={false} />
-            </PieChart>
+              <Bar dataKey="value" fill="#38bdf8" isAnimationActive={false} activeBar={false}/>
+            </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Highlight Counter */}
-        <div className="flex flex-col justify-center gap-3 w-full md:w-1/2">
-          {summaryStats.slice(0, 4).map((stat, i) => (
+        {/* Grid of Other Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+          {summaryStats.slice(4).map((stat, i) => (
             <AnimatedStat key={i} label={stat.label} value={stat.value} />
           ))}
         </div>
       </div>
-
-      {/* Bar Chart: Uploads and Comments */}
-      <div className="mt-6">
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart
-            data={[
-              { label: 'Uploads', value: data.uploadsThisWeek },
-              { label: 'Users (7d)', value: data.usersThisWeek },
-              { label: 'Votes', value: data.totalVotes },
-              { label: 'Comments', value: data.totalComments },
-            ]}
-            
-          >
-            <XAxis dataKey="label" />
-            <YAxis allowDecimals={false} />
-            <Tooltip content={<CustomTooltip />} cursor={false} />
-            <Bar dataKey="value" fill="#38bdf8" isAnimationActive={false} activeBar={false}/>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Grid of Other Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
-        {summaryStats.slice(4).map((stat, i) => (
-          <AnimatedStat key={i} label={stat.label} value={stat.value} />
-        ))}
-      </div>
-    </div>
+    </FadeIn>
   );
 }
 
