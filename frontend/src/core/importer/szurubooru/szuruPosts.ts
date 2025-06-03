@@ -24,6 +24,11 @@ export async function processSzuruPosts({
   const idMap = new Map<number, number>();
   const postRelationPairs: Array<[number, number]> = [];
 
+  const allUsers = await prisma.user.findMany({ select: { id: true, username: true } });
+  const userLookup = new Map(
+    allUsers.map(user => [user.username.toLowerCase(), user.id])
+  );
+
   await log("info", "Starting post import from Szuru...");
 
   while (processed < limit) {
@@ -72,13 +77,20 @@ export async function processSzuruPosts({
         ),
       ];
 
+      const szuruPoster = post.user?.name?.toLowerCase();
+      const matchingUserId = szuruPoster ? userLookup.get(szuruPoster) : null;
+      const finalUploaderId = matchingUserId ?? '0';
+      const additionalNotes = !matchingUserId && szuruPoster
+        ? `\nOriginally uploaded by '${szuruPoster}'`
+        : "";
+
       const form = new FormData();
       form.append("file", fileBlob, `szuru-${post.id}.${post.mimeType.split("/")[1]}`);
       form.append("safety", post.safety.toUpperCase());
       form.append("source", post.source ?? "");
-      form.append("notes", post.comments?.[0]?.text ?? "");
+      form.append("notes", (post.comments?.[0]?.text ?? "") + additionalNotes);
       form.append("tags", JSON.stringify(tags));
-      form.append("anonymous", "true");
+      if (!matchingUserId && szuruPoster) { form.append("anonymous", "true") }
 
       try {
         const uploadRes = await fetch(`${process.env.NEXTAUTH_URL}/api/posts/create`, {
@@ -91,11 +103,22 @@ export async function processSzuruPosts({
 
         if (!uploadRes.ok) {
           const err = await uploadRes.text();
-          await log("error", `Upload failed for post ${post.id}: ${err}`);
+          await log("error", `Upload failed for post #${post.id}: ${err}`);
           return false;
         } else {
           const json = await uploadRes.json();
           idMap.set(post.id, json.postId);
+
+          await prisma.posts.update({
+            where: { id: json.postId },
+            data: { uploadedById: finalUploaderId },
+          });
+
+          if (!matchingUserId && szuruPoster) {
+            await log("info", `Assigned fallback user (ID 0) to post ${json.postId}, originally by '${szuruPoster}'`);
+          } else if (matchingUserId) {
+            await log("info", `Assigned post ${json.postId} to user '${szuruPoster}'`);
+          }
 
           if (post.relations?.length) {
             for (const rel of post.relations) {
@@ -103,11 +126,11 @@ export async function processSzuruPosts({
             }
           }
 
-          await log("info", `Imported post ${post.id}`);
+          // await log("info", `Imported post #${post.id}`);
           processed++;
         }
       } catch (e) {
-        await log("error", `Exception during post ${post.id} upload: ${e}`);
+        await log("error", `Exception during post #${post.id} upload: ${e}`);
         return false;
       }
     }
