@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 // Create new role
 export async function POST(req: Request) {
-  const { name, permissions } = await req.json();
+  const { name, permissions, color } = await req.json();
 
   const hasPerms = (await checkPermissions(['dashboard_roles']))['dashboard_roles'];
   if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
@@ -22,6 +22,7 @@ export async function POST(req: Request) {
             connect: permissions.map((p: { id: number }) => ({ id: p.id })),
           }
         : undefined,
+      color
     },
     include: {
       permissions: true,

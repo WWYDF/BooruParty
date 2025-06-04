@@ -36,7 +36,7 @@ export default function PostCommentForm({ postId }: Props) {
   };
 
   return (
-    <div className="flex items-end gap-2">
+    <div className="flex items-center gap-2">
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
@@ -49,7 +49,7 @@ export default function PostCommentForm({ postId }: Props) {
       <button
         disabled={!content.trim() || posting}
         onClick={handlePost}
-        className="bg-accent text-white text-sm px-4 py-1.5 rounded-xl disabled:opacity-50"
+        className="flex items-center justify-center bg-darkerAccent text-white text-sm px-4 py-1.5 rounded-lg disabled:opacity-50"
       >
         {posting ? "Posting..." : "Post"}
       </button>

@@ -4,11 +4,13 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import AddRoleModal from "./AddRoleModal";
 import { useToast } from "../Toast";
+import ConfirmModal from "../ConfirmModal";
 
 // Types
 type RoleWithUsers = {
   id: number;
   name: string;
+  color: string | null;
   permissions: { id: number; name: string }[];
   users: { id: string; username: string }[];
 };
@@ -16,6 +18,7 @@ type RoleWithUsers = {
 type RoleWithoutUsers = {
   id: number;
   name: string;
+  color: string | null;
   permissions: { id: number; name: string }[];
 };
 
@@ -33,14 +36,23 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
   const [roles, setRoles] = useState<Role[]>(
     defaultRole ? [...otherRoles, defaultRole] : [...otherRoles]
   );
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({
+    open: false,
+    id: null,
+  });
   const toast = useToast();
 
-  const isRoleWithDefault = (role: any): role is RoleWithUsers & { isDefault: boolean } =>
-    typeof role === "object" && "isDefault" in role && typeof role.isDefault === "boolean";
+  const isRoleWithDefault = (
+    role: any
+  ): role is RoleWithUsers & { isDefault: boolean } =>
+    typeof role === "object" &&
+    "isDefault" in role &&
+    typeof role.isDefault === "boolean";
 
-  const isRoleWithUsers = (role: Role): role is RoleWithUsers => {
-    return "users" in role;
-  };
+  const isRoleWithUsers = (role: Role): role is RoleWithUsers => "users" in role;
+
+  const safeColor = (clr: string | null | undefined) =>
+    clr && /^#([0-9a-f]{3}){1,2}$/i.test(clr) ? clr : "#ffffff";
 
   const updateRole = async (id: number, updates: Partial<RoleWithUsers>) => {
     const res = await fetch(`/api/roles/${id}`, {
@@ -57,7 +69,7 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
   const deleteRole = async (id: number) => {
     await fetch(`/api/roles/${id}`, { method: "DELETE" });
     setRoles((prev) => prev.filter((r) => r.id !== id));
-    toast('Deleted role!', 'success');
+    toast("Deleted role!", "success");
   };
 
   const togglePermission = (role: Role, permId: number) => {
@@ -71,7 +83,7 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
 
   return (
     <div className="space-y-6">
-      {/* Header with title and button aligned */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold text-white">Role Management</h1>
         <button
@@ -82,17 +94,19 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
         </button>
       </div>
 
+      {/* Modal */}
       <AnimatePresence>
         {showModal && (
           <AddRoleModal
             allPermissions={allPermissions}
             onCancel={() => setShowModal(false)}
-            onCreate={async ({ name, permissionIds }) => {
+            onCreate={async ({ name, permissionIds, color }) => {
               const res = await fetch(`/api/roles`, {
                 method: "POST",
                 body: JSON.stringify({
                   name,
-                  permissions: permissionIds.map((id) => ({ id })),
+                  color,
+                  permissions: permissionIds.map((id: number) => ({ id })),
                 }),
                 headers: { "Content-Type": "application/json" },
               });
@@ -100,13 +114,30 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
               const created = await res.json();
               setRoles((prev) => [...prev, created]);
               setShowModal(false);
-              toast('Created role!', 'success');
+              toast("Created role!", "success");
             }}
           />
         )}
       </AnimatePresence>
 
-      {/* Roles w/ Permissions */}
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        open={confirmDelete.open}
+        onClose={() => setConfirmDelete({ open: false, id: null })}
+        onConfirm={async () => {
+          if (confirmDelete.id !== null) {
+            await deleteRole(confirmDelete.id);
+            setConfirmDelete({ open: false, id: null });
+          }
+        }}
+        title="Delete this role?"
+        description={`This action will permanently delete the role. Members of this role will be moved to the default role.\n\nAre you sure you want to proceed?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        maxWidth="max-w-xl"
+      />
+
+      {/* Roles list */}
       {roles.map((role) => (
         <motion.div
           key={`${role.id}-${role.name}`}
@@ -114,12 +145,33 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
+          {/* Header row */}
           <div className="flex justify-between items-start">
-            <input
-              className="bg-transparent border-b border-zinc-600 text-lg font-medium focus:outline-none"
-              defaultValue={role.name}
-              onBlur={(e) => updateRole(role.id, { name: e.target.value })}
-            />
+            {/* Name + color */}
+            <div className="flex items-center gap-3">
+              {/* Color picker */}
+              <label className="relative cursor-pointer">
+                <input
+                  type="color"
+                  value={safeColor(role.color)}
+                  onChange={(e) => updateRole(role.id, { color: e.target.value })}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <span
+                  className="block w-6 h-6 rounded-full border border-zinc-600"
+                  style={{ backgroundColor: safeColor(role.color) }}
+                ></span>
+              </label>
+
+              {/* Name editable */}
+              <input
+                className="bg-transparent border-b border-zinc-600 text-lg font-medium focus:outline-none"
+                defaultValue={role.name}
+                onBlur={(e) => updateRole(role.id, { name: e.target.value })}
+              />
+            </div>
+
+            {/* Action buttons */}
             <div className="flex flex-row items-center justify-end gap-2">
               {isRoleWithDefault(role) && !role.isDefault && (
                 <button
@@ -129,14 +181,10 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ isDefault: true }),
                     });
-  
-                    setRoles(prev =>
-                      prev.map(r => ({
-                        ...r,
-                        isDefault: r.id === role.id,
-                      }))
+                    setRoles((prev) =>
+                      prev.map((r) => ({ ...r, isDefault: r.id === role.id }))
                     );
-                    toast(`Successfully set default role to ${role.id}!`, 'success');
+                    toast(`Set ${role.name} as default role!`, "success");
                   }}
                   className="flex items-center gap-2 mt-2 px-4 py-2 rounded-xl bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 transition-colors text-sm"
                 >
@@ -144,7 +192,7 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
                 </button>
               )}
               <button
-                onClick={() => deleteRole(role.id)}
+                onClick={() => setConfirmDelete({ open: true, id: role.id })}
                 disabled={isRoleWithDefault(role) && role.isDefault}
                 className={`flex items-center gap-2 mt-2 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors text-sm ${
                   "isDefault" in role && role.isDefault
@@ -156,7 +204,8 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
               </button>
             </div>
           </div>
-  
+
+          {/* Permissions */}
           <div className="mt-4">
             <p className="text-sm text-zinc-400">Permissions</p>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -178,7 +227,8 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
               })}
             </div>
           </div>
-  
+
+          {/* Users list (for non‑default roles) */}
           {isRoleWithUsers(role) && (
             <div className="mt-4">
               <p className="text-sm text-zinc-400">Users in this role</p>
@@ -190,9 +240,10 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
                       await fetch(`/api/users/${user.username}/role`, {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ roleId: roles.find(r => "isDefault" in r && r.isDefault)?.id }),
+                        body: JSON.stringify({
+                          roleId: roles.find((r) => "isDefault" in r && r.isDefault)?.id,
+                        }),
                       });
-  
                       setRoles((prev) =>
                         prev.map((r) =>
                           r.id === role.id && isRoleWithUsers(r)
@@ -200,8 +251,7 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
                             : r
                         )
                       );
-
-                      toast(`Successfully updated user's roles!`, 'success');
+                      toast("Updated user's roles!", "success");
                     }}
                     className="px-2 py-1 rounded text-sm border border-zinc-800 bg-zinc-600 text-white hover:bg-red-600 transition"
                   >
@@ -215,4 +265,4 @@ export default function RoleEditor({ defaultRole, otherRoles, allPermissions }: 
       ))}
     </div>
   );
-}  
+}
