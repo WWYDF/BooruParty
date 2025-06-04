@@ -29,7 +29,10 @@ export default async function RolesDashboardPage() {
         select: { id: true, username: true },
       },
     },
-    orderBy: { id: 'asc' }
+    orderBy: [
+      { index: 'asc' },
+      { id: 'asc' }
+    ]
   });
 
   const permissions = await prisma.permission.findMany();

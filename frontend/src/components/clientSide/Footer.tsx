@@ -27,10 +27,10 @@ export default function Footer() {
   if (isFullscreen) return null;
 
   return (
-    <footer className="w-full border-t border-zinc-800 text-sm text-gray-400 py-3 px-6 flex items-center justify-between bg-zinc-950">
+    <footer className="w-full border-t border-zinc-800 text-sm text-gray-400 py-3 px-6 flex items-center justify-between bg-zinc-950 relative">
       <div className="text-left">&copy; {new Date().getFullYear()} WWYDF</div>
 
-      <div className="text-center mx-auto">
+      <div className="absolute left-1/2 -translate-x-1/2 text-center">
         {storage && postCount !== null
           ? `Total ${storage} used across ${postCount} posts`
           : 'Loading stats...'}

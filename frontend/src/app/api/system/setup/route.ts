@@ -101,8 +101,8 @@ export async function POST(req: Request) {
     })
 
     // RoleNames and RoleColors follow the same index.
-    const roleNames = ["Power User", "Moderator", "Admin"];
-    const roleColors = ["#f1cb07", "#6d9ffd", "#fa5043"]
+    const roleNames = ["Admin", "Moderator", "Power User"];
+    const roleColors = ["#fa5043", "#6d9ffd", "#f1cb07"]
 
     roleNames.forEach(async (name, i) => {
       await prisma.role.upsert({

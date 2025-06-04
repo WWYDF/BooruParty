@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const prams = await params;
   const roleId = Number(prams.id);
-  const { name, permissions, users, isDefault } = await req.json();
+  const { name, permissions, users, isDefault, index } = await req.json();
 
   const hasPerms = (await checkPermissions(['dashboard_roles']))['dashboard_roles'];
   if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
@@ -44,6 +44,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       users: users
         ? { set: users.map((u: any) => ({ id: u.id })) }
         : undefined,
+      index
     },
   });
 

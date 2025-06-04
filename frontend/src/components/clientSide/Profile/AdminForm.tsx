@@ -43,7 +43,10 @@ export default function UserEditingForm({ user }: { user: UserSelf }) {
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to update user");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(`Failed to update user: ${errorData.error}`);
+      }
 
       toast("Admin settings saved!", "success");
     } catch (err: any) {

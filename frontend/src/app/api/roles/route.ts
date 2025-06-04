@@ -32,3 +32,20 @@ export async function POST(req: Request) {
 
   return NextResponse.json(newRole);
 }
+
+// List roles
+export async function GET() {
+  try {
+    const roles = await prisma.role.findMany({
+      orderBy: { index: 'asc' },
+      include: {
+        permissions: { select: { name: true } }
+      }
+    })
+
+    return NextResponse.json(roles, { status: 200 });
+  } catch (err) {
+    console.error("GET /api/system/roles error:", err);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

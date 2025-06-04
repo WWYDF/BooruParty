@@ -4,6 +4,7 @@ import { auth } from "@/core/authServer";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import ProfileSettingsClient from "@/components/clientSide/Profile/Profile";
 import { prisma } from '@/core/prisma';
+import { setAvatarUrl } from "@/core/reformatProfile";
 
 export default async function ProfileSettingsPage({ searchParams }: { searchParams: Promise<{ as?: string }>; }) {
   const prams = await searchParams;
@@ -49,7 +50,12 @@ export default async function ProfileSettingsPage({ searchParams }: { searchPara
       },
     });
 
-    user = sensUser;
+    if (!sensUser) notFound();
+
+    user = {
+      ...sensUser,
+      avatar: setAvatarUrl(sensUser.avatar)
+    };
 
   } else {
     // Viewing own profile
