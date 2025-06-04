@@ -13,7 +13,7 @@ export default function HomePage() {
     const fetchFeaturedPost = async () => {
       const res = await fetch('/api/posts/featured');
       const resJson = await res.json();
-      setPost(resJson?.data.post ?? null);
+      setPost(resJson?.data?.post ?? null);
     };
     fetchFeaturedPost();
   }, []);

@@ -23,14 +23,15 @@ export default function PostGrid({
   if (viewMode === 'COLLAGE') {
     const breakpointColumnsObj = {
       default: 4,
-      3840: 8,
-      2560: 6,
-      1920: 4,
-      1280: 3,
-      768: 2,
+      3840: 10,
+      2560: 8,
+      1920: 6,
+      1280: 4,
+      768: 3,
       640: 2
     };
 
+    // For COLLAGE view
     return (
       <Masonry
         breakpointCols={breakpointColumnsObj}
@@ -59,9 +60,15 @@ export default function PostGrid({
     );
   }
 
-  // For GRID view (unchanged)
+  // For GRID view
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+    <div
+      className="
+        grid gap-4
+        [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]
+        sm:[grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]
+      "
+    >
       {externalPosts.map((post, index) => (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

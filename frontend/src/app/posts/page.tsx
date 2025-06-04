@@ -61,22 +61,17 @@ export default async function PostsPage() {
     orderBy: { createdAt: "desc" },
     take: postsPerPage, // Limit page 1 properly
     include: {
-      favoritedBy: {
-        select: {
-          userId: true,
-          user: {
-            select: {
-              username: true
-            }
-          }
-        },
-      },
       comments: {
         select: {
           authorId: true,
           content: true,
         },
       },
+      _count: {
+        select: {
+          favoritedBy: true
+        }
+      }
     }
   });
 

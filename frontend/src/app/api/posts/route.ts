@@ -25,12 +25,17 @@ export async function GET(req: Request) {
     anonymous: true,
     flags: true,
     score: true,
-    favoritedBy: {
+    _count: {
       select: {
-        userId: true,
-        user: { select: { username: true } },
-      },
+        favoritedBy: true,
+      }
     },
+    // favoritedBy: {
+    //   select: {
+    //     userId: true,
+    //     user: { select: { username: true } },
+    //   },
+    // },
     comments: {
       select: { authorId: true, content: true },
     },

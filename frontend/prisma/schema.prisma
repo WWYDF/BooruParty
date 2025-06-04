@@ -71,7 +71,7 @@ model UserPreferences {
   
   layout        LayoutType   @default(GRID)
   theme         ThemeType    @default(DARK)
-  postsPerPage  Int          @default(30)
+  postsPerPage  Int          @default(50)
 }
 
 model UserFavorites {

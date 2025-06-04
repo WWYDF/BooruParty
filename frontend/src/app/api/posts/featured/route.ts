@@ -5,6 +5,10 @@ import { checkPermissions } from '@/components/serverSide/permCheck';
 import { reportAudit } from '@/components/serverSide/auditLog';
 
 export async function GET() {
+  const session = await auth();
+
+  if (!session && process.env.GUEST_VIEWING !== 'true') { return NextResponse.json({ error: 'Guest viewing is disabled and you are not logged in.' }, { status: 403 }); }
+
   try {
     const special = await prisma.specialPosts.findUnique({
       where: { label: 'topWeek' },
