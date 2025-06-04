@@ -13,11 +13,12 @@ type Props = {
   user?: PostUserStatus;
   showVoting?: boolean;
   skeletonAspectRatio?: number;
+  disableFullscreen?: boolean;
 };
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
-export default function PostDisplay({ post, user, showVoting = true }: Props) {
+export default function PostDisplay({ post, user, showVoting = true, disableFullscreen = false }: Props) {
   const [showFull, setShowFull] = useState(post.previewScale === 100 || post.previewScale == null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,6 +29,10 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
   const fileType = resolveFileType(`.${post.fileExt}`);
 
   const fullSrc = `${fastify}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
+
+  function handleFullscreen(toggle: boolean) {
+    if (disableFullscreen == false) { setIsAnimating(toggle); }
+  }
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -56,7 +61,7 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
               alt={`Error accessing ${fullSrc}`}
               title="Click to enter fullscreen mode"
               onClick={() => {
-                setIsAnimating(true);
+                handleFullscreen(true);
               }}
               className="max-h-[75vh] w-auto h-auto object-contain rounded-xl cursor-pointer"
             />
@@ -64,7 +69,7 @@ export default function PostDisplay({ post, user, showVoting = true }: Props) {
         </motion.div>
       </AnimatePresence>
 
-      {!showFull && post.previewScale !== 100 ? (
+      {!showFull && post.previewScale !== 100 && showVoting ? (
         <button
           onClick={() => setShowFull(true)}
           className="text-subtle text-sm italic"

@@ -9,14 +9,7 @@ export async function GET() {
     const special = await prisma.specialPosts.findUnique({
       where: { label: 'topWeek' },
       include: {
-        post: {
-          select: {
-            id: true,
-            fileExt: true,
-            createdAt: true,
-            previewScale: true,
-          },
-        },
+        post: true
       },
     });
 
@@ -24,7 +17,15 @@ export async function GET() {
       return NextResponse.json({ error: 'No featured post found' }, { status: 404 });
     }
 
-    return NextResponse.json({ post: special.post });
+    const postFormatted = {
+      ...special,
+      post: {
+        ...special.post,
+        previewPath: `${process.env.NEXT_PUBLIC_FASTIFY}${special.post.previewPath}`
+      }
+    }
+
+    return NextResponse.json({ data: postFormatted });
   } catch (error) {
     console.error('Error fetching topWeek post:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -44,6 +45,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing feature type." }, { status: 400 });
   }
 
+  // Check for feature permission
+  const hasPerms = (await checkPermissions(['post_feature']))['post_feature'];
+  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
+
   // Remove current post
   if (!postId) {
     await prisma.specialPosts.delete({
@@ -52,10 +57,6 @@ export async function POST(req: NextRequest) {
     await reportAudit(session.user.id, 'DELETE', 'FEATURE', `Feature Type: ${type}`);
     return NextResponse.json(`Successfully removed featured for ${type}.`, { status: 200 });
   }
-
-  // Check for feature permission
-  const hasPerms = (await checkPermissions(['post_feature']))['post_feature'];
-  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
   // Create or update the specialPost
   await prisma.specialPosts.upsert({

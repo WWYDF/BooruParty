@@ -12,14 +12,14 @@ export default function HomePage() {
   useEffect(() => {
     const fetchFeaturedPost = async () => {
       const res = await fetch('/api/posts/featured');
-      const data = await res.json();
-      setPost(data?.post ?? null);
+      const resJson = await res.json();
+      setPost(resJson?.data.post ?? null);
     };
     fetchFeaturedPost();
   }, []);
 
   return (
-    <main className="min-h-screen bg-zinc-900 text-white flex flex-col">
+    <main className="min-h-screen bg-zinc-950 text-white flex flex-col">
       <section className="pt-12 pb-6 px-4 text-center">
         <motion.h1
           initial={{ opacity: 0, y: 10 }}
@@ -41,10 +41,10 @@ export default function HomePage() {
       </section>
 
       {post && (
-        <section className="px-4 pb-12 mt-8">
-          <h2 className="text-2xl font-semibold text-center mb-4">Featured Post</h2>
-          <Link href={`/post/${post.id}`} className="block">
-            <PostDisplay post={post} showVoting={false} />
+        <section className="px-4 pb-12 mt-8 text-center">
+          <h2 className="text-2xl font-semibold mb-4">Featured Post</h2>
+          <Link href={`/post/${post.id}`} className="inline-block">
+            <PostDisplay post={post} showVoting={false} disableFullscreen={true} />
           </Link>
         </section>
       )}

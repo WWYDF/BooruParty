@@ -35,6 +35,9 @@ export default function EditPost({
   const [pools, setPools] = useState<number[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
+  const [featured, setFeatured] = useState(
+    !!post.specialPosts?.find((sp: any) => sp.label === "topWeek")
+  );
   const toast = useToast();
 
   useEffect(() => {
@@ -71,6 +74,23 @@ export default function EditPost({
         pools,
       }),
     });
+
+    const wasFeatured = !!post.specialPosts?.find((sp: any) => sp.label === "topWeek");
+    if (featured && !wasFeatured) {
+      // Mark as featured
+      await fetch("/api/posts/featured", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id, type: "topWeek" }),
+      });
+    } else if (!featured && wasFeatured) {
+      // Remove from featured
+      await fetch("/api/posts/featured", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "topWeek" }), // intentionally omit postId
+      });
+    }
 
     if (replacementFile) {
       const formData = new FormData();
@@ -160,6 +180,28 @@ export default function EditPost({
         </button>
       </div>
 
+      <div className="flex items-center gap-4 mt-4">
+        <label className="inline-flex items-center text-sm">
+          <input
+            type="checkbox"
+            checked={anonymous}
+            onChange={(e) => setAnonymous(e.target.checked)}
+            className="mr-2"
+          />
+          Post is Anonymous
+        </label>
+
+        <label className="inline-flex items-center text-sm">
+          <input
+            type="checkbox"
+            checked={featured}
+            onChange={(e) => setFeatured(e.target.checked)}
+            className="mr-2"
+          />
+          Feature this post
+        </label>
+      </div>
+
       {/* Form inputs */}
       <div className="grid grid-cols-2 gap-y-4 gap-x-4 mt-2">
         <div>
@@ -173,18 +215,6 @@ export default function EditPost({
             <option value="SKETCHY">Sketchy</option>
             <option value="UNSAFE">Unsafe</option>
           </select>
-        </div>
-
-        <div className="flex items-end">
-          <label className="inline-flex items-center text-sm">
-            <input
-              type="checkbox"
-              checked={anonymous}
-              onChange={(e) => setAnonymous(e.target.checked)}
-              className="mr-2"
-            />
-            Post is Anonymous
-          </label>
         </div>
 
         <div className="col-span-2">
