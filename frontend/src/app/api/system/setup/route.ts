@@ -95,24 +95,27 @@ export async function POST(req: Request) {
 
     // Create Roles   DEFAULT REGISTRATION ROLE MUST BE FIRST!
     await prisma.role.upsert({
-      where: { name: "MEMBER" },
+      where: { name: "Member" },
       update: {},
-      create: { name: "MEMBER", isDefault: true }
+      create: { name: "Member", isDefault: true }
     })
 
-    const roleNames = ["POWER USER", "MODERATOR", "ADMIN"];
-    for (const name of roleNames) {
+    // RoleNames and RoleColors follow the same index.
+    const roleNames = ["Power User", "Moderator", "Admin"];
+    const roleColors = ["#f1cb07", "#6d9ffd", "#fa5043"]
+
+    roleNames.forEach(async (name, i) => {
       await prisma.role.upsert({
         where: { name },
         update: {},
-        create: { name },
+        create: { name, color: roleColors[i] },
       });
-    }
+    });
 
     // Setup Permissions - Ordered by increasing power
     const roleOrder: { name: string; ownPermissions: string[] }[] = [
       {
-        name: "MEMBER",
+        name: "Member",
         ownPermissions: [
           "post_view",
           "post_create",
@@ -134,7 +137,7 @@ export async function POST(req: Request) {
         ]
       },
       {
-        name: "POWER USER",
+        name: "Power User",
         ownPermissions: [
           "post_edit_others",
           "comment_embed_url",
@@ -144,7 +147,7 @@ export async function POST(req: Request) {
         ]
       },
       {
-        name: "MODERATOR",
+        name: "Moderator",
         ownPermissions: [
           "post_delete_others",
           "post_feature",
@@ -162,7 +165,7 @@ export async function POST(req: Request) {
         ]
       },
       {
-        name: "ADMIN",
+        name: "Admin",
         ownPermissions: [
           "profile_edit_others",
           "profile_edit_roles",

@@ -19,12 +19,12 @@ export const metadata: Metadata = {
   },
 }
 
-type User = {
+export type User = {
   id: string;
   username: string;
   avatar: string;
   description: string | null;
-  role: { name: string };
+  role: { name: string, color?: string };
   createdAt: string;
   lastLogin: string;
   _count: {
@@ -73,7 +73,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
             <Link
               href={`/users/${user.username}`}
               key={user.id}
-              className="bg-secondary rounded-xl p-4 hover:bg-secondary-border transition flex flex-col items-center text-center"
+              className="bg-secondary rounded-xl p-4 hover:bg-zinc-900 transition flex flex-col items-center text-center"
             >
               <img
                 src={user.avatar || `/i/user.png`}
@@ -82,7 +82,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               />
               <div className="flex items-center justify-center text-accent font-semibold">
                 {user.username}
-                <RoleBadge role={user.role.name} variant="badge" />
+                <RoleBadge role={user.role} variant="badge" />
               </div>
 
               {user.description && (

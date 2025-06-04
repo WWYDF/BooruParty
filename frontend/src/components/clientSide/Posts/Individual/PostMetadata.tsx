@@ -114,7 +114,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
             )}
 
             {!post.anonymous && (
-              <RoleBadge role={post.uploadedBy.role.name} />
+              <RoleBadge role={post.uploadedBy.role} />
             )}
           </p>
 

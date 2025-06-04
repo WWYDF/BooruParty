@@ -289,7 +289,7 @@ export default function PostCommentList({
                   >
                     <span>{comment.author.username}</span>
                   </Link>
-                  <RoleBadge role={comment.author.role.name} />
+                  <RoleBadge role={comment.author.role} />
 
                   <a className="ml-1 text-xs text-zinc-500">
                     {new Date(comment.createdAt).toLocaleString(undefined, {

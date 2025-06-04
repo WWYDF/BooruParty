@@ -65,7 +65,7 @@ function AuditLogRow({ log }: { log: AuditLog }) {
         {new Date(log.executedAt).toLocaleString()}<br />
         From: {log.address}<br />
         by <strong>{log.user.username}</strong>
-        <RoleBadge role={log.user.role.name} classes="text-2xs" />
+        <RoleBadge role={log.user.role} classes="text-2xs" />
       </div>
     </div>
   );

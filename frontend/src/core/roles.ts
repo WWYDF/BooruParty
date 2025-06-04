@@ -1,36 +1,18 @@
-// import {
-//   ShieldCheck,
-//   Lightning,
-//   User as UserIcon,
-//   IconProps,
-//   Shield
-// } from "phosphor-react";
+export function hexToRgba(hex: string, alpha = 0.1): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
-export const ROLE_BADGE: Record<
-  string,
-  {
-    label: string;
-    color: string;
-    // icon: React.FC<IconProps>;
-    importance: 'high' | 'low' | 'hide';
-  }
-> = {
-  ADMIN: {
-    label: "Admin",
-    color: "text-red-400 bg-red-500/10",
-    // icon: ShieldCheck,
-    importance: 'high'
-  },
-  MODERATOR: {
-    label: "Moderator",
-    color: "text-blue-400 bg-blue-500/10",
-    // icon: Shield,
-    importance: 'high'
-  },
-  "POWER USER": {
-    label: "Power User",
-    color: "text-yellow-400 bg-yellow-500/10",
-    // icon: Lightning,
-    importance: 'low'
-  },
+export const hexToRgb = (hex: string): [number, number, number] => {
+  let h = hex.replace(/^#/, '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+export const glowClassFromHex = (hex: string, alpha = 0.3) => {
+  const [r, g, b] = hexToRgb(hex);
+  return `shadow-[0_0_20px_2px_rgba(${r},${g},${b},${alpha})]`;
 };

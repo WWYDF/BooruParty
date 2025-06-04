@@ -23,7 +23,8 @@ export async function GET(req: Request) {
       description: true,
       role: {
         select: {
-          name: true
+          name: true,
+          color: true
         }
       },
       _count: {

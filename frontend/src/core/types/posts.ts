@@ -22,6 +22,7 @@ export type Post = {
     username: string;
     role: {
       name: string;
+      color?: string;
     };
     avatar: string;
   };

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
-import { ALLOWED_EMBED_SOURCES, roleGlowMap } from "@/core/dictionary";
+import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 import { GearSix, SignOut } from "phosphor-react";
@@ -12,6 +12,16 @@ import { formatRelativeTime } from "@/core/formats";
 import sanitizeHtml from "sanitize-html";
 import { checkPermissions } from "@/core/permissions";
 import { useToast } from "@/components/clientSide/Toast";
+import { glowClassFromHex, hexToRgb } from "@/core/roles";
+
+
+function hexToGlowShadow(hex: string, alpha = 0.3): string {
+  if (!hex?.startsWith("#") || hex.length !== 7) return "";
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `shadow-[0_0_20px_2px_rgba(${r},${g},${b},${alpha})]`;
+}
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -113,6 +123,7 @@ export default function UserProfilePage() {
     );
   }
   if (!user) return <p className="p-6 text-red-500">User not found.</p>;
+  const [r, g, b] = hexToRgb(user.role.color ?? '#000000');
 
   return (
     <main>
@@ -123,10 +134,8 @@ export default function UserProfilePage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className={clsx(
-          "max-w-6xl mx-auto mt-16 mb-20 p-6 rounded-2xl bg-secondary border border-zinc-800 space-y-10",
-          roleGlowMap[user.role.name] || "" // fallback no glow
-        )}
+        className="max-w-6xl mx-auto mt-16 mb-20 p-6 rounded-2xl bg-secondary border border-zinc-800 space-y-10"
+        style={{ boxShadow: `0 0 20px 2px rgba(${r},${g},${b},0.3)` }}
       >
         {/* Avatar + Username + Bio */}
         <div className="grid grid-cols-1 md:grid-cols-[100px_1fr_auto] gap-4 items-start">
@@ -139,7 +148,7 @@ export default function UserProfilePage() {
           <div className="">
             <div className="flex items-center text-2xl font-bold text-accent">
               {user.username}
-              <RoleBadge role={user.role.name} />
+              <RoleBadge role={user.role} />
             </div>
 
             {user.description && (
