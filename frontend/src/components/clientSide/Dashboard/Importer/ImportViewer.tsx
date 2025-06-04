@@ -74,7 +74,7 @@ export default function ImportViewer() {
   if (!session) return <div className="p-8 text-subtle">Loading data...</div>;
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
+    <div className="max-w-1/2 mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-semibold text-white">Import Status</h1>
       <div className="text-subtle text-sm">Session ID: {session.id}</div>
       <div className="text-subtle text-sm">

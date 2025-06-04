@@ -29,7 +29,7 @@ export async function processSzuruPosts({
     allUsers.map(user => [user.username.toLowerCase(), user.id])
   );
 
-  await log("info", "Starting post import from Szuru...");
+  await log("info", `Starting post import from Szuru of ${limit} posts...`);
 
   while (processed < limit) {
     const res = await fetch(`${url}/api/posts?limit=100&offset=${offset}&query=*`, {
@@ -80,23 +80,20 @@ export async function processSzuruPosts({
       const szuruPoster = post.user?.name?.toLowerCase();
       const matchingUserId = szuruPoster ? userLookup.get(szuruPoster) : null;
       const finalUploaderId = matchingUserId ?? '0';
-      const additionalNotes = !matchingUserId && szuruPoster
-        ? `\nOriginally uploaded by '${szuruPoster}'`
-        : "";
 
       const form = new FormData();
       form.append("file", fileBlob, `szuru-${post.id}.${post.mimeType.split("/")[1]}`);
       form.append("safety", post.safety.toUpperCase());
-      form.append("source", post.source ?? "");
-      form.append("notes", (post.comments?.[0]?.text ?? "") + additionalNotes);
+      form.append("source", JSON.stringify(post.source ? [post.source] : []));
       form.append("tags", JSON.stringify(tags));
       if (!matchingUserId && szuruPoster) { form.append("anonymous", "true") }
 
       try {
-        const uploadRes = await fetch(`${process.env.NEXTAUTH_URL}/api/posts/create`, {
+        const uploadRes = await fetch(`${process.env.NEXTAUTH_URL}/api/posts/create?skipDupes=true`, {
           method: "POST",
           headers: {
-            "Cookie": userCookie
+            "Cookie": userCookie,
+            'X-Override': `${process.env.INTERNAL_API_SECRET}`
           },
           body: form,
         });
@@ -115,7 +112,7 @@ export async function processSzuruPosts({
           });
 
           if (!matchingUserId && szuruPoster) {
-            await log("info", `Assigned fallback user (ID 0) to post ${json.postId}, originally by '${szuruPoster}'`);
+            await log("info", `Assigned fallback user (ID 0) to post #${json.postId}, originally by '${szuruPoster}'`);
           } else if (matchingUserId) {
             await log("info", `Assigned post ${json.postId} to user '${szuruPoster}'`);
           }

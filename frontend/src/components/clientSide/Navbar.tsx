@@ -125,7 +125,7 @@ export default function Navbar() {
           {user?.username ? (
             <Link href={`/users/${user?.username}`}>
               <img
-                src={user.avatar || `/user.png`}
+                src={user.avatar || `/i/user.png`}
                 alt={user.username}
                 className="w-8 h-8 rounded-full object-cover border border-zinc-700 hover:border-accent transition"
               />

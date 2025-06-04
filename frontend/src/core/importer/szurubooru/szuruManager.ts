@@ -122,7 +122,17 @@ export async function runSzuruImport({ url, username, password, sessionId, userC
     await log("info", "Phase 3: Adding Posts with tags...");
 
     await sleep(1200);
-    const postsStatus = await processSzuruPosts({ sessionId, url, username, password, userCookie, limit: 20 })
+
+    const postRes = await fetch(`${url}/api/posts?limit=1&offset=0&query=*`, {
+      headers: { 
+        "Authorization": auth,
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+    });
+
+    const postData = await postRes.json();
+    const postsStatus = await processSzuruPosts({ sessionId, url, username, password, userCookie, limit: postData.total })
     if (!postsStatus) throw new Error('Post failed to upload, aborting!');
   
     await log('success', `Import complete.`);

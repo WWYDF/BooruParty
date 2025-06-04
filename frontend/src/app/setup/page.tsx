@@ -84,7 +84,7 @@ export default function SetupPage() {
               <input
                 value={siteName}
                 onChange={(e) => setSiteName(e.target.value)}
-                className="w-full mt-1 p-2 bg-zinc-800 rounded text-white"
+                className="w-full mt-1 p-2 bg-zinc-800 rounded text-white focus:outline-none focus:ring-2 focus:ring-zinc-700"
               />
             </label>
             <label className="block">
@@ -105,7 +105,7 @@ export default function SetupPage() {
                 className="mt-1 w-16 h-10"
               />
             </label>
-            <button onClick={handleNext} className="w-full bg-accent py-2 mt-4 rounded text-black font-semibold">
+            <button onClick={handleNext} className="w-full bg-yellow-600 hover:bg-yellow-600/80 transition py-2 mt-4 rounded text-white font-semibold">
               Continue
             </button>
           </>
@@ -120,7 +120,7 @@ export default function SetupPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full mt-1 p-2 bg-zinc-800 rounded text-white"
+                className="w-full mt-1 p-2 bg-zinc-800 rounded text-white focus:outline-none focus:ring-2 focus:ring-zinc-700"
               />
             </label>
             <label className="block">
@@ -128,7 +128,7 @@ export default function SetupPage() {
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full mt-1 p-2 bg-zinc-800 rounded text-white"
+                className="w-full mt-1 p-2 bg-zinc-800 rounded text-white focus:outline-none focus:ring-2 focus:ring-zinc-700"
               />
             </label>
             <label className="block">
@@ -137,10 +137,10 @@ export default function SetupPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full mt-1 p-2 bg-zinc-800 rounded text-white"
+                className="w-full mt-1 p-2 bg-zinc-800 rounded text-white focus:outline-none focus:ring-2 focus:ring-zinc-700"
               />
             </label>
-            <button onClick={handleNext} className="w-full bg-accent py-2 mt-4 rounded text-black font-semibold">
+            <button onClick={handleNext} className="w-full bg-yellow-600 hover:bg-yellow-600/80 transition py-2 mt-4 rounded text-white font-semibold">
               Continue
             </button>
           </>
@@ -153,7 +153,7 @@ export default function SetupPage() {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-accent py-2 mt-4 rounded text-black font-semibold"
+              className="w-full bg-yellow-600 hover:bg-yellow-600/80 transition py-2 mt-4 rounded text-white font-semibold"
             >
               {loading ? "Setting up..." : "Finish Setup"}
             </button>

@@ -30,7 +30,9 @@ export async function processSzuruExtras(
         insDoneCount++;
       } else if (!missingImpliedTags.has(impliedName)) {
         missingImpliedTags.add(impliedName);
-        await log("error", `Skipped missing implied tag: ${impliedName}`);
+        await log("warn", `Skipped implied tag: ${impliedName}`);
+        // Pretty sure this is a visual bug, so set it to warn instead of error for now.
+        // Something to do with aliases being part of implied tags.
       }
     }
 

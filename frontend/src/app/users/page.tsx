@@ -68,12 +68,12 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       {users.length === 0 ? (
         <p className="text-subtle text-sm">No users found.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
           {users.map((user) => (
             <Link
               href={`/users/${user.username}`}
               key={user.id}
-              className="bg-secondary rounded-xl p-4 hover:bg-zinc-900 transition flex flex-col items-center text-center"
+              className="bg-secondary rounded-xl p-6 py-8 hover:bg-zinc-900 transition flex flex-col items-center text-center"
             >
               <img
                 src={user.avatar || `/i/user.png`}

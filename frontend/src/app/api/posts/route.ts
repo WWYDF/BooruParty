@@ -132,6 +132,13 @@ export async function DELETE(req: NextRequest) {
     } else {
       skipped.push({ id, reason: "Not authorized" });
     }
+
+    // Unlink specialPosts to prevent errors
+    await prisma.specialPosts.deleteMany({
+      where: {
+        postId: id
+      }
+    })
   }
 
   try {
@@ -146,7 +153,7 @@ export async function DELETE(req: NextRequest) {
 
       const forwarded = req.headers.get("x-forwarded-for");
       const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
-      await reportAudit(session.user.id, 'DELETE', 'POST', ip, `Deleted Posts: ${deletable}`);
+      await reportAudit(session.user.id, 'DELETE', 'POST', ip, `Deleted Posts. Changes:\n${deletable.join('\n- ')}`);
     }
 
     const statusCode = deletable.length > 0 && skipped.length > 0 ? 207 : 200;

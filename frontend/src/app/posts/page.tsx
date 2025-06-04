@@ -39,7 +39,7 @@ export default async function PostsPage() {
       })
     : null;
 
-  const postsPerPage = user?.preferences?.postsPerPage ?? 30; // fallback default
+  const postsPerPage = user?.preferences?.postsPerPage ?? 50; // fallback default
 
   if (process.env.GUEST_VIEWING === 'false') {
     const permCheck = (await checkPermissions(['post_view']))['post_view'];

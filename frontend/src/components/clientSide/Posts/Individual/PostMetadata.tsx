@@ -213,7 +213,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
                             href={src}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-accent"
+                            className="text-accent hover:underline focus:outline-none"
                             title={src}
                           >
                             {url.hostname}
@@ -238,7 +238,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
                   href={`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(post.previewPath)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-accent"
+                  className="text-accent hover:underline focus:outline-none"
                 >
                   Google Images
                 </Link>

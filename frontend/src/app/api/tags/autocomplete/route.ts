@@ -13,23 +13,62 @@ export async function GET(req: Request) {
   const searchTerm = query.trim();
   const LIMIT = 10;
 
-  // First, find Tags matching directly by name
-  const tagsByName = await prisma.tags.findMany({
+  // First find exact matches.
+  const exactMatches = await prisma.tags.findMany({
     where: {
       name: {
-        contains: searchTerm,
-        mode: "insensitive", // case-insensitive
+        equals: searchTerm,
+        mode: "insensitive",
       },
     },
     include: {
       category: true,
       aliases: true,
-      implications: true
+      implications: true,
     },
-    take: LIMIT,
   });
 
-  // Then, find Aliases matching the search term
+  // Then, find tags that start with the name
+  const startsWithMatches = await prisma.tags.findMany({
+    where: {
+      name: {
+        startsWith: searchTerm,
+        mode: "insensitive",
+      },
+      NOT: {
+        name: {
+          equals: searchTerm,
+          mode: "insensitive",
+        },
+      },
+    },
+    include: { category: true, aliases: true, implications: true },
+  });
+
+  // Then, find Tags containing name
+  const containsMatches = await prisma.tags.findMany({
+    where: {
+      name: {
+        contains: searchTerm,
+        mode: "insensitive",
+      },
+      // Exclude exact match to avoid duplication
+      NOT: {
+        name: {
+          equals: searchTerm,
+          mode: "insensitive",
+        },
+      },
+    },
+    include: {
+      category: true,
+      aliases: true,
+      implications: true,
+    },
+    take: LIMIT - (exactMatches.length + startsWithMatches.length),
+  });
+
+  // Finally, find Aliases matching the search term
   const aliases = await prisma.tagAlias.findMany({
     where: {
       alias: {
@@ -48,11 +87,18 @@ export async function GET(req: Request) {
     },
   });
 
+  const tagsByName = [...exactMatches, ...startsWithMatches, ...containsMatches];
+
   // Flatten aliases to tags
   const tagsFromAliases = aliases.map((a) => a.tag);
 
   // Combine + de-duplicate by Tag ID
   const allTagsMap = new Map<number, typeof tagsByName[0]>();
+  for (const tag of [...tagsByName, ...tagsFromAliases]) {
+    if (!allTagsMap.has(tag.id)) {
+      allTagsMap.set(tag.id, tag);
+    }
+  }
 
   for (const tag of [...tagsByName, ...tagsFromAliases]) {
     allTagsMap.set(tag.id, tag); // Map automatically deduplicates

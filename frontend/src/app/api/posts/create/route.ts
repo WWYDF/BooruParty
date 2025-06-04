@@ -15,9 +15,17 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const file = formData.get('file') as File;
+  const { searchParams } = new URL(request.url);
+  const skipDupeParam = searchParams.get("skipDupes") === "true";
+  let skipDupes = false;
 
   if (!file) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  }
+
+  if (skipDupeParam) {
+    const authHeader = request.headers.get('X-Override'); // Allow internal server pages to access regardless.
+    if (authHeader && authHeader == process.env.INTERNAL_API_SECRET) { skipDupes = true }
   }
 
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
@@ -33,13 +41,16 @@ export async function POST(request: NextRequest) {
   // Begin processing stuff
   const buffer = Buffer.from(await file.arrayBuffer());
   const checkMatch = await checkFile(buffer, extension, fileType);
-  if (checkMatch.status == true) {
+  if (checkMatch.status == true && skipDupes == false) {
     return Response.json({ duplicate: true, postId: checkMatch.postId }, { status: 409 });
   }
 
   const anonymous = formData.get('anonymous') === 'true';
   const safety = formData.get('safety') as 'SAFE' | 'SKETCHY' | 'UNSAFE';
   const rawTags = formData.get('tags') as string | null;
+  const rawSource = formData.get("source") as string | null;
+  const sources: string[] = rawSource ? JSON.parse(rawSource) : [];
+  const notes = formData.get("notes") as string | null;
 
   const createdPost = await prisma.posts.create({
     data: {
@@ -47,8 +58,8 @@ export async function POST(request: NextRequest) {
       uploadedById: session.user.id,
       anonymous,
       safety,
-      sources: [],
-      notes: '',
+      sources,
+      notes,
       flags: [],
       pHash: checkMatch.genHash || null,
       fileSize: buffer.length,

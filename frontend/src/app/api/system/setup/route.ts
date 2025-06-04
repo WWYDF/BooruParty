@@ -224,13 +224,17 @@ export async function POST(req: Request) {
       }
     
       const hashed = await hash(password, 12);
+
+      const admin = await prisma.role.findFirst({
+        where: { name: 'Admin' }
+      })
     
       await prisma.user.create({
         data: {
           email,
           username,
           password: hashed,
-          roleId: 4, // Admin Role is in position 4
+          roleId: admin?.id ?? 3, // Admin should be in slot 3, but we double check anyways.
         },
       });
     }
