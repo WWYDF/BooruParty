@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
 import { buildPostWhereAndOrder } from "@/components/serverSide/Posts/filters";
+import { parseSearch } from "@/components/serverSide/Posts/parseSearch";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -10,13 +11,34 @@ export async function GET(req: NextRequest) {
   const safety = searchParams.get("safety") ?? "";
   const current = Number(searchParams.get("current") ?? "0");
 
-  const { where, orderBy } = buildPostWhereAndOrder(rawQuery, safety, sort);
+  const { where, orderBy, useFavoriteOrdering } = buildPostWhereAndOrder(rawQuery, safety, sort);
 
-  const orderedPosts = await prisma.posts.findMany({
-    where,
-    select: { id: true },
-    orderBy,
-  });
+  let orderedPosts: { id: number }[] = [];
+
+  if (useFavoriteOrdering) {
+    const { systemOptions } = parseSearch(rawQuery);
+
+    const favorites = await prisma.userFavorites.findMany({
+      where: {
+        user: { username: systemOptions.favorites },
+        post: where,
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        post: {
+          select: { id: true },
+        },
+      },
+    });
+
+    orderedPosts = favorites.map(fav => fav.post);
+  } else {
+    orderedPosts = await prisma.posts.findMany({
+      where,
+      select: { id: true },
+      orderBy,
+    });
+  }
 
   const ids = orderedPosts.map((p) => p.id);
   const index = ids.findIndex((id) => id === current);

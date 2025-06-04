@@ -1,27 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { motion } from "framer-motion";
-import clsx from "clsx";
 import { GearSix, SignOut } from "phosphor-react";
 import { signOut, useSession } from "next-auth/react";
 import { formatRelativeTime } from "@/core/formats";
 import sanitizeHtml from "sanitize-html";
 import { checkPermissions } from "@/core/permissions";
 import { useToast } from "@/components/clientSide/Toast";
-import { glowClassFromHex, hexToRgb } from "@/core/roles";
-
-
-function hexToGlowShadow(hex: string, alpha = 0.3): string {
-  if (!hex?.startsWith("#") || hex.length !== 7) return "";
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `shadow-[0_0_20px_2px_rgba(${r},${g},${b},${alpha})]`;
-}
+import { hexToRgb } from "@/core/roles";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -85,6 +75,7 @@ export default function UserProfilePage() {
   const { data: session } = useSession();
   const [canEdit, setCanEdit] = useState(false);
   const toast = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     setLoading(true);
@@ -124,6 +115,21 @@ export default function UserProfilePage() {
   }
   if (!user) return <p className="p-6 text-red-500">User not found.</p>;
   const [r, g, b] = hexToRgb(user.role.color ?? '#000000');
+
+  function viewPost(type: 'posts' | 'favorites', postId: number) {
+    let query = '';
+    let sort = '';
+
+    if (type == 'posts') { query = `posts:${user.username}` }
+    else if (type == 'favorites') { query = `favorites:${user.username}` }
+
+    localStorage.setItem("lastSearchParams", JSON.stringify({
+      query: query,
+      sort: sort
+    }));
+
+    router.push(`/post/${postId}`);
+  }
 
   return (
     <main>
@@ -199,17 +205,26 @@ export default function UserProfilePage() {
             <h2 className="text-lg font-semibold mb-2">Recent Posts <a className="text-sm text-subtle">({user._count.posts})</a></h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {user.posts.slice(0, 10).map((post: any) => (
-              <a
+              <div
                 key={post.id}
-                href={`/post/${post.id}`}
-                className="block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  viewPost('posts', post.id);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    viewPost('posts', post.id);
+                  }
+                }}
+                className="cursor-pointer block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
               >
                 <img
                   src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${post.id}_small.webp`}
                   alt={`Post #${post.id}`}
                   className="w-full aspect-[4/3] object-cover rounded-lg"
                 />
-              </a>
+              </div>
             ))}
             {user.posts.length > 10 && (
               <div className="mt-2">
@@ -232,19 +247,28 @@ export default function UserProfilePage() {
           <section>
             <h2 className="text-lg font-semibold mb-2">Recent Favorites <a className="text-sm text-subtle">({user._count.favorites})</a></h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {user.favorites.slice(0, 10).map((fav: any) => (
-                <a
+            {user.favorites.slice(0, 10).map((fav: any) => (
+              <div
                 key={fav.postId}
-                href={`/post/${fav.postId}`}
-                className="block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  viewPost('favorites', fav.postId);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    viewPost('favorites', fav.postId);
+                  }
+                }}
+                className="cursor-pointer block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
               >
                 <img
                   src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${fav.postId}_small.webp`}
                   alt={`Post #${fav.postId}`}
                   className="w-full aspect-[4/3] object-cover rounded-lg"
                 />
-              </a>
-              ))}
+              </div>
+            ))}
 
               {user.favorites.length > 10 && (
               <div className="mt-2">

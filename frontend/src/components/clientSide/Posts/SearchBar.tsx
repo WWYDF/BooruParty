@@ -1,7 +1,6 @@
 "use client";
 
 import { MagnifyingGlass, Trash } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { motion } from 'framer-motion';
 

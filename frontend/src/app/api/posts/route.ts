@@ -4,6 +4,7 @@ import { checkPermissions } from "@/components/serverSide/permCheck";
 import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { buildPostWhereAndOrder } from "@/components/serverSide/Posts/filters";
+import { parseSearch } from "@/components/serverSide/Posts/parseSearch";
 
 // Fetch all posts with optional tags, sorting, etc.
 export async function GET(req: Request) {
@@ -15,43 +16,57 @@ export async function GET(req: Request) {
   const safetyValues = searchParams.getAll("safety");
   const sort = (searchParams.get("sort") ?? "new") as "new" | "old";
 
-  const { where, orderBy } = buildPostWhereAndOrder(search, safetyValues.join("-"), sort);
-
-  const posts = await prisma.posts.findMany({
-    where,
-    skip: (page - 1) * perPage,
-    take: perPage,
-    orderBy,
-    select: {
-      id: true,
-      fileExt: true,
-      safety: true,
-      uploadedBy: {
-        select: { id: true, username: true },
+  const { where, orderBy, useFavoriteOrdering } = buildPostWhereAndOrder(search, safetyValues.join("-"), sort);
+  const postSelect = {
+    id: true,
+    fileExt: true,
+    safety: true,
+    uploadedBy: { select: { id: true, username: true } },
+    anonymous: true,
+    flags: true,
+    score: true,
+    favoritedBy: {
+      select: {
+        userId: true,
+        user: { select: { username: true } },
       },
-      anonymous: true,
-      flags: true,
-      score: true,
-      favoritedBy: {
-        select: {
-          userId: true,
-          user: {
-            select: {
-              username: true
-            }
-          }
-        },
-      },
-      comments: {
-        select: {
-          authorId: true,
-          content: true,
-        },
-      },
-      createdAt: true,
-      tags: { select: { id: true, name: true } },
     },
-  });
+    comments: {
+      select: { authorId: true, content: true },
+    },
+    createdAt: true,
+    tags: { select: { id: true, name: true } },
+  };
+  
+  let posts;
+  
+  if (useFavoriteOrdering) {
+    const { systemOptions } = parseSearch(search);
+    const favorites = await prisma.userFavorites.findMany({
+      where: {
+        user: { username: systemOptions.favorites },
+        post: where, // Apply post filters
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * perPage,
+      take: perPage,
+      select: {
+        post: {
+          select: postSelect,
+        },
+      },
+    });
+  
+    posts = favorites.map(fav => fav.post);
+  } else {
+    posts = await prisma.posts.findMany({
+      where,
+      skip: (page - 1) * perPage,
+      take: perPage,
+      orderBy,
+      select: postSelect,
+    });
+  }
 
   const totalCount = await prisma.posts.count({ where });
   const totalPages = Math.ceil(totalCount / perPage);

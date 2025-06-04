@@ -67,9 +67,9 @@ export async function GET(
       },
       favorites: {
         select: {
-          id: true,
           postId: true,
-        }
+        },
+        orderBy: { createdAt: 'desc' }
       },
       comments: {
         take: 10,

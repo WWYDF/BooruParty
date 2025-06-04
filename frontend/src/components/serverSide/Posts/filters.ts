@@ -7,6 +7,7 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
   const { includeTags, excludeTags, includeTypes, excludeTypes, systemOptions } = parseSearch(rawQuery);
 
   const where: any = { AND: [] };
+  let useFavoriteOrdering = false;
 
   // Tags
   includeTags.forEach(tag => where.AND.push({ tags: { some: { name: tag } } }));
@@ -26,6 +27,7 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
 
   // Favorited by
   if (systemOptions.favorites) {
+    useFavoriteOrdering = true;
     where.AND.push({
       favoritedBy: {
         some: {
@@ -73,5 +75,7 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
     orderBy = { favoritedBy: { _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc" } };
   }
 
-  return { where, orderBy };
+  // console.log(useFavoriteOrdering)
+
+  return { where, orderBy, useFavoriteOrdering };
 }
