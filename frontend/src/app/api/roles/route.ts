@@ -1,13 +1,16 @@
+import { reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { auth } from "@/core/authServer";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
 
 // Create new role
 export async function POST(req: Request) {
   const { name, permissions, color } = await req.json();
+  const session = await auth();
 
   const hasPerms = (await checkPermissions(['dashboard_roles']))['dashboard_roles'];
-  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
+  if (!hasPerms || !session) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
   if (!name) {
     return NextResponse.json({ error: "Missing name" }, { status: 400 });
@@ -29,6 +32,12 @@ export async function POST(req: Request) {
       users: true,
     },
   });
+
+  const permissionNames = newRole.permissions.map((p: { name: string }) => p.name).join(", ");
+
+  const forwarded = req.headers.get("x-forwarded-for");
+  const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+  await reportAudit(session.user.id, 'CREATE', 'ROLE', ip, `Changes:\n- Name: ${name}\n- Color: ${color}\n- Permissions: ${permissionNames}`);
 
   return NextResponse.json(newRole);
 }

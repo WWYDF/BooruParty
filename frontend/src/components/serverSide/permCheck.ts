@@ -4,6 +4,7 @@ import { auth } from "@/core/authServer";
 
 type RoleDominanceOptions = {
   targetIndex?: number; // optional override to avoid role fetch
+  roleList?: Response; // optional override to avoid role fetch
 };
 
 export async function checkPermissions(
@@ -70,9 +71,14 @@ export async function checkRoleDominance(
   }
 
   // 3. Otherwise, resolve index from roleId
-  const roleRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/roles`, {
-    cache: "no-store",
-  });
+  let roleRes;
+  if (options && options.roleList) {
+    roleRes = options.roleList;
+  } else {
+    roleRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/roles`, {
+      cache: "no-store",
+    });
+  }
 
   if (!roleRes.ok) return false;
 

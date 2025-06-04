@@ -45,7 +45,7 @@ function AuditLogRow({ log }: { log: AuditLog }) {
           <>
             <button
               onClick={() => setOpen(!open)}
-              className="flex items-center gap-1 text-xs text-accent hover:underline mt-1"
+              className="flex items-center gap-1 text-xs text-subtle hover:underline mt-1"
             >
               {open ? "Hide changes" : "Show changes"}
               {open ? <CaretUp size={14} /> : <CaretDown size={14} />}

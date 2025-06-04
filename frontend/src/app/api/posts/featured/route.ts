@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     create: { label: type, postId }
   })
 
-  await reportAudit(session.user.id, 'UPDATE', 'FEATURE', `Feature Type: ${type}, New PostID: ${postId}`);
+  await reportAudit(session.user.id, 'UPDATE', 'FEATURE', undefined, `Feature Type: ${type}, New PostID: ${postId}`);
 
   return NextResponse.json(`Successfully featured post #${postId} for ${type}.`, { status: 201 });
 }
