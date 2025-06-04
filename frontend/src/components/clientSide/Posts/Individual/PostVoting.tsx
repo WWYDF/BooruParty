@@ -60,8 +60,8 @@ export default function PostVoting({ post, user }: Props) {
         disabled={loading}
         className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
           ${vote === "UPVOTE"
-            ? "bg-accent/10 text-accent border-accent"
-            : "bg-secondary-border text-subtle border-secondary-border hover:border-accent"}
+            ? "bg-green-400/10 text-green-400 border-secondary-border hover:border-zinc-700"
+            : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
         `}
       >
         <ThumbsUp size={18} weight={vote === "UPVOTE" ? "fill" : "regular"} />
@@ -73,8 +73,8 @@ export default function PostVoting({ post, user }: Props) {
         disabled={loading}
         className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
           ${favorited
-            ? "bg-yellow-400/10 text-yellow-400 border-yellow-400"
-            : "bg-secondary-border text-subtle border-secondary-border hover:border-yellow-400"}
+            ? "bg-yellow-400/10 text-yellow-400 border-secondary-border hover:border-zinc-700"
+            : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
         `}
         title={favorited ? "Unfavorite" : "Favorite"}
       >
@@ -87,8 +87,8 @@ export default function PostVoting({ post, user }: Props) {
         disabled={loading}
         className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
           ${vote === "DOWNVOTE"
-            ? "bg-accent/10 text-accent border-accent"
-            : "bg-secondary-border text-subtle border-secondary-border hover:border-accent"}
+            ? "bg-red-400/10 text-red-400 border-secondary-border hover:border-zinc-700"
+            : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
         `}
       >
         <ThumbsDown size={18} weight={vote === "DOWNVOTE" ? "fill" : "regular"} />
