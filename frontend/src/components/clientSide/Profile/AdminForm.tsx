@@ -22,7 +22,7 @@ export default function UserEditingForm({ user }: { user: UserSelf }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/system/roles")
+    fetch("/api/roles")
       .then((res) => res.ok ? res.json() : [])
       .then((data: Role[]) => setRoles(data));
 

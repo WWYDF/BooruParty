@@ -11,6 +11,11 @@ export async function updateUser(
     avatar: string;
   }>
 ) {
+
+  if (data.email === '') {
+    delete data.email;
+  }
+
   const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/users/${username}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },

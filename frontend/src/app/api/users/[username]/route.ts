@@ -131,6 +131,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
   }
 
   const json = await req.json();
+  console.log(json)
   const parsed = updateUserSchema.safeParse(json);
 
   if (!parsed.success) {

@@ -42,3 +42,66 @@ export async function POST(req: Request) {
 
   return NextResponse.json(category);
 }
+
+export async function PATCH(req: Request) {
+  const session = await auth();
+
+  const hasPerms = (await checkPermissions(['tags_categories_manage']))['tags_categories_manage'];
+  if (!session || !hasPerms) {
+    return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const { orders } = body;
+
+  if (!Array.isArray(orders)) {
+    return NextResponse.json({ error: 'Missing or invalid "orders" array' }, { status: 400 });
+  }
+
+  const validOrders = orders.every(
+    (entry: any) => typeof entry.id === 'number' && typeof entry.order === 'number'
+  );
+  if (!validOrders) {
+    return NextResponse.json({ error: 'Each order must include numeric "id" and "order"' }, { status: 400 });
+  }
+
+  const ids = orders.map((entry: any) => entry.id);
+
+  const originalCategories = await prisma.tagCategories.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, order: true, name: true },
+  });
+
+  // Prepare audit diff
+  const diffs: string[] = [];
+  for (const { id, order } of orders) {
+    const original = originalCategories.find((cat) => cat.id === id);
+    if (original && original.order !== order) {
+      diffs.push(`- '${original.name}': ${original.order} → ${order}`);
+    }
+  }
+
+  try {
+    await prisma.$transaction(
+      orders.map(({ id, order }: { id: number; order: number }) =>
+        prisma.tagCategories.update({
+          where: { id },
+          data: { order },
+        })
+      )
+    );
+
+    if (diffs.length > 0) {
+      const forwarded = req.headers.get("x-forwarded-for");
+      const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
+
+      const changeDetails = `Updated Tag Category Order\nChanges:\n${diffs.join('\n')}`;
+      await reportAudit(session.user.id, 'EDIT', 'CATEGORY', ip, changeDetails);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[PATCH /api/tag-categories]', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

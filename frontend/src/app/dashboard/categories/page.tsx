@@ -94,41 +94,24 @@ export default function Page() {
 
   const saveOrder = async () => {
     try {
-      const responses = await Promise.all(
-        categories.map((cat, idx) =>
-          fetch(`/api/tag-categories/${cat.id}`, {
-            method: "PATCH",
-            body: JSON.stringify({ order: idx }),
-          })
-        )
-      );
-  
-      const allSuccessful = responses.every((res) => res.ok);
-  
-      if (allSuccessful) {
-        toast("Order saved successfully!", "success");
-      } else {
-        toast("Failed to save some orderings.", "error");
-      }
-    } catch (error) {
-      toast("Error saving order.", "error");
-    }
-  };
-
-  const deleteCategory = async (id: number) => {
-    try {
-      const res = await fetch(`/api/tag-categories/${id}`, {
-        method: "DELETE",
+      const res = await fetch("/api/tag-categories", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orders: categories.map((cat, idx) => ({
+            id: cat.id,
+            order: idx,
+          })),
+        }),
       });
   
       if (res.ok) {
-        setCategories(categories.filter((cat) => cat.id !== id));
-        toast("Category deleted!", "success");
+        toast("Order saved successfully!", "success");
       } else {
-        toast("Failed to delete category.", "error");
+        toast("Failed to save order.", "error");
       }
-    } catch (e) {
-      toast("Error deleting category.", "error");
+    } catch (error) {
+      toast("Error saving order.", "error");
     }
   };
 
