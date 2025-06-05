@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CURRENT_VERSION } from '@/core/version';
 import FadeIn from '../Motion/FadeIn';
+import { CursorClick } from '@phosphor-icons/react';
+import { ArrowRight } from 'phosphor-react';
 
 type UpdateResponse = {
   latest: string;
@@ -19,14 +21,14 @@ export default function UpdaterBox() {
   useEffect(() => {
     const checkUpdate = async () => {
       try {
-        // const res = await fetch(`https://booru.party/api/update/${CURRENT_VERSION}`);
-        // const data = await res.json();
-        const data = {
-          latest: "0.9.0",
-          url: "https://docs.booru.party/updating",
-          changelog: "",
-          needsUpdate: false
-        }
+        const res = await fetch(`https://booru.party/api/update/${CURRENT_VERSION}`);
+        const data = await res.json();
+        // const data = {  // Testing data
+        //   latest: "1.9.0",
+        //   url: "https://docs.booru.party/updating",
+        //   changelog: "",
+        //   needsUpdate: true
+        // }
         setUpdate(data);
       } catch (e) {
         setError('Failed to check for updates.');
@@ -61,9 +63,10 @@ export default function UpdaterBox() {
                   href={update.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-block mt-3 text-sm font-medium underline hover:text-yellow-400"
+                  className="inline-flex items-center gap-1 mt-3 text-sm font-bold hover:text-yellow-400"
                 >
-                  Download {update.latest}
+                  Learn how to update to {update.latest}
+                  <ArrowRight size={14} weight="bold" />
                 </a>
               </div>
             ) : (
