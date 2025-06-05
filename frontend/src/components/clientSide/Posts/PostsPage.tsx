@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getSession } from "next-auth/react";
 import MassEditor from "./MassEditor";
 import PostToolbar from "./PostToolbar";
+import { UserPublic } from "@/core/types/users";
 
 export default function ClientPostsPage({ initialPosts, postsPerPage }: { initialPosts: any[]; postsPerPage: number; }) {
   const searchParams = useSearchParams();
@@ -28,14 +29,13 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
   const [selectedPostIds, setSelectedPostIds] = useState<number[]>([]);
   const lastSelectedIndex = useRef<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-
   const isFirstLoad = useRef(true);
 
   useEffect(() => {
     getSession().then(async (session) => {
       if (!session?.user?.id) return setLoadingViewMode(false);
       const res = await fetch(`/api/users/${session.user.username}`);
-      const data = await res.json();
+      const data: UserPublic = await res.json();
       if (data?.preferences?.layout) setViewMode(data.preferences?.layout);
       setLoadingViewMode(false);
     });
@@ -129,7 +129,7 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
       const scrolled = (scrollY + windowHeight) / fullHeight;
 
       // Percentage of the way through the screen:
-      if (scrolled > 0.55 && !isLoadingMore && hasMore) {
+      if (scrolled > 0.75 && !isLoadingMore && hasMore) {
         setIsLoadingMore(true);
         const nextPage = page + 1;
         setPage(nextPage);
@@ -169,6 +169,8 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
           <PostGrid
             externalPosts={posts}
             viewMode={viewMode}
+            page={page}
+            postsPerPage={postsPerPage ?? 30}
             selectionMode={selectionMode}
             selectedPostIds={selectedPostIds}
             toggleSelect={(id, e) => {

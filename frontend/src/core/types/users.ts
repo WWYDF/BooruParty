@@ -29,11 +29,45 @@ export type UserPublic = {
   description?: string,
   lastLogin: Date,
   createdAt: Date,
+  preferences: {
+    layout: 'GRID' | 'COLLAGE',
+    theme: 'DARK' | 'LIGHT',
+    postsPerPage: number,
+  },
+  _count: {
+    posts: number,
+    comments: number,
+    favorites: number,
+    votes: number
+  },
+  posts: [
+    {
+      id: number,
+      fileExt: string,
+      score: number,
+      createdAt: Date
+    }
+  ],
+  favorites: [
+    {
+      postId: number
+    }
+  ],
+  comments: [
+    {
+      id: number,
+      postId: number,
+      content: string,
+      createdAt: Date
+    }
+  ],
   role: {
     id: number,
     name: string,
+    index: number,
+    color: string,
+    isDefault: boolean,
     permissions: {
-      id: number,
       name: string
     }[]
   }

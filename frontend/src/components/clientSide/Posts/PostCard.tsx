@@ -16,9 +16,6 @@ const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
 export default function PostCard({ post, viewMode, selectionMode, isSelected, toggleSelect }: PostCardProps) {
   const thumbnailUrl = `${fastify}/data/thumbnails/${post.id}`;
-
-  console.log(post.comments?.length)
-
   // Assume post.fileExt tells us if it's a gif or video
   const isAnimated = post.fileExt === "gif" || post.fileExt === "mp4" || post.fileExt === "webm";
 
@@ -48,11 +45,11 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
         </div>
       )}
 
-      <div className="rounded-xl bg-secondary-border overflow-hidden relative transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-black/30">
+      <div className="rounded-xl bg-secondary overflow-hidden relative transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-black/30">
         {viewMode === 'GRID' ? (
           <div className="aspect-square">
             <picture>
-              <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1920px)" />
+              {/* <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1920px)" /> */}
               <source srcSet={`${thumbnailUrl}_med.webp`} media="(min-width: 1024px)" />
               <img
                 srcSet={`${thumbnailUrl}_small.webp`}
@@ -63,7 +60,7 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
           </div>
         ) : (
           <picture>
-            <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1920px)" />
+            {/* <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1920px)" /> */}
             <source srcSet={`${thumbnailUrl}_med.webp`} media="(min-width: 1024px)" />
             <img
               srcSet={`${thumbnailUrl}_small.webp`}

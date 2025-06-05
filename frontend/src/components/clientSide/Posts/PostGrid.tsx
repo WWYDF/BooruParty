@@ -12,13 +12,17 @@ export default function PostGrid({
   viewMode = 'GRID',
   selectionMode,
   selectedPostIds,
-  toggleSelect
+  toggleSelect,
+  page = 1,
+  postsPerPage,
 }: {
   externalPosts?: Post[];
   viewMode?: ViewMode;
   selectionMode: boolean;
   selectedPostIds: number[];
   toggleSelect: (postId: number, e: React.MouseEvent) => void;
+  page: number;
+  postsPerPage: number;
 }) {
   if (viewMode === 'COLLAGE') {
     const breakpointColumnsObj = {
@@ -38,24 +42,39 @@ export default function PostGrid({
         className="flex gap-4"
         columnClassName="bg-clip-padding"
       >
-        {externalPosts.map((post, index) => (
-          <div key={`${post.id}-${index}`} className="mb-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.04, duration: 0.3 }}
-            >
-              <PostCard 
-                key={`${post.id}`} 
-                post={post} 
-                viewMode="COLLAGE"
-                selectionMode={selectionMode}
-                isSelected={selectedPostIds.includes(post.id)}
-                toggleSelect={(postId: number, e: any) => toggleSelect(postId, e)}
-              />
-            </motion.div>
-          </div>
-        ))}
+        {externalPosts.map((post, index) => {
+          const shouldAnimate = page === 1 && index < postsPerPage;
+    
+          return (
+            <div key={`${post.id}-${index}`} className="mb-4">
+              {shouldAnimate ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04, duration: 0.3 }}
+                >
+                  <PostCard
+                    post={post}
+                    viewMode="COLLAGE"
+                    selectionMode={selectionMode}
+                    isSelected={selectedPostIds.includes(post.id)}
+                    toggleSelect={toggleSelect}
+                  />
+                </motion.div>
+              ) : (
+                <div>
+                  <PostCard
+                    post={post}
+                    viewMode="COLLAGE"
+                    selectionMode={selectionMode}
+                    isSelected={selectedPostIds.includes(post.id)}
+                    toggleSelect={toggleSelect}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </Masonry>
     );
   }
@@ -67,24 +86,32 @@ export default function PostGrid({
         grid gap-4
         [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]
         sm:[grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]
+        lg:[grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]
       "
     >
-      {externalPosts.map((post, index) => (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.04, duration: 0.3 }}
-        >
-          <PostCard 
-            key={`${post.id}`} 
-            post={post} 
-            viewMode="GRID"
-            selectionMode={selectionMode}
-            isSelected={selectedPostIds.includes(post.id)}
-            toggleSelect={(postId: number, e: any) => toggleSelect(postId, e)}
-          />
-        </motion.div>
-      ))}
+      {externalPosts.map((post, index) => {
+        let shouldAnimate = page === 1 && index < postsPerPage;
+        const Wrapper = shouldAnimate ? motion.div : "div";
+  
+        return (
+          <Wrapper
+            {...(shouldAnimate && {
+              initial: { opacity: 0, y: 20 },
+              animate: { opacity: 1, y: 0 },
+              transition: { delay: index * 0.03, duration: 0.2 },
+            })}
+          >
+            <PostCard
+              key={`${post.id}-${index}`}
+              post={post}
+              viewMode={viewMode}
+              selectionMode={selectionMode}
+              isSelected={selectedPostIds.includes(post.id)}
+              toggleSelect={toggleSelect}
+            />
+          </Wrapper>
+        );
+      })}
     </div>
   );
 }
