@@ -113,7 +113,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             });
             resolve();
           } catch (err) {
-            fastify.log.error('File handling failed', err);
+            fastify.log.error(`File handling failed: ${err}`);
             reply.code(500).send({ error: 'Failed to process upload' });
             resolve();
           }

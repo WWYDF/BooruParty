@@ -7,16 +7,15 @@ export async function processSzuruPosts({
   username,
   password,
   userCookie,
-  limit = Infinity,
+  limit,
 }: {
   sessionId: string;
   url: string;
   username: string;
   password: string;
   userCookie: string;
-  limit?: number;
+  limit: number;
 }) {
-  let offset = 0;
   let processed = 0;
   const log = makeImportLogger(sessionId);
   const auth = "Basic " + Buffer.from(`${username}:${password}`).toString("base64");
@@ -31,7 +30,9 @@ export async function processSzuruPosts({
 
   await log("info", `Starting post import from Szuru of ${limit} posts...`);
 
-  while (processed < limit) {
+  let offset = Math.max(0, limit - 100);
+  
+  while (processed < limit && offset >= 0) {
     const res = await fetch(`${url}/api/posts?limit=100&offset=${offset}&query=*`, {
       headers: { 
         "Authorization": auth,
@@ -49,11 +50,12 @@ export async function processSzuruPosts({
     const posts = data.results;
     if (!posts.length) break;
 
-    for (const post of posts) {
+    for (const post of posts.reverse()) {
       if (processed >= limit) break;
+      const start = performance.now();
 
       if (!["image", "animation", "video"].includes(post.type)) {
-        await log("error", `Unsupported post type "${post.type}" for post ${post.id}!`);
+        await log("error", `Unsupported post type \"${post.type}\" for post ${post.id}!`);
         break;
       }
 
@@ -111,10 +113,12 @@ export async function processSzuruPosts({
             data: { uploadedById: finalUploaderId },
           });
 
+          const elapsed = performance.now() - start;
+          const timeMs = `${elapsed.toFixed(2)}ms`
           if (!matchingUserId && szuruPoster) {
-            await log("info", `Assigned fallback user (ID 0) to post #${json.postId}, originally by '${szuruPoster}'`);
+            await log("info", `Assigned fallback user (ID 0) to post #${json.postId}, originally by '${szuruPoster}' (${timeMs})`);
           } else if (matchingUserId) {
-            await log("info", `Assigned post ${json.postId} to user '${szuruPoster}'`);
+            await log("info", `Assigned post ${json.postId} to user '${szuruPoster}' (${timeMs})`);
           }
 
           if (post.relations?.length) {
@@ -123,7 +127,6 @@ export async function processSzuruPosts({
             }
           }
 
-          // await log("info", `Imported post #${post.id}`);
           processed++;
         }
       } catch (e) {
@@ -132,7 +135,7 @@ export async function processSzuruPosts({
       }
     }
 
-    offset += 100;
+    offset -= 100;
   }
 
   await log("info", "Processing related posts...");
@@ -153,7 +156,6 @@ export async function processSzuruPosts({
     }
   }
   await log("info", "Finished adding related posts...");
-  offset += 100;
 
   await log("info", `Post import complete. Imported ${processed} post${processed !== 1 ? "s" : ""}.`);
   return true;

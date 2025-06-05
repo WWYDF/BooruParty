@@ -9,7 +9,7 @@ export const FILE_TYPE_LABELS: Record<string, string> = {
 export const FILE_TYPE_MAP: Record<'image' | 'animated' | 'video' | 'other', string[]> = {
   image: ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff'],
   animated: ['.gif', '.apng'],
-  video: ['.mp4', '.webm', '.mov', '.avi', '.mkv'],
+  video: ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.quicktime'],
   other: []
 };
 
@@ -32,7 +32,7 @@ export function getConversionType(ext: string): string {
     return 'webp'
   }
   
-  if (ext == 'mp4' || ext == 'webm' || ext == 'mov' || ext == 'avi' || ext == 'mkv') {
+  if (ext == 'mp4' || ext == 'webm' || ext == 'mov' || ext == 'avi' || ext == 'mkv' || ext == 'quicktime') {
     return 'mp4'
   }
   

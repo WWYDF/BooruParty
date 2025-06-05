@@ -21,23 +21,23 @@ export async function processVideoPreview(originalPath: string, postId: number):
   const encoderConfig = ENCODER_OPTIONS_MAP[encoder];
   if (!encoderConfig) throw new Error(`No config for encoder "${encoder}"`);
 
+  const filters =
+  'setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709,' +
+  'scale=1280:-2';
 
-  const args = [
+  const ffmpegCmd = [
     'ffmpeg', '-y',
     '-i', `"${originalPath}"`,
-    '-vf', '"scale=1280:-2"',
+    '-vf', `"${filters}"`,
     '-c:v', encoderConfig.encoder,
-    encoderConfig.qualityFlag, encoderConfig.qualityValue.toString(),
-    ...(encoderConfig.preset ? ['-preset', encoderConfig.preset] : []),
+    encoderConfig.qualityFlag, encoderConfig.qualityValue,
+    ...(encoderConfig.preset  ? ['-preset',  encoderConfig.preset]  : []),
     ...(encoderConfig.profile ? ['-profile:v', encoderConfig.profile] : []),
     ...(encoderConfig.extraArgs || []),
-    '-c:a', 'libopus',
-    '-b:a', '128k',
-    `"${previewPath}"`,
-  ];
+    '-c:a', 'libopus', '-b:a', '128k',
+    `"${previewPath}"`
+  ].join(' ');
   
-  const ffmpegCmd = args.join(' ');
-
   try {
     await execAsync(ffmpegCmd);
 

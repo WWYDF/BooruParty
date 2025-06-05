@@ -12,6 +12,10 @@ const sizes = {
   large: 1200,
 };
 
+const thumbFilters =
+  'setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709,' +
+  'scale=iw:ih';
+
 export async function generateThumbnails(
   filePath: string,
   type: 'image' | 'video' | 'animated' | 'other',
@@ -25,7 +29,7 @@ export async function generateThumbnails(
   if (type === 'video' || type === 'animated') {
     const tmpFrame = path.join(outputDir, `${postId}_frame.png`);
     // Scary!
-    await execAsync(`ffmpeg -y -i "${filePath}" -vf "scale=iw:ih" -frames:v 1 "${tmpFrame}"`);
+    await execAsync( `ffmpeg -y -i "${filePath}" -vf "${thumbFilters}" -frames:v 1 "${tmpFrame}"`);
     framePath = tmpFrame;
   }
 
@@ -36,7 +40,7 @@ export async function generateThumbnails(
       const outPath = path.join(outputDir, `${postId}_${label}.webp`);
       await sharp(buffer)
         .resize({ width, withoutEnlargement: true })
-        .webp({ quality: 90 })
+        .webp({ quality: 50 })
         .toFile(outPath);
       return { size: label, path: outPath };
     })
