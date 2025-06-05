@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Images, List, X, UserCircle, Users, ChartPie, UploadSimple, House } from '@phosphor-icons/react';
 import { NavItem } from './NavItem';
 import { usePathname, useRouter } from "next/navigation";
-import { FolderOpen, Tag } from 'phosphor-react';
+import { FolderOpen, HouseLine, Tag } from 'phosphor-react';
 
 
 type UserInfo = {
@@ -90,23 +90,25 @@ export default function Navbar() {
         transition={{ duration: 0.4 }}
         className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800"
       >
-        <Link href="/" className="text-xl font-semibold text-white">
-          {process.env.NEXT_PUBLIC_SITE_NAME ?? 'Imageboard'}
-        </Link>
+        <>
+          <Link
+            href="/posts"
+            className="text-xl font-semibold text-white md:hidden"
+          >
+            {process.env.NEXT_PUBLIC_SITE_NAME ?? "Imageboard"}
+          </Link>
+
+          <Link
+            href="/"
+            className="text-xl font-semibold text-white hidden md:inline"
+          >
+            {process.env.NEXT_PUBLIC_SITE_NAME ?? "Imageboard"}
+          </Link>
+        </>
 
         {/* Desktop Links */}
         <div className="hidden md:flex gap-4 items-center text-sm text-subtle">
-          <NavItem
-            href={pathname === "/posts" ? "#" : "/posts"}
-            onClick={(e) => {
-              if (pathname === "/posts") {
-                e.preventDefault();
-                window.location.href = "/posts";
-              }
-            }}
-          >
-            Posts
-          </NavItem>
+          <NavItem href="/posts">Posts</NavItem>
           {hasPerm('post_view') && (
             <NavItem href="/pools">Pools</NavItem>
           )}

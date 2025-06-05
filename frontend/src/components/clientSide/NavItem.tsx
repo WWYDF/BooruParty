@@ -15,7 +15,7 @@ type NavItemProps = {
 
 export function NavItem({ href, icon, children, onClick, className }: NavItemProps) {
   const pathname = usePathname();
-  const isActive = pathname === href;
+  const isActive = pathname.includes(href);
 
   return (
     <Link
