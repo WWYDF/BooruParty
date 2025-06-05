@@ -43,7 +43,7 @@
 export type Tag = {
   id: number;
   name: string;
-  description?: string;
+  description?: string | null;
   category: {
     id: number;
     name: string;

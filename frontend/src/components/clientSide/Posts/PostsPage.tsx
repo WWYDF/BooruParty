@@ -179,8 +179,13 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
               setSelectedPostIds((prev) => {
                 if (e.shiftKey) {
                   const anchor = lastSelectedIndex.current ?? 0; // ← fallback to top
-                  const [start, end] = [anchor, clickedIndex].sort((a, b) => a - b);
-                  const range = posts.slice(start, end + 1).map((p) => p.id);
+                  let range: number[];
+
+                  if (anchor <= clickedIndex) {
+                    range = posts.slice(anchor, clickedIndex + 1).map(p => p.id);
+                  } else {
+                    range = posts.slice(clickedIndex, anchor + 1).map(p => p.id).reverse();
+                  }
                   return range;
                 }
             
@@ -201,7 +206,7 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
       <MassEditor
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        postIds={selectedPostIds}
+        selectedPosts={posts.filter(p => selectedPostIds.includes(p.id))}
         setSelectedPostIds={setSelectedPostIds}
         setSelectionMode={setSelectionMode}
       />

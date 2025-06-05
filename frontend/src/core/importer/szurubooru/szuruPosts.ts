@@ -30,7 +30,7 @@ export async function processSzuruPosts({
 
   await log("info", `Starting post import from Szuru of ${limit} posts...`);
 
-  let offset = Math.max(0, limit - 100);
+  let offset = Math.max(0, Math.ceil(limit / 100) * 100 - 100);
   
   while (processed < limit && offset >= 0) {
     const res = await fetch(`${url}/api/posts?limit=100&offset=${offset}&query=*`, {

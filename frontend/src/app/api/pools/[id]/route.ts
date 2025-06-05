@@ -1,5 +1,6 @@
 import { auth } from "@/core/authServer";
 import { prisma } from "@/core/prisma";
+import { PoolItems } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 // Get Pool Specific Data + All Posts in Pool
@@ -186,34 +187,57 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   }
 
   const body = await req.json();
-  const postId = parseInt(body?.postId);
 
-  if (!postId || isNaN(postId)) {
-    return NextResponse.json({ error: "Missing or invalid postId" }, { status: 400 });
+  const rawPostIds = body?.postId ?? body?.postIds;
+  const postIds: number[] = Array.isArray(rawPostIds)
+    ? rawPostIds.map(id => parseInt(id)).filter(id => !isNaN(id))
+    : [parseInt(rawPostIds)].filter(id => !isNaN(id));
+
+  if (!postIds.length) {
+    return NextResponse.json({ error: "Missing or invalid postId(s)" }, { status: 400 });
   }
 
   try {
-    const existing = await prisma.poolItems.findUnique({
-      where: { poolId_postId: { poolId, postId } }
+    const newItems: PoolItems[] = [];
+
+    // Get current highest index in pool
+    const lastItem = await prisma.poolItems.findFirst({
+      where: { poolId },
+      orderBy: { index: "desc" },
+      select: { index: true },
     });
 
-    if (existing) {
-      return NextResponse.json({ error: "Post already in pool" }, { status: 409 });
+    let currentIndex = lastItem?.index ?? -1;
+
+    for (let i = 0; i < postIds.length; i++) {
+      const postId = postIds[i];
+
+      const existing = await prisma.poolItems.findUnique({
+        where: { poolId_postId: { poolId, postId } },
+      });
+
+      if (!existing) {
+        currentIndex += 1;
+
+        const newItem: PoolItems = await prisma.poolItems.create({
+          data: {
+            poolId,
+            postId,
+            index: currentIndex,
+          },
+        });
+
+        newItems.push(newItem);
+      }
     }
 
-    const currentCount = await prisma.poolItems.count({ where: { poolId } });
+    if (newItems.length === 0) {
+      return NextResponse.json({ error: "All posts already in pool" }, { status: 409 });
+    }
 
-    const newItem = await prisma.poolItems.create({
-      data: {
-        poolId,
-        postId,
-        index: currentCount
-      }
-    });
-
-    return NextResponse.json(newItem, { status: 201 });
+    return NextResponse.json(newItems.length === 1 ? newItems[0] : newItems, { status: 201 });
   } catch (err) {
-    console.error("Failed to add post to pool", err);
+    console.error("Failed to add post(s) to pool", err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

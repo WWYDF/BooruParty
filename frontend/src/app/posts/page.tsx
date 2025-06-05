@@ -4,6 +4,7 @@ import ClientPostsPage from "@/components/clientSide/Posts/PostsPage";
 import BackToTop from "@/components/clientSide/BackToTop";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { Metadata } from "next";
+import { Posts } from "@/core/types/posts";
 
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
 const totalPosts = await prisma.posts.count();
@@ -57,19 +58,43 @@ export default async function PostsPage() {
     }
   }
 
-  const initialPosts = await prisma.posts.findMany({
+  const initialPosts: Posts[] = await prisma.posts.findMany({
     orderBy: { createdAt: "desc" },
-    take: postsPerPage, // Limit page 1 properly
-    include: {
-      comments: {
+    take: postsPerPage,
+    select: {
+      id: true,
+      fileExt: true,
+      safety: true,
+      uploadedBy: {
         select: {
-          authorId: true,
-          content: true,
-        },
+          id: true,
+          username: true
+        }
       },
+      anonymous: true,
+      flags: true,
+      score: true,
+      createdAt: true,
       _count: {
         select: {
-          favoritedBy: true
+          favoritedBy: true,
+          comments: true,
+          votes: true
+        }
+      },
+      relatedFrom: {
+        select: {
+          toId: true
+        }
+      },
+      pools: {
+        select: {
+          poolId: true
+        }
+      },
+      tags: {
+        include: {
+          category: true,
         }
       }
     }

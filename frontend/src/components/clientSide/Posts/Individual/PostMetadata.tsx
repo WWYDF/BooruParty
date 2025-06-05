@@ -289,7 +289,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
                 {post.pools.map(({ poolId, pool }) => {
                   const cover = pool.items[0]?.post;
                   const match = pool.items.find(item => item.post.id === post.id);
-                  const currentIndex = (match?.index ?? 1) - 1;
+                  const currentIndex = (match?.index ?? 1);
                   const total = pool._count.items;
 
                   return (

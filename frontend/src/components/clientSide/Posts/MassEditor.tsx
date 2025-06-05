@@ -7,18 +7,19 @@ import RelatedPostInput from "./Individual/PostRelation";
 import ConfirmModal from "../ConfirmModal";
 import { useToast } from "../Toast";
 import { sleep } from "@/core/importer/importUtils";
+import { Posts } from "@/core/types/posts";
 
 
 export default function MassEditor({
   open,
   onClose,
-  postIds,
+  selectedPosts,
   setSelectedPostIds,
   setSelectionMode,
 }: {
   open: boolean;
   onClose: () => void;
-  postIds: number[];
+  selectedPosts: Posts[];
   setSelectedPostIds: React.Dispatch<React.SetStateAction<number[]>>;
   setSelectionMode: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
@@ -29,7 +30,48 @@ export default function MassEditor({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [preRelatedPosts, setPreRelatedPosts] = useState<number[]>([]);
+  const [prePools, setPrePools] = useState<number[]>([]);
+  const [preTags, setPreTags] = useState<Tag[]>([]);
+;
   const toast = useToast();
+  const postIds = selectedPosts.map(p => p.id);
+
+  // Pre-fill matching data
+  useEffect(() => {
+    if (!open || selectedPosts.length === 0) return;
+  
+    const getTags = (post: Posts) => post.tags ?? [];
+    const getPools = (post: Posts) => post.pools.map(p => p.poolId);
+    const getRelated = (post: Posts) => post.relatedFrom.map(r => r.toId);
+  
+    const first = selectedPosts[0];
+  
+    const sharedTags = getTags(first).filter(tag =>
+      selectedPosts.every(p =>
+        getTags(p).some(t => t.id === tag.id)
+      )
+    );
+  
+    const sharedPools = getPools(first).filter(poolId =>
+      selectedPosts.every(p =>
+        getPools(p).includes(poolId)
+      )
+    );
+  
+    const sharedRelated = getRelated(first).filter(toId =>
+      selectedPosts.every(p =>
+        getRelated(p).includes(toId)
+      )
+    );
+  
+    setPreTags(sharedTags);
+    setPrePools(sharedPools);
+    setPreRelatedPosts(sharedRelated);
+    setRelatedPosts(sharedRelated);
+  }, [open, selectedPosts]);
+
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -75,46 +117,96 @@ export default function MassEditor({
     }
   
     // Otherwise: Patch posts in parallel
-    const results = await Promise.allSettled(
-      postIds.map(async (id) => {
-        try {
-          const res = await fetch(`/api/posts/${id}`, {
-            method: "PATCH",
+    let results: { id: string | number; ok: boolean }[] = [];
+
+    // Batch add to pools first (if defined)
+    if (pools.length > 0) {
+      const poolResponses = await Promise.allSettled(
+        pools.map(async (poolId) => {
+          const res = await fetch(`/api/pools/${poolId}`, {
+            method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              tags: tags.length > 0 ? tags.map((t) => t.id) : undefined,
-              safety: safety || undefined,
-              relatedPosts: relatedPosts.length > 0 ? relatedPosts : undefined,
-              pools: pools.length > 0 ? pools : undefined,
-            }),
+            body: JSON.stringify({ postIds }),
           });
-  
+
           if (!res.ok) {
             const msg = await res.json().catch(() => ({}));
-            toast(
-              `Post ${id} failed (${res.status})${msg?.error ? `: ${msg.error}` : ""}`,
-              "error"
-            );
+            toast(`Pool ${poolId} add failed (${res.status})${msg?.error ? `: ${msg.error}` : ""}`, 'error');
+            throw new Error(`Failed to add posts to pool ${poolId}`);
           }
-  
-          return { id, ok: res.ok };
-        } catch (err) {
-          toast(`Post ${id} failed (network error)`, "error");
-          return { id, ok: false };
+
+          return { poolId, ok: true };
+        })
+      );
+
+      results.push(
+        ...poolResponses.map((r, i) => ({
+          id: `pool-${pools[i]}`,
+          ok: r.status === "fulfilled",
+        }))
+      );
+    }
+
+    const preIds     = preTags.map(t => t.id);
+    const finalIds   = tags.map(t => t.id);
+    
+    const addedIds   = finalIds.filter(id => !preIds.includes(id));
+    const removedIds = preIds.filter(id => !finalIds.includes(id));
+    
+    const preRelIds   = preRelatedPosts;
+    const finalRelIds = relatedPosts;
+    
+    const addedRel    = finalRelIds.filter(id => !preRelIds.includes(id));
+    const removedRel  = preRelIds.filter(id => !finalRelIds.includes(id));
+    
+    const postTagMap = new Map(selectedPosts.map(p => [p.id, p.tags.map(t => t.id)]));
+    const postRelMap = new Map(selectedPosts.map(p => [p.id, p.relatedFrom.map(r => r.toId)]));
+    
+    // Patch each post with other fields (pools already handled)
+    for (const id of postIds) {
+      try {
+        const currentTags = postTagMap.get(id) ?? [];
+        let nextTags = currentTags.filter(tid => !removedIds.includes(tid));
+        for (const aid of addedIds) if (!nextTags.includes(aid)) nextTags.push(aid);
+    
+        const currentRel = postRelMap.get(id) ?? [];
+        let nextRel = currentRel.filter(rid => !removedRel.includes(rid));   // removals
+        for (const rid of addedRel) if (!nextRel.includes(rid)) nextRel.push(rid); // additions
+    
+        const res = await fetch(`/api/posts/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tags: nextTags,
+            safety: safety || undefined,
+            relatedPosts: nextRel,
+            pools: undefined, // already handled
+          }),
+        });
+    
+        if (!res.ok) {
+          const msg = await res.json().catch(() => ({}));
+          toast(`Post ${id} failed (${res.status})${msg?.error ? `: ${msg.error}` : ""}`, 'error');
         }
-      })
-    );
-  
-    const successful = results.filter((r) => r.status === "fulfilled" && r.value?.ok).length;
+    
+        results.push({ id, ok: res.ok });
+      } catch {
+        toast(`Post ${id} failed (network error)`, 'error');
+        results.push({ id, ok: false });
+      }
+    }
+    
+    const successful = results.filter((r) => r.ok).length;
     if (successful > 0) {
       toast(`Updated ${successful} post${successful > 1 ? "s" : ""}`, "success");
     }
-  
+    
     setIsSubmitting(false);
     onClose();
-  };
+    window.location.reload(); // not elegant, but we need to refresh the posts list that includes the tags.
+  }
 
   return (
     <>
@@ -130,7 +222,12 @@ export default function MassEditor({
           <div className="space-y-5">
             {/* Tags */}
             <div>
-              <MassTagger value={tags} onChange={setTags} label="Tags" />
+            <MassTagger
+              value={tags}
+              onChange={setTags}
+              label="Tags"
+              preSelected={preTags}
+            />
             </div>
 
             {/* Safety */}
@@ -165,14 +262,23 @@ export default function MassEditor({
             {/* Relations */}
             <div>
               <label className="text-sm font-medium text-white block mb-1">Related Posts</label>
-              <RelatedPostInput value={relatedPosts} onChange={setRelatedPosts} />
+              <RelatedPostInput
+                value={relatedPosts}
+                onChange={setRelatedPosts}
+              />
               <p className="text-xs text-subtle mt-1">Press Enter or Space to add a post ID.</p>
             </div>
 
             {/* Pools */}
             <div>
               <label className="text-sm font-medium text-white block mb-1">Pools</label>
-              <RelatedPostInput value={pools} onChange={setPools} placeholder="Add pool ID..." />
+              <RelatedPostInput
+                value={[...new Set([...prePools, ...pools])]}
+                onChange={(val) => {
+                  setPrePools([]);
+                  setPools(val);
+                }}
+              />
               <p className="text-xs text-subtle mt-1">Press Enter or Space to add a pool ID.</p>
             </div>
 

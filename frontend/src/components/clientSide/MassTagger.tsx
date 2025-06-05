@@ -11,11 +11,30 @@ type Props = {
   label?: string;
   placeholder?: string;
   compactBelow?: boolean;
+  preSelected?: Tag[];
 };
 
-export default function MassTagger({ value, onChange, label, placeholder, compactBelow }: Props) {
+export default function MassTagger({ value, onChange, label, placeholder, compactBelow, preSelected }: Props) {
   const [loadingImplications, setLoadingImplications] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const combined = [
+    ...new Map([...(preSelected ?? []), ...value].map((t) => [t.id, t])).values()
+  ];
+
+  useEffect(() => {
+    if (!preSelected || preSelected.length === 0) return;
+    if (value.length === 0) {
+      // component has just mounted – seed with the defaults
+      onChange(preSelected);
+    } else {
+      // merge in any new preSelected tags that weren't there yet
+      const merged = [
+        ...new Map([...preSelected, ...value].map(t => [t.id, t])).values(),
+      ];
+      if (merged.length !== value.length) onChange(merged);
+    }
+    // run only when preSelected changes
+  }, [preSelected]);
 
   const addTagWithImplications = async (tag: Tag) => {
     if (value.some((t) => t.id === tag.id)) return;

@@ -1,5 +1,6 @@
 import { Tag, TagGroup } from "./tags";
 
+// Returned when searching an individual post
 export type Post = {
   id: number;
   fileExt: string;
@@ -88,3 +89,30 @@ export type PostNavigatorType = {
   previousPostId: number;
   nextPostId: number;
 }
+
+// Returned when searching the Posts page(s)
+export type Posts = {
+  id: number;
+  fileExt: string;
+  safety: "SAFE" | "SKETCHY" | "UNSAFE";
+  uploadedBy: {
+    id: string;
+    username: string;
+  };
+  anonymous: boolean;
+  flags: string[];
+  score: number;
+  _count: {
+    favoritedBy: number;
+    comments: number;
+    votes: number;
+  };
+  createdAt: Date;
+  relatedFrom: {
+    toId: number
+  }[];
+  pools: {
+    poolId: number
+  }[];
+  tags: Tag[];
+};

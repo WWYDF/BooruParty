@@ -46,7 +46,7 @@ export default function PostGrid({
           const shouldAnimate = page === 1 && index < postsPerPage;
     
           return (
-            <div key={`${post.id}-${index}`} className="mb-4">
+            <div className="mb-4">
               {shouldAnimate ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -54,6 +54,7 @@ export default function PostGrid({
                   transition={{ delay: index * 0.04, duration: 0.3 }}
                 >
                   <PostCard
+                    key={`${post.id}-${index}-${viewMode}`} 
                     post={post}
                     viewMode="COLLAGE"
                     selectionMode={selectionMode}
@@ -64,6 +65,7 @@ export default function PostGrid({
               ) : (
                 <div>
                   <PostCard
+                    key={`${post.id}-${index}-${viewMode}`} 
                     post={post}
                     viewMode="COLLAGE"
                     selectionMode={selectionMode}

@@ -21,27 +21,54 @@ export async function GET(req: Request) {
     id: true,
     fileExt: true,
     safety: true,
-    uploadedBy: { select: { id: true, username: true } },
+    uploadedBy: {
+      select: {
+        id: true,
+        username: true,
+      },
+    },
     anonymous: true,
     flags: true,
     score: true,
+    createdAt: true,
     _count: {
       select: {
         favoritedBy: true,
+        comments: true,
+        votes: true,
+      },
+    },
+    comments: {
+      select: {
+        authorId: true,
+        content: true,
+      },
+    },
+    relatedFrom: {
+      select: {
+        toId: true,
+      },
+    },
+    pools: {
+      select: {
+        poolId: true,
+      },
+    },
+    tags: {
+      include: {
+        category: true
       }
     },
-    // favoritedBy: {
-    //   select: {
-    //     userId: true,
-    //     user: { select: { username: true } },
-    //   },
-    // },
-    comments: {
-      select: { authorId: true, content: true },
-    },
-    createdAt: true,
-    tags: { select: { id: true, name: true } },
   };
+
+  // const wefr = await prisma.posts.findMany({
+  //   where: { id: 1 },
+  //   select: {
+  //     id: true,
+  //     relatedTo: { select: { toId: true }},
+  //     pools: { select: { poolId: true }}
+  //   }
+  // })
   
   let posts;
   
