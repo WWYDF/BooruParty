@@ -206,7 +206,7 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
       <MassEditor
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        selectedPosts={posts.filter(p => selectedPostIds.includes(p.id))}
+        selectedPosts={selectedPostIds.map(id => posts.find(p => p.id === id)!).filter(Boolean)}
         setSelectedPostIds={setSelectedPostIds}
         setSelectionMode={setSelectionMode}
       />

@@ -68,6 +68,7 @@ export default function MassEditor({
   
     setPreTags(sharedTags);
     setPrePools(sharedPools);
+    setPools(sharedPools);
     setPreRelatedPosts(sharedRelated);
     setRelatedPosts(sharedRelated);
   }, [open, selectedPosts]);
@@ -119,22 +120,27 @@ export default function MassEditor({
     // Otherwise: Patch posts in parallel
     let results: { id: string | number; ok: boolean }[] = [];
 
-    // Batch add to pools first (if defined)
-    if (pools.length > 0) {
+    // figure out which pools actually changed
+    const addedPools   = pools.filter(id => !prePools.includes(id));
+    const removedPools = prePools.filter(id => !pools.includes(id));
+    const changedPools = [...addedPools, ...removedPools];   // order doesn’t matter to the endpoint
+
+    if (changedPools.length > 0) {
       const poolResponses = await Promise.allSettled(
-        pools.map(async (poolId) => {
+        changedPools.map(async (poolId) => {
           const res = await fetch(`/api/pools/${poolId}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ postIds }),
+            method: "POST",                        // ← always POST
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ postIds }),     // endpoint adds or removes
           });
 
           if (!res.ok) {
             const msg = await res.json().catch(() => ({}));
-            toast(`Pool ${poolId} add failed (${res.status})${msg?.error ? `: ${msg.error}` : ""}`, 'error');
-            throw new Error(`Failed to add posts to pool ${poolId}`);
+            toast(
+              `Pool ${poolId} toggle failed (${res.status})${msg?.error ? `: ${msg.error}` : ""}`,
+              "error"
+            );
+            throw new Error(`Failed to toggle pool ${poolId}`);
           }
 
           return { poolId, ok: true };
@@ -143,7 +149,7 @@ export default function MassEditor({
 
       results.push(
         ...poolResponses.map((r, i) => ({
-          id: `pool-${pools[i]}`,
+          id: `pool-${changedPools[i]}`,
           ok: r.status === "fulfilled",
         }))
       );
@@ -273,11 +279,8 @@ export default function MassEditor({
             <div>
               <label className="text-sm font-medium text-white block mb-1">Pools</label>
               <RelatedPostInput
-                value={[...new Set([...prePools, ...pools])]}
-                onChange={(val) => {
-                  setPrePools([]);
-                  setPools(val);
-                }}
+                value={pools}
+                onChange={setPools}
               />
               <p className="text-xs text-subtle mt-1">Press Enter or Space to add a pool ID.</p>
             </div>

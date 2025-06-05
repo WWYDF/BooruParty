@@ -198,7 +198,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   }
 
   try {
-    const newItems: PoolItems[] = [];
+    const addedItems: PoolItems[] = [];
+    const removedIds: number[] = [];
 
     // Get current highest index in pool
     const lastItem = await prisma.poolItems.findFirst({
@@ -209,17 +210,20 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
     let currentIndex = lastItem?.index ?? -1;
 
-    for (let i = 0; i < postIds.length; i++) {
-      const postId = postIds[i];
-
+    for (const postId of postIds) {
       const existing = await prisma.poolItems.findUnique({
         where: { poolId_postId: { poolId, postId } },
       });
 
-      if (!existing) {
+      if (existing) {
+        await prisma.poolItems.delete({
+          where: { poolId_postId: { poolId, postId } },
+        });
+        removedIds.push(postId);
+      } else {
         currentIndex += 1;
 
-        const newItem: PoolItems = await prisma.poolItems.create({
+        const newItem = await prisma.poolItems.create({
           data: {
             poolId,
             postId,
@@ -227,17 +231,20 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
           },
         });
 
-        newItems.push(newItem);
+        addedItems.push(newItem);
       }
     }
 
-    if (newItems.length === 0) {
-      return NextResponse.json({ error: "All posts already in pool" }, { status: 409 });
+    if (!addedItems.length && !removedIds.length) {
+      return NextResponse.json({ error: "No changes made" }, { status: 409 });
     }
 
-    return NextResponse.json(newItems.length === 1 ? newItems[0] : newItems, { status: 201 });
+    return NextResponse.json(
+      { added: addedItems, removed: removedIds },
+      { status: addedItems.length ? 201 : 200 }
+    );
   } catch (err) {
-    console.error("Failed to add post(s) to pool", err);
+    console.error("Failed to toggle post(s) in pool", err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
