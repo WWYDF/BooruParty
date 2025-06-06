@@ -53,7 +53,9 @@ export async function processSzuruExtras(
         insDoneCount++;
       } else if (!missingSuggestTags.has(suggestedName)) {
         missingSuggestTags.add(suggestedName);
-        await log("error", `Skipped missing suggested tag: ${suggestedName}`);
+        await log("warn", `Skipped suggested tag: ${suggestedName}`);
+        // Pretty sure this is a visual bug, so set it to warn instead of error for now.
+        // Something to do with aliases being part of suggested tags.
       }
     }
 

@@ -10,20 +10,18 @@ const execAsync = promisify(exec);
 export async function compressGif(
   inputPath: string,
   outputPath: string,
-  width: number = 900,
-  colors: number = 96,
-  lossy: number = 80
+  width: number = 600,
+  quality: number = 50
 ): Promise<void> {
-  const command = `gifsicle --lossy=${lossy} --resize-width ${width} --colors ${colors} -O3 "${inputPath}" -o "${outputPath}"`;
+  const cmd = `gifski --quality ${quality} --width ${width} -o "${outputPath}" "${inputPath}"`;
 
   try {
-    await execAsync(command);
-
+    await execAsync(cmd);
     if (!fs.existsSync(outputPath)) {
-      throw new Error('gifsicle did not produce an output file.');
+      throw new Error("Gifski failed: no output generated.");
     }
   } catch (err) {
-    console.error('Failed to compress GIF with gifsicle:', err);
+    console.error("GIF compression failed:", err);
     throw err;
   }
 }

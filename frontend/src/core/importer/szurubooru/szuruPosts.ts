@@ -118,7 +118,7 @@ export async function processSzuruPosts({
           if (!matchingUserId && szuruPoster) {
             await log("info", `Assigned fallback user (ID 0) to post #${json.postId}, originally by '${szuruPoster}' (${timeMs})`);
           } else if (matchingUserId) {
-            await log("info", `Assigned post ${json.postId} to user '${szuruPoster}' (${timeMs})`);
+            await log("info", `Assigned post #${json.postId} to user '${szuruPoster}' (${timeMs})`);
           }
 
           if (post.relations?.length) {

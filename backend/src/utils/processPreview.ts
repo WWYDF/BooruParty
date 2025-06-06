@@ -16,7 +16,7 @@ export async function processPreview(originalPath: string, postId: number): Prom
 
   if (fileType === 'animated') {
     try {
-      await compressGif(originalPath, previewPath); // or ffmpeg in video case
+      await compressGif(originalPath, previewPath);
   
       const originalSize = fs.statSync(originalPath).size;
       const previewSize = fs.statSync(previewPath).size;

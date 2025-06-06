@@ -97,7 +97,7 @@ export async function POST(req: Request) {
     await prisma.role.upsert({
       where: { name: "Member" },
       update: {},
-      create: { name: "Member", isDefault: true }
+      create: { name: "Member", isDefault: true, index: 4 }
     })
 
     // RoleNames and RoleColors follow the same index.
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
       await prisma.role.upsert({
         where: { name },
         update: {},
-        create: { name, color: roleColors[i] },
+        create: { name, color: roleColors[i], index: i },
       });
     });
 
