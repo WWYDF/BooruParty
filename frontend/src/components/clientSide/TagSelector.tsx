@@ -80,7 +80,7 @@ export default function TagSelector({
           setHighlightedIndex(-1);
         })
         .finally(() => setIsSearching(false));
-    }, 450);
+    }, 100);
 
     return () => {
       if (debounceTimeout.current) {
@@ -105,13 +105,18 @@ export default function TagSelector({
       } else {
         const trimmed = query.trim();
         const isNegated = allowNegation && trimmed.startsWith("-");
-        const nameToCreate = isNegated ? trimmed.slice(1) : trimmed;
-    
-        const exists = results.some(r => r.name.toLowerCase() === nameToCreate.toLowerCase());
-        if (!exists) {
-          tryCreateTag(nameToCreate);
+        const nameToMatch = isNegated ? trimmed.slice(1) : trimmed;
+      
+        const exactMatch = results.find(
+          (r) => r.name.toLowerCase() === nameToMatch.toLowerCase()
+        );
+      
+        if (exactMatch) {
+          handleSelect(exactMatch);
         } else if (onEnter) {
-          onEnter(query.trim());
+          onEnter(trimmed);
+        } else {
+          tryCreateTag(nameToMatch);
         }
       }
     } else if (e.key === "Escape") {
