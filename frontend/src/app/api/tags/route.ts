@@ -14,6 +14,8 @@ export async function GET(req: Request) {
   let categoryFilter: string | null = null;
   let strippedSearch = search;
 
+  const totalTags = await prisma.tags.count();
+
   // Extract category:<name>
   const categoryMatch = search.match(/category:([^\s]+)/);
   if (categoryMatch) {
@@ -128,7 +130,8 @@ export async function GET(req: Request) {
   const totalPages = Math.ceil(totalCount / perPage);
 
   return NextResponse.json({
-    tags: sortedTags,
     totalPages,
+    totalTags,
+    tags: sortedTags
   });
 }

@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { compare } from 'bcryptjs';
 import { prisma } from "@/core/prisma";
+import { encode } from 'next-auth/jwt';
+
+// This file was unused in the frontend so I'm repurposing it for automation.
+// Returns a JWT used for spoofing a cookie in REST Requests.
 
 export async function POST(req: Request) {
   const { email, password } = await req.json();
@@ -15,13 +19,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
   }
 
-  // TODO: Add auth/session handling here
-
-  return NextResponse.json({
-    user: {
-      id: user.id,
+  // Create session token manually
+  const token = await encode({
+    token: {
+      id: user.id.toString(),
+      username: user.username, // or whatever field holds the username
+      name: user.username,
       email: user.email,
-      username: user.username,
+      sub: user.id.toString(),
     },
+    secret: process.env.NEXTAUTH_SECRET!,
+    maxAge: 24 * 60 * 60, // 24 hours
+    // maxAge: 365 * 24 * 60 * 60, // 365 days
   });
+
+  return NextResponse.json({ jwt: token });
 }

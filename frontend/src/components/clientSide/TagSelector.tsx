@@ -87,32 +87,37 @@ export default function TagSelector({
       setHighlightedIndex((prev) => (prev - 1 + max) % max);
     } else if (e.key === "Enter" || (e.key === " " && highlightedIndex >= 0)) {
       e.preventDefault();
-      if (highlightedIndex >= 0 && results[highlightedIndex]) {
+    
+      const trimmed = query.trim();
+      const isNegated = allowNegation && trimmed.startsWith("-");
+      const nameToMatch = isNegated ? trimmed.slice(1) : trimmed;
+    
+      // Check for exact match in results (by name or alias)
+      const exactMatch = results.find(
+        (r) =>
+          r.name.toLowerCase() === nameToMatch.toLowerCase() ||
+          r.aliases?.some((a) => a.alias.toLowerCase() === nameToMatch.toLowerCase())
+      );
+    
+      // Check if tag already selected (name or alias match)
+      const duplicate = disabledTags.find(
+        (tag) =>
+          tag.name.toLowerCase() === nameToMatch.toLowerCase() ||
+          tag.aliases?.some((a) => a.alias.toLowerCase() === nameToMatch.toLowerCase())
+      );
+    
+      if (duplicate) {
+        onDuplicateSelect?.(duplicate);
+      } else if (highlightedIndex >= 0 && results[highlightedIndex]) {
         handleSelect(results[highlightedIndex]);
+      } else if (exactMatch) {
+        handleSelect(exactMatch);
+      } else if (onEnter) {
+        onEnter(trimmed);
       } else {
-        const trimmed = query.trim();
-        const isNegated = allowNegation && trimmed.startsWith("-");
-        const nameToMatch = isNegated ? trimmed.slice(1) : trimmed;
-      
-        const exactMatch = results.find(
-          (r) => r.name.toLowerCase() === nameToMatch.toLowerCase()
-        );
-      
-        const duplicate = disabledTags.find(
-          (tag) => tag.name.toLowerCase() === nameToMatch.toLowerCase()
-        );
-        
-        if (duplicate) {
-          // toast("Tag already added", "error");
-          onDuplicateSelect?.(duplicate);
-        } else if (exactMatch) {
-          handleSelect(exactMatch);
-        } else if (onEnter) {
-          onEnter(trimmed);
-        } else {
-          tryCreateTag(nameToMatch);
-        }
+        tryCreateTag(nameToMatch);
       }
+    
       setResults([]);
       setHighlightedIndex(-1);
     } else if (e.key === "Escape") {
