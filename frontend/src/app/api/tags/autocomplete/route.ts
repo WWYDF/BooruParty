@@ -25,6 +25,7 @@ export async function GET(req: Request) {
       category: true,
       aliases: true,
       implications: true,
+      _count: { select: { posts: true }},
     },
   });
 
@@ -42,7 +43,12 @@ export async function GET(req: Request) {
         },
       },
     },
-    include: { category: true, aliases: true, implications: true },
+    include: {
+      category: true,
+      aliases: true,
+      implications: true,
+      _count: { select: { posts: true }},
+    },
   });
 
   // Then, find Tags containing name
@@ -64,6 +70,7 @@ export async function GET(req: Request) {
       category: true,
       aliases: true,
       implications: true,
+      _count: { select: { posts: true }},
     },
     take: LIMIT - (exactMatches.length + startsWithMatches.length),
   });
@@ -81,7 +88,10 @@ export async function GET(req: Request) {
         include: {
           category: true,
           aliases: true,
-          implications: true
+          implications: true,
+          _count: {
+            select: { posts: true }
+          }
         },
       },
     },
@@ -106,8 +116,12 @@ export async function GET(req: Request) {
 
   const allTags = Array.from(allTagsMap.values());
 
+  const [first, ...rest] = allTags;
+  rest.sort((a, b) => (b._count?.posts ?? 0) - (a._count?.posts ?? 0));
+  const sortedTags = [first, ...rest];
+
   const tagsWithImplications = await Promise.all(
-    allTags.map(async (tag) => {
+    sortedTags.map(async (tag) => {
       const allImplications = await fetchAllImplications(tag.id);
       return { ...tag, allImplications };
     })

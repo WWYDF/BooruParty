@@ -3,22 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useToast } from "./Toast";
 import { Tag } from "@/core/types/tags";
-
-// export type Tag = {
-//   id: number;
-//   name: string;
-//   description?: string;
-//   category: {
-//     id: number;
-//     name: string;
-//     color: string;
-//     order?: number;
-//   };
-//   aliases?: { id: number; alias: string }[];
-//   suggestions?: Tag[];
-//   implications?: Tag[];
-//   allImplications?: Tag[];
-// };
+import { formatCounts } from "@/core/formats";
 
 type TagSelectorProps = {
   onSelect: (tag: Tag, isNegated?: boolean, addImpliedTags?: boolean) => void;
@@ -100,7 +85,7 @@ export default function TagSelector({
       e.preventDefault();
       const max = Math.min(5, results.length);
       setHighlightedIndex((prev) => (prev - 1 + max) % max);
-    } else if (e.key === "Enter") {
+    } else if (e.key === "Enter" || (e.key === " " && highlightedIndex >= 0)) {
       e.preventDefault();
       if (highlightedIndex >= 0 && results[highlightedIndex]) {
         handleSelect(results[highlightedIndex]);
@@ -199,22 +184,29 @@ export default function TagSelector({
             <div
               key={tag.id}
               onClick={() => handleClickResult(tag)}
-              className={`flex items-center px-3 py-2 text-sm cursor-pointer ${
+              className={`flex items-center justify-between px-3 py-2 text-sm cursor-pointer ${
                 highlightedIndex === idx
-                  ? "bg-accent text-white"
+                  ? "bg-accent/40 text-white"
                   : "hover:bg-secondary-border"
               }`}
             >
-              <div
-                className="mr-2"
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  borderRadius: "50%",
-                  backgroundColor: tag.category.color,
-                }}
-              />
-              <span>{tag.name}</span>
+              {/* name */}
+              <div className="flex items-center gap-2">
+                <div
+                  className="rounded-full"
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    backgroundColor: tag.category.color,
+                  }}
+                />
+                <span>{tag.name}</span>
+              </div>
+
+              {/* post count */}
+              <span className="text-xs text-zinc-400">
+              {formatCounts(tag._count?.posts ?? 0)}
+              </span>
             </div>
           ))}
         </div>

@@ -11,6 +11,7 @@ import { Tag } from "@/core/types/tags";
 import RelatedPostInput from "./PostRelation";
 import { useDropzone } from "react-dropzone";
 import { Post } from "@/core/types/posts";
+import { formatCounts } from "@/core/formats";
 
 export default function EditPost({
   post,
@@ -288,16 +289,21 @@ export default function EditPost({
                 <TagIcon size={16} />
               </Link>
 
-              <button
-                onClick={(e) => {
-                  const rect = (e.target as HTMLElement).getBoundingClientRect();
-                  setPopupPosition({ x: rect.left, y: rect.bottom });
-                  setActiveSuggestionTag(tag.name);
-                }}
-                className="hover:underline text-left"
-              >
-                {tag.name}
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={(e) => {
+                    const rect = (e.target as HTMLElement).getBoundingClientRect();
+                    setPopupPosition({ x: rect.left, y: rect.bottom });
+                    setActiveSuggestionTag(tag.name);
+                  }}
+                  className="hover:underline text-left"
+                >
+                  {tag.name}
+                </button>
+                <span className="text-xs text-zinc-400 ml-1">
+                  {formatCounts(tag._count?.posts ?? 0)}
+                </span>
+              </div>
             </div>
           ))}
         </div>
