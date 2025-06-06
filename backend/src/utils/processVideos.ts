@@ -31,19 +31,11 @@ export async function processVideoPreview(originalPath: string, postId: number):
   if (encoderFilters?.includes('scale_qsv=1280:-1')) {
     const { width: inputW, height: inputH } = await getVideoDimensions(originalPath);
   
-    // Step 1: Round input dimensions to QSV-safe values
+    // Round input dimensions to QSV-safe values
     const safeW = roundToMultiple(inputW, 4);
     const safeH = roundToMultiple(inputH, 2);
   
-    // Step 2: Downscale by 50%
-    const halfW = safeW * 0.5;
-    const halfH = safeH * 0.5;
-  
-    // Step 3: Re-round to QSV-safe output
-    const finalW = roundToMultiple(halfW, 4);
-    const finalH = roundToMultiple(halfH, 2);
-  
-    filters = encoderFilters.replace('scale_qsv=1280:-1', `scale_qsv=${finalW}:${finalH}`);
+    filters = encoderFilters.replace('scale_qsv=1280:-1', `scale_qsv=${safeW}:${safeH}`);
 
   } else {
     filters =
