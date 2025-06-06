@@ -116,3 +116,14 @@ export type Posts = {
   }[];
   tags: Tag[];
 };
+
+
+// Fastify Response
+export type FastifyUpload = {
+  status: string,
+  postId: number,
+  previewScale: number | null,
+  aspectRatio: number,
+  deletedPreview?: boolean,
+  fileName?: string
+}

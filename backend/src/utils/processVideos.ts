@@ -22,11 +22,14 @@ export async function processVideoPreview(originalPath: string, postId: number):
   if (!encoderConfig) throw new Error(`No config for encoder "${encoder}"`);
 
   const filters =
-  'setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709,' +
-  'scale=1280:-2';
+    encoderConfig.filters ??
+    'setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709,scale=1280:-2';
+
+  const needsQSV = filters.includes('hwupload') || filters.includes('scale_qsv');
 
   const ffmpegCmd = [
     'ffmpeg', '-y',
+    ...(needsQSV ? ['-init_hw_device', 'qsv=hw', '-filter_hw_device', 'hw'] : []),
     '-i', `"${originalPath}"`,
     '-vf', `"${filters}"`,
     '-c:v', encoderConfig.encoder,

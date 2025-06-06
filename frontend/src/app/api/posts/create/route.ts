@@ -3,6 +3,8 @@ import { prisma } from '@/core/prisma';
 import { auth } from '@/core/authServer';
 import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
 import { getConversionType, resolveFileType } from '@/core/dictionary';
+import { fetch, Agent, FormData } from 'undici';
+import { FastifyUpload } from '@/core/types/posts';
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
@@ -73,6 +75,7 @@ export async function POST(request: NextRequest) {
   fastifyFormData.append('file', file);
 
   const fastifyResponse = await fetch(`${fastify}/api/upload`, {
+    dispatcher: new Agent({ connectTimeout: 900 }),
     method: 'POST',
     body: fastifyFormData,
   });
@@ -87,7 +90,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const fastifyResult = await fastifyResponse.json();
+  const fastifyResult = await fastifyResponse.json() as FastifyUpload;
   
   const conversionType = getConversionType(extension);
   let previewSrc = `/data/previews/${fileType}/${postId}.${conversionType}`;

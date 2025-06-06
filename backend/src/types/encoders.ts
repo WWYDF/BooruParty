@@ -6,6 +6,7 @@ export type EncoderConfig = {
   preset?: string;
   profile?: string;
   extraArgs?: string[];
+  filters?: string;
 };
 
 export const ENCODER_PRIORITY_MAP: Record<string, string[]> = {
@@ -45,15 +46,15 @@ export const ENCODER_OPTIONS_MAP: Record<string, EncoderConfig> = {
     encoder: 'libvpx-vp9', // // working
     qualityFlag: '-crf',
     qualityValue: 32,
-    preset: 'good',
     extraArgs: ['-b:v', '0', '-deadline', 'realtime', '-cpu-used', '5'],
   },
   vp9_qsv: {
     encoder: 'vp9_qsv',
-    qualityFlag: '-crf',
+    qualityFlag: '-crf', // doesn’t apply but harmless
     qualityValue: 32,
-    preset: 'profile2',
-    extraArgs: ['-b:v', '0', '-deadline', 'realtime'],
+    preset: '4',
+    extraArgs: ['-b:v', '3M'],
+    filters: 'hwupload=extra_hw_frames=64,scale_qsv=1280:-1'
   },
   av1_nvenc: { // good
     encoder: 'av1_nvenc', // works
