@@ -96,7 +96,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           <button
             disabled={!previousPostId}
             onClick={() => router.push(buildLink(previousPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40"
+            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <CaretLeft size={28} weight="bold" />
             <span className="text-sm">Previous</span>
@@ -105,7 +105,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           <button
             disabled={!nextPostId}
             onClick={() => router.push(buildLink(nextPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40"
+            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <CaretLeft size={28} weight="bold" />
             <span className="text-sm">Next</span>
@@ -119,7 +119,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           <button
             disabled={!nextPostId}
             onClick={() => router.push(buildLink(nextPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40"
+            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className="text-sm">Next</span>
             <CaretRight size={28} weight="bold" />
@@ -128,7 +128,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           <button
             disabled={!previousPostId}
             onClick={() => router.push(buildLink(previousPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40"
+            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className="text-sm">Previous</span>
             <CaretRight size={28} weight="bold" />

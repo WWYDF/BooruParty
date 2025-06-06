@@ -28,7 +28,7 @@ export default function PostToolbar({
 }) {
   return (
     <motion.div
-      className="sticky top-0 z-40 bg-black/90 backdrop-blur"
+      className="sticky top-0 md:top-16.5 z-40 bg-black"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}

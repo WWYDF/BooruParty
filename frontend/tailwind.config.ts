@@ -54,6 +54,11 @@ module.exports = {
         '2xs': '0.625rem', // 10px
         '3xs': '0.5rem',    // 8px
       },
+      spacing: {
+        16.5: "4.08rem", // stfu i know this is stupid
+        17: "4.25rem",
+        18: "4.5rem",
+      },
     },
   }
 }

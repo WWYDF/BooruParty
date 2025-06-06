@@ -12,6 +12,7 @@ import RelatedPostInput from "./PostRelation";
 import { useDropzone } from "react-dropzone";
 import { Post } from "@/core/types/posts";
 import { formatCounts } from "@/core/formats";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function EditPost({
   post,
@@ -38,6 +39,7 @@ export default function EditPost({
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
   const [featured, setFeatured] = useState(!!post.specialPosts?.find((sp: any) => sp.label === "topWeek"));
   const [highlightedTagId, setHighlightedTagId] = useState<number | null>(null);
+  const [newTagIds, setNewTagIds] = useState<number[]>([]);
   const toast = useToast();
 
   useEffect(() => {
@@ -136,6 +138,13 @@ export default function EditPost({
       const newTags = allTags.filter((t) => !existingIds.has(t.id));
       const next = [...newTags, ...prev];
       setOrderedTags([...initialOrderedTags, ...next]);
+      
+      // Track newly added tag IDs to mark them green
+      setNewTagIds((prevIds) => [
+        ...prevIds,
+        ...newTags.map((t) => t.id).filter((id) => !prevIds.includes(id)),
+      ]);
+
       return next;
     });
   };
@@ -275,42 +284,47 @@ export default function EditPost({
       {/* Selected tags display */}
       {uniqueTags.length > 0 && (
         <div className="flex flex-col gap-2">
-          {uniqueTags.map((tag) => (
-            <div
-              key={tag.id}
-              className={`flex items-center gap-2 border border-zinc-900 px-3 py-1.5 rounded-2xl w-fit transition-all duration-500 ${
-                tag.id === highlightedTagId ? "ring-2 ring-darkerAccent/80 bg-accent/10" : ""
-              }`}
-              style={{ color: tag.category?.color || "#fff" }}
-            >
-              <button
-                onClick={() => handleRemoveTag(tag.id)}
-                className="hover:opacity-80"
+          <AnimatePresence initial={false}>
+            {uniqueTags.map((tag) => (
+              <motion.div
+                key={tag.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.25 }}
+                className={`flex items-center gap-2 border px-3 py-1.5 rounded-2xl w-fit transition-all duration-500 ${
+                  tag.id === highlightedTagId ? "ring-2 ring-darkerAccent/80 bg-accent/10" : ""
+                } ${newTagIds.includes(tag.id) ? "border-zinc-800 bg-zinc-900/60" : "border-zinc-900"}`}
+                style={{ color: tag.category?.color || "#fff" }}
               >
-                <X size={16} />
-              </button>
-
-              <Link href={`/tags/${tag.name}`} className="hover:opacity-80">
-                <TagIcon size={16} />
-              </Link>
-
-              <div className="flex items-center gap-1">
                 <button
-                  onClick={(e) => {
-                    const rect = (e.target as HTMLElement).getBoundingClientRect();
-                    setPopupPosition({ x: rect.left, y: rect.bottom });
-                    setActiveSuggestionTag(tag.name);
-                  }}
-                  className="hover:underline text-left"
+                  onClick={() => handleRemoveTag(tag.id)}
+                  className="hover:opacity-80"
                 >
-                  {tag.name}
+                  <X size={16} />
                 </button>
-                <span className="text-xs text-zinc-400 ml-1">
-                  {formatCounts(tag._count?.posts ?? 0)}
-                </span>
-              </div>
-            </div>
-          ))}
+
+                <Link href={`/tags/${tag.name}`} className="hover:opacity-80">
+                  <TagIcon size={16} />
+                </Link>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => {
+                      const rect = (e.target as HTMLElement).getBoundingClientRect();
+                      setPopupPosition({ x: rect.left, y: rect.bottom });
+                      setActiveSuggestionTag(tag.name);
+                    }}
+                    className="hover:underline text-left"
+                  >
+                    {tag.name}
+                  </button>
+                  <span className="text-xs text-zinc-400 ml-1">
+                    {formatCounts(tag._count?.posts ?? 0)}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 

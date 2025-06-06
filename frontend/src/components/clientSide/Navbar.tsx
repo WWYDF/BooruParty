@@ -88,7 +88,7 @@ export default function Navbar() {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4 }}
-        className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800"
+        className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800 md:sticky top-0 z-30"
       >
         <>
           <Link
@@ -100,7 +100,7 @@ export default function Navbar() {
 
           <Link
             href="/"
-            className="text-xl font-semibold text-white hidden md:inline"
+            className="text-xl font-semibold text-white hidden md:inline ml-2"
           >
             {process.env.NEXT_PUBLIC_SITE_NAME ?? "Imageboard"}
           </Link>

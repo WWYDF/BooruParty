@@ -133,7 +133,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
         ) : canEdit ? (
           <button
             onClick={checkEditPermissions}
-            className="text-subtle hover:text-accent text-sm flex items-center gap-1 mr-4"
+            className="text-subtle hover:text-accent transition-colors text-sm flex items-center gap-1 mr-4"
           >
             <PencilSimple size={16} /> Edit post
           </button>

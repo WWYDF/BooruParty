@@ -129,39 +129,48 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
             />
           ) : (
             <>
-              <div className="flex flex-wrap items-end gap-x-3 mb-1">
-                <h1 className="text-3xl font-bold text-white">{poolData.name}</h1>
-                {poolData.artist && (
-                  <div className="text-sm text-white/80 font-medium">by {poolData.artist}</div>
-                )}
-                <button
-                  onClick={() => setEditMode(true)}
-                  className="text-base px-2 py-1 border border-black rounded-lg bg-zinc-950 hover:bg-zinc-900 transition text-white ml-auto"
-                >
-                  Edit
-                </button>
-                <div className="absolute bottom-6 right-4 z-30 flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 justify-between mb-1">
+                {/* pool data on left */}
+                <div className="flex flex-wrap items-end gap-x-3">
+                  <h1 className="text-3xl font-bold text-white">{poolData.name}</h1>
+                  {poolData.artist && (
+                    <div className="text-sm text-white/80 font-medium">by {poolData.artist}</div>
+                  )}
+                </div>
+
+                {/* edit and votes on right */}
+                <div className="flex items-center gap-3">
                   <button
-                    onClick={() => handleVote(1)}
-                    className={`p-1 rounded hover:bg-white/10 transition ${
-                      currentVote === 1 ? "text-accent" : "text-white/60"
-                    }`}
-                    title="Upvote"
+                    onClick={() => setEditMode(true)}
+                    className="text-base px-2 py-1 border border-black rounded-lg bg-zinc-950 hover:bg-zinc-900 transition text-white"
                   >
-                    <ArrowFatUp size={20} weight={currentVote === 1 ? "fill" : "regular"} />
+                    Edit
                   </button>
 
-                  <span className="text-sm text-subtle">{score}</span>
+                  {/* voting */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleVote(1)}
+                      className={`p-1 rounded hover:bg-white/10 transition ${
+                        currentVote === 1 ? "text-accent" : "text-white/60"
+                      }`}
+                      title="Upvote"
+                    >
+                      <ArrowFatUp size={20} weight={currentVote === 1 ? "fill" : "regular"} />
+                    </button>
 
-                  <button
-                    onClick={() => handleVote(-1)}
-                    className={`p-1 rounded hover:bg-white/10 transition ${
-                      currentVote === -1 ? "text-accent" : "text-white/60"
-                    }`}
-                    title="Downvote"
-                  >
-                    <ArrowFatDown size={20} weight={currentVote === -1 ? "fill" : "regular"} />
-                  </button>
+                    <span className="text-sm text-subtle">{score}</span>
+
+                    <button
+                      onClick={() => handleVote(-1)}
+                      className={`p-1 rounded hover:bg-white/10 transition ${
+                        currentVote === -1 ? "text-accent" : "text-white/60"
+                      }`}
+                      title="Downvote"
+                    >
+                      <ArrowFatDown size={20} weight={currentVote === -1 ? "fill" : "regular"} />
+                    </button>
+                  </div>
                 </div>
               </div>
               {poolData.description && (
