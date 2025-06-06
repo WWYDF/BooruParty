@@ -106,7 +106,12 @@ export default function TagSelector({
           tag.aliases?.some((a) => a.alias.toLowerCase() === nameToMatch.toLowerCase())
       );
     
-      if (duplicate) {
+      if (
+        duplicate &&
+        results.length > 0 &&
+        results[0].name.toLowerCase() === nameToMatch.toLowerCase()
+      ) {
+        // Only call duplicate if the thing typed directly is the one already added
         onDuplicateSelect?.(duplicate);
       } else if (highlightedIndex >= 0 && results[highlightedIndex]) {
         handleSelect(results[highlightedIndex]);

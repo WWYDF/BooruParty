@@ -375,7 +375,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
                           <Minus size={10} weight="bold" />
                         </button>
 
-                        <Link href={`/tags/${tag.name}`} title="Edit tag">
+                        <Link href={`/tags/${encodeURIComponent(tag.name)}`} title="Edit tag">
                           <Tag size={14} />
                         </Link>
 
