@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PencilSimple, Minus, Plus, Tag } from "phosphor-react";
-import { formatStorageFromBytes } from "@/core/formats";
+import { formatCounts, formatStorageFromBytes } from "@/core/formats";
 import { FILE_TYPE_LABELS } from "@/core/dictionary";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { useToast } from "../../Toast";
@@ -388,7 +388,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
                         </button>
 
                         <span className="text-subtle text-xs ml-1">
-                          {tag?._count?.posts ?? 0}
+                          {formatCounts(tag?._count?.posts ?? 0)}
                         </span>
                       </div>
                     ))}

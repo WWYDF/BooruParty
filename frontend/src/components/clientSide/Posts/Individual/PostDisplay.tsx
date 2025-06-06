@@ -63,7 +63,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
               onClick={() => {
                 handleFullscreen(true);
               }}
-              className="w-full max-w-auto min-w-[70vw] max-h-[70vh] h-auto object-contain rounded-xl cursor-pointer"
+              className="w-auto max-w-auto max-h-[70vh] h-auto object-contain rounded-xl cursor-pointer"
             />
           )}
         </motion.div>

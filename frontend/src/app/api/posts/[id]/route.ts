@@ -33,6 +33,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     where: { id: postId },
     include: {
       tags: {
+        orderBy: { name: 'asc' },
         select: {
           id: true,
           name: true,

@@ -43,8 +43,13 @@ export default function EditPost({
   useEffect(() => {
     if (post.tags) {
       const sorted = [...post.tags]
-        .sort((a, b) => (a.category.order ?? 0) - (b.category.order ?? 0))
-        .flatMap(group => group.tags);
+      .sort((a, b) => (a.category.order ?? 0) - (b.category.order ?? 0))
+      .flatMap(group => {
+        const alphaSorted = [...group.tags].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+        return alphaSorted;
+      });
       setInitialOrderedTags(sorted);
       setOrderedTags(sorted);
     }

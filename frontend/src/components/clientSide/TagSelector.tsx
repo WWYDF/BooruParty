@@ -179,8 +179,8 @@ export default function TagSelector({
       />
 
       {results.length > 0 && (
-        <div className="absolute mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-10 max-h-60 overflow-y-auto">
-          {results.slice(0, 5).map((tag, idx) => (
+        <div className="absolute mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-10 max-h-80 overflow-y-auto">
+          {results.slice(0, 20).map((tag, idx) => (
             <div
               key={tag.id}
               onClick={() => handleClickResult(tag)}
