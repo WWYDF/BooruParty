@@ -126,4 +126,5 @@ export type FastifyUpload = {
   aspectRatio: number,
   deletedPreview?: boolean,
   fileName?: string
+  assignedExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif' | null,
 }

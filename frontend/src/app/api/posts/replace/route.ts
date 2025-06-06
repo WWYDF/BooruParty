@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   const extension = file.name.split(".").pop()?.toLowerCase() || "";
   const fileType = resolveFileType(`.${extension}`);
   const conversionType = getConversionType(extension);
-  let previewSrc = `/data/previews/${fileType}/${postId}.${conversionType}`;
+  let previewSrc;
 
   const buffer = Buffer.from(await file.arrayBuffer());
   // run pHash duplicate detection
@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
   const result = await fastifyResponse.json();
   console.log(JSON.stringify(result, null, 1));
   if (result.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${conversionType}`; }
+  else { previewSrc = `/data/previews/${fileType}/${postId}.${result.assignedExt}` }
   
   await prisma.posts.update({
     where: { id: Number(postId) },

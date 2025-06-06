@@ -86,7 +86,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`relative w-full px-4 py-3 flex items-center justify-between ${
+      className={`relative w-full px-4 md:py-3 flex items-center justify-between ${
         fullscreen ? "bg-black/80 backdrop-blur sticky top-0 z-40 border-b border-zinc-800" : ""
       }`}
     >

@@ -16,3 +16,9 @@ export function resolveFileType(ext: string): FileType {
 
   return 'other';
 }
+
+export type PreviewFile = {
+  previewScale: number | null,
+  assignedExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif' | null,
+  // Just extensions that we encode previews to.
+}
