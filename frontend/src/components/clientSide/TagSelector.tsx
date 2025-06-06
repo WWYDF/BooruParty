@@ -79,11 +79,11 @@ export default function TagSelector({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      const max = Math.min(5, results.length);
+      const max = Math.min(20, results.length);
       setHighlightedIndex((prev) => (prev + 1) % max);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      const max = Math.min(5, results.length);
+      const max = Math.min(20, results.length);
       setHighlightedIndex((prev) => (prev - 1 + max) % max);
     } else if (e.key === "Enter" || (e.key === " " && highlightedIndex >= 0)) {
       e.preventDefault();
@@ -99,18 +99,21 @@ export default function TagSelector({
           r.aliases?.some((a) => a.alias.toLowerCase() === nameToMatch.toLowerCase())
       );
     
-      // Check if tag already selected (name or alias match)
-      const duplicate = disabledTags.find(
-        (tag) =>
-          tag.name.toLowerCase() === nameToMatch.toLowerCase() ||
-          tag.aliases?.some((a) => a.alias.toLowerCase() === nameToMatch.toLowerCase())
-      );
-    
-      if (
-        duplicate &&
-        results.length > 0 &&
-        results[0].name.toLowerCase() === nameToMatch.toLowerCase()
-      ) {
+      let duplicate: typeof disabledTags[number] | undefined;
+
+      if (highlightedIndex >= 0 && results[highlightedIndex]) {
+        const highlighted = results[highlightedIndex];
+        duplicate = disabledTags.find((tag) => tag.id === highlighted.id);
+      } else {
+        // Otherwise, check by name/alias
+        duplicate = disabledTags.find(
+          (tag) =>
+            tag.name.toLowerCase() === trimmed.toLowerCase() ||
+            tag.aliases?.some((a) => a.alias.toLowerCase() === trimmed.toLowerCase())
+        );
+      }
+
+      if ( duplicate && results.length >= 0  ) {
         // Only call duplicate if the thing typed directly is the one already added
         onDuplicateSelect?.(duplicate);
       } else if (highlightedIndex >= 0 && results[highlightedIndex]) {
