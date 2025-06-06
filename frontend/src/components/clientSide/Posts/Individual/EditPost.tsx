@@ -35,9 +35,8 @@ export default function EditPost({
   const [pools, setPools] = useState<number[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
-  const [featured, setFeatured] = useState(
-    !!post.specialPosts?.find((sp: any) => sp.label === "topWeek")
-  );
+  const [featured, setFeatured] = useState(!!post.specialPosts?.find((sp: any) => sp.label === "topWeek"));
+  const [highlightedTagId, setHighlightedTagId] = useState<number | null>(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -260,6 +259,10 @@ export default function EditPost({
           disabledTags={orderedTags}
           placeholder="Add tags..."
           addImpliedTags
+          onDuplicateSelect={(tag) => {
+            setHighlightedTagId(tag.id);
+            setTimeout(() => setHighlightedTagId(null), 2000);
+          }}
         />
       </div>
 
@@ -269,7 +272,9 @@ export default function EditPost({
           {uniqueTags.map((tag) => (
             <div
               key={tag.id}
-              className="flex items-center gap-2 border border-zinc-900 px-3 py-1.5 rounded-2xl w-fit"
+              className={`flex items-center gap-2 border border-zinc-900 px-3 py-1.5 rounded-2xl w-fit transition-all duration-500 ${
+                tag.id === highlightedTagId ? "ring-2 ring-darkerAccent/80 bg-accent/10" : ""
+              }`}
               style={{ color: tag.category?.color || "#fff" }}
             >
               <button

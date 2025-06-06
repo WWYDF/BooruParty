@@ -28,11 +28,13 @@ type TagSelectorProps = {
   allowNegation?: boolean;
   addImpliedTags?: boolean;
   blacklist?: string[];
+  onDuplicateSelect?: (tag: Tag) => void;
 };
 
 export default function TagSelector({
   onSelect,
   onEnter,
+  onDuplicateSelect,
   placeholder = "Type to search...",
   disabledTags = [],
   allowNegation = false,
@@ -111,7 +113,14 @@ export default function TagSelector({
           (r) => r.name.toLowerCase() === nameToMatch.toLowerCase()
         );
       
-        if (exactMatch) {
+        const duplicate = disabledTags.find(
+          (tag) => tag.name.toLowerCase() === nameToMatch.toLowerCase()
+        );
+        
+        if (duplicate) {
+          // toast("Tag already added", "error");
+          onDuplicateSelect?.(duplicate);
+        } else if (exactMatch) {
           handleSelect(exactMatch);
         } else if (onEnter) {
           onEnter(trimmed);
@@ -119,6 +128,8 @@ export default function TagSelector({
           tryCreateTag(nameToMatch);
         }
       }
+      setResults([]);
+      setHighlightedIndex(-1);
     } else if (e.key === "Escape") {
       setResults([]);
       setHighlightedIndex(-1);
