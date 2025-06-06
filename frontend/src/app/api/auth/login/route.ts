@@ -23,15 +23,12 @@ export async function POST(req: Request) {
   const token = await encode({
     token: {
       id: user.id.toString(),
-      username: user.username, // or whatever field holds the username
-      name: user.username,
-      email: user.email,
-      sub: user.id.toString(),
+      username: user.username,
     },
     secret: process.env.NEXTAUTH_SECRET!,
     maxAge: 24 * 60 * 60, // 24 hours
     // maxAge: 365 * 24 * 60 * 60, // 365 days
   });
 
-  return NextResponse.json({ jwt: token });
+  return NextResponse.json({ jwt: token, username: user.username });
 }

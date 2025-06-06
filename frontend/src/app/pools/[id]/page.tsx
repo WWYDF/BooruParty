@@ -54,7 +54,7 @@ export default async function PoolPage({ params }: { params: Promise<{ id: strin
       <meta name="description" content={desc} />
       <meta property="og:title" content={`'${pool.name}' | ${process.env.NEXT_PUBLIC_SITE_NAME}`} />
       <meta property="og:description" content={desc} />
-      <meta property="og:image" content={pool.items[0].post.previewPath} />
+      <meta property="og:image" content={pool?.items[0]?.post.previewPath ?? ''} />
       <ClientPoolPage pool={pool} />
     </main>
   )

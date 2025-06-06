@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
     await reportAudit(session.user.id, 'CREATE', 'TAG', ip, `Tag Name: ${name}, Category: ${setCategory}`);
 
-    return NextResponse.json(created);
+    return NextResponse.json({created}, { status: 201 });
   } catch (err) {
     console.error("[TAG_CREATE]", err);
     return NextResponse.json({ error: "Failed to create tag." }, { status: 500 });

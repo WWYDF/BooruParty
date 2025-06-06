@@ -136,7 +136,7 @@ export default function TagEditPage() {
             onChange={(e) => setCategoryId(Number(e.target.value))}
             className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
           >
-            <option value="">(none)</option>
+            <option value="" disabled >(none)</option>
             {categories
               .sort((a, b) => a.order - b.order)
               .map((cat) => (
