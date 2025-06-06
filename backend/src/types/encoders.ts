@@ -56,8 +56,8 @@ export const ENCODER_OPTIONS_MAP: Record<string, EncoderConfig> = {
   },
   vp9_qsv: {
     encoder: 'vp9_qsv',
-    preset: '4',
-    extraArgs: ['-b:v', '3M'],
+    preset: '3',
+    extraArgs: ['-b:v', '2M'],
     filters: 'hwupload=extra_hw_frames=64,scale_qsv=1280:-1',
     container: 'webm'
   },
