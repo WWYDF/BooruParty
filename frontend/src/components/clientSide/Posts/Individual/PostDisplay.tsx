@@ -60,10 +60,8 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
               src={showFull ? fullSrc : post.previewPath}
               alt={`Error accessing ${fullSrc}`}
               title="Click to enter fullscreen mode"
-              onClick={() => {
-                handleFullscreen(true);
-              }}
-              className="w-auto max-w-auto max-h-[70vh] h-auto object-contain rounded-xl cursor-pointer"
+              onClick={() => { handleFullscreen(true); }}
+              className="max-h-[70vh] h-[70vh] max-w-[90vh] w-auto object-contain rounded-xl cursor-pointer"
             />
           )}
         </motion.div>
