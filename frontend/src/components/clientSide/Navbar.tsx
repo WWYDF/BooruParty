@@ -242,7 +242,7 @@ export default function Navbar() {
                     Dashboard
                   </NavItem>
                 )}
-                {hasPerm('posts_view') && (
+                {hasPerm('post_view') && (
                   <NavItem href="/users" icon={<Users size={18} />} onClick={() => setSidebarOpen(false)}>
                     Users
                   </NavItem>
