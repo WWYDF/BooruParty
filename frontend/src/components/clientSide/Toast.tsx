@@ -24,19 +24,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <AnimatePresence>
         {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            transition={{ duration: 0.3 }}
-            className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl shadow-xl z-50
-              ${toast.type === 'success' ? 'bg-green-500' : ''}
-              ${toast.type === 'error' ? 'bg-red-500' : ''}
-              ${toast.type === 'info' ? 'bg-darkerAccent' : ''}
-            `}
-          >
-            {toast.message}
-          </motion.div>
+          <div className="fixed bottom-6 inset-x-0 z-50 flex justify-center pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              transition={{ duration: 0.3 }}
+              className={`px-4 py-2 rounded-xl shadow-xl pointer-events-auto
+                ${toast.type === 'success' ? 'bg-green-500' : ''}
+                ${toast.type === 'error' ? 'bg-red-500' : ''}
+                ${toast.type === 'info' ? 'bg-darkerAccent' : ''}
+              `}
+            >
+              {toast.message}
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </ToastContext.Provider>

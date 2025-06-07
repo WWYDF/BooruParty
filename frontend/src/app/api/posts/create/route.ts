@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
   }
 
   if (skipDupeParam) {
-    console.log(canCreateDupes)
     const authHeader = request.headers.get('X-Override'); // Allow internal server pages to access regardless.
     if (canCreateDupes == true || authHeader && authHeader == process.env.INTERNAL_API_SECRET) { skipDupes = true }
   }
