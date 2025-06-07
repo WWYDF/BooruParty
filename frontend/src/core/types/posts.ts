@@ -76,6 +76,7 @@ export type Post = {
   }[];
   _count: {
     favoritedBy: number;
+    tags: number;
   };
 }
 

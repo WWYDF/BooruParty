@@ -160,7 +160,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
           {/* Post info */}
           <div>
             <p className="flex items-baseline gap-1 text-xs">
-              <span className="text-white font-medium w-[80px]">Safety:</span>
+              <span className="text-white font-medium w-[80px]">Safety</span>
               <span
                 className={`font-semibold ${
                   post.safety === "SAFE"
@@ -176,33 +176,33 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
 
             {post.fileExt && (
               <p className="flex items-center gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">File Type:</span>
+                <span className="text-white font-medium w-[80px]">File Type</span>
                 {FILE_TYPE_LABELS[post.fileExt] ?? post.fileExt}
               </p>
             )}
 
             {typeof post.fileSize === "number" && (
               <p className="flex items-center gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">File Size:</span>
+                <span className="text-white font-medium w-[80px]">File Size</span>
                 {formatStorageFromBytes(post.fileSize ?? 0)}
               </p>
             )}
 
             <p className="flex items-center gap-1 text-xs text-subtle">
-              <span className="text-white font-medium w-[80px]">User Score:</span>
+              <span className="text-white font-medium w-[80px]">User Score</span>
               {post.score}
             </p>
 
             {typeof post._count?.favoritedBy === "number" && (
               <p className="flex items-center gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">Favorites:</span>
+                <span className="text-white font-medium w-[80px]">Favorites</span>
                 {post._count?.favoritedBy}
               </p>
             )}
 
             {post.sources.length > 0 && (
               <p className="flex items-start gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">Sources:</span>
+                <span className="text-white font-medium w-[80px]">Sources</span>
                 <span className="flex-1 text-xs">
                   {post.sources.map((src, i) => {
                     try {
@@ -233,7 +233,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
 
             {post.previewPath && (
               <p className="flex items-start gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">Search:</span>
+                <span className="text-white font-medium w-[80px]">Search</span>
                 <Link
                   href={`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(post.previewPath)}`}
                   target="_blank"
@@ -246,7 +246,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
             )}
 
             <p className="flex items-center gap-1 text-xs text-subtle">
-              <span className="text-white font-medium w-[80px]">Preview:</span>
+              <span className="text-white font-medium w-[80px]">Preview</span>
               <button
                 onClick={handleCopy}
                 className="text-accent hover:underline focus:outline-none"
@@ -260,7 +260,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
           {/* Related Posts */}
           {(post.relatedFrom.length > 0 || post.relatedTo.length > 0) && (
             <div className="mt-4">
-              <p className="text-white font-medium text-sm mb-1">Related Posts:</p>
+              <p className="text-white font-medium text-sm mb-1">Related Posts</p>
               <div className="flex flex-wrap gap-2">
                 {[
                   ...post.relatedFrom.map(r => r.to),
@@ -284,7 +284,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
           {/* Pools */}
           {post.pools.length > 0 && (
             <div className="mt-4">
-              <p className="text-white font-medium text-sm mb-1">Pools:</p>
+              <p className="text-white font-medium text-sm mb-1">Pools</p>
               <div className="flex flex-wrap gap-4">
                 {post.pools.map(({ poolId, pool }) => {
                   const cover = pool.items[0]?.post;
@@ -338,7 +338,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
           {/* Notes */}
           {post.notes && (
             <div className="mt-3">
-              <p className="text-white font-medium text-sm mb-1">Notes:</p>
+              <p className="text-white font-medium text-sm mb-1">Notes</p>
               <div className="bg-zinc-900/75 px-4 py-2 rounded border border-secondary-border text-sm whitespace-pre-wrap text-subtle mr-3">
                 {post.notes}
               </div>
@@ -348,53 +348,56 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
 
           {/* Tags */}
           {post.tags.length > 0 && (
-            <div className="flex flex-col gap-3">
-              {post.tags.map(group => (
-                <div key={group.category.name}>
-                  <p className="text-subtle text-sm mb-1">{group.category.name}</p>
-                  <div className="flex flex-col gap-2">
-                    {group.tags.map(tag => (
-                      <div
-                        key={tag.id}
-                        className="inline-flex items-center gap-1 border border-zinc-900 px-2 py-1 rounded-full w-fit"
-                        style={{ color: tag.category?.color || "#fff" }}
-                      >
-                        <button
-                          onClick={() => modifyQuery("add", tag.name)}
-                          className="hover:text-accent"
-                          title="Add tag to search"
+            <div className="mt-3">
+              <p className="text-white font-medium text-lg mb-2">Tags ({post._count.tags})</p>
+              <div className="flex flex-col gap-3">
+                {post.tags.map(group => (
+                  <div key={group.category.name}>
+                    <p className="text-subtle text-sm mb-1">{group.category.name}</p>
+                    <div className="flex flex-col gap-2">
+                      {group.tags.map(tag => (
+                        <div
+                          key={tag.id}
+                          className="inline-flex items-center gap-1 border border-zinc-900 px-2 py-1 rounded-full w-fit"
+                          style={{ color: tag.category?.color || "#fff" }}
                         >
-                          <Plus size={10} weight="bold" />
-                        </button>
+                          <button
+                            onClick={() => modifyQuery("add", tag.name)}
+                            className="hover:text-accent"
+                            title="Add tag to search"
+                          >
+                            <Plus size={10} weight="bold" />
+                          </button>
 
-                        <button
-                          onClick={() => modifyQuery("exclude", tag.name)}
-                          className="hover:text-accent"
-                          title="Exclude tag from search"
-                        >
-                          <Minus size={10} weight="bold" />
-                        </button>
+                          <button
+                            onClick={() => modifyQuery("exclude", tag.name)}
+                            className="hover:text-accent"
+                            title="Exclude tag from search"
+                          >
+                            <Minus size={10} weight="bold" />
+                          </button>
 
-                        <Link href={`/tags/${encodeURIComponent(tag.name)}`} title="Edit tag">
-                          <Tag size={14} />
-                        </Link>
+                          <Link href={`/tags/${encodeURIComponent(tag.name)}`} title="Edit tag">
+                            <Tag size={14} />
+                          </Link>
 
-                        <button
-                          onClick={() => modifyQuery("replace", tag.name)}
-                          className="hover:underline"
-                          title="Search only this tag"
-                        >
-                          {tag.name}
-                        </button>
+                          <button
+                            onClick={() => modifyQuery("replace", tag.name)}
+                            className="hover:underline"
+                            title="Search only this tag"
+                          >
+                            {tag.name}
+                          </button>
 
-                        <span className="text-subtle text-xs ml-1">
-                          {formatCounts(tag?._count?.posts ?? 0)}
-                        </span>
-                      </div>
-                    ))}
+                          <span className="text-subtle text-xs ml-1">
+                            {formatCounts(tag?._count?.posts ?? 0)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </>
