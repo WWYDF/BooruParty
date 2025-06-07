@@ -14,12 +14,14 @@ type TagSelectorProps = {
   addImpliedTags?: boolean;
   blacklist?: string[];
   onDuplicateSelect?: (tag: Tag) => void;
+  addPendingTagName?: (name: string) => void;
 };
 
 export default function TagSelector({
   onSelect,
   onEnter,
   onDuplicateSelect,
+  addPendingTagName,
   placeholder = "Type to search...",
   disabledTags = [],
   allowNegation = false,
@@ -115,6 +117,7 @@ export default function TagSelector({
 
       if ( duplicate && results.length >= 0  ) {
         // Only call duplicate if the thing typed directly is the one already added
+        setQuery("");
         onDuplicateSelect?.(duplicate);
       } else if (highlightedIndex >= 0 && results[highlightedIndex]) {
         handleSelect(results[highlightedIndex]);
@@ -123,7 +126,10 @@ export default function TagSelector({
       } else if (onEnter) {
         onEnter(trimmed);
       } else {
-        tryCreateTag(nameToMatch);
+        if (addPendingTagName) {
+          setQuery("");
+          addPendingTagName(nameToMatch);
+        }
       }
     
       setResults([]);
