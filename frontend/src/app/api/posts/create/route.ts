@@ -5,15 +5,22 @@ import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
 import { getConversionType, resolveFileType } from '@/core/dictionary';
 import { fetch, Agent, FormData } from 'undici';
 import { FastifyUpload } from '@/core/types/posts';
+import { checkPermissions } from '@/components/serverSide/permCheck';
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
 export async function POST(request: NextRequest) {
   const session = await auth();
 
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perms = await checkPermissions([
+    'post_create',
+    'post_create_dupes'
+  ]);
+
+  const canCreatePosts = perms['post_create'];
+  const canCreateDupes = perms['post_create_dupes'];
+
+  if (!session || !canCreatePosts) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
   const formData = await request.formData();
   const file = formData.get('file') as File;
@@ -26,8 +33,9 @@ export async function POST(request: NextRequest) {
   }
 
   if (skipDupeParam) {
+    console.log(canCreateDupes)
     const authHeader = request.headers.get('X-Override'); // Allow internal server pages to access regardless.
-    if (authHeader && authHeader == process.env.INTERNAL_API_SECRET) { skipDupes = true }
+    if (canCreateDupes == true || authHeader && authHeader == process.env.INTERNAL_API_SECRET) { skipDupes = true }
   }
 
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
@@ -44,7 +52,7 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const checkMatch = await checkFile(buffer, extension, fileType);
   if (checkMatch.status == true && skipDupes == false) {
-    return Response.json({ duplicate: true, postId: checkMatch.postId }, { status: 409 });
+    return Response.json({ duplicate: true, post: checkMatch.ogPost }, { status: 409 });
   }
 
   const anonymous = formData.get('anonymous') === 'true';
@@ -53,6 +61,7 @@ export async function POST(request: NextRequest) {
   const rawSource = formData.get("source") as string | null;
   const sources: string[] = rawSource ? JSON.parse(rawSource) : [];
   const notes = formData.get("notes") as string | null;
+  const relPostRaw = formData.get("relatedPosts") as string | null;
 
   const createdPost = await prisma.posts.create({
     data: {
@@ -69,6 +78,31 @@ export async function POST(request: NextRequest) {
   });
 
   const postId = createdPost.id;
+
+  // Handle relations if specified
+  if (relPostRaw) {
+    try {
+      const relIds: unknown = JSON.parse(relPostRaw);
+      if (!Array.isArray(relIds)) throw new Error("Expected array");
+  
+      const validIds = relIds
+        .map((id) => Number(id))
+        .filter((id) => !isNaN(id) && id !== postId);
+  
+      if (validIds.length > 0) {
+        await prisma.postRelation.createMany({
+          data: validIds.map((toId) => ({
+            fromId: postId,
+            toId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    } catch (e) {
+      console.error(`Error in adding post relation: ${e}`)
+      return NextResponse.json({ error: "Invalid relatedPosts format" }, { status: 400 });
+    }
+  }
 
   const fastifyFormData = new FormData();
   fastifyFormData.append('postId', postId.toString());

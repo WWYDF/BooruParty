@@ -170,6 +170,9 @@ export async function DELETE(req: NextRequest) {
 
   try {
     if (deletable.length > 0) {
+      // Unhook from pools first
+      await prisma.poolItems.deleteMany({ where: { postId: { in: deletable } } });
+
       await prisma.posts.deleteMany({ where: { id: { in: deletable } } });
 
       await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/posts`, {
