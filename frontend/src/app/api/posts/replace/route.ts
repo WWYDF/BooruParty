@@ -26,20 +26,21 @@ export async function POST(req: NextRequest) {
 
   if (!session || !canEditOwn && !canEditOthers) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
-  const originalPoster = await prisma.posts.findUnique({
+  const currentPost = await prisma.posts.findUnique({
     where: { id: parseInt(postId) },
     select: {
-      uploadedById: true
+      uploadedById: true,
+      dupeBypass: true
     },
   });
 
-  if (!originalPoster) {
+  if (!currentPost) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
   // Permissions Check (Self)
   if (!canEditOthers) {
-    if (originalPoster.uploadedById !== session.user.id) {
+    if (currentPost.uploadedById !== session.user.id) {
       return NextResponse.json({ error: "You are unauthorized to edit your own posts." }, { status: 403 });
     }
   }
@@ -53,9 +54,9 @@ export async function POST(req: NextRequest) {
   // run pHash duplicate detection
   const hashResult = await checkFile(buffer, extension, fileType);
 
-  // Optional: reject duplicates
-  if (hashResult.status === true && hashResult.postId != parseInt(postId)) {
-    return NextResponse.json({ error: `This image already exists in post #${hashResult.postId}!`, duplicate: true, postId: hashResult.postId }, { status: 409 });
+  // Reject duplicates by comparing result IDs
+  if (hashResult.status === true && hashResult.ogPost!.id != parseInt(postId) && currentPost.dupeBypass == false) {
+    return NextResponse.json({ error: `This image already exists in post #${hashResult.ogPost!.id}!`, duplicate: true, postId: hashResult.ogPost!.id }, { status: 409 });
   }
 
   // Forward to Fastify
@@ -73,7 +74,6 @@ export async function POST(req: NextRequest) {
   }
   
   const result = await fastifyResponse.json();
-  console.log(JSON.stringify(result, null, 1));
   if (result.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${conversionType}`; }
   else { previewSrc = `/data/previews/${fileType}/${postId}.${result.assignedExt}` }
   

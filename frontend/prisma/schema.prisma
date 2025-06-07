@@ -133,10 +133,11 @@ model Posts {
   flags         String[]
   previewScale  Int?
   pHash         String?
+  dupeBypass    Boolean             @default(false)
 
-  score         Int          @default(0)
-  votes         Votes[]      @relation("PostVotes")
-  comments      Comments[]   @relation("PostComments")
+  score         Int                 @default(0)
+  votes         Votes[]             @relation("PostVotes")
+  comments      Comments[]          @relation("PostComments")
   favoritedBy   UserFavorites[]
   specialPosts  SpecialPosts[]
   uploadedById  String

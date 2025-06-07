@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       notes,
       flags: [],
       pHash: checkMatch.genHash || null,
+      dupeBypass: skipDupes,
       fileSize: buffer.length,
     },
   });
