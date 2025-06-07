@@ -68,9 +68,14 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
     }
   };
 
-  const handleCopy = async () => {
+  const copyPreview = async () => {
     await navigator.clipboard.writeText(`${post.previewPath}`);
     toast("Copied Preview URL!", "success");
+  };
+
+  const copyEmbed = async () => {
+    await navigator.clipboard.writeText(`:${post.id}:`);
+    toast("Copied Post Embed!", "success");
   };
 
   return (
@@ -245,10 +250,21 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
               </p>
             )}
 
+            {/* < Click to copies > */}
             <p className="flex items-center gap-1 text-xs text-subtle">
               <span className="text-white font-medium w-[80px]">Preview</span>
               <button
-                onClick={handleCopy}
+                onClick={copyPreview}
+                className="text-accent hover:underline focus:outline-none"
+              >
+                Click to Copy
+              </button>
+            </p>
+
+            <p className="flex items-center gap-1 text-xs text-subtle">
+              <span className="text-white font-medium w-[80px]">Embed</span>
+              <button
+                onClick={copyEmbed}
                 className="text-accent hover:underline focus:outline-none"
               >
                 Click to Copy
