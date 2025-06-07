@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useToast } from "./Toast";
 import { Tag } from "@/core/types/tags";
 import { formatCounts } from "@/core/formats";
+import AddButton from "./AddButton";
 
 type TagSelectorProps = {
   onSelect: (tag: Tag, isNegated?: boolean, addImpliedTags?: boolean) => void;
-  onEnter?: (text: string) => void;
   placeholder?: string;
   disabledTags?: Tag[];
   allowNegation?: boolean;
@@ -19,7 +18,6 @@ type TagSelectorProps = {
 
 export default function TagSelector({
   onSelect,
-  onEnter,
   onDuplicateSelect,
   addPendingTagName,
   placeholder = "Type to search...",
@@ -33,7 +31,6 @@ export default function TagSelector({
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-  const toast = useToast();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -78,7 +75,54 @@ export default function TagSelector({
     };
   }, [query, disabledTags, allowNegation]);
 
+
+  const processTagInput = (rawInput: string, opts: { asButton?: boolean } = {}) => {
+    const trimmed = rawInput.trim();
+    if (!trimmed) return;
+  
+    const isNegated = allowNegation && trimmed.startsWith("-");
+    const nameToMatch = isNegated ? trimmed.slice(1) : trimmed;
+  
+    const exactMatch = results.find(
+      (r) =>
+        r.name.toLowerCase() === nameToMatch.toLowerCase() ||
+        r.aliases?.some((a) => a.alias.toLowerCase() === nameToMatch.toLowerCase())
+    );
+  
+    let duplicate: typeof disabledTags[number] | undefined;
+  
+    if (highlightedIndex >= 0 && results[highlightedIndex]) {
+      const highlighted = results[highlightedIndex];
+      duplicate = disabledTags.find((tag) => tag.id === highlighted.id);
+    } else {
+      duplicate = disabledTags.find(
+        (tag) =>
+          tag.name.toLowerCase() === trimmed.toLowerCase() ||
+          tag.aliases?.some((a) => a.alias.toLowerCase() === trimmed.toLowerCase())
+      );
+    }
+  
+    if (duplicate && results.length >= 0) {
+      setQuery("");
+      onDuplicateSelect?.(duplicate);
+    } else if (!opts.asButton && highlightedIndex >= 0 && results[highlightedIndex]) {
+      handleSelect(results[highlightedIndex]);
+    } else if (exactMatch) {
+      handleSelect(exactMatch);
+    } else {
+      if (addPendingTagName) {
+        setQuery("");
+        addPendingTagName(nameToMatch);
+      }
+    }
+  
+    setResults([]);
+    setHighlightedIndex(-1);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === " ") e.preventDefault();
+
     if (e.key === "ArrowDown") {
       e.preventDefault();
       const max = Math.min(20, results.length);
@@ -87,53 +131,9 @@ export default function TagSelector({
       e.preventDefault();
       const max = Math.min(20, results.length);
       setHighlightedIndex((prev) => (prev - 1 + max) % max);
-    } else if (e.key === "Enter" || (e.key === " " && highlightedIndex >= 0)) {
+    } else if (query !== "" && (e.key === "Enter" || (e.key === " " && highlightedIndex <= 0))) {
       e.preventDefault();
-    
-      const trimmed = query.trim();
-      const isNegated = allowNegation && trimmed.startsWith("-");
-      const nameToMatch = isNegated ? trimmed.slice(1) : trimmed;
-    
-      // Check for exact match in results (by name or alias)
-      const exactMatch = results.find(
-        (r) =>
-          r.name.toLowerCase() === nameToMatch.toLowerCase() ||
-          r.aliases?.some((a) => a.alias.toLowerCase() === nameToMatch.toLowerCase())
-      );
-    
-      let duplicate: typeof disabledTags[number] | undefined;
-
-      if (highlightedIndex >= 0 && results[highlightedIndex]) {
-        const highlighted = results[highlightedIndex];
-        duplicate = disabledTags.find((tag) => tag.id === highlighted.id);
-      } else {
-        // Otherwise, check by name/alias
-        duplicate = disabledTags.find(
-          (tag) =>
-            tag.name.toLowerCase() === trimmed.toLowerCase() ||
-            tag.aliases?.some((a) => a.alias.toLowerCase() === trimmed.toLowerCase())
-        );
-      }
-
-      if ( duplicate && results.length >= 0  ) {
-        // Only call duplicate if the thing typed directly is the one already added
-        setQuery("");
-        onDuplicateSelect?.(duplicate);
-      } else if (highlightedIndex >= 0 && results[highlightedIndex]) {
-        handleSelect(results[highlightedIndex]);
-      } else if (exactMatch) {
-        handleSelect(exactMatch);
-      // } else if (onEnter) {
-      //   onEnter(trimmed);
-      } else {
-        if (addPendingTagName) {
-          setQuery("");
-          addPendingTagName(nameToMatch);
-        }
-      }
-    
-      setResults([]);
-      setHighlightedIndex(-1);
+      processTagInput(query);
     } else if (e.key === "Escape") {
       setResults([]);
       setHighlightedIndex(-1);
@@ -159,43 +159,24 @@ export default function TagSelector({
     handleSelect(tag);
   };
 
-  const tryCreateTag = async (name: string) => {
-    try {
-      const res = await fetch("/api/tags/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-  
-      if (res.status === 403) {
-        toast("You don't have permission to create tags.", "error");
-        return;
-      }
-  
-      if (!res.ok) {
-        toast("Failed to create tag.", "error");
-        return;
-      }
-  
-      const created: Tag = await res.json();
-      handleSelect(created);
-    } catch {
-      toast("Failed to create tag.", "error");
-    }
-  };
-  
-
   return (
     <div className="relative w-full">
-      <input
-        type="text"
-        ref={inputRef}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={handleKeyPress}
-        placeholder={placeholder}
-        className="w-full bg-secondary border border-secondary-border p-2 rounded text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-      />
+      <div className="flex w-full gap-2 items-center">
+        <input
+          type="text"
+          ref={inputRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyPress}
+          placeholder={placeholder}
+          className="w-full text-base bg-secondary border border-secondary-border p-2 rounded text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
+        />
+
+        <AddButton
+          onAdd={() => processTagInput(query, { asButton: true })}
+          className="md:hidden"
+        />
+      </div>
 
       {results.length > 0 && (
         <div className="absolute mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-10 max-h-80 overflow-y-auto">
