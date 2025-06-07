@@ -31,6 +31,7 @@ export async function GET(req: Request, context: { params: Promise<{ name: strin
           category: true,
         }
       },
+      _count: { select: { posts: true } },
     },
   });
 
@@ -59,6 +60,7 @@ export async function GET(req: Request, context: { params: Promise<{ name: strin
                 category: true,
               }
             },
+            _count: { select: { posts: true } },
           },
         },
       },
