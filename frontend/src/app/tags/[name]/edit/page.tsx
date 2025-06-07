@@ -4,14 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import TagSelector from "@/components/clientSide/TagSelector";
 import { useToast } from "@/components/clientSide/Toast";
-import { Tag } from "@/core/types/tags";
+import { Tag, TagCategory } from "@/core/types/tags";
 
-type Category = {
-  id: number;
-  name: string;
-  color: string;
-  order: number;
-};
 
 export default function TagEditPage() {
   const { name } = useParams<{ name: string }>();
@@ -22,7 +16,9 @@ export default function TagEditPage() {
   const [implications, setImplications] = useState<Tag[]>([]);
   const [suggestions, setSuggestions] = useState<Tag[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<TagCategory[]>([]);
+  const [pendingImplicationNames, setPendingImplicationNames] = useState<string[]>([]);
+  const [pendingSuggestionNames, setPendingSuggestionNames] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   const router = useRouter()
@@ -47,7 +43,7 @@ export default function TagEditPage() {
   useEffect(() => {
     fetch("/api/tag-categories")
       .then((res) => res.json())
-      .then((data: Category[]) => setCategories(data))
+      .then((data: TagCategory[]) => setCategories(data))
       .catch((err) => console.error("Failed to load categories", err));
   }, []);
 
@@ -61,6 +57,42 @@ export default function TagEditPage() {
     setSaving(true);
   
     try {
+      // Step 1: combine + dedupe pending names
+      const toCreate = Array.from(new Set([
+        ...pendingImplicationNames.map((n) => n.toLowerCase()),
+        ...pendingSuggestionNames.map((n) => n.toLowerCase()),
+      ]));
+  
+      const createdTags: Tag[] = [];
+  
+      // Step 2: create each tag sequentially
+      for (const name of toCreate) {
+        const res = await fetch("/api/tags/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, categoryId: categoryId ?? categories[0].id }),
+        });
+  
+        const data = await res.json();
+        if (res.ok && data?.created) {
+          createdTags.push(data.created);
+        } else {
+          toast(`Failed to create tag "${name}"`, "error");
+        }
+      }
+  
+      // Step 3: build resolved implication/suggestion arrays
+      const updatedImplications = implications.map((i) => {
+        const found = createdTags.find((t) => t.name.toLowerCase() === i.name.toLowerCase());
+        return found?.id ?? i.id;
+      });
+  
+      const updatedSuggestions = suggestions.map((s) => {
+        const found = createdTags.find((t) => t.name.toLowerCase() === s.name.toLowerCase());
+        return found?.id ?? s.id;
+      });
+  
+      // Step 4: submit final tag patch
       const res = await fetch(`/api/tags/${encodeURIComponent(tag.name)}`, {
         method: "PATCH",
         headers: {
@@ -71,8 +103,8 @@ export default function TagEditPage() {
           aliases: names.slice(1),
           description: description.trim() || null,
           categoryId: categoryId ?? null,
-          implications: implications.map((i) => i.id),
-          suggestions: suggestions.map((s) => s.id),
+          implications: updatedImplications,
+          suggestions: updatedSuggestions,
         }),
       });
   
@@ -88,6 +120,27 @@ export default function TagEditPage() {
       toast("Failed to save changes.", "error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTagSelect = (tag: Tag, type: "implication" | "suggestion") => {
+    console.log(tag)
+    const [list, setList, pendingNames, setPending] =
+      type === "implication"
+        ? [implications, setImplications, pendingImplicationNames, setPendingImplicationNames]
+        : [suggestions, setSuggestions, pendingSuggestionNames, setPendingSuggestionNames];
+  
+    const lowerName = tag.name.toLowerCase();
+  
+    const alreadyInList = list.some(
+      (t) => t.id === tag.id || t.name.toLowerCase() === lowerName
+    );
+    if (alreadyInList) return;
+  
+    setList((prev) => [tag, ...prev]);
+  
+    if (tag.id < 0 && !pendingNames.includes(lowerName)) {
+      setPending([...pendingNames, lowerName]);
     }
   };
 
@@ -151,22 +204,36 @@ export default function TagEditPage() {
         <div>
           <label className="text-zinc-600 text-sm">Implications</label>
           <TagSelector
-            onSelect={(tag) => {
-              if (!implications.some((t) => t.id === tag.id)) {
-                setImplications((prev) => [...prev, tag]);
-              }
-            }}
-            placeholder="Add an implication..."
+            onSelect={(tag) => handleTagSelect(tag, "implication")}
             disabledTags={implications}
+            addPendingTagName={(name) => {
+              const normalized = name.toLowerCase();
+              if (pendingImplicationNames.includes(normalized)) return;
+
+              const fakeTag: Tag = {
+                id: -(pendingImplicationNames.length + 1),
+                name,
+                aliases: [],
+                description: null,
+                category: categories.find((c) => c.isDefault)!,
+                _count: { posts: 0 },
+              };
+
+              setPendingImplicationNames((prev) => [...prev, normalized]);
+              setImplications((prev) => [fakeTag, ...prev]);
+            }}
           />
           <div className="mt-2 flex flex-wrap gap-2">
             {implications.map((imp) => (
               <div
                 key={imp.id}
-                className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                className={`flex items-center border px-2 py-1 rounded text-zinc-100 text-sm
+                  ${imp.id < 0 ? "border-zinc-800 bg-zinc-900" : "border-secondary-border"}
+                  bg-secondary
+                `}
               >
                 <a
-                  href={`/tag/${encodeURIComponent(imp.name)}`}
+                  href={`/tags/${encodeURIComponent(imp.name)}`}
                   className="hover:underline"
                   style={{ color: imp.category.color }}
                 >
@@ -190,22 +257,36 @@ export default function TagEditPage() {
         <div>
           <label className="text-zinc-600 text-sm">Suggestions</label>
           <TagSelector
-            onSelect={(tag) => {
-              if (!suggestions.some((t) => t.id === tag.id)) {
-                setSuggestions((prev) => [...prev, tag]);
-              }
-            }}
-            placeholder="Add a suggestion..."
+            onSelect={(tag) => handleTagSelect(tag, "suggestion")}
             disabledTags={suggestions}
+            addPendingTagName={(name) => {
+              const normalized = name.toLowerCase();
+              if (pendingSuggestionNames.includes(normalized)) return;
+
+              const fakeTag: Tag = {
+                id: -(pendingSuggestionNames.length + 1),
+                name,
+                aliases: [],
+                description: null,
+                category: categories.find((c) => c.isDefault)!,
+                _count: { posts: 0 },
+              };
+
+              setPendingSuggestionNames((prev) => [...prev, normalized]);
+              setSuggestions((prev) => [fakeTag, ...prev]);
+            }}
           />
           <div className="mt-2 flex flex-wrap gap-2">
             {suggestions.map((sugg) => (
               <div
                 key={sugg.id}
-                className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-800"
+                className={`flex items-center border px-2 py-1 rounded text-zinc-100 text-sm
+                  ${sugg.id < 0 ? "border-zinc-800 bg-zinc-900" : "border-secondary-border"}
+                  bg-secondary
+                `}
               >
                 <a
-                  href={`/tag/${encodeURIComponent(sugg.name)}`}
+                  href={`/tags/${encodeURIComponent(sugg.name)}`}
                   className="hover:underline"
                   style={{ color: sugg.category.color }}
                 >

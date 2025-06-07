@@ -78,7 +78,7 @@ export default function TagSelector({
     };
   }, [query, disabledTags, allowNegation]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       const max = Math.min(20, results.length);
@@ -123,8 +123,8 @@ export default function TagSelector({
         handleSelect(results[highlightedIndex]);
       } else if (exactMatch) {
         handleSelect(exactMatch);
-      } else if (onEnter) {
-        onEnter(trimmed);
+      // } else if (onEnter) {
+      //   onEnter(trimmed);
       } else {
         if (addPendingTagName) {
           setQuery("");
@@ -192,7 +192,7 @@ export default function TagSelector({
         ref={inputRef}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={handleKeyDown}
+        onKeyDown={handleKeyPress}
         placeholder={placeholder}
         className="w-full bg-secondary border border-secondary-border p-2 rounded text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
       />
