@@ -34,6 +34,8 @@ export default function TagSelector({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const lastFetchId = useRef(0);
+
   useEffect(() => {
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
@@ -48,11 +50,14 @@ export default function TagSelector({
     }
 
     debounceTimeout.current = setTimeout(() => {
+      const fetchId = ++lastFetchId.current;
       setIsSearching(true);
 
       fetch(`/api/tags/autocomplete?query=${encodeURIComponent(cleanQuery)}`)
         .then((res) => res.json())
         .then((data: Tag[]) => {
+          if (fetchId !== lastFetchId.current) return; // stale fetch, ignore
+
           const filtered = data.filter(
             (tag) =>
               !disabledTags.some((disabled) => disabled.id === tag.id) &&
@@ -62,10 +67,15 @@ export default function TagSelector({
           setHighlightedIndex(-1);
         })
         .catch(() => {
+          if (fetchId !== lastFetchId.current) return; // stale fetch, ignore
           setResults([]);
           setHighlightedIndex(-1);
         })
-        .finally(() => setIsSearching(false));
+        .finally(() => {
+          if (fetchId === lastFetchId.current) {
+            setIsSearching(false);
+          }
+        });
     }, 100);
 
     return () => {
