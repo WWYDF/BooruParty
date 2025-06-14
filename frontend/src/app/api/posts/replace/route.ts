@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
 
   const extension = file.name.split(".").pop()?.toLowerCase() || "";
   const fileType = resolveFileType(`.${extension}`);
-  const conversionType = getConversionType(extension);
   let previewSrc;
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -74,7 +73,7 @@ export async function POST(req: NextRequest) {
   }
   
   const result = await fastifyResponse.json();
-  if (result.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${conversionType}`; }
+  if (result.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
   else { previewSrc = `/data/previews/${fileType}/${postId}.${result.assignedExt}` }
   
   await prisma.posts.update({
