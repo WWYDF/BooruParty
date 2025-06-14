@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
   
   const conversionType = getConversionType(extension);
   let previewSrc;
-  if (fastifyResult.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${conversionType}`; }
+  if (fastifyResult.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
   else { previewSrc = `/data/previews/${fileType}/${postId}.${fastifyResult.assignedExt}` }
 
   // Mass Tagger on Upload
