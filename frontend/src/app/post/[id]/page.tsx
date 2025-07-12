@@ -35,10 +35,16 @@ async function fetchPostData(postId: string) {
 
 async function fetchComments(postId: string): Promise<Comments[]> {
   const cookieStore = cookies();
-  const token = (await cookieStore).get("next-auth.session-token")?.value ??
-                (await cookieStore).get("__Secure-next-auth.session-token")?.value;
+  const secure = (await cookieStore).get("__Secure-next-auth.session-token")?.value;
+  const fallback = (await cookieStore).get("next-auth.session-token")?.value;
 
-  const cookieHeader = token ? `next-auth.session-token=${token}` : "";
+  let cookieHeader = "";
+
+  if (secure) {
+    cookieHeader = `__Secure-next-auth.session-token=${secure}`;
+  } else if (fallback) {
+    cookieHeader = `next-auth.session-token=${fallback}`;
+  }
 
   const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/comments?postId=${postId}`, {
     cache: "no-store",

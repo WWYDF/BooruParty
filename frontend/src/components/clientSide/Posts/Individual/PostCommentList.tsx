@@ -174,9 +174,6 @@ export default function PostCommentList({
   const [showConfirm, setShowConfirm] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
 
-  console.log(`Voting: ${canVoteOnComments}`)
-
-
   useEffect(() => {
     if (referencedPostIds.length === 0) return;
   

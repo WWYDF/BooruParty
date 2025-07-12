@@ -127,7 +127,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 100)}
           placeholder="Search by tags (example: cat -dog)"
-          className="w-full bg-secondary text-white py-2 text-sm focus:outline-none"
+          className="w-full bg-secondary text-white py-2 text-base focus:outline-none"
         />
 
         <button
