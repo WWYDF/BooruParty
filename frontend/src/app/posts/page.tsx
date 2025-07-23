@@ -5,6 +5,7 @@ import BackToTop from "@/components/clientSide/BackToTop";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { Metadata } from "next";
 import { Posts } from "@/core/types/posts";
+import { cookies } from "next/headers";
 
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
 const totalPosts = await prisma.posts.count();
@@ -58,47 +59,61 @@ export default async function PostsPage() {
     }
   }
 
-  const initialPosts: Posts[] = await prisma.posts.findMany({
-    orderBy: { createdAt: "desc" },
-    take: postsPerPage,
-    select: {
-      id: true,
-      fileExt: true,
-      safety: true,
-      uploadedBy: {
-        select: {
-          id: true,
-          username: true
-        }
-      },
-      anonymous: true,
-      flags: true,
-      score: true,
-      createdAt: true,
-      _count: {
-        select: {
-          favoritedBy: true,
-          comments: true,
-          votes: true
-        }
-      },
-      relatedFrom: {
-        select: {
-          toId: true
-        }
-      },
-      pools: {
-        select: {
-          poolId: true
-        }
-      },
-      tags: {
-        include: {
-          category: true,
-        }
-      }
-    }
+  // const initialPosts: Posts[] = await prisma.posts.findMany({
+  //   orderBy: { createdAt: "desc" },
+  //   take: postsPerPage,
+  //   select: {
+  //     id: true,
+  //     fileExt: true,
+  //     safety: true,
+  //     uploadedBy: {
+  //       select: {
+  //         id: true,
+  //         username: true
+  //       }
+  //     },
+  //     anonymous: true,
+  //     flags: true,
+  //     score: true,
+  //     createdAt: true,
+  //     _count: {
+  //       select: {
+  //         favoritedBy: true,
+  //         comments: true,
+  //         votes: true
+  //       }
+  //     },
+  //     relatedFrom: {
+  //       select: {
+  //         toId: true
+  //       }
+  //     },
+  //     pools: {
+  //       select: {
+  //         poolId: true
+  //       }
+  //     },
+  //     tags: {
+  //       include: {
+  //         category: true,
+  //       }
+  //     }
+  //   }
+  // });
+
+  const cookieStore = cookies();
+  const token =
+    (await cookieStore).get('__Secure-next-auth.session-token')?.value ??
+    (await cookieStore).get('next-auth.session-token')?.value;
+
+  const res = await fetch(`${process.env.NEXTAUTH_URL}/api/posts`, {
+    headers: {
+      Cookie: `${token ? `__Secure-next-auth.session-token=${token}` : ''}`,
+    },
+    cache: 'no-store',
   });
+
+  const initialPosts: Posts[] = (await res.json()).posts;
 
   return (
     <main className="p-4 space-y-4">

@@ -95,6 +95,7 @@ export default function PostGrid({
   
         return (
           <Wrapper
+            key={`${post.id}-${index}-${viewMode}`}
             {...(shouldAnimate && {
               initial: { opacity: 0, y: 20 },
               animate: { opacity: 1, y: 0 },
@@ -102,7 +103,6 @@ export default function PostGrid({
             })}
           >
             <PostCard
-              key={`${post.id}-${index}`}
               post={post}
               viewMode={viewMode}
               selectionMode={selectionMode}
