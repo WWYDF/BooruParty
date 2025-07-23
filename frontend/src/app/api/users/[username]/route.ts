@@ -16,6 +16,9 @@ const updateUserSchema = z.object({
   theme: z.enum(['DARK', 'LIGHT']).optional(),
   postsPerPage: z.number().default(30),
   avatar: z.string().url().optional(),
+  blurUnsafeEmbeds: z.boolean().optional(),
+  defaultSafety: z.array(z.enum(['SAFE', 'SKETCHY', 'UNSAFE'])).optional(),
+  blacklistedTags: z.array(z.number()).optional(),
 });
 
 // Returns non-sensitive information on the user
@@ -39,6 +42,13 @@ export async function GET(
           layout: true,
           theme: true,
           postsPerPage: true,
+          blurUnsafeEmbeds: true,
+          defaultSafety: true,
+          blacklistedTags: {
+            include: {
+              category: true
+            }
+          }
         }
       },
       _count: {
@@ -140,7 +150,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
     );
   }
 
-  const { username, email, description, password, layout, theme, postsPerPage } = parsed.data;
+  const { username, email, description, password, layout, theme, postsPerPage, blurUnsafeEmbeds, defaultSafety, blacklistedTags } = parsed.data;
 
   const updates: any = {};
   if (username) updates.username = username;
@@ -152,6 +162,13 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
   if (layout) prefUpdates.layout = layout;
   if (theme) prefUpdates.theme = theme;
   if (postsPerPage) prefUpdates.postsPerPage = postsPerPage;
+  if (typeof blurUnsafeEmbeds !== 'undefined') { prefUpdates.blurUnsafeEmbeds = blurUnsafeEmbeds };
+  if (defaultSafety) prefUpdates.defaultSafety = defaultSafety;
+  if (blacklistedTags) {
+    prefUpdates.blacklistedTags = {
+      set: blacklistedTags.map((id) => ({ id }))
+    };
+  }
 
   try {
     const current = await prisma.user.findUnique({
@@ -164,15 +181,35 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
       data: {
         ...updates,
         preferences: Object.keys(prefUpdates).length
-          ? {
-              upsert: {
-                update: prefUpdates,
-                create: prefUpdates,
+        ? {
+            upsert: {
+              update: {
+                ...prefUpdates,
+                blacklistedTags: undefined, // we handle this after
               },
-            }
-          : undefined,
+              create: {
+                ...prefUpdates,
+                blacklistedTags: undefined,
+              },
+            },
+          }
+        : undefined,
       },
+      include: { preferences: true }
     });
+
+    if (blacklistedTags) {
+      await prisma.userPreferences.update({
+        where: { id: targetUser.id },
+        data: {
+          blacklistedTags: {
+            set: blacklistedTags.map((id) => ({ id })),
+          },
+        },
+      });
+    }
+
+    const getNew = await prisma.user.findFirst({ where: { id: targetUser.id }, include: { preferences: { include: { blacklistedTags: { include: { category: true }} } } } });
 
     if (current?.username !== update.username) {
       const forwarded = req.headers.get('x-forwarded-for');
@@ -180,7 +217,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
       await reportAudit(session.user.id, 'UPDATE', 'PROFILE', ip, `Username Change: (${current!.username}) -> (${update.username})`);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, profile: getNew!.preferences });
   } catch (err: any) {
     if (err.code === 'P2002') {
       return NextResponse.json(

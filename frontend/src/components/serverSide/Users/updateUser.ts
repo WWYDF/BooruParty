@@ -1,3 +1,5 @@
+import { SafetyType } from "@prisma/client";
+
 export async function updateUser(
   username: string,
   data: Partial<{
@@ -9,6 +11,9 @@ export async function updateUser(
     theme: 'DARK' | 'LIGHT';
     postsPerPage: number;
     avatar: string;
+    blurUnsafeEmbeds: boolean,
+    defaultSafety: SafetyType[],
+    blacklistedTags: number[]
   }>
 ) {
 

@@ -14,7 +14,7 @@ export default function ProfileSettingsClient({ user, impersonating }: {
 }) {
   return (
     <motion.div
-      className="max-w-6xl mx-auto p-6"
+      className="max-w-[90%] mx-auto p-6"
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}

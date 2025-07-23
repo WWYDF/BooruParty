@@ -49,7 +49,7 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
         const target = poolId
           ? `/post/${post.id}?pool=${poolId}`
           : `/post/${post.id}`;
-        router.push(target);
+        router.replace(target);
       }
     };
   
@@ -124,7 +124,7 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
           <div className="2xl:hidden bottom-0 w-full bg-black/90 backdrop-blur-sm z-50 border-t border-zinc-800 px-4 py-3">
             <button
               onClick={() =>
-                router.push(poolId
+                router.replace(poolId
                   ? `/post/${post.id}?pool=${poolId}`
                   : `/post/${post.id}`)
               }

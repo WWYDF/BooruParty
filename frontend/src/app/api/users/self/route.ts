@@ -43,6 +43,13 @@ export async function GET() {
           layout: true,
           theme: true,
           postsPerPage: true,
+          blurUnsafeEmbeds: true,
+          defaultSafety: true,
+          blacklistedTags: {
+            include: {
+              category: true
+            }
+          }
         }
       },
       role: {

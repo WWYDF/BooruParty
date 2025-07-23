@@ -66,12 +66,16 @@ model User {
 }
 
 model UserPreferences {
-  id            String       @id
-  user          User         @relation(fields: [id], references: [id], onDelete: Cascade)
+  id                  String          @id
+  user                User            @relation(fields: [id], references: [id], onDelete: Cascade)
   
-  layout        LayoutType   @default(GRID)
-  theme         ThemeType    @default(DARK)
-  postsPerPage  Int          @default(50)
+  layout              LayoutType      @default(GRID)
+  theme               ThemeType       @default(DARK)
+  postsPerPage        Int             @default(50)
+  blurUnsafeEmbeds    Boolean         @default(true)        // Change if NSFW site
+  defaultSafety       SafetyType[]    @default([SAFE])      // Change if NSFW site
+
+  blacklistedTags     Tags[]          @relation("UserBLTags")
 }
 
 model UserFavorites {
@@ -184,23 +188,25 @@ model CommentVotes {
 
 
 model Tags {
-  id             Int            @id @default(autoincrement())
-  name           String         @unique
+  id             Int                @id @default(autoincrement())
+  name           String             @unique
   description    String?
   
   categoryId     Int
-  category       TagCategories  @relation(fields: [categoryId], references: [id])
+  category       TagCategories      @relation(fields: [categoryId], references: [id])
   
   aliases        TagAlias[]
-  posts          Posts[]         @relation("PostTags")
+  posts          Posts[]            @relation("PostTags")
 
-  implications   Tags[]        @relation("TagImplies")
-  impliedBy      Tags[]        @relation("TagImplies")
+  implications   Tags[]             @relation("TagImplies")
+  impliedBy      Tags[]             @relation("TagImplies")
 
-  suggestions    Tags[]        @relation("TagSuggestions")
-  suggestedBy    Tags[]        @relation("TagSuggestions")
+  suggestions    Tags[]             @relation("TagSuggestions")
+  suggestedBy    Tags[]             @relation("TagSuggestions")
 
-  createdAt      DateTime      @default(now())
+  blacklistBy    UserPreferences[]  @relation("UserBLTags")
+
+  createdAt      DateTime           @default(now())
 }
 
 model TagAlias {
