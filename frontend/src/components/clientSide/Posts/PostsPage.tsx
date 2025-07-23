@@ -8,14 +8,14 @@ import MassEditor from "./MassEditor";
 import PostToolbar from "./PostToolbar";
 import { UserPublic } from "@/core/types/users";
 
-export default function ClientPostsPage({ initialPosts, postsPerPage }: { initialPosts: any[]; postsPerPage: number; }) {
+export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number; }) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const initialQuery = searchParams.get("query") ?? "";
   const initialSafeties = searchParams.get("safety")?.split("-").filter(Boolean) ?? [];
 
-  const [posts, setPosts] = useState(initialPosts);
+  const [posts, setPosts] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"GRID" | "COLLAGE">("GRID");
   const [loadingViewMode, setLoadingViewMode] = useState(true);
   const [selectedSafeties, setSelectedSafeties] = useState<string[]>(initialSafeties);
@@ -38,6 +38,16 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
       const data: UserPublic = await res.json();
       if (data?.preferences?.layout) setViewMode(data.preferences?.layout);
       setLoadingViewMode(false);
+
+      // // Auto-fill selectedSafeties with defaultSafety preference (Shows them as selected in toolbar)
+      // if (
+      //   (!searchParams.get("safety") || searchParams.get("safety") === "") &&
+      //   Array.isArray(data.preferences?.defaultSafety)
+      // ) {
+      //   setSelectedSafeties(data.preferences.defaultSafety);
+      // }
+
+      searchPosts();
     });
   }, []);
 
@@ -102,22 +112,14 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
     }
   };
 
-  // 🔁 Run initial search on first mount if URL had params
+  // Run initial search on first mount if URL had params
   useEffect(() => {
     if (isFirstLoad.current) {
-      const hasQuery = !!initialQuery.trim();
-      const hasSafety = initialSafeties.length > 0;
-  
-      if (hasQuery || hasSafety) {
-        searchPosts(initialQuery, initialSafeties);
-      } else {
-        // No filters in URL → clear localStorage
-        localStorage.removeItem("lastSearchParams");
-      }
-  
+      const safeties = selectedSafeties.length > 0 ? selectedSafeties : initialSafeties;
+      searchPosts(initialQuery, safeties);
       isFirstLoad.current = false;
     }
-  }, []);
+  }, [selectedSafeties]);
 
   // 🌀 Infinite scroll
   useEffect(() => {

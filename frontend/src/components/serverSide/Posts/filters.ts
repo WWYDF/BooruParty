@@ -3,7 +3,7 @@ import { FILE_TYPE_MAP } from "@/core/dictionary";
 import { SafetyType } from "@prisma/client";
 import { parseSearch } from "./parseSearch";
 
-export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: "new" | "old" = "new") {
+export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: "new" | "old" = "new", tagBlacklist?: string[]) {
   const { includeTags, excludeTags, includeTypes, excludeTypes, systemOptions } = parseSearch(rawQuery);
 
   const where: any = { AND: [] };
@@ -13,6 +13,14 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
   // Tags
   includeTags.forEach(tag => where.AND.push({ tags: { some: { name: tag } } }));
   excludeTags.forEach(tag => where.AND.push({ tags: { none: { name: tag } } }));
+
+  if (tagBlacklist?.length) {
+    const cleanedBlacklist = tagBlacklist?.filter(tag => !excludeTags.includes(tag)) ?? [];
+
+    cleanedBlacklist.forEach(tag => {
+      where.AND.push({ tags: { none: { name: { equals: tag, mode: "insensitive" } } } });
+    });
+  }
 
   // Uploader
   if (systemOptions.posts) {

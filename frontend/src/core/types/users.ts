@@ -39,6 +39,9 @@ export type UserPublic = {
     layout: 'GRID' | 'COLLAGE',
     theme: 'DARK' | 'LIGHT',
     postsPerPage: number,
+    blurUnsafeEmbeds: boolean,
+    defaultSafety: SafetyType[],
+    blacklistedTags: Tag[]
   },
   _count: {
     posts: number,

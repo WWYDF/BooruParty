@@ -101,24 +101,9 @@ export default async function PostsPage() {
   //   }
   // });
 
-  const cookieStore = cookies();
-  const token =
-    (await cookieStore).get('__Secure-next-auth.session-token')?.value ??
-    (await cookieStore).get('next-auth.session-token')?.value;
-
-  const res = await fetch(`${process.env.NEXTAUTH_URL}/api/posts`, {
-    headers: {
-      Cookie: `${token ? `__Secure-next-auth.session-token=${token}` : ''}`,
-    },
-    cache: 'no-store',
-  });
-
-  const initialPosts: Posts[] = (await res.json()).posts;
-
   return (
     <main className="p-4 space-y-4">
       <ClientPostsPage
-        initialPosts={initialPosts}
         postsPerPage={postsPerPage} // Pass it to client
       />
       <BackToTop />

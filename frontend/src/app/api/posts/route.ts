@@ -8,7 +8,37 @@ import { parseSearch } from "@/components/serverSide/Posts/parseSearch";
 
 // Fetch all posts with optional tags, sorting, etc.
 export async function GET(req: Request) {
+  const session = await auth();
   const { searchParams } = new URL(req.url);
+  let userSafety: string[] = [];
+  let userBlacklist: string[] = [];
+
+  // try {
+  //   let permCheck = (await checkPermissions(['post_view']))['post_view'];
+
+  //   const authHeader = req.headers.get('X-Override'); // Allow internal server pages to access regardless.
+  //   if (authHeader && authHeader == process.env.INTERNAL_API_SECRET) { permCheck = true }
+
+  //   if (!permCheck || !session) { return NextResponse.json({ error: "You are unauthorized to view posts." }, { status: 401 }); }
+  // } catch (error) {
+  //   NextResponse.json({ error }, { status: 500 });
+  // }
+
+  try {
+    if (session?.user) {
+      const userPrefs = await prisma.userPreferences.findUnique({
+        where: { id: session.user.id },
+        include: { blacklistedTags: { include: { category: true } } },
+      });
+
+      if (userPrefs) {
+        userSafety = userPrefs.defaultSafety as string[];
+        userBlacklist = userPrefs.blacklistedTags.map(tag => tag.name.toLowerCase());
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
 
   const search = searchParams.get("query") || "";
   const page = parseInt(searchParams.get("page") || "1");
@@ -16,8 +46,8 @@ export async function GET(req: Request) {
   const safetyValues = searchParams.getAll("safety");
   const sort = (searchParams.get("sort") ?? "new") as "new" | "old";
 
-  const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(search, safetyValues.join("-"), sort);
-  const postSelect = {
+  const effectiveSafety = safetyValues.length > 0 ? safetyValues.join("-") : userSafety.join("-");
+  const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(search, effectiveSafety, sort, userBlacklist);  const postSelect = {
     id: true,
     fileExt: true,
     safety: true,
@@ -60,15 +90,6 @@ export async function GET(req: Request) {
       }
     },
   };
-
-  // const wefr = await prisma.posts.findMany({
-  //   where: { id: 1 },
-  //   select: {
-  //     id: true,
-  //     relatedTo: { select: { toId: true }},
-  //     pools: { select: { poolId: true }}
-  //   }
-  // })
   
   let posts;
   

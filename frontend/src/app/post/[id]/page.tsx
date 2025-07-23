@@ -12,6 +12,7 @@ import { Post } from "@/core/types/posts";
 import { formatStorageFromBytes } from "@/core/formats";
 import { Tag } from "@/core/types/tags";
 import { auth } from "@/core/authServer";
+import { prisma } from "@/core/prisma";
 
 async function fetchPostData(postId: string) {
   const cookieStore = cookies();
@@ -117,6 +118,17 @@ export default async function PostPage({
   const poolId = (await searchParams)?.pool;
   const session = await auth();
 
+  let blurUnsafeEmbeds = true;
+
+  if (session?.user) {
+    const prefs = await prisma.userPreferences.findUnique({
+      where: { id: session.user.id },
+      select: { blurUnsafeEmbeds: true },
+    });
+
+    blurUnsafeEmbeds = prefs?.blurUnsafeEmbeds ?? true;
+  }
+
   const postId = id;
   const postPromise = fetchPostData(postId);
   const commentsPromise = fetchComments(postId);
@@ -203,7 +215,7 @@ export default async function PostPage({
         <section className="order-4 pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
           {canComment && <PostCommentForm postId={postData.post.id} />}
-          <PostCommentList comments={comments} loading={false} error={null} blurUnsafeEmbeds={true} parentPostSafety={postData.post.safety} canVoteOnComments={canVote} />
+          <PostCommentList comments={comments} loading={false} error={null} blurUnsafeEmbeds={blurUnsafeEmbeds} parentPostSafety={postData.post.safety} canVoteOnComments={canVote} />
         </section>                                                        {/* Get from user preferences later */}
       </div>
     </main>
