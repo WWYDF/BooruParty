@@ -17,9 +17,6 @@ type Props = {
 export default function MassTagger({ value, onChange, label, placeholder, compactBelow, preSelected }: Props) {
   const [loadingImplications, setLoadingImplications] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const combined = [
-    ...new Map([...(preSelected ?? []), ...value].map((t) => [t.id, t])).values()
-  ];
 
   useEffect(() => {
     if (!preSelected || preSelected.length === 0) return;
@@ -143,9 +140,11 @@ export default function MassTagger({ value, onChange, label, placeholder, compac
               ) : (
                 <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
                   {value.map((tag) => (
-                    <div
+                    <button
                       key={tag.id}
-                      className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm"
+                      onClick={() => removeTag(tag.id)}
+                      className="flex items-center bg-secondary border border-secondary-border px-2 py-1 rounded text-zinc-100 text-sm cursor-pointer group"
+                      title="Click to remove tag"
                     >
                       <span
                         className="truncate font-medium"
@@ -153,14 +152,8 @@ export default function MassTagger({ value, onChange, label, placeholder, compac
                       >
                         {tag.name}
                       </span>
-                      <button
-                        onClick={() => removeTag(tag.id)}
-                        className="ml-2 text-red-400 hover:text-red-500"
-                        title="Remove tag"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                      <span className="ml-2 text-red-400">✕</span>
+                    </button>
                   ))}
                 </div>
               )}

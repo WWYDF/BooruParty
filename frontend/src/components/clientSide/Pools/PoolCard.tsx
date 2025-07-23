@@ -55,9 +55,9 @@ export function PoolCard({
       {showOverlay && (
         <div className="absolute bottom-0 left-0 w-full z-10 pointer-events-none">
           <div className="absolute -top-6 left-0 w-full h-6 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="bg-black/70 px-3 pt-2 pb-1">
+          <div className="bg-black/80 px-3 pt-2 pb-1">
             {typeof score === "number" && score !== 0 && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs bg-black/60 px-2 py-0.5 rounded-full pointer-events-auto">
+                <div className="absolute right-2 top-[65%] -translate-y-1/2 flex items-center gap-1 text-xs bg-black/60 px-2 py-0.5 rounded-full pointer-events-auto">
                   {score > 0 ? (
                     <ArrowFatLineUp size={12} weight="fill" className="text-green-500" />
                   ) : (

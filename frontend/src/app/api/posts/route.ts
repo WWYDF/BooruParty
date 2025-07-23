@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const safetyValues = searchParams.getAll("safety");
   const sort = (searchParams.get("sort") ?? "new") as "new" | "old";
 
-  const { where, orderBy, useFavoriteOrdering } = buildPostWhereAndOrder(search, safetyValues.join("-"), sort);
+  const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(search, safetyValues.join("-"), sort);
   const postSelect = {
     id: true,
     fileExt: true,
@@ -90,6 +90,34 @@ export async function GET(req: Request) {
     });
   
     posts = favorites.map(fav => fav.post);
+
+  } else if (useLikesOrdering) {
+    const { systemOptions } = parseSearch(search);
+    const likes = await prisma.votes.findMany({
+      where: {
+        type: 'UPVOTE',
+        user: {
+          is: {
+            username: {
+              equals: systemOptions.likes,
+              mode: 'insensitive',
+            },
+          },
+        },
+        post: where,
+      },
+      orderBy: { createdAt: 'desc' }, // order by vote time
+      skip: (page - 1) * perPage,
+      take: perPage,
+      select: {
+        post: {
+          select: postSelect,
+        },
+      },
+    });
+    
+    posts = likes.map((like) => like.post);
+
   } else {
     posts = await prisma.posts.findMany({
       where,
@@ -170,6 +198,9 @@ export async function DELETE(req: NextRequest) {
 
   try {
     if (deletable.length > 0) {
+      // Unhook from pools first
+      await prisma.poolItems.deleteMany({ where: { postId: { in: deletable } } });
+
       await prisma.posts.deleteMany({ where: { id: { in: deletable } } });
 
       await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/posts`, {

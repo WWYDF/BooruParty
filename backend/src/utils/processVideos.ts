@@ -4,28 +4,44 @@ import path from 'path';
 import fs from 'fs';
 import { getBestEncoder } from './pickEncoder';
 import { ENCODER_OPTIONS_MAP } from '../types/encoders';
+import { PreviewFile } from '../types/mediaTypes';
 
 const execAsync = promisify(exec);
 
-export async function processVideoPreview(originalPath: string, postId: number): Promise<number | null> {
+export async function processVideoPreview(originalPath: string, postId: number): Promise<PreviewFile> {
   if (process.env.DISABLE_VIDEO_PREVIEWS == 'true') {
     // console.debug('Skipping video encoding.')
-    return 100;
+    return { previewScale: 100, assignedExt: null };
   }
 
   const previewDir = path.join(__dirname, '../../data/previews/video');
   fs.mkdirSync(previewDir, { recursive: true });
 
-  const previewPath = path.join(previewDir, `${postId}.mp4`);
   const encoder = await getBestEncoderFromEnv();
   const encoderConfig = ENCODER_OPTIONS_MAP[encoder];
   if (!encoderConfig) throw new Error(`No config for encoder "${encoder}"`);
+  const previewPath = path.join(previewDir, `${postId}.${encoderConfig.container}`);
 
-  const filters =
-    encoderConfig.filters ??
-    'setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709,scale=1280:-2';
+  const encoderFilters = encoderConfig.filters;
 
-  const needsQSV = filters.includes('hwupload') || filters.includes('scale_qsv');
+  let filters: string;
+
+  const needsQSV = encoderConfig.encoder.includes('qsv');
+
+  if (encoderFilters?.includes('scale_qsv=1280:-1')) {
+    const { width: inputW, height: inputH } = await getVideoDimensions(originalPath);
+  
+    // Round input dimensions to QSV-safe values
+    const safeW = roundToMultiple(inputW, 4);
+    const safeH = roundToMultiple(inputH, 2);
+  
+    filters = encoderFilters.replace('scale_qsv=1280:-1', `scale_qsv=${safeW}:${safeH}`);
+
+  } else {
+    filters =
+      encoderFilters ??
+      'setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709,scale=1280:-2';
+  }
 
   const ffmpegCmd = [
     'ffmpeg', '-y',
@@ -33,7 +49,9 @@ export async function processVideoPreview(originalPath: string, postId: number):
     '-i', `"${originalPath}"`,
     '-vf', `"${filters}"`,
     '-c:v', encoderConfig.encoder,
-    encoderConfig.qualityFlag, encoderConfig.qualityValue,
+    ...(encoderConfig.qualityFlag && encoderConfig.qualityValue !== undefined
+      ? [encoderConfig.qualityFlag, String(encoderConfig.qualityValue)]
+      : []),
     ...(encoderConfig.preset  ? ['-preset',  encoderConfig.preset]  : []),
     ...(encoderConfig.profile ? ['-profile:v', encoderConfig.profile] : []),
     ...(encoderConfig.extraArgs || []),
@@ -53,14 +71,14 @@ export async function processVideoPreview(originalPath: string, postId: number):
 
     if (previewSize >= originalSize) {
       fs.unlinkSync(previewPath);
-      return 100; // return 100 as the original was smaller so we should just use that
+      return { previewScale: 100, assignedExt: encoderConfig.container }; // return 100 as the original was smaller so we should just use that
     }
 
     const previewScale = Math.round((previewSize / originalSize) * 100);
-    return previewScale;
+    return { previewScale, assignedExt: encoderConfig.container };
   } catch (err) {
     console.error('FFmpeg video preview failed:', err);
-    return null;
+    return { previewScale: null, assignedExt: encoderConfig.container };
   }
 }
 
@@ -88,4 +106,23 @@ async function getBestEncoderFromEnv(): Promise<string> {
   const encoder = await getBestEncoder(codec as 'h264' | 'vp9' | 'av1' | 'h265');
 
   return encoder;
+}
+
+async function getVideoDimensions(path: string): Promise<{ width: number; height: number }> {
+  const { stdout } = await execAsync(
+    `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of json "${path}"`
+  );
+  const info = JSON.parse(stdout);
+  return {
+    width: info.streams[0].width,
+    height: info.streams[0].height,
+  };
+}
+
+function roundToMultiple(value: number, multiple: number): number {
+  return Math.ceil(value / multiple) * multiple;
+}
+
+function roundToEven(value: number): number {
+  return Math.round(value / 2) * 2;
 }

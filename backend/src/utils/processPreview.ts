@@ -2,10 +2,10 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import { compressGif } from './processGifs';
-import { resolveFileType } from '../types/mediaTypes';
+import { PreviewFile, resolveFileType } from '../types/mediaTypes';
 import { processVideoPreview } from './processVideos';
 
-export async function processPreview(originalPath: string, postId: number): Promise<number | null> {
+export async function processPreview(originalPath: string, postId: number): Promise<PreviewFile> {
   const ext = path.extname(originalPath).toLowerCase();
   const fileType = resolveFileType(ext);
 
@@ -23,23 +23,26 @@ export async function processPreview(originalPath: string, postId: number): Prom
   
       if (previewSize >= originalSize) {
         fs.unlinkSync(previewPath); // no benefit
-        return null;
+        return { previewScale: null, assignedExt: 'gif' };
       }
   
-      return Math.round((previewSize / originalSize) * 100);
+      return {
+        previewScale: Math.round((previewSize / originalSize) * 100),
+        assignedExt: 'gif'
+      };
     } catch (err) {
       console.error(`Compression failed:`, err);
-      return null;
+      return { previewScale: null, assignedExt: null };
     }
   }
 
   if (fileType === 'video') {
     try {
-      const previewScale = await processVideoPreview(originalPath, postId);
-      return previewScale;
+      const { previewScale, assignedExt } = await processVideoPreview(originalPath, postId);
+      return { previewScale, assignedExt };
     } catch (err) {
       console.error('FFmpeg preview failed:', err);
-      return null;
+      return { previewScale: null, assignedExt: null };
     }
   }
   
@@ -60,5 +63,5 @@ export async function processPreview(originalPath: string, postId: number): Prom
       ? Math.round((resizedMeta.width / metadata.width) * 100)
       : null;
 
-  return previewScale;
+      return { previewScale, assignedExt: 'webp' };
 }

@@ -23,7 +23,7 @@ export function CreatePoolModal({ open, onClose }: Props) {
     await fetch("/api/pools", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, artist, description, safety }),
+      body: JSON.stringify({ name, artist, description, safety, yearStart, yearEnd }),
     });
     onClose(); // close after submit
     router.refresh();

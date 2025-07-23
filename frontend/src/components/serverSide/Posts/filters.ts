@@ -8,6 +8,7 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
 
   const where: any = { AND: [] };
   let useFavoriteOrdering = false;
+  let useLikesOrdering = false;
 
   // Tags
   includeTags.forEach(tag => where.AND.push({ tags: { some: { name: tag } } }));
@@ -39,6 +40,26 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
           },
         },
       },
+    });
+  }
+
+  // Favorited by
+  if (systemOptions.likes) {
+    useLikesOrdering = true;
+    where.AND.push({
+      votes: {
+        some: {
+          type: 'UPVOTE',
+          user: {
+            is: {
+              username: {
+                equals: systemOptions.likes,
+                mode: "insensitive"
+              }
+            }
+          }
+        }
+      }
     });
   }
 
@@ -77,5 +98,5 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
 
   // console.log(useFavoriteOrdering)
 
-  return { where, orderBy, useFavoriteOrdering };
+  return { where, orderBy, useFavoriteOrdering, useLikesOrdering };
 }

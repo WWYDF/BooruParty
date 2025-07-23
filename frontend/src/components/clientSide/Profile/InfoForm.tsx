@@ -138,7 +138,7 @@ export default function InfoForm({ user }: { user: UserSelf }) {
                 <button
                   onClick={async () => {
                     setDeleting(true);
-                    const res = await fetch(`/api/users/${user.username}/delete?mode=${deleteMode}`, {
+                    const res = await fetch(`/api/users/${user.username}?mode=${deleteMode}`, {
                       method: "DELETE",
                     });
 

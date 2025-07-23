@@ -86,7 +86,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`relative w-full px-4 py-3 flex items-center justify-between ${
+      className={`relative w-full px-4 md:py-3 flex items-center justify-between ${
         fullscreen ? "bg-black/80 backdrop-blur sticky top-0 z-40 border-b border-zinc-800" : ""
       }`}
     >
@@ -96,7 +96,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           <button
             disabled={!previousPostId}
             onClick={() => router.push(buildLink(previousPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40"
+            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <CaretLeft size={28} weight="bold" />
             <span className="text-sm">Previous</span>
@@ -105,7 +105,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           <button
             disabled={!nextPostId}
             onClick={() => router.push(buildLink(nextPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40"
+            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <CaretLeft size={28} weight="bold" />
             <span className="text-sm">Next</span>
@@ -119,7 +119,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           <button
             disabled={!nextPostId}
             onClick={() => router.push(buildLink(nextPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40"
+            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className="text-sm">Next</span>
             <CaretRight size={28} weight="bold" />
@@ -128,7 +128,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           <button
             disabled={!previousPostId}
             onClick={() => router.push(buildLink(previousPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40"
+            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className="text-sm">Previous</span>
             <CaretRight size={28} weight="bold" />

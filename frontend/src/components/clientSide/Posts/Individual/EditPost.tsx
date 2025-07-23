@@ -7,10 +7,12 @@ import TagSelector from "../../TagSelector";
 import TagSuggestionPopup from "../../Tags/SuggestionPopup";
 import ConfirmModal from "../../ConfirmModal";
 import { useToast } from "../../Toast";
-import { Tag } from "@/core/types/tags";
+import { Tag, TagCategory } from "@/core/types/tags";
 import RelatedPostInput from "./PostRelation";
 import { useDropzone } from "react-dropzone";
 import { Post } from "@/core/types/posts";
+import { formatCounts } from "@/core/formats";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function EditPost({
   post,
@@ -35,16 +37,23 @@ export default function EditPost({
   const [pools, setPools] = useState<number[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
-  const [featured, setFeatured] = useState(
-    !!post.specialPosts?.find((sp: any) => sp.label === "topWeek")
-  );
+  const [featured, setFeatured] = useState(!!post.specialPosts?.find((sp: any) => sp.label === "topWeek"));
+  const [highlightedTagId, setHighlightedTagId] = useState<number | null>(null);
+  const [newTagIds, setNewTagIds] = useState<number[]>([]);
+  const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
+  const [defaultCategory, setDefaultCategory] = useState<TagCategory>({ id: 1, name: 'Default', color: '#3c9aff', order: 10, isDefault: true, updatedAt: new Date() });
   const toast = useToast();
 
   useEffect(() => {
     if (post.tags) {
       const sorted = [...post.tags]
-        .sort((a, b) => (a.category.order ?? 0) - (b.category.order ?? 0))
-        .flatMap(group => group.tags);
+      .sort((a, b) => (a.category.order ?? 0) - (b.category.order ?? 0))
+      .flatMap(group => {
+        const alphaSorted = [...group.tags].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+        return alphaSorted;
+      });
       setInitialOrderedTags(sorted);
       setOrderedTags(sorted);
     }
@@ -58,14 +67,55 @@ export default function EditPost({
     setPools(post.pools.map(p => p.pool.id));
   }, [post.tags, post.relatedFrom, post.relatedTo, post.pools]);
 
+  useEffect(() => {
+    const loadDefaultCategory = async () => {
+      const res = await fetch("/api/tag-categories?default=true");
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setDefaultCategory(data[0]);
+      }
+    };
+  
+    loadDefaultCategory();
+  }, []);
+
+
   const handleSave = async () => {
     setSaving(true);
-
+  
+    let finalTags = [...newlyAddedTags, ...initialOrderedTags];
+  
+    if (pendingTagNames.length > 0) {
+      // Create missing tags
+      const created = await createMissingTags(pendingTagNames);
+  
+      // Remove fake tags
+      finalTags = finalTags.filter(
+        (tag) => !pendingTagNames.includes(tag.name.toLowerCase())
+      );
+  
+      // Add real tags
+      finalTags.push(...created);
+  
+      // Update state for UI *after*
+      setOrderedTags(finalTags);
+      setInitialOrderedTags((prev) =>
+        [...prev.filter((t) => !pendingTagNames.includes(t.name.toLowerCase())), ...created]
+      );
+      setNewlyAddedTags((prev) =>
+        [...created, ...prev.filter((t) => !pendingTagNames.includes(t.name.toLowerCase()))]
+      );
+      setPendingTagNames([]);
+    }
+  
+    // Filter only real tags (with positive IDs) to submit
+    const validTags = finalTags.filter((t) => t.id > 0).map((t) => t.id);
+  
     await fetch(`/api/posts/${post.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        tags: [...newlyAddedTags, ...initialOrderedTags].map((t) => t.id),
+        tags: validTags,
         sources: sources.split(",").map((s) => s.trim()).filter(Boolean),
         notes,
         safety,
@@ -113,7 +163,7 @@ export default function EditPost({
     onSaveSuccess();
   };
 
-  const handleAddTag = async (tag: Tag, impliedEnabled = true) => {
+  const handleSelectTag = async (tag: Tag, impliedEnabled = true) => {
     let allTags: Tag[] = [tag];
 
     if (impliedEnabled) {
@@ -131,13 +181,32 @@ export default function EditPost({
       const newTags = allTags.filter((t) => !existingIds.has(t.id));
       const next = [...newTags, ...prev];
       setOrderedTags([...initialOrderedTags, ...next]);
+      
+      // Track newly added tag IDs to mark them green
+      setNewTagIds((prevIds) => [
+        ...prevIds,
+        ...newTags.map((t) => t.id).filter((id) => !prevIds.includes(id)),
+      ]);
+
       return next;
     });
   };
 
   const handleRemoveTag = (tagId: number) => {
+    const removed = orderedTags.find((t) => t.id === tagId);
+    if (!removed) return;
+  
+    // Remove from pendingTagNames if it's a fake tag
+    if (removed.id < 0) {
+      setPendingTagNames((prev) =>
+        prev.filter((name) => name.toLowerCase() !== removed.name.toLowerCase())
+      );
+      console.log(pendingTagNames)
+    }
+  
     const nextNew = newlyAddedTags.filter((t) => t.id !== tagId);
     const nextInitial = initialOrderedTags.filter((t) => t.id !== tagId);
+  
     setNewlyAddedTags(nextNew);
     setInitialOrderedTags(nextInitial);
     setOrderedTags([...nextInitial, ...nextNew]);
@@ -154,6 +223,34 @@ export default function EditPost({
       setReplacementFile(acceptedFiles[0]);
     }
   });
+
+  async function createMissingTags(names: string[]): Promise<Tag[]> {
+    const created: Tag[] = [];
+  
+    for (const name of names) {
+      const res = await fetch("/api/tags/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+  
+      if (res.status === 403) {
+        toast("You don't have permission to create tags.", "error");
+        continue;
+      }
+  
+      if (!res.ok) {
+        console.error(`Failed to create tag "${name}"`);
+        continue;
+      }
+  
+      const data = await res.json();
+      const newTag = data.created;
+      created.push(newTag);
+    }
+  
+    return created;
+  }
 
   const allTags = [...newlyAddedTags, ...initialOrderedTags];
   const uniqueTags = Array.from(new Map(allTags.map(t => [t.id, t])).values());
@@ -209,7 +306,7 @@ export default function EditPost({
           <select
             value={safety}
             onChange={(e) => setSafety(e.target.value as Post["safety"])}
-            className="bg-secondary p-2 rounded text-sm text-white w-full focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            className="bg-secondary p-2 rounded text-base text-white w-full focus:outline-none focus:ring-2 focus:ring-zinc-800"
           >
             <option value="SAFE">Safe</option>
             <option value="SKETCHY">Sketchy</option>
@@ -222,7 +319,7 @@ export default function EditPost({
           <input
             value={sources}
             onChange={(e) => setSources(e.target.value)}
-            className="w-full p-2 rounded bg-secondary text-sm text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            className="w-full p-2 rounded bg-secondary text-base text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
             // maxLength={128}
           />
         </div>
@@ -233,7 +330,7 @@ export default function EditPost({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className="w-full p-2 rounded bg-secondary text-sm text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            className="w-full p-2 rounded bg-secondary text-base text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
             maxLength={500}
           />
         </div>
@@ -256,45 +353,85 @@ export default function EditPost({
       <div className="mt-2">
       <label className="text-white font-medium block mb-1">Tags</label>
         <TagSelector
-          onSelect={handleAddTag}
+          onSelect={handleSelectTag}
           disabledTags={orderedTags}
           placeholder="Add tags..."
           addImpliedTags
+          onDuplicateSelect={(tag) => {
+            setHighlightedTagId(tag.id);
+            setTimeout(() => setHighlightedTagId(null), 2000);
+          }}
+          addPendingTagName={(name) => {
+            const normalized = name.toLowerCase();
+          
+            // prevent duplicates
+            if (pendingTagNames.includes(normalized)) return;
+          
+            setPendingTagNames((prev) => [...prev, normalized]);
+          
+            // Create a temporary tag object
+            const fakeTag: Tag = {
+              id: -(pendingTagNames.length + 1), // negative temporary ID
+              name,
+              description: null,
+              aliases: [],
+              category: defaultCategory,
+              allImplications: [],
+              _count: { posts: 0 },
+            };
+          
+            setOrderedTags((prev) => [fakeTag, ...prev]);
+            setNewlyAddedTags((prev) => [fakeTag, ...prev]);
+          }}
         />
       </div>
 
       {/* Selected tags display */}
       {uniqueTags.length > 0 && (
         <div className="flex flex-col gap-2">
-          {uniqueTags.map((tag) => (
-            <div
-              key={tag.id}
-              className="flex items-center gap-2 border border-zinc-900 px-3 py-1.5 rounded-2xl w-fit"
-              style={{ color: tag.category?.color || "#fff" }}
-            >
-              <button
-                onClick={() => handleRemoveTag(tag.id)}
-                className="hover:opacity-80"
+          <AnimatePresence initial={false}>
+            {uniqueTags.map((tag) => (
+              <motion.div
+                key={tag.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.25 }}
+                className={`flex items-center gap-2 border px-3 py-1.5 rounded-2xl w-fit transition-all duration-500
+                  ${tag.id === highlightedTagId ? "ring-2 ring-darkerAccent/80 bg-accent/10" : ""}
+                  ${newlyAddedTags.some((t) => t.id === tag.id) ? "border-zinc-800 bg-zinc-900/60" : "border-zinc-900"}
+                  ${newTagIds.includes(tag.id) ? "border-zinc-800 bg-zinc-900/60" : ""}
+                `}
+                style={{ color: tag.category?.color || "#fff" }}
               >
-                <X size={16} />
-              </button>
+                <button
+                  onClick={() => handleRemoveTag(tag.id)}
+                  className="hover:opacity-80"
+                >
+                  <X size={16} />
+                </button>
 
-              <Link href={`/tags/${tag.name}`} className="hover:opacity-80">
-                <TagIcon size={16} />
-              </Link>
+                <Link href={`/tags/${tag.name}`} className="hover:opacity-80">
+                  <TagIcon size={16} />
+                </Link>
 
-              <button
-                onClick={(e) => {
-                  const rect = (e.target as HTMLElement).getBoundingClientRect();
-                  setPopupPosition({ x: rect.left, y: rect.bottom });
-                  setActiveSuggestionTag(tag.name);
-                }}
-                className="hover:underline text-left"
-              >
-                {tag.name}
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => {
+                      const rect = (e.target as HTMLElement).getBoundingClientRect();
+                      setPopupPosition({ x: rect.left, y: rect.bottom });
+                      setActiveSuggestionTag(tag.name);
+                    }}
+                    className="hover:underline text-left"
+                  >
+                    {tag.name}
+                  </button>
+                  <span className="text-xs text-zinc-400 ml-1">
+                    {formatCounts(tag._count?.posts ?? 0)}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
@@ -310,7 +447,7 @@ export default function EditPost({
             tagName={activeSuggestionTag}
             onClose={() => setActiveSuggestionTag(null)}
             onAddTag={(tag) => {
-              handleAddTag({
+              handleSelectTag({
                 ...tag,
                 description: tag.description ?? undefined,
               });

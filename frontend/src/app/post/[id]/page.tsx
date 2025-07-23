@@ -35,10 +35,16 @@ async function fetchPostData(postId: string) {
 
 async function fetchComments(postId: string): Promise<Comments[]> {
   const cookieStore = cookies();
-  const token = (await cookieStore).get("next-auth.session-token")?.value ??
-                (await cookieStore).get("__Secure-next-auth.session-token")?.value;
+  const secure = (await cookieStore).get("__Secure-next-auth.session-token")?.value;
+  const fallback = (await cookieStore).get("next-auth.session-token")?.value;
 
-  const cookieHeader = token ? `next-auth.session-token=${token}` : "";
+  let cookieHeader = "";
+
+  if (secure) {
+    cookieHeader = `__Secure-next-auth.session-token=${secure}`;
+  } else if (fallback) {
+    cookieHeader = `next-auth.session-token=${fallback}`;
+  }
 
   const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/comments?postId=${postId}`, {
     cache: "no-store",
@@ -178,7 +184,7 @@ export default async function PostPage({
   const desc = `View this ${formatStorageFromBytes(post.fileSize ?? 0)}${fileTypeText}`
 
   return (
-    <main className="grid grid-cols-1 md:grid-cols-[350px_1fr] gap-6 p-4">
+    <main className="grid grid-cols-1 md:grid-cols-[375px_1fr] gap-6 p-4">
       <meta name="description" content={desc} />
       <meta property="og:title" content={`Post #${post.id}${artistText} | ${process.env.NEXT_PUBLIC_SITE_NAME}`} />
       <meta property="og:description" content={desc} />
@@ -194,7 +200,7 @@ export default async function PostPage({
         <PostDisplay post={postData.post} user={postData.user} />
 
         {/* Comments - In column 2 only */}
-        <section className="order-4 border-t border-secondary-border pt-4 space-y-4">
+        <section className="order-4 pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
           {canComment && <PostCommentForm postId={postData.post.id} />}
           <PostCommentList comments={comments} loading={false} error={null} blurUnsafeEmbeds={true} parentPostSafety={postData.post.safety} canVoteOnComments={canVote} />

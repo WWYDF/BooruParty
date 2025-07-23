@@ -1,11 +1,12 @@
 import getPHash from "sharp-phash";
 import { prisma } from '@/core/prisma';
 import { extractVideoFrame } from "@/core/extractVideoFrame";
+import { Post } from "@/core/types/posts";
 
 export interface FileCheck {
     status: boolean,
     genHash: string,
-    postId?: number,
+    ogPost?: Post
 }
 
 export async function checkFile(file: Buffer, fileExt: string, fileType: 'other' | 'video' | 'image' | 'animated'): Promise<FileCheck> {
@@ -35,11 +36,21 @@ export async function checkFile(file: Buffer, fileExt: string, fileType: 'other'
     for (const post of allHashes) {
       const dist = hammingDistance(pHash, post.pHash!);
       if (dist <= 5) {
-        return {
-          status: true,
-          genHash: pHash,
-          postId: post.id,
-        };
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/posts/${post.id}`, { headers: { "X-Override": `${process.env.INTERNAL_API_SECRET}` },});
+          const data = await res.json();
+          return {
+            status: true,
+            genHash: pHash,
+            ogPost: data.post,
+          };
+        } catch (e) {
+          console.error(`Error fetching dupe post! ${e}`);
+          return {
+            status: true,
+            genHash: pHash,
+          };
+        }
       }
     }
   

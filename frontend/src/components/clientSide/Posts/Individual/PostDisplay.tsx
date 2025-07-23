@@ -52,7 +52,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
               loop
               // muted
               preload="metadata"
-              className="max-h-[75vh] w-auto h-auto object-contain rounded-xl"
+              className="min-w-[50vw] w-auto max-w-auto max-h-[70vh] object-contain"
             />
           ) : (
             <img
@@ -60,10 +60,8 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
               src={showFull ? fullSrc : post.previewPath}
               alt={`Error accessing ${fullSrc}`}
               title="Click to enter fullscreen mode"
-              onClick={() => {
-                handleFullscreen(true);
-              }}
-              className="max-h-[75vh] w-auto h-auto object-contain rounded-xl cursor-pointer"
+              onClick={() => { handleFullscreen(true); }}
+              className="md:max-h-[80vh] md:h-[80vh] md:max-w-[90vh] w-auto object-contain rounded-xl cursor-pointer"
             />
           )}
         </motion.div>

@@ -20,6 +20,11 @@ export async function fetchAllImplications(tagId: number, seen = new Set<number>
               color: true,
             },
           },
+          _count: {
+            select: {
+              posts: true
+            }
+          }
         },
       },
     },

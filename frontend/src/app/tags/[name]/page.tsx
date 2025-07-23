@@ -133,8 +133,8 @@ export default function TagSummaryPage() {
       <p>{tag.description ? formatDescription(tag.description) : "This tag has no description yet."}</p>
         <p>
           This tag has{" "}
-          <a className="text-accent hover:underline" href="#">
-            0 usage(s)
+          <a className="text-accent hover:underline" href={`/posts?query=${tag.name}`}>
+            {tag._count?.posts ?? 0} usage(s)
           </a>.
         </p>
       </div>

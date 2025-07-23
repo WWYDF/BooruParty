@@ -5,7 +5,7 @@ import Busboy from 'busboy';
 import sharp from 'sharp';
 import { processPreview } from '../utils/processPreview';
 import { generateThumbnails } from '../utils/generateThumbnails';
-import { resolveFileType } from '../types/mediaTypes';
+import { PreviewFile, resolveFileType } from '../types/mediaTypes';
 import { getAspectRatio } from '../utils/aspectRatio';
 
 const uploadRoute: FastifyPluginAsync = async (fastify) => {
@@ -17,6 +17,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
       let filePath = '';
       let previewScale: number | null = null;
       let ratio: number | null = null;
+      let previewData: PreviewFile;
 
       const busboy = Busboy({ headers: req.headers });
 
@@ -66,7 +67,8 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
 
             if (fileFormat === 'image' || fileFormat === 'animated' || fileFormat === 'video') {
               try {
-                previewScale = await processPreview(filePath, Number(postId));
+                previewData = await processPreview(filePath, Number(postId));
+                previewScale = previewData.previewScale;
                 if (previewScale == null) throw new Error('PreviewScale came back null.');
 
                 try {
@@ -110,6 +112,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
               previewScale,
               aspectRatio: ratio,
               deletedPreview,
+              assignedExt: previewData.assignedExt,
             });
             resolve();
           } catch (err) {

@@ -48,6 +48,7 @@ export async function POST(req: Request) {
       data: [
         { name: "post_view" },
         { name: "post_create" },
+        { name: "post_create_dupes" },
         { name: "post_edit_own" },
         { name: "post_edit_others" },
         { name: "post_delete_own" },
@@ -139,6 +140,7 @@ export async function POST(req: Request) {
       {
         name: "Power User",
         ownPermissions: [
+          "post_create_dupes",
           "post_edit_others",
           "comment_embed_url",
           "upload_type_video",

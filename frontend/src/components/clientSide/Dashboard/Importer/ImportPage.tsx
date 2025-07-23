@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImportSession } from "@prisma/client";
 import { formatDuration } from "@/core/formats";
@@ -14,7 +14,6 @@ export default function ImportSoftwares({ previous }: { previous: ImportSession[
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previousSessions] = useState(previous);
 
   const router = useRouter();
 

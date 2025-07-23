@@ -9,6 +9,8 @@ import SortableUploads from './SortableUploads'
 import { useToast } from '../Toast'
 import { Tag } from '@/core/types/tags'
 import MassTagger from '../MassTagger'
+import DuplicateModal from './DuplicateModal'
+import { Post } from '@/core/types/posts'
 
 type UploadFile = {
   id: string
@@ -26,6 +28,9 @@ export default function UploadQueue() {
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
   const [bulkSafety, setBulkSafety] = useState<"SAFE" | "SKETCHY" | "UNSAFE">("SAFE");
   const [globalTags, setGlobalTags] = useState<Tag[]>([]);
+  const [dupeModalOpen, setDupeModalOpen] = useState(false);
+  const [dupeItem, setDupeItem] = useState<UploadFile | null>(null);
+  const [dupeOriginalPost, setDupeOriginalPost] = useState<Post | null>(null);
   const toast = useToast();
 
   const moveItem = (index: number, direction: 'up' | 'down') => {
@@ -113,13 +118,13 @@ export default function UploadQueue() {
   
         if (res.status === 409) {
           const result = await res.json();
-          if (result.duplicate && result.postId) {
-            setQueue((prev) =>
-              prev.map((f) =>
-                f.id === item.id ? { ...f, duplicatePostId: result.postId } : f
-              )
-            );
-            break; // duplicate detected, stop
+          if (result.duplicate && result.post) {
+            setUploading(false);
+            setUploadingIndex(null);
+            setDupeItem(item);
+            setDupeOriginalPost(result.post);
+            setDupeModalOpen(true);
+            return; // pause upload flow for user decision
           } else {
             toast('Duplicate upload but no postId returned.', 'error');
             break;
@@ -132,10 +137,10 @@ export default function UploadQueue() {
           break;
         }
   
-        // ✅ Upload successful
+        // Upload successful
         setQueue((prev) => prev.filter((f) => f.id !== item.id));
   
-        i++; // 🔥 manually move to next file after success
+        i++; // Manually move to next file after success
   
       } catch (err) {
         console.error(`Failed to upload ${item.file.name}`, err);
@@ -159,14 +164,77 @@ export default function UploadQueue() {
     // toast(`Marked all as ${newSafety.toUpperCase()}.`, 'success');
   };
 
-  const handleAddGlobalTag = (tag: Tag) => {
-    if (!globalTags.some((t) => t.id === tag.id)) {
-      setGlobalTags((prev) => [...prev, tag]);
-    }
+  const handleCancelUpload = () => {
+    if (dupeItem) handleRemove(dupeItem.id);
+    setDupeModalOpen(false);
   };
   
-  const handleRemoveGlobalTag = (tagId: number) => {
-    setGlobalTags((prev) => prev.filter((t) => t.id !== tagId));
+  const handleProceedAnyway = async (copyTags: boolean, addRelation: boolean) => {
+    if (!dupeItem || !dupeOriginalPost) return;
+  
+    setDupeModalOpen(false);
+    setUploading(true);
+    setUploadingIndex(queue.findIndex(f => f.id === dupeItem.id));
+  
+    const formData = new FormData();
+    formData.append('file', dupeItem.file);
+    formData.append('anonymous', anonymous.toString());
+    formData.append('safety', dupeItem.safety);
+  
+    // Use tag names only if tags exist
+    if (copyTags && dupeOriginalPost?.tags?.length > 0) {
+      const tagNames = Array.from(
+        new Set(
+          dupeOriginalPost.tags
+            .flatMap((group) => group.tags)
+            .map((tag) => tag.name.toLowerCase())
+        )
+      );
+      if (tagNames.length > 0) {
+        formData.append('tags', JSON.stringify(tagNames));
+      }
+    }
+    
+    // Add relation if checked
+    if (addRelation && dupeOriginalPost?.id) {
+      formData.append('relatedPosts', JSON.stringify([dupeOriginalPost.id]));
+    }
+  
+    try {
+      const res = await fetch('/api/posts/create?skipDupes=true', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      if (!res.ok) {
+        const err = await res.json();
+        toast(`Upload failed: You lack permission to override duplicates!`, 'error');
+      } else {
+        setQueue((prev) => prev.filter((f) => f.id !== dupeItem.id));
+      }
+    } catch (err) {
+      toast(`Upload failed: ${dupeItem.file.name}`, 'error');
+    }
+  
+    setUploading(false);
+    setUploadingIndex(null);
+    setDupeItem(null);
+  };
+  
+  const handleCopyTags = async () => {
+    if (!dupeOriginalPost) return;
+  
+    try {
+      const res = await fetch(`/api/posts/${dupeOriginalPost.id}`);
+      const data = await res.json();
+      if (data?.tags?.length) {
+        const newTags = data.tags.filter((t: Tag) => !globalTags.some(g => g.id === t.id));
+        setGlobalTags(prev => [...prev, ...newTags]);
+        toast(`Copied ${newTags.length} tag(s) from duplicate.`, 'success');
+      }
+    } catch (err) {
+      toast('Failed to copy tags.', 'error');
+    }
   };
     
 
@@ -268,6 +336,16 @@ export default function UploadQueue() {
           </SortableContext>
         </DndContext>
       )}
+
+      <DuplicateModal
+        isOpen={dupeModalOpen}
+        onClose={() => setDupeModalOpen(false)}
+        currentPreview={dupeItem?.preview || ''}
+        originalPost={dupeOriginalPost!}
+        onCancelUpload={handleCancelUpload}
+        onProceedAnyway={(copy, rel) => handleProceedAnyway(copy, rel)}
+        onCopyTags={handleCopyTags}
+      />
     </div>
   )
 }

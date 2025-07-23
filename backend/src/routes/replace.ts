@@ -4,7 +4,7 @@ import fsp from 'fs/promises';
 import path from 'path';
 import Busboy from 'busboy';
 import sharp from 'sharp';
-import { resolveFileType } from '../types/mediaTypes';
+import { PreviewFile, resolveFileType } from '../types/mediaTypes';
 import { processPreview } from '../utils/processPreview';
 import { generateThumbnails } from '../utils/generateThumbnails';
 import { getAspectRatio } from '../utils/aspectRatio';
@@ -14,6 +14,7 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/replace', async (req, reply) => {
     return new Promise<void>((resolve) => {
       let postId: string | undefined;
+      let previewData: PreviewFile;
 
       const busboy = Busboy({ headers: req.headers });
 
@@ -86,7 +87,8 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
           let deletedPreview = false;
 
           try {
-            previewScale = await processPreview(filePath, Number(postId));
+            previewData = await processPreview(filePath, Number(postId));
+            previewScale = previewScale = previewData.previewScale;
             deletedPreview = checkDeletePreview({filePath, postId, previewScale, fastify})
 
             ratio = await getAspectRatio(filePath, fileFormat);
@@ -95,7 +97,7 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
             fastify.log.warn(`Preview/Thumbnail generation failed: ${err}`);
           }
 
-          return reply.send({ success: true, previewScale, aspectRatio: ratio, deletedPreview });
+          return reply.send({ success: true, previewScale, aspectRatio: ratio, deletedPreview, assignedExt: previewData.assignedExt,});
         } catch (err) {
           fastify.log.error(`Replace failed: ${err}`);
           return reply.code(500).send({ error: 'Failed to replace post file' });

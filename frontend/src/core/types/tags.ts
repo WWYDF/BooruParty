@@ -67,3 +67,12 @@ export type TagGroup = {
   },
   tags: Tag[]
 }
+
+export type TagCategory = {
+  id: number,
+  name: string,
+  color: string,
+  order: number,
+  isDefault: boolean,
+  updatedAt: Date
+}
