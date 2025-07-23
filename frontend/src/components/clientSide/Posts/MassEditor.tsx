@@ -267,7 +267,16 @@ export default function MassEditor({
 
             {/* Relations */}
             <div>
-              <label className="text-sm font-medium text-white block mb-1">Related Posts</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium text-white">Related Posts</label>
+                <button
+                  type="button"
+                  onClick={() => setRelatedPosts(postIds)}
+                  className="text-xs text-accent hover:underline"
+                >
+                  Autofill from selected
+                </button>
+              </div>
               <RelatedPostInput
                 value={relatedPosts}
                 onChange={setRelatedPosts}
