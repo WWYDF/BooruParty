@@ -47,7 +47,8 @@ export async function GET(req: Request) {
   const sort = (searchParams.get("sort") ?? "new") as "new" | "old";
 
   const effectiveSafety = safetyValues.length > 0 ? safetyValues.join("-") : userSafety.join("-");
-  const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(search, effectiveSafety, sort, userBlacklist);  const postSelect = {
+  const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(search, effectiveSafety, sort, userBlacklist);
+  const postSelect = {
     id: true,
     fileExt: true,
     safety: true,
@@ -57,6 +58,7 @@ export async function GET(req: Request) {
         username: true,
       },
     },
+    notes: true,
     anonymous: true,
     flags: true,
     score: true,
@@ -141,7 +143,17 @@ export async function GET(req: Request) {
 
   } else {
     posts = await prisma.posts.findMany({
-      where,
+      where: {
+        OR: [
+          where,
+          {
+            notes: { // not applied to others above cos im lazy
+              contains: search.trim(),
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
       skip: (page - 1) * perPage,
       take: perPage,
       orderBy,
