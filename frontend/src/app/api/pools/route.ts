@@ -1,4 +1,5 @@
 import { prisma } from "@/core/prisma";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import sanitizeHtml from "sanitize-html";
 
@@ -6,63 +7,92 @@ import sanitizeHtml from "sanitize-html";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
-  const query = searchParams.get("search")?.trim() || "";
+  const rawQuery = searchParams.get("search")?.trim() || "";
   const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "25");
+  const limit = parseInt(searchParams.get("limit") || "10");
 
-  const skip = (page - 1) * limit;
-  let total;
-  let rawPools;
+  const andConditions = [];
+
+  const orderMatch = rawQuery.match(/(?:^|\s)order:(\S+)(?=\s|$)/);
+  const order = orderMatch?.[1] || "lastEdited";
+
+  const yearMatch = rawQuery.match(/(?:^|\s)(\d{4})(?=\s|$)/);
+  const year = yearMatch ? parseInt(yearMatch[1]) : null;
+
+  const queryText = rawQuery
+    .replace(/(?:^|\s)order:\S+(?=\s|$)/, "")
+    .replace(/(?:^|\s)\d{4}(?=\s|$)/, "")
+    .trim()
+    .toLowerCase();
+
+  if (queryText) {
+    andConditions.push({
+      OR: [
+        { name: { contains: queryText, mode: Prisma.QueryMode.insensitive } },
+        { artist: { contains: queryText, mode: Prisma.QueryMode.insensitive } }
+      ]
+    });
+  }
+
+  if (year) {
+    andConditions.push({ yearStart: year });
+  }
+
+  const where = andConditions.length > 0 ? { AND: andConditions } : undefined;
+
+  let orderBy: Prisma.PoolsOrderByWithRelationInput = { lastEdited: "desc" };
+
+  if (order === "score") {
+    orderBy = { score: "desc" };
+  } else if (order === "score_asc") {
+    orderBy = { score: "asc" };
+  } else if (order === "size") {
+    orderBy = { items: { _count: "desc" } };
+  } else if (order === "size_asc") {
+    orderBy = { items: { _count: "asc" } };
+  }
 
   try {
-    [total, rawPools] = await Promise.all([
-      prisma.pools.count({
-        where: query
-          ? { name: { contains: query, mode: "insensitive" } }
-          : undefined
-      }),
+    const total = await prisma.pools.count({ where });
+    const totalPages = Math.ceil(total / limit);
 
-      prisma.pools.findMany({
-        where: query
-        ? {
-            OR: [
-              { name: { contains: query, mode: "insensitive" } },
-              { artist: { contains: query, mode: "insensitive" } }
-            ]
-          }
-        : undefined,
-        orderBy: { lastEdited: "desc" },
-        skip,
-        take: limit,
-        include: {
-          _count: {
-            select: { items: true }
-          },
-          items: {
-            orderBy: { index: 'asc'},
-            take: 1,
-            include: {
-              post: {
-                select: {
-                  id: true,
-                  fileExt: true,
-                  aspectRatio: true,
-                  previewPath: true,
-                  anonymous: true,
-                  flags: true,
-                  score: true,
-                  _count: {
-                    select: {
-                      favoritedBy: true
-                    }
+    // Clamp page to the highest available if it's too high
+    const clampedPage = Math.min(page, Math.max(totalPages, 1));
+    const skip = (clampedPage - 1) * limit;
+
+    const rawPools = await prisma.pools.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limit,
+      include: {
+        _count: {
+          select: { items: true }
+        },
+        items: {
+          orderBy: { index: 'asc'},
+          take: 1,
+          include: {
+            post: {
+              select: {
+                id: true,
+                fileExt: true,
+                aspectRatio: true,
+                previewPath: true,
+                anonymous: true,
+                flags: true,
+                score: true,
+                _count: {
+                  select: {
+                    favoritedBy: true
                   }
                 }
               }
             }
           }
         }
-      })
-    ]);
+      }
+    });
 
     // Patch previewPath
     const baseUrl = process.env.NEXT_PUBLIC_FASTIFY?.replace(/\/$/, "");
@@ -80,7 +110,7 @@ export async function GET(req: Request) {
       }))
     }));
 
-    return NextResponse.json({ total, page, limit, pools });
+    return NextResponse.json({ total, page: clampedPage, limit, pools });
 
   } catch (error) {
     console.error("Failed to fetch pools", error);

@@ -22,9 +22,6 @@ export const metadata: Metadata = {
 }
 
 export default async function PoolsPage() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/pools`);
-  const { pools } = await res.json();
-
   if (process.env.GUEST_VIEWING === 'false') {
     const permCheck = (await checkPermissions(['post_view']))['post_view'];
   
@@ -43,7 +40,7 @@ export default async function PoolsPage() {
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-6">
-      <ClientPoolGrid pools={pools} />
+      <ClientPoolGrid />
     </div>
   );
 }
