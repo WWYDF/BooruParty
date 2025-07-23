@@ -23,6 +23,7 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
     <Link
       href={selectionMode ? "#" : `/post/${post.id}`}
       onClick={(e) => {
+        sessionStorage.setItem("scrollY", window.scrollY.toString());
         if (selectionMode) {
           e.preventDefault();
           toggleSelect?.(post.id, e);

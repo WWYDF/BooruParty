@@ -47,7 +47,6 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
       //   setSelectedSafeties(data.preferences.defaultSafety);
       // }
 
-      searchPosts();
     });
   }, []);
 
@@ -115,11 +114,37 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
   // Run initial search on first mount if URL had params
   useEffect(() => {
     if (isFirstLoad.current) {
+      const restorePage = parseInt(sessionStorage.getItem("lastPage") || "1");
+      const y = parseInt(sessionStorage.getItem("scrollY") || "0");
       const safeties = selectedSafeties.length > 0 ? selectedSafeties : initialSafeties;
-      searchPosts(initialQuery, safeties);
       isFirstLoad.current = false;
+  
+      const preload = async () => {
+        for (let p = 1; p <= restorePage; p++) {
+          await searchPosts(initialQuery, safeties, p, p > 1);
+        }
+
+        function waitForScrollableHeight(y: number, attempt = 0) {
+          if (attempt > 30) return; // stop after ~30 frames (~500ms)
+        
+          if (document.body.scrollHeight < y + window.innerHeight) {
+            requestAnimationFrame(() => waitForScrollableHeight(y, attempt + 1));
+          } else {
+            window.scrollTo({ top: y, behavior: "instant" });
+            sessionStorage.removeItem("scrollY");
+          }
+        }
+
+        if (y > 0) {
+          waitForScrollableHeight(y);
+        }
+
+        setPage(restorePage);
+      };
+  
+      preload();
     }
-  }, [selectedSafeties]);
+  }, []);
 
   // 🌀 Infinite scroll
   useEffect(() => {
@@ -135,6 +160,7 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
         setIsLoadingMore(true);
         const nextPage = page + 1;
         setPage(nextPage);
+        sessionStorage.setItem("lastPage", nextPage.toString());
 
         searchPosts(searchText, selectedSafeties, nextPage, true).then(() => {
           setIsLoadingMore(false);
