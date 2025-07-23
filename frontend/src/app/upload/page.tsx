@@ -20,6 +20,8 @@ export const metadata: Metadata = {
 
 export default async function UploadPage() {
   const canUpload = (await checkPermissions(['post_create']))['post_create'];
+  const canDupe = (await checkPermissions(['post_create_dupes']))['post_create_dupes'];
+
   if (!canUpload) { 
     return (
       <main className="min-h-screen flex flex-col items-center justify-center text-center px-4 text-red-400">
@@ -31,7 +33,7 @@ export default async function UploadPage() {
 
   return (
     <div className="p-8">
-      <UploadQueue />
+      <UploadQueue canDupe={canDupe} />
     </div>
   )
 }
