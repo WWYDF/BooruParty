@@ -102,6 +102,12 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
     orderBy = { score: systemOptions.order.endsWith("_asc") ? "asc" : "desc" };
   } else if (systemOptions.order?.startsWith("favorites")) {
     orderBy = { favoritedBy: { _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc" } };
+  } else if (systemOptions.order?.startsWith("tags")) {
+    orderBy = {
+      tags: {
+        _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc"
+      }
+    };
   }
 
   // console.log(useFavoriteOrdering)
