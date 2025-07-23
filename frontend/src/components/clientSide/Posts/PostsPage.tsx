@@ -172,6 +172,16 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
     return () => window.removeEventListener("scroll", handleScroll);
   }, [page, searchText, selectedSafeties, isLoadingMore, hasMore]);
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      sessionStorage.removeItem("lastPage");
+      sessionStorage.removeItem("scrollY");
+    };
+  
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
   function setSelectMode(toggle: boolean) {
     setSelectionMode(toggle);
     if (toggle == false) { lastSelectedIndex.current = null }
