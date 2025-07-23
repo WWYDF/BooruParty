@@ -255,6 +255,12 @@ export default function EditPost({
   const allTags = [...newlyAddedTags, ...initialOrderedTags];
   const uniqueTags = Array.from(new Map(allTags.map(t => [t.id, t])).values());
 
+  const handleCopyTags = async () => {
+    const tagNames = uniqueTags.map((t) => t.name).join("\n");
+    await navigator.clipboard.writeText(tagNames);
+    toast("Tags copied to clipboard!");
+  };
+
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
       {/* Save button */}
@@ -351,7 +357,16 @@ export default function EditPost({
 
       {/* Tag selector */}
       <div className="mt-2">
-      <label className="text-white font-medium block mb-1">Tags</label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-white font-medium">Tags</label>
+          <button
+            type="button"
+            onClick={handleCopyTags}
+            className="text-xs text-accent hover:underline"
+          >
+            Copy to clipboard
+          </button>
+        </div>
         <TagSelector
           onSelect={handleSelectTag}
           disabledTags={orderedTags}
