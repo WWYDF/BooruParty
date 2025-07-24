@@ -36,6 +36,13 @@ export default async function ProfileSettingsPage({ searchParams }: { searchPara
             layout: true,
             theme: true,
             postsPerPage: true,
+            blurUnsafeEmbeds: true,
+            defaultSafety: true,
+            blacklistedTags: {
+              include: {
+                category: true
+              }
+            }
           }
         },
         role: {

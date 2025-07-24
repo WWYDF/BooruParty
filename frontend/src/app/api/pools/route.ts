@@ -29,7 +29,8 @@ export async function GET(req: Request) {
     andConditions.push({
       OR: [
         { name: { contains: queryText, mode: Prisma.QueryMode.insensitive } },
-        { artist: { contains: queryText, mode: Prisma.QueryMode.insensitive } }
+        { artist: { contains: queryText, mode: Prisma.QueryMode.insensitive } },
+        { description: { contains: queryText, mode: Prisma.QueryMode.insensitive } }
       ]
     });
   }
