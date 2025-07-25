@@ -34,6 +34,26 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
     });
   }
 
+  // Pools
+  if (systemOptions.pool) {
+    const rawPool = systemOptions.pool;
+    const poolIds = (typeof rawPool === "string" ? rawPool.split(",") : rawPool)
+      .map((p) => parseInt(p))
+      .filter((n) => !isNaN(n));
+
+    if (poolIds.length > 0) {
+      where.AND.push({
+        pools: {
+          some: {
+            poolId: {
+              in: poolIds,
+            },
+          },
+        },
+      });
+    }
+  }
+
   // Favorited by
   if (systemOptions.favorites) {
     useFavoriteOrdering = true;
