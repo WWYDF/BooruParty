@@ -29,7 +29,7 @@ export default function UploadQueue({ canDupe }: Props) {
   const [uploading, setUploading] = useState(false)
   const idCounter = useRef(0)
   const [anonymous, setAnonymous] = useState(false)
-  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [bulkSafety, setBulkSafety] = useState<"SAFE" | "SKETCHY" | "UNSAFE">("SAFE");
   const [globalTags, setGlobalTags] = useState<Tag[]>([]);
   const [dupeModalOpen, setDupeModalOpen] = useState(false);
@@ -106,7 +106,7 @@ export default function UploadQueue({ canDupe }: Props) {
     let i = 0;
     while (i < queue.length) {
       const item = queue[i];
-      setUploadingIndex(i);
+      setUploadingId(item.id);
   
       const formData = new FormData();
       formData.append('file', item.file);
@@ -124,7 +124,7 @@ export default function UploadQueue({ canDupe }: Props) {
           const result = await res.json();
           if (result.duplicate && result.post) {
             setUploading(false);
-            setUploadingIndex(null);
+            setUploadingId(null);
             setDupeItem(item);
             setDupeOriginalPost(result.post);
             setDupeModalOpen(true);
@@ -154,7 +154,7 @@ export default function UploadQueue({ canDupe }: Props) {
     }
   
     setUploading(false);
-    setUploadingIndex(null);
+    setUploadingId(null);
   };
   
   const handleBulkSafetyChange = (newSafety: "SAFE" | "SKETCHY" | "UNSAFE") => {
@@ -178,7 +178,7 @@ export default function UploadQueue({ canDupe }: Props) {
   
     setDupeModalOpen(false);
     setUploading(true);
-    setUploadingIndex(queue.findIndex(f => f.id === dupeItem.id));
+    setUploadingId(dupeItem.id);
   
     const formData = new FormData();
     formData.append('file', dupeItem.file);
@@ -221,7 +221,7 @@ export default function UploadQueue({ canDupe }: Props) {
     }
   
     setUploading(false);
-    setUploadingIndex(null);
+    setUploadingId(null);
     setDupeItem(null);
   };
   
@@ -249,7 +249,7 @@ export default function UploadQueue({ canDupe }: Props) {
 
     for (let i = 0; i < queue.length; i++) {
       const item = queue[i];
-      setUploadingIndex(i);
+      setUploadingId(item.id);
 
       const formData = new FormData();
       formData.append('file', item.file);
@@ -278,7 +278,7 @@ export default function UploadQueue({ canDupe }: Props) {
     }
 
     setUploading(false);
-    setUploadingIndex(null);
+    setUploadingId(null);
   };
 
   return (
@@ -365,7 +365,7 @@ export default function UploadQueue({ canDupe }: Props) {
                 id={item.id}
                 name={item.file.name}
                 preview={item.preview}
-                isUploading={uploadingIndex === i}
+                isUploading={uploadingId === item.id}
                 safety={item.safety}
                 onSafetyChange={(newSafety) => {
                   setQueue((prev) =>
