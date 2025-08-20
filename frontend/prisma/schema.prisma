@@ -148,6 +148,10 @@ model Posts {
   fileSize      Int?
 
   createdAt     DateTime     @default(now())
+
+  @@index([uploadedById, createdAt])
+  @@index([safety, createdAt])
+  @@index([safety])
 }
 
 model PostRelation {
@@ -207,6 +211,8 @@ model Tags {
   blacklistBy    UserPreferences[]  @relation("UserBLTags")
 
   createdAt      DateTime           @default(now())
+
+  @@index([name])
 }
 
 model TagAlias {
