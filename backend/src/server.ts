@@ -66,10 +66,11 @@ async function start() {
   fs.mkdirSync(filePath, { recursive: true });
 
   const server = await buildServer();
+  const port = Number(process.env.PORT) ?? 3005;
   try {
     console.clear();
-    await server.listen({ port: 3005, host: '0.0.0.0' });
-    console.log('🚀 Server running on http://localhost:3005');
+    await server.listen({ port, host: '0.0.0.0' });
+    console.log(`Server running on http://localhost:${port}`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);
