@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/authServer';
 import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
-import { getConversionType, resolveFileType } from '@/core/dictionary';
+import { resolveFileType } from '@/core/dictionary';
 import { fetch, Agent, FormData } from 'undici';
 import { FastifyUpload } from '@/core/types/posts';
 import { checkPermissions } from '@/components/serverSide/permCheck';

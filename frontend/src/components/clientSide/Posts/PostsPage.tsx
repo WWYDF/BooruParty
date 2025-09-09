@@ -8,14 +8,14 @@ import MassEditor from "./MassEditor";
 import PostToolbar from "./PostToolbar";
 import { UserPublic } from "@/core/types/users";
 
-export default function ClientPostsPage({ initialPosts, postsPerPage }: { initialPosts: any[]; postsPerPage: number; }) {
+export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number; }) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const initialQuery = searchParams.get("query") ?? "";
   const initialSafeties = searchParams.get("safety")?.split("-").filter(Boolean) ?? [];
 
-  const [posts, setPosts] = useState(initialPosts);
+  const [posts, setPosts] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"GRID" | "COLLAGE">("GRID");
   const [loadingViewMode, setLoadingViewMode] = useState(true);
   const [selectedSafeties, setSelectedSafeties] = useState<string[]>(initialSafeties);
@@ -38,6 +38,15 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
       const data: UserPublic = await res.json();
       if (data?.preferences?.layout) setViewMode(data.preferences?.layout);
       setLoadingViewMode(false);
+
+      // // Auto-fill selectedSafeties with defaultSafety preference (Shows them as selected in toolbar)
+      // if (
+      //   (!searchParams.get("safety") || searchParams.get("safety") === "") &&
+      //   Array.isArray(data.preferences?.defaultSafety)
+      // ) {
+      //   setSelectedSafeties(data.preferences.defaultSafety);
+      // }
+
     });
   }, []);
 
@@ -79,7 +88,9 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
     params.set("query", queryOverride);
     params.set("page", pageOverride.toString());
     params.set("perPage", postsPerPage.toString());
-    safetyOverride.forEach((s) => params.append("safety", s));
+    if (safetyOverride.length > 0) {
+      params.set("safety", safetyOverride.join("-"));
+    }
 
     try {
       const res = await fetch(`/api/posts?${params.toString()}`);
@@ -102,20 +113,38 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
     }
   };
 
-  // 🔁 Run initial search on first mount if URL had params
+  // Run initial search on first mount if URL had params
   useEffect(() => {
     if (isFirstLoad.current) {
-      const hasQuery = !!initialQuery.trim();
-      const hasSafety = initialSafeties.length > 0;
-  
-      if (hasQuery || hasSafety) {
-        searchPosts(initialQuery, initialSafeties);
-      } else {
-        // No filters in URL → clear localStorage
-        localStorage.removeItem("lastSearchParams");
-      }
-  
+      const restorePage = parseInt(sessionStorage.getItem("lastPage") || "1");
+      const y = parseInt(sessionStorage.getItem("scrollY") || "0");
+      const safeties = selectedSafeties.length > 0 ? selectedSafeties : initialSafeties;
       isFirstLoad.current = false;
+  
+      const preload = async () => {
+        for (let p = 1; p <= restorePage; p++) {
+          await searchPosts(initialQuery, safeties, p, p > 1);
+        }
+
+        function waitForScrollableHeight(y: number, attempt = 0) {
+          if (attempt > 30) return; // stop after ~30 frames (~500ms)
+        
+          if (document.body.scrollHeight < y + window.innerHeight) {
+            requestAnimationFrame(() => waitForScrollableHeight(y, attempt + 1));
+          } else {
+            window.scrollTo({ top: y, behavior: "instant" });
+            sessionStorage.removeItem("scrollY");
+          }
+        }
+
+        if (y > 0) {
+          waitForScrollableHeight(y);
+        }
+
+        setPage(restorePage);
+      };
+  
+      preload();
     }
   }, []);
 
@@ -133,6 +162,7 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
         setIsLoadingMore(true);
         const nextPage = page + 1;
         setPage(nextPage);
+        sessionStorage.setItem("lastPage", nextPage.toString());
 
         searchPosts(searchText, selectedSafeties, nextPage, true).then(() => {
           setIsLoadingMore(false);
@@ -143,6 +173,16 @@ export default function ClientPostsPage({ initialPosts, postsPerPage }: { initia
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [page, searchText, selectedSafeties, isLoadingMore, hasMore]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      sessionStorage.removeItem("lastPage");
+      sessionStorage.removeItem("scrollY");
+    };
+  
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   function setSelectMode(toggle: boolean) {
     setSelectionMode(toggle);

@@ -34,7 +34,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
       clearTimeout(debounceRef.current);
     }
 
-    if (!input.trim()) {
+    if (!input.trim() || input.endsWith(" ")) {
       setSuggestions([]);
       return;
     }

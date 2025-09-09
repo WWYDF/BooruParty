@@ -81,6 +81,41 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
       .catch(() => setPoolName(null));
   }, [poolId]);
 
+  useEffect(() => {
+    let lastNavTime = 0;
+    const DEBOUNCE_MS = 250;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const now = Date.now();
+      if (now - lastNavTime < DEBOUNCE_MS) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
+  
+      const isInPool = !!poolId;
+
+      const goPrev = () => {
+        if (previousPostId) {
+          router.push(buildLink(previousPostId));
+          lastNavTime = now;
+        }
+      };
+
+      const goNext = () => {
+        if (nextPostId) {
+          router.push(buildLink(nextPostId));
+          lastNavTime = now;
+        }
+      };
+
+      if (e.key === "ArrowLeft") {
+        isInPool ? goPrev() : goNext();
+      } else if (e.key === "ArrowRight") {
+        isInPool ? goNext() : goPrev();
+      }
+    };
+  
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previousPostId, nextPostId]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}

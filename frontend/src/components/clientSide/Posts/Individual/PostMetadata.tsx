@@ -367,52 +367,57 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
             <div className="mt-3">
               <p className="text-white font-medium text-lg mb-2">Tags ({post._count.tags})</p>
               <div className="flex flex-col gap-3">
-                {post.tags.map(group => (
-                  <div key={group.category.name}>
-                    <p className="text-subtle text-sm mb-1">{group.category.name}</p>
-                    <div className="flex flex-col gap-2">
-                      {group.tags.map(tag => (
-                        <div
-                          key={tag.id}
-                          className="inline-flex items-center gap-1 border border-zinc-900 px-2 py-1 rounded-full w-fit"
-                          style={{ color: tag.category?.color || "#fff" }}
-                        >
-                          <button
-                            onClick={() => modifyQuery("add", tag.name)}
-                            className="hover:text-accent"
-                            title="Add tag to search"
+                {post.tags.map(group => {
+                  const matchingTags = group.tags.filter(
+                    (tag: any) => tag.category.name === group.category.name
+                  );
+                  return (
+                    <div key={group.category.name}>
+                      <p className="text-subtle text-sm mb-1">{group.category.name} {matchingTags.length >= 5 ? `(${matchingTags.length})` : ''}</p>
+                      <div className="flex flex-col gap-2">
+                        {group.tags.map(tag => (
+                          <div
+                            key={tag.id}
+                            className="inline-flex items-center gap-1 border border-zinc-900 px-2 py-1 rounded-full w-fit"
+                            style={{ color: tag.category?.color || "#fff" }}
                           >
-                            <Plus size={10} weight="bold" />
-                          </button>
+                            <button
+                              onClick={() => modifyQuery("add", tag.name)}
+                              className="hover:text-accent"
+                              title="Add tag to search"
+                            >
+                              <Plus size={10} weight="bold" />
+                            </button>
 
-                          <button
-                            onClick={() => modifyQuery("exclude", tag.name)}
-                            className="hover:text-accent"
-                            title="Exclude tag from search"
-                          >
-                            <Minus size={10} weight="bold" />
-                          </button>
+                            <button
+                              onClick={() => modifyQuery("exclude", tag.name)}
+                              className="hover:text-accent"
+                              title="Exclude tag from search"
+                            >
+                              <Minus size={10} weight="bold" />
+                            </button>
 
-                          <Link href={`/tags/${encodeURIComponent(tag.name)}`} title="Edit tag">
-                            <Tag size={14} />
-                          </Link>
+                            <Link href={`/tags/${encodeURIComponent(tag.name)}`} title="Edit tag">
+                              <Tag size={14} />
+                            </Link>
 
-                          <button
-                            onClick={() => modifyQuery("replace", tag.name)}
-                            className="hover:underline"
-                            title="Search only this tag"
-                          >
-                            {tag.name}
-                          </button>
+                            <button
+                              onClick={() => modifyQuery("replace", tag.name)}
+                              className="hover:underline"
+                              title="Search only this tag"
+                            >
+                              {tag.name}
+                            </button>
 
-                          <span className="text-subtle text-xs ml-1">
-                            {formatCounts(tag?._count?.posts ?? 0)}
-                          </span>
-                        </div>
-                      ))}
+                            <span className="text-subtle text-xs ml-1">
+                              {formatCounts(tag?._count?.posts ?? 0)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}

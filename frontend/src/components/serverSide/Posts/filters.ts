@@ -1,9 +1,13 @@
-// @/core/posts/filters.ts
 import { FILE_TYPE_MAP } from "@/core/dictionary";
 import { SafetyType } from "@prisma/client";
 import { parseSearch } from "./parseSearch";
 
-export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: "new" | "old" = "new") {
+export function buildPostWhereAndOrder(
+  rawQuery: string,
+  safety?: string | string[],
+  sort: "new" | "old" = "new",
+  tagBlacklist?: string[]
+) {
   const { includeTags, excludeTags, includeTypes, excludeTypes, systemOptions } = parseSearch(rawQuery);
 
   const where: any = { AND: [] };
@@ -13,6 +17,13 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
   // Tags
   includeTags.forEach(tag => where.AND.push({ tags: { some: { name: tag } } }));
   excludeTags.forEach(tag => where.AND.push({ tags: { none: { name: tag } } }));
+
+  if (tagBlacklist?.length) {
+    const cleanedBlacklist = tagBlacklist?.filter(tag => !excludeTags.includes(tag)) ?? [];
+    cleanedBlacklist.forEach(tag => {
+      where.AND.push({ tags: { none: { name: { equals: tag, mode: "insensitive" } } } });
+    });
+  }
 
   // Uploader
   if (systemOptions.posts) {
@@ -24,6 +35,24 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
         },
       },
     });
+  }
+
+  // Pools
+  if (systemOptions.pool) {
+    const rawPool = systemOptions.pool;
+    const poolIds = (typeof rawPool === "string" ? rawPool.split(",") : rawPool)
+      .map((p) => parseInt(p))
+      .filter((n) => !isNaN(n));
+
+    if (poolIds.length > 0) {
+      where.AND.push({
+        pools: {
+          some: {
+            poolId: { in: poolIds },
+          },
+        },
+      });
+    }
   }
 
   // Favorited by
@@ -43,32 +72,48 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
     });
   }
 
-  // Favorited by
+  // Liked by
   if (systemOptions.likes) {
     useLikesOrdering = true;
     where.AND.push({
       votes: {
         some: {
-          type: 'UPVOTE',
+          type: "UPVOTE",
           user: {
             is: {
               username: {
                 equals: systemOptions.likes,
-                mode: "insensitive"
-              }
-            }
-          }
-        }
-      }
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+      },
     });
   }
 
-  // Safety filter
-  if (safety) {
-    const safeties = safety.split("-").filter(Boolean) as SafetyType[];
-    if (safeties.length > 0) {
-      where.AND.push({ safety: { in: safeties } });
+  // Safety filter — accept array or hyphenated string, enforce exact enum matches
+  const allSafeties: SafetyType[] = ["SAFE", "UNSAFE", "SKETCHY"];
+  if (safety && (Array.isArray(safety) ? safety.length : safety.trim().length)) {
+    const raw = Array.isArray(safety) ? safety : safety.split("-");
+    const normalized = raw
+      .map(s => s.trim().toUpperCase())
+      .filter(Boolean);
+
+    const safeties = normalized.filter(
+      (s): s is SafetyType => allSafeties.includes(s as SafetyType)
+    );
+
+    const uniqueSafeties = [...new Set(safeties)];
+
+    if (uniqueSafeties.length > 0) {
+      where.AND.push({ safety: { in: uniqueSafeties } }); // exact enum match
     }
+
+    // Optional debug:
+    // console.log("Raw safety input:", safety);
+    // console.log("Resolved safeties:", uniqueSafeties);
+    // console.log("Final where clause:", JSON.stringify(where, null, 2));
   }
 
   // File type filters
@@ -94,9 +139,11 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
     orderBy = { score: systemOptions.order.endsWith("_asc") ? "asc" : "desc" };
   } else if (systemOptions.order?.startsWith("favorites")) {
     orderBy = { favoritedBy: { _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc" } };
+  } else if (systemOptions.order?.startsWith("tags")) {
+    orderBy = {
+      tags: { _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc" },
+    };
   }
-
-  // console.log(useFavoriteOrdering)
 
   return { where, orderBy, useFavoriteOrdering, useLikesOrdering };
 }

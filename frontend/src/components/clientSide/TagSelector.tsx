@@ -85,6 +85,34 @@ export default function TagSelector({
     };
   }, [query, disabledTags, allowNegation]);
 
+  const processMultipleTags = async (input: string) => {
+    const parts = input
+      .split(/\s+/)
+      .map(part => part.trim())
+      .filter(Boolean);
+  
+    for (const part of parts) {
+      const search = part.startsWith("-") ? part.slice(1) : part;
+  
+      const res = await fetch(`/api/tags?search=${encodeURIComponent(search)}`);
+      const { tags } = await res.json();
+      const exactMatch = tags.find(
+        (r: any) =>
+          r.name.toLowerCase() === search.toLowerCase() ||
+          r.aliases?.some((a: any) => a.alias.toLowerCase() === search.toLowerCase())
+      );
+  
+      if (exactMatch) {
+        handleSelect(exactMatch);
+      } else if (addPendingTagName) {
+        addPendingTagName(search);
+      }
+    }
+  
+    setQuery("");
+    setResults([]);
+    setHighlightedIndex(-1);
+  };
 
   const processTagInput = (rawInput: string, opts: { asButton?: boolean } = {}) => {
     const trimmed = rawInput.trim();
@@ -143,7 +171,11 @@ export default function TagSelector({
       setHighlightedIndex((prev) => (prev - 1 + max) % max);
     } else if (query !== "" && (e.key === "Enter" || (e.key === " " && highlightedIndex <= 0))) {
       e.preventDefault();
-      processTagInput(query);
+      if (query.includes(" ")) {
+        processMultipleTags(query);
+      } else {
+        processTagInput(query);
+      }
     } else if (e.key === "Escape") {
       setResults([]);
       setHighlightedIndex(-1);

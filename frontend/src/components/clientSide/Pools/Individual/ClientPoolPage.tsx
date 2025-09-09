@@ -176,6 +176,7 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
               {poolData.description && (
                 <p className="text-sm text-white/80 max-w-2xl mb-1">{poolData.description}</p>
               )}
+              <p className="text-xs text-zinc-400 max-w-2xl mb-1">(Contains {poolData._count.items} pages)</p>
               {poolData.yearStart && (
                 <p className="text-sm text-subtle font-medium">
                   {poolData.yearStart}{" "}

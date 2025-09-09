@@ -14,7 +14,7 @@ export default function Filters({ selectedSafeties, toggleSafety }: FiltersProps
       {safetyOptions.map((safety) => (
         <button
           key={safety}
-          onClick={() => toggleSafety(safety)} // 🔥 calls parent's logic
+          onClick={() => toggleSafety(safety)}
           className={`px-3 py-1 rounded ${
             selectedSafeties.includes(safety)
               ? "bg-accent text-black"

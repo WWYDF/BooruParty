@@ -5,6 +5,7 @@ import BackToTop from "@/components/clientSide/BackToTop";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { Metadata } from "next";
 import { Posts } from "@/core/types/posts";
+import { cookies } from "next/headers";
 
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
 const totalPosts = await prisma.posts.count();
@@ -58,52 +59,51 @@ export default async function PostsPage() {
     }
   }
 
-  const initialPosts: Posts[] = await prisma.posts.findMany({
-    orderBy: { createdAt: "desc" },
-    take: postsPerPage,
-    select: {
-      id: true,
-      fileExt: true,
-      safety: true,
-      uploadedBy: {
-        select: {
-          id: true,
-          username: true
-        }
-      },
-      anonymous: true,
-      flags: true,
-      score: true,
-      createdAt: true,
-      _count: {
-        select: {
-          favoritedBy: true,
-          comments: true,
-          votes: true
-        }
-      },
-      relatedFrom: {
-        select: {
-          toId: true
-        }
-      },
-      pools: {
-        select: {
-          poolId: true
-        }
-      },
-      tags: {
-        include: {
-          category: true,
-        }
-      }
-    }
-  });
+  // const initialPosts: Posts[] = await prisma.posts.findMany({
+  //   orderBy: { createdAt: "desc" },
+  //   take: postsPerPage,
+  //   select: {
+  //     id: true,
+  //     fileExt: true,
+  //     safety: true,
+  //     uploadedBy: {
+  //       select: {
+  //         id: true,
+  //         username: true
+  //       }
+  //     },
+  //     anonymous: true,
+  //     flags: true,
+  //     score: true,
+  //     createdAt: true,
+  //     _count: {
+  //       select: {
+  //         favoritedBy: true,
+  //         comments: true,
+  //         votes: true
+  //       }
+  //     },
+  //     relatedFrom: {
+  //       select: {
+  //         toId: true
+  //       }
+  //     },
+  //     pools: {
+  //       select: {
+  //         poolId: true
+  //       }
+  //     },
+  //     tags: {
+  //       include: {
+  //         category: true,
+  //       }
+  //     }
+  //   }
+  // });
 
   return (
     <main className="p-4 space-y-4">
       <ClientPostsPage
-        initialPosts={initialPosts}
         postsPerPage={postsPerPage} // Pass it to client
       />
       <BackToTop />

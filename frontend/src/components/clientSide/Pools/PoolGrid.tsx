@@ -4,42 +4,44 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PoolCard } from "@/components/clientSide/Pools/PoolCard";
 import { CreatePoolModal } from "./CreateModal";
+import { Pool } from "@/core/types/pools";
+import PoolPagination from "./PoolPagination";
+import { useRouter, useSearchParams } from "next/navigation";
 
-type Props = {
-  pools: any[];
-};
 
-export function ClientPoolGrid({ pools }: Props) {
+export function ClientPoolGrid() {
+  const [allPools, setAllPools] = useState<Pool[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const query = debouncedQuery.toLowerCase();
-  const yearMatch = query.match(/year:(\d{4})/);
-  const orderMatch = query.match(/order:(score_asc|score)/);
+  useEffect(() => {
+    const pageParam = searchParams.get("page");
+    if (pageParam) setCurrentPage(parseInt(pageParam));
+  }, []);
 
-  const queryText = query
-    .replace(/year:\d{4}/, "")
-    .replace(/order:(score_asc|score)/, "")
-    .trim();
-
-  const filteredPools = pools
-    .filter((pool) => {
-      const matchesText =
-        (pool.name + " " + (pool.artist ?? "")).toLowerCase().includes(queryText);
-
-      const matchesYear =
-        !yearMatch || pool.yearStart?.toString() === yearMatch[1];
-
-      return matchesText && matchesYear;
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+  
+    fetch(`/api/pools?search=${encodeURIComponent(debouncedQuery)}&page=${currentPage}`, {
+      signal: controller.signal,
     })
-    .sort((a, b) => {
-      if (!orderMatch) return 0;
-      return orderMatch[1] === "score_asc"
-        ? a.score - b.score
-        : b.score - a.score;
-    });
-
+      .then((res) => res.json())
+      .then((data) => {
+        setAllPools(data.pools || []);
+        setTotalPages(Math.ceil((data.total || 0) / (data.limit || 25)));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  
+    return () => controller.abort();
+  }, [debouncedQuery, currentPage]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -77,7 +79,7 @@ export function ClientPoolGrid({ pools }: Props) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {filteredPools.map((pool, i) => (
+        {allPools.map((pool, i) => (
           <motion.div
             key={pool.id}
             initial={{ opacity: 0, y: 20 }}
@@ -97,6 +99,21 @@ export function ClientPoolGrid({ pools }: Props) {
             />
           </motion.div>
         ))}
+      </div>
+
+      <div className="flex justify-center mt-6">
+        <PoolPagination
+          page={currentPage}
+          totalPages={totalPages}
+          setPage={(page) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("page", page.toString());
+        
+            router.replace(`?${params.toString()}`);
+            setCurrentPage(page);
+            setLoading(true);
+          }}
+        />
       </div>
 
       <CreatePoolModal open={showModal} onClose={() => setShowModal(false)} />

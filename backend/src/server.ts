@@ -9,6 +9,7 @@ import statsRoute from './routes/stats';
 import postDeleteRoute from './routes/delete/posts';
 import avatarDeleteRoute from './routes/delete/avatars';
 import postReplaceRoute from './routes/replace';
+import cors from '@fastify/cors'
 import fs from 'fs';
 import path from 'path';
 
@@ -33,6 +34,21 @@ async function buildServer() {
       fileSize: 5 * 1024 * 1024, // 5 MB
     },
   });
+
+  await fastify.register(cors, {
+    origin: (origin, cb) => {
+      // Accept any origin and echo it back — as long as it's defined (browser request)
+      if (origin) {
+        cb(null, origin); // echo origin back = "fake *"
+      } else {
+        cb(null, true); // SSR, curl, etc.
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
+
+
   await fastify.register(ipFilter);
   await fastify.register(registerStatic);
   await fastify.register(uploadRoutes, { prefix: '/api' });
@@ -50,10 +66,11 @@ async function start() {
   fs.mkdirSync(filePath, { recursive: true });
 
   const server = await buildServer();
+  const port = Number(process.env.PORT) ?? 3005;
   try {
     console.clear();
-    await server.listen({ port: 3005, host: '0.0.0.0' });
-    console.log('🚀 Server running on http://localhost:3005');
+    await server.listen({ port, host: '0.0.0.0' });
+    console.log(`Server running on http://localhost:${port}`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

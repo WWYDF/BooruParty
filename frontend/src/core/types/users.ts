@@ -1,3 +1,6 @@
+import { SafetyType } from "@prisma/client"
+import { Tag } from "./tags"
+
 // Contains sensitive information, be careful!
 export type UserSelf = {
   id: string,
@@ -10,7 +13,10 @@ export type UserSelf = {
   preferences: {
     layout: 'GRID' | 'COLLAGE',
     theme: 'DARK' | 'LIGHT',
-    postsPerPage: number
+    postsPerPage: number,
+    blurUnsafeEmbeds: boolean,
+    defaultSafety: SafetyType[],
+    blacklistedTags: Tag[]
   },
   role: {
     id: number,
@@ -33,6 +39,9 @@ export type UserPublic = {
     layout: 'GRID' | 'COLLAGE',
     theme: 'DARK' | 'LIGHT',
     postsPerPage: number,
+    blurUnsafeEmbeds: boolean,
+    defaultSafety: SafetyType[],
+    blacklistedTags: Tag[]
   },
   _count: {
     posts: number,

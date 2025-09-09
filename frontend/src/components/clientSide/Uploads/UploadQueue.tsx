@@ -20,12 +20,16 @@ type UploadFile = {
   duplicatePostId?: number
 }
 
-export default function UploadQueue() {
+interface Props {
+  canDupe: boolean
+}
+
+export default function UploadQueue({ canDupe }: Props) {
   const [queue, setQueue] = useState<UploadFile[]>([])
   const [uploading, setUploading] = useState(false)
   const idCounter = useRef(0)
   const [anonymous, setAnonymous] = useState(false)
-  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [bulkSafety, setBulkSafety] = useState<"SAFE" | "SKETCHY" | "UNSAFE">("SAFE");
   const [globalTags, setGlobalTags] = useState<Tag[]>([]);
   const [dupeModalOpen, setDupeModalOpen] = useState(false);
@@ -102,7 +106,7 @@ export default function UploadQueue() {
     let i = 0;
     while (i < queue.length) {
       const item = queue[i];
-      setUploadingIndex(i);
+      setUploadingId(item.id);
   
       const formData = new FormData();
       formData.append('file', item.file);
@@ -120,7 +124,7 @@ export default function UploadQueue() {
           const result = await res.json();
           if (result.duplicate && result.post) {
             setUploading(false);
-            setUploadingIndex(null);
+            setUploadingId(null);
             setDupeItem(item);
             setDupeOriginalPost(result.post);
             setDupeModalOpen(true);
@@ -150,7 +154,7 @@ export default function UploadQueue() {
     }
   
     setUploading(false);
-    setUploadingIndex(null);
+    setUploadingId(null);
   };
   
   const handleBulkSafetyChange = (newSafety: "SAFE" | "SKETCHY" | "UNSAFE") => {
@@ -174,7 +178,7 @@ export default function UploadQueue() {
   
     setDupeModalOpen(false);
     setUploading(true);
-    setUploadingIndex(queue.findIndex(f => f.id === dupeItem.id));
+    setUploadingId(dupeItem.id);
   
     const formData = new FormData();
     formData.append('file', dupeItem.file);
@@ -217,7 +221,7 @@ export default function UploadQueue() {
     }
   
     setUploading(false);
-    setUploadingIndex(null);
+    setUploadingId(null);
     setDupeItem(null);
   };
   
@@ -236,7 +240,46 @@ export default function UploadQueue() {
       toast('Failed to copy tags.', 'error');
     }
   };
-    
+
+
+  const handleForceAllDupes = async () => {
+    if (uploading || queue.length === 0) return;
+
+    setUploading(true);
+
+    for (let i = 0; i < queue.length; i++) {
+      const item = queue[i];
+      setUploadingId(item.id);
+
+      const formData = new FormData();
+      formData.append('file', item.file);
+      formData.append('anonymous', anonymous.toString());
+      formData.append('safety', item.safety);
+      formData.append('tags', JSON.stringify(globalTags.map((t) => t.name)));
+
+      try {
+        const res = await fetch('/api/posts/create?skipDupes=true', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          toast(`Upload failed: ${err.error || item.file.name}`, 'error');
+          break;
+        }
+
+        setQueue((prev) => prev.filter((f) => f.id !== item.id));
+      } catch (err) {
+        console.error(`Failed to force upload ${item.file.name}`, err);
+        toast(`Upload failed: ${item.file.name}`, 'error');
+        break;
+      }
+    }
+
+    setUploading(false);
+    setUploadingId(null);
+  };
 
   return (
     <div className="w-full max-w-3xl mx-auto p-4">
@@ -250,8 +293,8 @@ export default function UploadQueue() {
         <p className="text-subtle">Drag and drop your images, videos or gifs here</p>
       </div>
 
-      <div className="mt-4 mb-2 flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="mt-2 mb-2 flex items-start justify-between gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 items-center gap-4">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -283,9 +326,7 @@ export default function UploadQueue() {
               );
             })}
           </div>
-        </div>
 
-        <div className="max-w-xs w-full">
           <MassTagger
             value={globalTags}
             onChange={setGlobalTags}
@@ -298,9 +339,18 @@ export default function UploadQueue() {
         <button
           onClick={handleSubmit}
           disabled={uploading}
-          className="mt-6 px-4 py-2 rounded-xl bg-darkerAccent text-white disabled:opacity-50"
+          className="mt-6 px-4 py-2 rounded-xl border-2 border-green-800 text-zinc-200 hover:bg-green-800/30 transition disabled:opacity-50"
         >
-          {uploading ? 'Uploading...' : 'Submit'}
+          {uploading ? 'Uploading...' : 'Upload'}
+        </button>
+      )}
+
+      {canDupe && queue.length > 0 && (
+        <button
+          onClick={handleForceAllDupes}
+          className="mt-4 ml-4 px-4 py-2 rounded-xl border-2 border-red-800 text-zinc-200 hover:bg-red-800/30 transition"
+        >
+          Force Duplicates
         </button>
       )}
 
@@ -315,7 +365,7 @@ export default function UploadQueue() {
                 id={item.id}
                 name={item.file.name}
                 preview={item.preview}
-                isUploading={uploadingIndex === i}
+                isUploading={uploadingId === item.id}
                 safety={item.safety}
                 onSafetyChange={(newSafety) => {
                   setQueue((prev) =>
