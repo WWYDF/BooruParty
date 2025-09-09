@@ -13,17 +13,6 @@ export async function GET(req: Request) {
   let userSafety: string[] = [];
   let userBlacklist: string[] = [];
 
-  // try {
-  //   let permCheck = (await checkPermissions(['post_view']))['post_view'];
-
-  //   const authHeader = req.headers.get('X-Override'); // Allow internal server pages to access regardless.
-  //   if (authHeader && authHeader == process.env.INTERNAL_API_SECRET) { permCheck = true }
-
-  //   if (!permCheck || !session) { return NextResponse.json({ error: "You are unauthorized to view posts." }, { status: 401 }); }
-  // } catch (error) {
-  //   NextResponse.json({ error }, { status: 500 });
-  // }
-
   try {
     if (session?.user) {
       const userPrefs = await prisma.userPreferences.findUnique({
@@ -35,6 +24,17 @@ export async function GET(req: Request) {
         userSafety = userPrefs.defaultSafety as string[];
         userBlacklist = userPrefs.blacklistedTags.map(tag => tag.name.toLowerCase());
       }
+    } else {
+      // Use defaults for guests
+      const guestSafety = process.env.GUEST_SAFETY;
+      if (guestSafety) {
+        userSafety = guestSafety
+          .split(",")
+          .map(s => s.trim().toUpperCase())
+          .filter(Boolean);
+      } else {
+        userSafety = ["SAFE"];
+      }
     }
   } catch (e) {
     console.error(e);
@@ -45,12 +45,37 @@ export async function GET(req: Request) {
   const perPage = parseInt(searchParams.get("perPage") || "50");
   const sort = (searchParams.get("sort") ?? "new") as "new" | "old";
 
+  // Authoritative safety from query (if present), else fall back to user defaults
   const safetyValues = searchParams.getAll("safety");
-  const effectiveSafety = safetyValues.length > 0
-    ? safetyValues.map((s) => s.trim().toUpperCase()).join("-")
-    : userSafety.join("-");
+  const effectiveSafetyArray =
+    safetyValues.length > 0
+      ? safetyValues.map(s => s.trim().toUpperCase()).filter(Boolean)
+      : userSafety;
 
-  const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(search, effectiveSafety, sort, userBlacklist);
+  // Build the base where/order using the safety array
+  const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(search, effectiveSafetyArray, sort, userBlacklist);
+
+  // Make sure "notes contains" never bypasses safety (AND it with base where)
+  const trimmed = search.trim();
+  const finalWhere =
+    trimmed.length > 0
+      ? {
+          AND: [
+            where,
+            {
+              OR: [
+                {
+                  notes: {
+                    contains: trimmed,
+                    mode: "insensitive",
+                  },
+                },
+              ],
+            },
+          ],
+        }
+      : where;
+
   const postSelect = {
     id: true,
     fileExt: true,
@@ -91,72 +116,53 @@ export async function GET(req: Request) {
     },
     tags: {
       include: {
-        category: true
-      }
+        category: true,
+      },
     },
   };
-  
+
   let posts;
-  
+
   if (useFavoriteOrdering) {
     const { systemOptions } = parseSearch(search);
     const favorites = await prisma.userFavorites.findMany({
       where: {
         user: { username: systemOptions.favorites },
-        post: where, // Apply post filters
+        post: finalWhere, // apply final filters
       },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,
       select: {
-        post: {
-          select: postSelect,
-        },
+        post: { select: postSelect },
       },
     });
-  
-    posts = favorites.map(fav => fav.post);
+    posts = favorites.map(f => f.post);
 
   } else if (useLikesOrdering) {
     const { systemOptions } = parseSearch(search);
     const likes = await prisma.votes.findMany({
       where: {
-        type: 'UPVOTE',
+        type: "UPVOTE",
         user: {
           is: {
-            username: {
-              equals: systemOptions.likes,
-              mode: 'insensitive',
-            },
+            username: { equals: systemOptions.likes, mode: "insensitive" },
           },
         },
-        post: where,
+        post: finalWhere, // apply final filters
       },
-      orderBy: { createdAt: 'desc' }, // order by vote time
+      orderBy: { createdAt: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,
       select: {
-        post: {
-          select: postSelect,
-        },
+        post: { select: postSelect },
       },
     });
-    
-    posts = likes.map((like) => like.post);
+    posts = likes.map(l => l.post);
 
   } else {
     posts = await prisma.posts.findMany({
-      where: {
-        OR: [
-          where,
-          {
-            notes: { // not applied to others above cos im lazy
-              contains: search.trim(),
-              mode: "insensitive",
-            },
-          },
-        ],
-      },
+      where: finalWhere, // no OR that bypasses safety
       skip: (page - 1) * perPage,
       take: perPage,
       orderBy,
@@ -164,13 +170,11 @@ export async function GET(req: Request) {
     });
   }
 
-  const totalCount = await prisma.posts.count({ where });
+  // Count should match final filters
+  const totalCount = await prisma.posts.count({ where: finalWhere });
   const totalPages = Math.ceil(totalCount / perPage);
 
-  return NextResponse.json({
-    posts,
-    totalPages,
-  });
+  return NextResponse.json({ posts, totalPages });
 }
 
 

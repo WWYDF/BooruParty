@@ -1,9 +1,13 @@
-// @/core/posts/filters.ts
 import { FILE_TYPE_MAP } from "@/core/dictionary";
 import { SafetyType } from "@prisma/client";
 import { parseSearch } from "./parseSearch";
 
-export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: "new" | "old" = "new", tagBlacklist?: string[]) {
+export function buildPostWhereAndOrder(
+  rawQuery: string,
+  safety?: string | string[],
+  sort: "new" | "old" = "new",
+  tagBlacklist?: string[]
+) {
   const { includeTags, excludeTags, includeTypes, excludeTypes, systemOptions } = parseSearch(rawQuery);
 
   const where: any = { AND: [] };
@@ -16,7 +20,6 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
 
   if (tagBlacklist?.length) {
     const cleanedBlacklist = tagBlacklist?.filter(tag => !excludeTags.includes(tag)) ?? [];
-
     cleanedBlacklist.forEach(tag => {
       where.AND.push({ tags: { none: { name: { equals: tag, mode: "insensitive" } } } });
     });
@@ -45,9 +48,7 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
       where.AND.push({
         pools: {
           some: {
-            poolId: {
-              in: poolIds,
-            },
+            poolId: { in: poolIds },
           },
         },
       });
@@ -71,49 +72,48 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
     });
   }
 
-  // Favorited by
+  // Liked by
   if (systemOptions.likes) {
     useLikesOrdering = true;
     where.AND.push({
       votes: {
         some: {
-          type: 'UPVOTE',
+          type: "UPVOTE",
           user: {
             is: {
               username: {
                 equals: systemOptions.likes,
-                mode: "insensitive"
-              }
-            }
-          }
-        }
-      }
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+      },
     });
   }
 
-  // Safety filter
-  const allSafeties: SafetyType[] = ['SAFE', 'UNSAFE', 'SKETCHY'];
-
-  if (safety) {
-    const rawSafeties = safety
-      .split('-')
-      .map((s) => s.trim().toUpperCase())
+  // Safety filter — accept array or hyphenated string, enforce exact enum matches
+  const allSafeties: SafetyType[] = ["SAFE", "UNSAFE", "SKETCHY"];
+  if (safety && (Array.isArray(safety) ? safety.length : safety.trim().length)) {
+    const raw = Array.isArray(safety) ? safety : safety.split("-");
+    const normalized = raw
+      .map(s => s.trim().toUpperCase())
       .filter(Boolean);
 
-    const safeties = rawSafeties.filter(
+    const safeties = normalized.filter(
       (s): s is SafetyType => allSafeties.includes(s as SafetyType)
     );
 
     const uniqueSafeties = [...new Set(safeties)];
 
-    // Apply filter only if there's at least 1 valid safety
     if (uniqueSafeties.length > 0) {
-      where.AND.push({ safety: { in: uniqueSafeties } });
+      where.AND.push({ safety: { in: uniqueSafeties } }); // exact enum match
     }
-    
-    console.log("Raw safety input:", safety);
-    console.log("Resolved safeties:", uniqueSafeties);
-    console.log("Final where clause:", JSON.stringify(where, null, 2));
+
+    // Optional debug:
+    // console.log("Raw safety input:", safety);
+    // console.log("Resolved safeties:", uniqueSafeties);
+    // console.log("Final where clause:", JSON.stringify(where, null, 2));
   }
 
   // File type filters
@@ -141,13 +141,9 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
     orderBy = { favoritedBy: { _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc" } };
   } else if (systemOptions.order?.startsWith("tags")) {
     orderBy = {
-      tags: {
-        _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc"
-      }
+      tags: { _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc" },
     };
   }
-
-  // console.log(useFavoriteOrdering)
 
   return { where, orderBy, useFavoriteOrdering, useLikesOrdering };
 }
