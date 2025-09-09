@@ -92,11 +92,28 @@ export function buildPostWhereAndOrder(rawQuery: string, safety?: string, sort: 
   }
 
   // Safety filter
+  const allSafeties: SafetyType[] = ['SAFE', 'UNSAFE', 'SKETCHY'];
+
   if (safety) {
-    const safeties = safety.split("-").filter(Boolean) as SafetyType[];
-    if (safeties.length > 0) {
-      where.AND.push({ safety: { in: safeties } });
+    const rawSafeties = safety
+      .split('-')
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean);
+
+    const safeties = rawSafeties.filter(
+      (s): s is SafetyType => allSafeties.includes(s as SafetyType)
+    );
+
+    const uniqueSafeties = [...new Set(safeties)];
+
+    // Apply filter only if there's at least 1 valid safety
+    if (uniqueSafeties.length > 0) {
+      where.AND.push({ safety: { in: uniqueSafeties } });
     }
+    
+    console.log("Raw safety input:", safety);
+    console.log("Resolved safeties:", uniqueSafeties);
+    console.log("Final where clause:", JSON.stringify(where, null, 2));
   }
 
   // File type filters

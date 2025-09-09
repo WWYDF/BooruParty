@@ -43,10 +43,13 @@ export async function GET(req: Request) {
   const search = searchParams.get("query") || "";
   const page = parseInt(searchParams.get("page") || "1");
   const perPage = parseInt(searchParams.get("perPage") || "50");
-  const safetyValues = searchParams.getAll("safety");
   const sort = (searchParams.get("sort") ?? "new") as "new" | "old";
 
-  const effectiveSafety = safetyValues.length > 0 ? safetyValues.join("-") : userSafety.join("-");
+  const safetyValues = searchParams.getAll("safety");
+  const effectiveSafety = safetyValues.length > 0
+    ? safetyValues.map((s) => s.trim().toUpperCase()).join("-")
+    : userSafety.join("-");
+
   const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(search, effectiveSafety, sort, userBlacklist);
   const postSelect = {
     id: true,

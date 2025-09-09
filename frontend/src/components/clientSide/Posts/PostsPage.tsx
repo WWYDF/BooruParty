@@ -88,7 +88,9 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
     params.set("query", queryOverride);
     params.set("page", pageOverride.toString());
     params.set("perPage", postsPerPage.toString());
-    safetyOverride.forEach((s) => params.append("safety", s));
+    if (safetyOverride.length > 0) {
+      params.set("safety", safetyOverride.join("-"));
+    }
 
     try {
       const res = await fetch(`/api/posts?${params.toString()}`);
