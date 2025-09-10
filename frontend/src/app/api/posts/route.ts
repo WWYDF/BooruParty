@@ -40,7 +40,7 @@ export async function GET(req: Request) {
     console.error(e);
   }
 
-  const search = searchParams.get("query") || "";
+  const rawQuery = searchParams.get("query") || "";
   const page = parseInt(searchParams.get("page") || "1");
   const perPage = parseInt(searchParams.get("perPage") || "50");
   const sort = (searchParams.get("sort") ?? "new") as "new" | "old";
@@ -53,28 +53,45 @@ export async function GET(req: Request) {
       : userSafety;
 
   // Build the base where/order using the safety array
-  const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(search, effectiveSafetyArray, sort, userBlacklist);
+  const parsed = parseSearch(rawQuery);
+  const trimmed = rawQuery.trim();
+  const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(rawQuery, effectiveSafetyArray, sort, userBlacklist);
+  
+  // If parseSearch exposes a freeText/remainingText field, prefer it. Otherwise derive:
+  const freeText =
+  (parsed as any).freeText ??
+  trimmed
+    // remove known key:value tokens that we already turned into structural filters
+    .replace(/(?:^|\s)(posts|favorites|likes|pool|order|year|type):\S+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  // Make sure "notes contains" never bypasses safety (AND it with base where)
-  const trimmed = search.trim();
-  const finalWhere =
-    trimmed.length > 0
-      ? {
-          AND: [
-            where,
-            {
-              OR: [
-                {
-                  notes: {
-                    contains: trimmed,
-                    mode: "insensitive",
-                  },
-                },
-              ],
+  // Only create a text filter if there's actual free text left
+  const textFilter =
+  freeText.length > 0
+    ? {
+        OR: [
+          { notes: { contains: freeText, mode: "insensitive" } },
+          {
+            tags: {
+              some: {
+                name: { contains: freeText, mode: "insensitive" },
+              },
             },
-          ],
-        }
-      : where;
+          },
+          {
+            uploadedBy: {
+              is: {
+                username: { contains: freeText, mode: "insensitive" },
+              },
+            },
+          },
+        ],
+      }
+    : undefined;
+
+  // Safety/structural filters must always apply; text is optional
+  const finalWhere = textFilter ? { AND: [where, textFilter] } : where;
 
   const postSelect = {
     id: true,
@@ -124,10 +141,9 @@ export async function GET(req: Request) {
   let posts;
 
   if (useFavoriteOrdering) {
-    const { systemOptions } = parseSearch(search);
     const favorites = await prisma.userFavorites.findMany({
       where: {
-        user: { username: systemOptions.favorites },
+        user: { username: parsed.systemOptions.favorites },
         post: finalWhere, // apply final filters
       },
       orderBy: { createdAt: "desc" },
@@ -140,13 +156,12 @@ export async function GET(req: Request) {
     posts = favorites.map(f => f.post);
 
   } else if (useLikesOrdering) {
-    const { systemOptions } = parseSearch(search);
     const likes = await prisma.votes.findMany({
       where: {
         type: "UPVOTE",
         user: {
           is: {
-            username: { equals: systemOptions.likes, mode: "insensitive" },
+            username: { equals: parsed.systemOptions.likes, mode: "insensitive" },
           },
         },
         post: finalWhere, // apply final filters
