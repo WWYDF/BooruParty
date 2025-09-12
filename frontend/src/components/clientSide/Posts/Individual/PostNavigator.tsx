@@ -61,6 +61,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
   const router = useRouter();
   const { previousPostId, nextPostId } = useAdjacentPosts(postId, poolId);
   const [poolName, setPoolName] = useState<string | null>(null);
+  const [flipNavigators, setFlipNavigators] = useState(false);
 
   const buildLink = (targetId: number) => {
     if (fullscreen) {
@@ -71,50 +72,87 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
       return poolId ? `/post/${targetId}?pool=${poolId}` : `/post/${targetId}`;
     }
   };
-  
+
+  // Load flip preference
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("browserPreferences");
+      if (saved) {
+        const prefs = JSON.parse(saved);
+        setFlipNavigators(!!prefs.flipNavigators);
+      }
+    } catch {
+      setFlipNavigators(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!poolId) return;
   
     fetch(`/api/pools/${poolId}`, { cache: "no-store" })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => setPoolName(data?.name ?? null))
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setPoolName(data?.name ?? null))
       .catch(() => setPoolName(null));
   }, [poolId]);
 
-  useEffect(() => {
-    let lastNavTime = 0;
-    const DEBOUNCE_MS = 250;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const now = Date.now();
-      if (now - lastNavTime < DEBOUNCE_MS) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
-  
-      const isInPool = !!poolId;
+  // Left side button (always shows CaretLeft)
+  const LeftButton = () => {
+    // pool inverts default behavior
+    const isPool = !!poolId;
+    const showPrev = flipNavigators ? !isPool : isPool;
 
-      const goPrev = () => {
-        if (previousPostId) {
-          router.push(buildLink(previousPostId));
-          lastNavTime = now;
-        }
-      };
+    if (showPrev) {
+      return (
+        <button
+          disabled={!previousPostId}
+          onClick={() => router.push(buildLink(previousPostId))}
+          className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <CaretLeft size={28} weight="bold" />
+          <span className="text-sm">Previous</span>
+        </button>
+      );
+    }
+    return (
+      <button
+        disabled={!nextPostId}
+        onClick={() => router.push(buildLink(nextPostId))}
+        className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <CaretLeft size={28} weight="bold" />
+        <span className="text-sm">Next</span>
+      </button>
+    );
+  };
 
-      const goNext = () => {
-        if (nextPostId) {
-          router.push(buildLink(nextPostId));
-          lastNavTime = now;
-        }
-      };
+  // Right side button (always shows CaretRight)
+  const RightButton = () => {
+    const isPool = !!poolId;
+    const showNext = flipNavigators ? !isPool : isPool;
 
-      if (e.key === "ArrowLeft") {
-        isInPool ? goPrev() : goNext();
-      } else if (e.key === "ArrowRight") {
-        isInPool ? goNext() : goPrev();
-      }
-    };
-  
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [previousPostId, nextPostId]);
+    if (showNext) {
+      return (
+        <button
+          disabled={!nextPostId}
+          onClick={() => router.push(buildLink(nextPostId))}
+          className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <span className="text-sm">Next</span>
+          <CaretRight size={28} weight="bold" />
+        </button>
+      );
+    }
+    return (
+      <button
+        disabled={!previousPostId}
+        onClick={() => router.push(buildLink(previousPostId))}
+        className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <span className="text-sm">Previous</span>
+        <CaretRight size={28} weight="bold" />
+      </button>
+    );
+  };
 
   return (
     <motion.div
@@ -122,56 +160,18 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={`relative w-full px-4 md:py-3 flex items-center justify-between ${
-        fullscreen ? "bg-black/80 backdrop-blur sticky top-0 z-40 border-b border-zinc-800" : ""
+        fullscreen
+          ? "bg-black/80 backdrop-blur sticky top-0 z-40 border-b border-zinc-800"
+          : ""
       }`}
     >
-      {/* Left button */}
       <div className="flex items-center gap-1 whitespace-nowrap overflow-hidden">
-        {poolId ? (
-          <button
-            disabled={!previousPostId}
-            onClick={() => router.push(buildLink(previousPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <CaretLeft size={28} weight="bold" />
-            <span className="text-sm">Previous</span>
-          </button>
-        ) : (
-          <button
-            disabled={!nextPostId}
-            onClick={() => router.push(buildLink(nextPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <CaretLeft size={28} weight="bold" />
-            <span className="text-sm">Next</span>
-          </button>
-        )}
+        <LeftButton />
       </div>
-  
-      {/* Right button */}
       <div className="flex items-center gap-1 whitespace-nowrap overflow-hidden">
-        {poolId ? (
-          <button
-            disabled={!nextPostId}
-            onClick={() => router.push(buildLink(nextPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <span className="text-sm">Next</span>
-            <CaretRight size={28} weight="bold" />
-          </button>
-        ) : (
-          <button
-            disabled={!previousPostId}
-            onClick={() => router.push(buildLink(previousPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <span className="text-sm">Previous</span>
-            <CaretRight size={28} weight="bold" />
-          </button>
-        )}
+        <RightButton />
       </div>
-  
-      {/* Center pool name */}
+
       {poolId && poolName && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -189,5 +189,5 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
         </motion.div>
       )}
     </motion.div>
-  );  
+  );
 }

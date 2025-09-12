@@ -3,10 +3,8 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import PostGrid from "@/components/clientSide/Posts/PostGrid";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getSession } from "next-auth/react";
 import MassEditor from "./MassEditor";
 import PostToolbar from "./PostToolbar";
-import { UserPublic } from "@/core/types/users";
 import { loadPreferences } from "@/core/authClient";
 import { defaultLayout, defaultPostsPerPage } from "../Profile/Preferences";
 import LoadingOverlay from "../LoadingOverlay";
