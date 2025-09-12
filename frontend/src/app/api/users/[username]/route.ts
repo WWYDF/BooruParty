@@ -49,7 +49,8 @@ export async function GET(
             include: {
               category: true
             }
-          }
+          },
+          private: true,
         }
       },
       _count: {
@@ -106,6 +107,18 @@ export async function GET(
 
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // If this is a private account, we don't want to leak info through the public api.
+  if (user.preferences?.private == true) {
+    const session = await auth();
+
+    if (!session || user.id !== session.user.id) {
+      return NextResponse.json({
+        error: session ? 403 : 401,
+        message: "This account is private."
+      }, { status: session ? 403 : 401 });
+    }
   }
 
   return NextResponse.json({

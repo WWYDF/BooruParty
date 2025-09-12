@@ -1,11 +1,6 @@
 import '@/styles/globals.css';
-import { Inter } from 'next/font/google';
 import { Metadata } from 'next';
 import { prisma } from '@/core/prisma';
-import { setAvatarUrl } from '@/core/reformatProfile';
-
-const inter = Inter({ subsets: ['latin'] });
-let avatar = '';
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
   const prams = await params;
@@ -15,6 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
       username: true,
       avatar: true,
       description: true,
+      preferences: {  select: { private: true } },
       role: {
         select: {
           name: true,
@@ -36,7 +32,18 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     return { title: 'User not found' };
   }
 
-  avatar = setAvatarUrl(user.avatar);
+  if (user.preferences?.private == true) {
+    return {
+      title: `${user.username}'s Profile`,
+      description: `This profile is private.`,
+      openGraph: {
+        title: `${user.username}'s Profile`,
+        description: `This profile is private.`,
+        url: `${user.avatar}`,
+      },
+    };
+  };
+
   let motto = '';
   if (user.description) { motto = `${user.description}\n` }
   const description = `${motto}Role: ${user.role?.name ?? 'Member'}\nPosts: ${user._count.posts}\nFavorites: ${user._count.favorites}\nComments: ${user._count.comments}\nMember Since: ${new Date(user.createdAt).toLocaleDateString()}`;

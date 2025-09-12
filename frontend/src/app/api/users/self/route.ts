@@ -50,7 +50,7 @@ export async function GET() {
               category: true
             }
           },
-          flipNavigators: true
+          private: true
         }
       },
       role: {

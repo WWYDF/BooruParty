@@ -13,6 +13,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Severity {
+  INFO
+  NOTE
+  WARNING
+  DANGER
+  SUCCESS
+}
+
 enum VoteType {
   UPVOTE
   DOWNVOTE
@@ -59,6 +67,7 @@ model User {
   comments      Comments[]
   commentVotes  CommentVotes[]
   poolVotes     PoolVotes[]
+  notifications Notifications[]
   audits        Audits[]
   roleId        Int?
   
@@ -72,14 +81,14 @@ model UserPreferences {
   id                  String          @id
   user                User            @relation(fields: [id], references: [id], onDelete: Cascade)
   
-  layout              LayoutType      @default(GRID)
-  theme               ThemeType       @default(DARK)
-  postsPerPage        Int             @default(50)
-  blurUnsafeEmbeds    Boolean         @default(true)        // Change if NSFW site
-  defaultSafety       SafetyType[]    @default([SAFE])      // Change if NSFW site
-  flipNavigators      Boolean         @default(false)
-
+  layout              LayoutType      @default(GRID)            // Unused Now
+  theme               ThemeType       @default(DARK)            // Unused Now
+  postsPerPage        Int             @default(50)              // Unused Now
+  blurUnsafeEmbeds    Boolean         @default(true)            // Change if NSFW site
+  defaultSafety       SafetyType[]    @default([SAFE])          // Change if NSFW site
   blacklistedTags     Tags[]          @relation("UserBLTags")
+
+  private             Boolean         @default(false)
 }
 
 model UserFavorites {
@@ -93,6 +102,17 @@ model UserFavorites {
   createdAt DateTime @default(now())
 
   @@unique([userId, postId])
+}
+
+model Notifications {
+  id                String              @id @default(cuid())
+  receiverId        String
+  receiver          User                @relation(fields: [receiverId], references: [id], onDelete: Cascade)
+  severity          Severity            @default(INFO)
+  label             String
+  message           String
+  read              Boolean             @default(false)
+  createdAt         DateTime            @default(now())
 }
 
 model Votes {
