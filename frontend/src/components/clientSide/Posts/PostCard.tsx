@@ -46,7 +46,7 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
         </div>
       )}
 
-      <div className="rounded-xl bg-secondary overflow-hidden relative transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-black/30">
+      <div className="rounded-xl bg-secondary overflow-hidden relative transform transition duration-200 md:hover:-translate-y-1.5 hover:shadow-lg hover:shadow-black/30">
         {viewMode === 'GRID' ? (
           <div className="aspect-square">
             <picture>
