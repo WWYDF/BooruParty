@@ -19,6 +19,7 @@ const updateUserSchema = z.object({
   blurUnsafeEmbeds: z.boolean().optional(),
   defaultSafety: z.array(z.enum(['SAFE', 'SKETCHY', 'UNSAFE'])).optional(),
   blacklistedTags: z.array(z.number()).optional(),
+  flipNavigators: z.boolean().optional(),
 });
 
 // Returns non-sensitive information on the user
@@ -150,7 +151,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
     );
   }
 
-  const { username, email, description, password, layout, theme, postsPerPage, blurUnsafeEmbeds, defaultSafety, blacklistedTags } = parsed.data;
+  const { username, email, description, password, layout, theme, postsPerPage, blurUnsafeEmbeds, defaultSafety, blacklistedTags, flipNavigators } = parsed.data;
 
   const updates: any = {};
   if (username) updates.username = username;
@@ -168,7 +169,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
     prefUpdates.blacklistedTags = {
       set: blacklistedTags.map((id) => ({ id }))
     };
-  }
+  };
+  if (typeof flipNavigators !== 'undefined') { prefUpdates.flipNavigators = flipNavigators };
 
   try {
     const current = await prisma.user.findUnique({

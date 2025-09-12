@@ -16,7 +16,8 @@ export type UserSelf = {
     postsPerPage: number,
     blurUnsafeEmbeds: boolean,
     defaultSafety: SafetyType[],
-    blacklistedTags: Tag[]
+    blacklistedTags: Tag[],
+    flipNavigators: boolean
   },
   role: {
     id: number,

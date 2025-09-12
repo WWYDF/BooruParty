@@ -13,6 +13,7 @@ export default function PreferencesForm({ user }: { user: UserSelf }) {
   const [theme, setTheme] = useState<'DARK' | 'LIGHT'>('DARK');
   const [postsPerPage, setPPP] = useState<number>(30);
   const [blurUnsafeEmbeds, setBlurUnsafeEmbeds] = useState(true);
+  const [flipNavigators, setFlipNavigators] = useState(false);
   const [defaultSafety, setDefaultSafety] = useState<SafetyType[]>(['SAFE']);
   const [blacklistedTags, setBlacklistedTags] = useState<Tag[]>([]);
   const toast = useToast();
@@ -26,6 +27,7 @@ export default function PreferencesForm({ user }: { user: UserSelf }) {
         setBlurUnsafeEmbeds(user.preferences?.blurUnsafeEmbeds ?? true);
         setDefaultSafety(user.preferences?.defaultSafety ?? ['SAFE']);
         setBlacklistedTags(user.preferences?.blacklistedTags ?? []);;
+        setFlipNavigators(user.preferences?.flipNavigators ?? true);;
       } catch (err) {
         toast('Could not load preferences', 'error');
       }
@@ -34,7 +36,7 @@ export default function PreferencesForm({ user }: { user: UserSelf }) {
 
   const save = async () => {
     try {
-      await updateUser(user.username, { layout, theme, postsPerPage, blurUnsafeEmbeds, defaultSafety, blacklistedTags: blacklistedTags.map((tag) => tag.id), });
+      await updateUser(user.username, { layout, theme, postsPerPage, blurUnsafeEmbeds, defaultSafety, blacklistedTags: blacklistedTags.map((tag) => tag.id), flipNavigators, });
       toast('Preferences Saved!', 'success');
     } catch (err: any) {
       toast(err.message, 'error');
@@ -48,29 +50,18 @@ export default function PreferencesForm({ user }: { user: UserSelf }) {
   return (
     <section className="bg-secondary p-4 rounded-2xl shadow space-y-4">
       <h2 className="text-xl font-semibold">Preferences</h2>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        {/* Row 1 */}
         <div className="flex-1">
           <label className="block mb-1 text-subtle">Layout</label>
           <select
-              value={layout}
-              onChange={(e) => setLayout(e.target.value as 'GRID' | 'COLLAGE')}
-              className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+            value={layout}
+            onChange={(e) => setLayout(e.target.value as 'GRID' | 'COLLAGE')}
+            className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
           >
-              <option value="GRID">Grid</option>
-              <option value="COLLAGE">Collage</option>
-          </select>
-        </div>
-
-        <div className="flex-1">
-          <label className="block mb-1 text-subtle">Theme</label>
-          <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value as 'DARK' | 'LIGHT')}
-              className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
-          >
-              <option value="DARK">Dark</option>
-              <option value="LIGHT">Light</option>
+            <option value="GRID">Grid</option>
+            <option value="COLLAGE">Collage</option>
           </select>
         </div>
         <div className="flex-1">
@@ -85,6 +76,20 @@ export default function PreferencesForm({ user }: { user: UserSelf }) {
             step={1}
           />
         </div>
+
+        {/* Row 2 */}
+        <div className="flex-1">
+          <label className="block mb-1 text-subtle">Flip Navigation Buttons</label>
+          <select
+            value={flipNavigators.toString()}
+            onChange={(e) => setFlipNavigators(e.target.value === 'true')}
+            className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+          >
+            <option value="false">Disabled</option>
+            <option value="true">Enabled</option>
+          </select>
+        </div>
+
         <div className="flex-1">
           <label className="block mb-1 text-subtle">Blur Unsafe Embeds</label>
           <select
@@ -96,10 +101,10 @@ export default function PreferencesForm({ user }: { user: UserSelf }) {
             <option value="false">Disabled</option>
           </select>
         </div>
-
-        <div className="flex-1">
+        
+        <div className="flex-1 pb-2">
           <label className="block mb-1 text-subtle">Default Safety</label>
-          <div className="space-y-2">
+          <div className="space-y-1">
             {(['SAFE', 'SKETCHY', 'UNSAFE'] as const).map((level) => (
               <label key={level} className="flex items-center gap-2 text-sm">
                 <input

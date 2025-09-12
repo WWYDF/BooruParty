@@ -49,7 +49,8 @@ export async function GET() {
             include: {
               category: true
             }
-          }
+          },
+          flipNavigators: true
         }
       },
       role: {
