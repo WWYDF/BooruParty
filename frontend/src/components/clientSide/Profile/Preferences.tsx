@@ -3,20 +3,23 @@
 import { useEffect, useState } from 'react';
 import { useToast } from '../Toast';
 import { UserSelf } from '@/core/types/users';
+import { browserPrefsKey } from '@/core/authClient';
 
-const LS_KEY = 'browserPreferences';
+export const defaultLayout = 'GRID';
+export const defaultPostsPerPage = 30;
+export const defaultFlipNav = false;
 
 export default function PreferencesForm({ user }: { user: UserSelf }) {
-  const [layout, setLayout] = useState<'GRID' | 'COLLAGE'>('GRID');
+  const [layout, setLayout] = useState<'GRID' | 'COLLAGE'>(defaultLayout);
   const [theme, setTheme] = useState<'DARK' | 'LIGHT'>('DARK');
-  const [postsPerPage, setPPP] = useState<number>(30);
-  const [flipNavigators, setFlipNavigators] = useState(false);
+  const [postsPerPage, setPPP] = useState<number>(defaultPostsPerPage);
+  const [flipNavigators, setFlipNavigators] = useState(defaultFlipNav);
   const toast = useToast();
 
   // Load saved preferences from localStorage on mount
   useEffect(() => {
     try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem(LS_KEY) : null;
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(browserPrefsKey) : null;
       if (saved) {
         const p = JSON.parse(saved) as {
           layout?: 'GRID' | 'COLLAGE';
@@ -38,7 +41,7 @@ export default function PreferencesForm({ user }: { user: UserSelf }) {
   const save = async () => {
     try {
       const payload = { layout, theme, postsPerPage, flipNavigators };
-      localStorage.setItem(LS_KEY, JSON.stringify(payload));
+      localStorage.setItem(browserPrefsKey, JSON.stringify(payload));
       toast('Preferences Saved!', 'success');
     } catch (err: any) {
       toast(err?.message ?? 'Failed to save preferences', 'error');
