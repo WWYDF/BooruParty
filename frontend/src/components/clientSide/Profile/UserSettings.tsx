@@ -7,8 +7,9 @@ import PreferencesForm from './Preferences';
 import PasswordChangeForm from './PasswordForm';
 import { UserSelf } from '@/core/types/users';
 import UserEditingForm from './AdminForm';
+import SafetyForm from './Safety';
 
-export default function ProfileSettingsClient({ user, impersonating }: {
+export default function UserSettingsClient({ user, impersonating }: {
   user: UserSelf;
   impersonating: boolean;
 }) {
@@ -25,7 +26,7 @@ export default function ProfileSettingsClient({ user, impersonating }: {
         </div>
       )}
 
-      <h1 className="text-3xl font-bold text-accent mb-8">Profile Settings</h1>
+      <h1 className="text-3xl font-bold text-accent mb-8">User Settings</h1>
 
       <a
         href={`/users/${user.username}`}
@@ -35,6 +36,7 @@ export default function ProfileSettingsClient({ user, impersonating }: {
       </a>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Left Column */}
         <motion.div
           className="space-y-6"
           initial={{ opacity: 0, x: -20 }}
@@ -43,8 +45,12 @@ export default function ProfileSettingsClient({ user, impersonating }: {
         >
           <InfoForm user={user} />
           <PasswordChangeForm user={user} />
+          {impersonating && (
+            <UserEditingForm user={user} />
+          )}
         </motion.div>
 
+        {/* Right Column */}
         <motion.div
           className="space-y-6"
           initial={{ opacity: 0, x: 20 }}
@@ -52,10 +58,8 @@ export default function ProfileSettingsClient({ user, impersonating }: {
           transition={{ delay: 0.2 }}
         >
           <AvatarUpload user={user} />
+          <SafetyForm user={user} />
           <PreferencesForm user={user} />
-          {impersonating && (
-            <UserEditingForm user={user} />
-          )}
         </motion.div>
       </div>
     </motion.div>

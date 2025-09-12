@@ -82,3 +82,10 @@ export type UserPublic = {
     }[]
   }
 }
+
+export type LocalUserPreferences = {
+  layout: 'GRID' | 'COLLAGE',
+  theme: 'DARK' | 'LIGHT',
+  postsPerPage: number,
+  flipNavigators: boolean,
+}

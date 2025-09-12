@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { auth } from "@/core/authServer";
 import { checkPermissions } from "@/components/serverSide/permCheck";
-import ProfileSettingsClient from "@/components/clientSide/Profile/Profile";
+import UserSettingsClient from "@/components/clientSide/Profile/UserSettings";
 import { prisma } from '@/core/prisma';
 import { setAvatarUrl } from "@/core/reformatProfile";
 
@@ -80,5 +80,5 @@ export default async function ProfileSettingsPage({ searchParams }: { searchPara
     return;
   }
 
-  return <ProfileSettingsClient user={user} impersonating={user.username !== session.user.username} />;
+  return <UserSettingsClient user={user} impersonating={user.username !== session.user.username} />;
 }
