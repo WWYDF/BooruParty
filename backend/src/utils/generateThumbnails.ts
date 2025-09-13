@@ -6,7 +6,7 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-const sizes = {
+export const thumbnailSizes = {
   small: 400,
   med: 800,
   large: 1200,
@@ -36,7 +36,7 @@ export async function generateThumbnails(
   const buffer = fs.readFileSync(framePath);
 
   const results = await Promise.all(
-    Object.entries(sizes).map(async ([label, width]) => {
+    Object.entries(thumbnailSizes).map(async ([label, width]) => {
       const outPath = path.join(outputDir, `${postId}_${label}.webp`);
       await sharp(buffer)
         .resize({ width, withoutEnlargement: true })

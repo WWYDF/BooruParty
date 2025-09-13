@@ -242,6 +242,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
             <li><code>favorites:{'<username>'}</code> <a className="text-subtle">· Posts favorited by a specific user.</a></li>
             <li><code>order:tags/score/favorites/boosts</code> <a className="text-subtle">· Changes the order from default (date).</a></li>
             <li><code>filter:tumbleweeds</code> <a className="text-subtle">· Posts with no tags.</a></li>
+            <li><code>type:image/video/gif</code> <a className="text-subtle">· Posts of only the select format.</a></li>
           </ul>
         </div>
       </InfoModal>

@@ -13,6 +13,7 @@ import { useDropzone } from "react-dropzone";
 import { Post } from "@/core/types/posts";
 import { formatCounts } from "@/core/formats";
 import { motion, AnimatePresence } from "framer-motion";
+import { resolveFileType } from "@/core/dictionary";
 
 export default function EditPost({
   post,
@@ -42,7 +43,10 @@ export default function EditPost({
   const [newTagIds, setNewTagIds] = useState<number[]>([]);
   const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
   const [defaultCategory, setDefaultCategory] = useState<TagCategory>({ id: 1, name: 'Default', color: '#3c9aff', order: 10, isDefault: true, updatedAt: new Date() });
+  const [replacementThumb, setReplacementThumb] = useState<File | null>(null);
   const toast = useToast();
+
+  const fileType = resolveFileType(`.${post.fileExt}`);
 
   useEffect(() => {
     if (post.tags) {
@@ -159,6 +163,23 @@ export default function EditPost({
       }
     }
 
+    if (replacementThumb) {
+      const formData = new FormData();
+      formData.append("file", replacementThumb);
+      formData.append("postId", post.id.toString());
+  
+      const res = await fetch("/api/posts/thumbnail", {
+        method: "PATCH",
+        body: formData,
+      });
+  
+      if (!res.ok) {
+        toast(`Failed to replace thumbnail: ${(await res.json()).error}`, "error");
+        setSaving(false);
+        return;
+      }
+    }
+
     setSaving(false);
     onSaveSuccess();
   };
@@ -212,16 +233,26 @@ export default function EditPost({
     setOrderedTags([...nextInitial, ...nextNew]);
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  // Replace dropzone
+  const {
+    getRootProps: getReplaceRootProps,
+    getInputProps: getReplaceInputProps,
+    isDragActive: isReplaceActive,
+  } = useDropzone({
     multiple: false,
-    accept: {
-      "image/*": [],
-      "video/*": [],
-    },
-    onDrop: (acceptedFiles) => {
-      if (!acceptedFiles.length) return;
-      setReplacementFile(acceptedFiles[0]);
-    }
+    accept: { "image/*": [], "video/*": [] },
+    onDrop: (accepted) => setReplacementFile(accepted[0] ?? null),
+  });
+
+  // Thumbnail dropzone
+  const {
+    getRootProps: getThumbRootProps,
+    getInputProps: getThumbInputProps,
+    isDragActive: isThumbActive,
+  } = useDropzone({
+    multiple: false,
+    accept: { "image/*": [] },
+    onDrop: (accepted) => setReplacementThumb(accepted[0] ?? null),
   });
 
   async function createMissingTags(names: string[]): Promise<Tag[]> {
@@ -567,17 +598,34 @@ export default function EditPost({
       <div className="w-full mt-4">
         <label className="text-white font-medium block mb-1">Replace Post File</label>
         <div
-          {...getRootProps()}
+          {...getReplaceRootProps()}
           className="w-full h-28 border-2 border-dashed border-zinc-700 rounded-xl flex items-center justify-center text-sm text-subtle hover:border-zinc-400 cursor-pointer transition text-center px-4"
         >
-          <input {...getInputProps()} />
+          <input {...getReplaceInputProps()} />
           {replacementFile
             ? `Replacing with '${replacementFile.name}'`
-            : isDragActive
+            : isReplaceActive
               ? "Drop to replace"
               : "Drop or click to replace the file"}
         </div>
       </div>
+
+      {fileType == 'video' && (
+        <div className="w-full mt-4">
+          <label className="text-white font-medium block mb-1">Replace Thumbnail</label>
+          <div
+            {...getThumbRootProps()}
+            className="w-full h-28 border-2 border-dashed border-zinc-700 rounded-xl flex items-center justify-center text-sm text-subtle hover:border-zinc-400 cursor-pointer transition text-center px-4"
+          >
+            <input {...getThumbInputProps()} />
+            {replacementThumb
+              ? `Replacing with '${replacementThumb.name}'`
+              : isThumbActive
+                ? "Drop to replace"
+                : "Drop or click to replace the thumbnail"}
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         open={showDeleteModal}

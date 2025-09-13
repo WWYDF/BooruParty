@@ -1,12 +1,11 @@
 import { resolveFileType } from "@/core/dictionary";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/core/prisma';
-import { checkFile } from "@/components/serverSide/UploadProcessing/checkHash";
 import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 
-export async function POST(req: NextRequest) {
+export async function PATCH(req: NextRequest) {
   const session = await auth();
   const formData = await req.formData();
   const file = formData.get("file") as File;
@@ -27,11 +26,7 @@ export async function POST(req: NextRequest) {
   if (!session || !canEditOwn && !canEditOthers) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
   const currentPost = await prisma.posts.findUnique({
-    where: { id: parseInt(postId) },
-    select: {
-      uploadedById: true,
-      dupeBypass: true
-    },
+    where: { id: parseInt(postId) }
   });
 
   if (!currentPost) {
@@ -45,52 +40,34 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const extension = file.name.split(".").pop()?.toLowerCase() || "";
-  const fileType = resolveFileType(`.${extension}`);
-  let previewSrc;
+  const uploadedExtension = file.name.split(".").pop()?.toLowerCase() || "";
+  const uploadedFileType = resolveFileType(`.${uploadedExtension}`);
+  const originalFileType = resolveFileType(`.${currentPost.fileExt}`);
+  if (originalFileType !== 'video') { return NextResponse.json({ error: "You can only edit the thumbnails of videos" }, { status: 400 }); };
+  if (uploadedFileType !== 'image') { return NextResponse.json({ error: "You can only replace thumbnails with images" }, { status: 400 }); };
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  // run pHash duplicate detection
-  const hashResult = await checkFile(buffer, extension, fileType);
-
-  // Reject duplicates by comparing result IDs
-  if (hashResult.status === true && hashResult.ogPost!.id != parseInt(postId) && currentPost.dupeBypass == false) {
-    return NextResponse.json({ error: `This image already exists in post #${hashResult.ogPost!.id}!`, duplicate: true, postId: hashResult.ogPost!.id }, { status: 409 });
-  }
 
   // Forward to Fastify
   const proxyForm = new FormData();
   proxyForm.append("file", file, file.name);
   proxyForm.append("postId", postId);
 
-  const fastifyResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/replace`, {
+  const fastifyResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/replace/thumbnail`, {
     method: "POST",
     body: proxyForm,
   });
   
   if (!fastifyResponse.ok) {
-    return NextResponse.json({ error: "Fastify upload failed" }, { status: 500 });
+    return NextResponse.json({ error: "Fastify upload failed" }, { status: 502 });
   }
   
-  const result = await fastifyResponse.json();
-  if (result.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
-  else { previewSrc = `/data/previews/${fileType}/${postId}.${result.assignedExt}` }
-  
-  await prisma.posts.update({
-    where: { id: Number(postId) },
-    data: {
-      pHash: hashResult.genHash ?? null,
-      fileExt: extension,
-      previewScale: result.previewScale,
-      previewPath: previewSrc,
-      aspectRatio: result.aspectRatio,
-    },
-  });
+  // const result = await fastifyResponse.json();
+  // we don't need to do anything on our end :)
 
   // Log action, but log nothing if nothing changed.
   const forwarded = req.headers.get("x-forwarded-for");
   const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || undefined;
-  await reportAudit(session.user.id, 'UPDATE', 'POST', ip, `Swapped content on Post #${postId}`);
+  await reportAudit(session.user.id, 'UPDATE', 'POST', ip, `Updated thumbnails on Post #${postId}`);
   
   return NextResponse.json({ success: true });
 }
