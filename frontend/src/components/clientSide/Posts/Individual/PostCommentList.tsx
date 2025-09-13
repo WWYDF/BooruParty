@@ -29,6 +29,14 @@ type PreviewData = {
   safety: "SAFE" | "SKETCHY" | "UNSAFE";
 };
 
+type MentionMap = Record<string, boolean>; // username, user exists?
+
+const SANITIZE_INLINE: sanitizeHtml.IOptions = {
+  allowedTags: ['b', 'strong', 'i', 'em', 'h1'],
+  allowedAttributes: {},
+  allowedSchemes: [],
+};
+
 
 function extractEmbeds(
   content: string,
@@ -173,6 +181,51 @@ export default function PostCommentList({
   const [editContent, setEditContent] = useState<string>("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
+  const [mentionExists, setMentionExists] = useState<MentionMap>({});
+
+  useEffect(() => {
+    // Collect unique mentions
+    const uniques = Array.from(
+      new Set(
+        comments.flatMap(c =>
+          Array.from(
+            c.content.matchAll(/(?<=^|\s|[^\w])@([A-Za-z0-9_]{2,32})(?=$|\s|[^\w])/g)
+          ).map(m => m[1])
+        )
+      )
+    );
+    if (uniques.length === 0) return;
+  
+    const ac = new AbortController();
+  
+    (async () => {
+      try {
+        const results = await Promise.allSettled(
+          uniques.map(async (name) => {
+            const key = name.toLowerCase();
+            // skip if we already know
+            if (mentionExists[key] !== undefined) return [key, mentionExists[key]] as const;
+  
+            const res = await fetch(`/api/users/${encodeURIComponent(name)}`, { signal: ac.signal });
+            return [key, res.ok] as const; // 2xx = exists
+          })
+        );
+  
+        const map: Record<string, boolean> = {};
+        for (const r of results) {
+          if (r.status === "fulfilled") {
+            const [k, ok] = r.value;
+            if (typeof k === "string") map[k] = !!ok;
+          }
+        }
+        setMentionExists(prev => ({ ...prev, ...map }));
+      } catch {
+       // ignore
+      }
+    })();
+  
+    return () => ac.abort();
+  }, [comments]);
 
   useEffect(() => {
     if (referencedPostIds.length === 0) return;
@@ -247,6 +300,68 @@ export default function PostCommentList({
     setCommentToDelete(commentId);
     setShowConfirm(true);
   };
+
+  function renderTextWithMentions(text: string) {
+    const parts: React.ReactNode[] = [];
+    const regex = /(?<=^|\s|[^\w])@([A-Za-z0-9_]{2,32})(?=$|\s|[^\w])/g;
+    let lastIndex = 0;
+    let m: RegExpExecArray | null;
+  
+    while ((m = regex.exec(text)) !== null) {
+      const start = m.index;
+      const end = start + m[0].length;
+      const before = text.slice(lastIndex, start);
+  
+      if (before) {
+        parts.push(
+          <span
+            key={`t-${lastIndex}`}
+            className="break-all"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(before, SANITIZE_INLINE) }}
+          />
+        );
+      }
+  
+      const username = m[1];
+      const exists = mentionExists[username.toLowerCase()] === true;
+  
+      if (exists) {
+        parts.push(
+          <Link
+            key={`m-${start}`}
+            href={`/users/${encodeURIComponent(username)}`}
+            className="text-accent hover:underline"
+          >
+            @{username}
+          </Link>
+        );
+      } else {
+        // Not a valid user, render as plain text
+        parts.push(
+          <span
+            key={`p-${start}`}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(m[0], SANITIZE_INLINE) }}
+          />
+        );
+      }
+  
+      lastIndex = end;
+    }
+  
+    // Tail piece
+    if (lastIndex < text.length) {
+      const tail = text.slice(lastIndex);
+      parts.push(
+        <span
+          key={`t-${lastIndex}-end`}
+          className="break-all"
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(tail, SANITIZE_INLINE) }}
+        />
+      );
+    }
+  
+    return parts;
+  }
     
 
   return (
@@ -360,18 +475,7 @@ export default function PostCommentList({
                             );
                           }
                         }
-                        return (
-                          <span
-                            key={idx}
-                            className="break-all"
-                            dangerouslySetInnerHTML={{
-                              __html: sanitizeHtml(chunk, {
-                                allowedTags: [], // no tags allowed at all
-                                allowedAttributes: {}, // no attributes allowed
-                              }),
-                            }}
-                          />
-                        );
+                        return <span key={idx} className="break-all">{renderTextWithMentions(chunk)}</span>;
                       })}
                       {comment.isEmbed && renderEmbeds(embeds)}
                     </div>
