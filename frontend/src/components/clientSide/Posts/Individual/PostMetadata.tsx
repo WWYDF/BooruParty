@@ -301,8 +301,8 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
           {post.pools.length > 0 && (
             <div className="mt-4">
               <p className="text-white font-medium text-sm mb-1">Pools</p>
-              <div className="flex flex-wrap gap-4">
-                {post.pools.map(({ poolId, pool }) => {
+              <div className="flex flex-col gap-4">
+                {post.pools.map(({ pool }) => {
                   const cover = pool.items[0]?.post;
                   const match = pool.items.find(item => item.post.id === post.id);
                   const currentIndex = (match?.index ?? 1);
