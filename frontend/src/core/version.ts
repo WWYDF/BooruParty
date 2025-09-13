@@ -3,3 +3,4 @@
 
 // Only developers should update this when pushing a new version.
 export const CURRENT_VERSION = '0.11.0';
+export const LEGIBLE_VERSION = 'pre-v0.11.0';
