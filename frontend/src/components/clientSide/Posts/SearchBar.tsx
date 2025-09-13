@@ -1,8 +1,9 @@
 "use client";
 
-import { MagnifyingGlass, Trash } from "@phosphor-icons/react";
+import { MagnifyingGlass, Trash, HashStraight } from "@phosphor-icons/react";
 import { useState, useEffect, useRef } from "react";
 import { motion } from 'framer-motion';
+import { useToast } from "../Toast";
 
 type TagType = {
   id: number;
@@ -26,8 +27,8 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const [isFocused, setIsFocused] = useState(false);
-
   const inputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (debounceRef.current) {
@@ -109,6 +110,11 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
     onSubmit(input);
   };
 
+  const showPostCount = () => {
+    const postCount = sessionStorage.getItem("postCount")
+    toast(`There are ${postCount} posts matching this search.`);
+  }
+
   const handleClear = () => {
     setInput("");
     onSubmit("");
@@ -129,6 +135,14 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
           placeholder="Search by tags (example: cat -dog)"
           className="w-full bg-secondary text-white py-2 text-base focus:outline-none"
         />
+
+        <button
+          onClick={showPostCount}
+          className="ml-2 w-8 h-8 flex items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300 shrink-0"
+          title="Search"
+        >
+          <HashStraight size={18} weight="duotone" />
+        </button>
 
         <button
           onClick={handleSubmit}
@@ -180,7 +194,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
       {/* Trash button */}
       <button
         onClick={handleClear}
-        className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-md bg-zinc-800 hover:bg-red-600 text-white transition-colors border border-secondary-border"
+        className="w-8 h-8 md:w-10 md:h-10 hidden md:flex items-center justify-center rounded-md bg-zinc-800 hover:bg-red-600 text-white transition-colors border border-secondary-border"
         title="Clear search"
       >
         <Trash size={18} weight="duotone" />

@@ -84,6 +84,7 @@ export default function ClientPostsPage() {
     try {
       const res = await fetch(`/api/posts?${params.toString()}`);
       const data = await res.json();
+      sessionStorage.setItem("postCount", data.totalPosts);
 
       if (append) {
         setPosts((prev) => {

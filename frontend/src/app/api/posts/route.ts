@@ -189,7 +189,7 @@ export async function GET(req: Request) {
   const totalCount = await prisma.posts.count({ where: finalWhere });
   const totalPages = Math.ceil(totalCount / perPage);
 
-  return NextResponse.json({ posts, totalPages });
+  return NextResponse.json({ posts, totalPages, totalPosts: totalCount });
 }
 
 
