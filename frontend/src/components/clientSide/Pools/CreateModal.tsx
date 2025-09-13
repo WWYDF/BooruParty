@@ -26,7 +26,7 @@ export function CreatePoolModal({ open, onClose }: Props) {
       body: JSON.stringify({ name, artist, description, safety, yearStart, yearEnd }),
     });
     onClose(); // close after submit
-    router.refresh();
+    window.location.reload();
   };
 
   return (

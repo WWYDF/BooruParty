@@ -340,7 +340,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
                           {pool.name}
                         </p>
                         <p className="text-xs text-zinc-400 mt-0.5">
-                          Page {currentIndex + 1} of {total}
+                          Page {currentIndex} of {total}
                         </p>
                       </div>
                     </Link>
