@@ -62,7 +62,7 @@ export async function GET(req: Request) {
   (parsed as any).freeText ??
   trimmed
     // remove known key:value tokens that we already turned into structural filters
-    .replace(/(?:^|\s)(posts|favorites|likes|pool|order|year|type):\S+/gi, " ")
+    .replace(/(?:^|\s)(posts|favorites|likes|pool|order|year|type|filter):\S+/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 

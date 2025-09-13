@@ -92,6 +92,16 @@ export function buildPostWhereAndOrder(
     });
   }
 
+  // Filter
+  if (systemOptions.filter) {
+
+    if (systemOptions.filter == 'tumbleweed' || systemOptions.filter == 'tumbleweeds') {
+      where.AND.push({
+        tags: { none: {} }
+      });
+    }
+  }
+
   // Safety filter — accept array or hyphenated string, enforce exact enum matches
   const allSafeties: SafetyType[] = ["SAFE", "UNSAFE", "SKETCHY"];
   if (safety && (Array.isArray(safety) ? safety.length : safety.trim().length)) {
