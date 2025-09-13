@@ -240,7 +240,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
             <li><code>posts:{'<username>'}</code> <a className="text-subtle">· Posts uploaded by a specific user.</a></li>
             <li><code>likes:{'<username>'}</code> <a className="text-subtle">· Posts liked by a specific user.</a></li>
             <li><code>favorites:{'<username>'}</code> <a className="text-subtle">· Posts favorited by a specific user.</a></li>
-            <li><code>order:tags/score/favorites</code> <a className="text-subtle">· Changes the order from default (date).</a></li>
+            <li><code>order:tags/score/favorites/boosts</code> <a className="text-subtle">· Changes the order from default (date).</a></li>
             <li><code>filter:tumbleweeds</code> <a className="text-subtle">· Posts with no tags.</a></li>
           </ul>
         </div>

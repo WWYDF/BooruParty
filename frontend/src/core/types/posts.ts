@@ -77,6 +77,7 @@ export type Post = {
   _count: {
     favoritedBy: number;
     tags: number;
+    boosts: number;
   };
 }
 
@@ -84,6 +85,7 @@ export type PostUserStatus = {
   vote: 'UPVOTE' | 'DOWNVOTE' | null,
   favorited: boolean
   signedIn: boolean
+  boostedToday: boolean
 }
 
 export type PostNavigatorType = {

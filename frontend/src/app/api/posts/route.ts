@@ -113,6 +113,7 @@ export async function GET(req: Request) {
         favoritedBy: true,
         comments: true,
         votes: true,
+        boosts: true,
       },
     },
     comments: {

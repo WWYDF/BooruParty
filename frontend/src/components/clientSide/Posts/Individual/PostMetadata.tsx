@@ -205,6 +205,13 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
               </p>
             )}
 
+            {typeof post._count?.boosts === "number" && (
+              <p className="flex items-center gap-1 text-xs text-subtle">
+                <span className="text-white font-medium w-[80px]">Boosts</span>
+                {post._count?.boosts}
+              </p>
+            )}
+
             {post.sources.length > 0 && (
               <p className="flex items-start gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">Sources</span>
