@@ -7,7 +7,7 @@ import PreferencesForm from './Preferences';
 import PasswordChangeForm from './PasswordForm';
 import { UserSelf } from '@/core/types/users';
 import UserEditingForm from './AdminForm';
-import SafetyForm from './Safety';
+import ContentForm from './ContentPrefs';
 
 export default function UserSettingsClient({ user, impersonating }: {
   user: UserSelf;
@@ -58,7 +58,7 @@ export default function UserSettingsClient({ user, impersonating }: {
           transition={{ delay: 0.2 }}
         >
           <AvatarUpload user={user} />
-          <SafetyForm user={user} />
+          <ContentForm user={user} />
           <PreferencesForm user={user} />
         </motion.div>
       </div>

@@ -50,6 +50,7 @@ export async function GET() {
               category: true
             }
           },
+          profileBackground: true,
           private: true
         }
       },

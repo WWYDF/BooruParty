@@ -87,6 +87,7 @@ model UserPreferences {
   blurUnsafeEmbeds    Boolean         @default(true)            // Change if NSFW site
   defaultSafety       SafetyType[]    @default([SAFE])          // Change if NSFW site
   blacklistedTags     Tags[]          @relation("UserBLTags")
+  profileBackground   Int?                                      // Post ID
 
   private             Boolean         @default(false)
 }

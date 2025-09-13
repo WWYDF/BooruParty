@@ -17,7 +17,8 @@ export type UserSelf = {
     blurUnsafeEmbeds: boolean,
     defaultSafety: SafetyType[],
     blacklistedTags: Tag[],
-    flipNavigators: boolean
+    flipNavigators: boolean,
+    profileBackground: number
   },
   role: {
     id: number,

@@ -15,6 +15,7 @@ export async function updateUser(
     defaultSafety: SafetyType[],
     blacklistedTags: number[],
     flipNavigators: boolean;
+    profileBackground: number;
   }>
 ) {
 

@@ -76,6 +76,7 @@ export default function UserProfilePage() {
   const [error, setError] = useState<PrivateError>(null);
   const { data: session } = useSession();
   const [canEdit, setCanEdit] = useState(false);
+  const [bgUrl, setBgUrl] = useState<string | null>(null);
   const toast = useToast();
   const router = useRouter();
 
@@ -87,13 +88,15 @@ export default function UserProfilePage() {
 
     fetch(`/api/users/${username}`)
       .then(async (res) => {
-        // Try to parse JSON even on non-2xx so we can read the {error:403,...} body
         const data = await res.json().catch(() => null);
 
         if (!res.ok) {
           if (!cancelled) {
-            if (data?.error === 403) {
-              setError({ code: 403, message: data?.message || "This account is private." });
+            if (data?.error === 403 || data?.error === 401) {
+              setError({
+                code: data?.error,
+                message: data?.message || "This account is private.",
+              });
             } else {
               setError({ code: res.status, message: data?.message || "Failed to load user." });
             }
@@ -115,24 +118,63 @@ export default function UserProfilePage() {
       cancelled = true;
     };
   }, [username]);
-  
+
   useEffect(() => {
     if (!user || !session?.user) return;
-  
+
     const check = async () => {
       const isOwner = session.user.username === user.username;
-  
+
       if (isOwner) {
         setCanEdit(true);
         return;
       }
-  
+
       const perms = await checkPermissions(["profile_edit_others"]);
       setCanEdit(perms["profile_edit_others"]);
     };
-  
+
     check();
   }, [user, session]);
+
+  // Fetch the preview image for profile background (if set)
+  useEffect(() => {
+    let active = true;
+
+    const maybeLoadBackground = async () => {
+      try {
+        const rawId = user?.preferences?.profileBackground;
+        const idNum = Number(rawId);
+        if (!rawId || !Number.isFinite(idNum) || idNum === 0) {
+          setBgUrl(null);
+          return;
+        }
+
+        const res = await fetch(`/api/posts/${idNum}`, { cache: "no-store" });
+        if (!res.ok) {
+          // If the post is missing or restricted, just skip background
+          setBgUrl(null);
+          return;
+        }
+
+        const post = await res.json();
+        let url: string | null = post?.post?.previewPath || null;
+        if (!url) {
+          setBgUrl(null);
+          return;
+        }
+
+        if (active) setBgUrl(url);
+      } catch {
+        if (active) setBgUrl(null);
+      }
+    };
+
+    maybeLoadBackground();
+    return () => {
+      active = false;
+    };
+  }, [user?.preferences?.profileBackground]);
 
   // Loading
   if (loading) {
@@ -200,9 +242,32 @@ export default function UserProfilePage() {
   }
 
   return (
-    <main>
+    <main className="relative pt-16 pb-20">
+      {/* Meta */}
       <meta property="og:image" content={user.avatar || `/i/user.png`} />
       <meta name="theme-color" content={user.role?.color} />
+
+      {/* NEW: Background layer (blurred, darkened, scaled) */}
+      {bgUrl && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="absolute inset-0 blur-2xl transform scale-110"
+            style={{
+              backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(${bgUrl})`,
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+              backgroundRepeat: "no-repeat",
+              filter: "blur(3px)",
+            }}
+          />
+        </div>
+      )}
 
       {/* Owner-only banner for private accounts */}
       {isOwner && isPrivate && (
@@ -217,7 +282,7 @@ export default function UserProfilePage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="max-w-6xl mx-auto mt-16 mb-20 p-6 rounded-2xl bg-secondary border border-zinc-800 space-y-10"
+        className="max-w-6xl mx-auto p-6 rounded-2xl bg-secondary/80 backdrop-blur border border-zinc-800 space-y-10"
         style={{ boxShadow: `0 0 20px 2px rgba(${r},${g},${b},0.3)` }}
       >
         {/* Avatar + Username + Bio */}
