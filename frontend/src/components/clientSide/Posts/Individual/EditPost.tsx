@@ -261,6 +261,87 @@ export default function EditPost({
     toast("Tags copied to clipboard!");
   };
 
+  const handlePasteTags = async () => {
+    try {
+      const raw = await navigator.clipboard.readText();
+  
+      // Split by whitespace or commas; keep simple words only
+      const names = Array.from(
+        new Set(
+          raw
+            .replace(/[,\n\r\t]+/g, " ")
+            .split(/\s+/)
+            .map(s => s.trim())
+            .filter(Boolean)
+        )
+      );
+  
+      if (names.length === 0) return;
+  
+      // Build a quick lookup of already-selected names (case-insensitive)
+      const existingNames = new Set(
+        [...newlyAddedTags, ...initialOrderedTags].map(t => t.name.toLowerCase())
+      );
+  
+      for (const name of names) {
+        const lower = name.toLowerCase();
+  
+        // Skip if already selected
+        if (existingNames.has(lower)) continue;
+  
+        // Try to fetch an existing tag
+        let resolved: Tag | null = null;
+        try {
+          const res = await fetch(`/api/tags/${encodeURIComponent(name)}`);
+          if (res.ok) {
+            const data = await res.json();
+            // Make sure we have the fields handleSelectTag relies on
+            resolved = {
+              id: data.id,
+              name: data.name,
+              description: data.description ?? null,
+              aliases: data.aliases ?? [],
+              category: data.category ?? defaultCategory,
+              allImplications: data.allImplications ?? [],
+              _count: { posts: data._count?.posts ?? 0 },
+            } as Tag;
+          }
+        } catch {
+          // network error is treated same as "not found" -> fall back to fake tag
+        }
+  
+        if (resolved) {
+          // Add without implications
+          await handleSelectTag(resolved, false);
+          existingNames.add(lower);
+        } else {
+          // Not found → add as pending/fake tag (same behavior as typing a new tag)
+          if (!pendingTagNames.includes(lower)) {
+            setPendingTagNames(prev => [...prev, lower]);
+  
+            const fakeTag: Tag = {
+              id: -(pendingTagNames.length + 1), // negative temporary ID
+              name,
+              description: null,
+              aliases: [],
+              category: defaultCategory,
+              allImplications: [],
+              _count: { posts: 0 },
+            };
+  
+            setOrderedTags(prev => [fakeTag, ...prev]);
+            setNewlyAddedTags(prev => [fakeTag, ...prev]);
+  
+            existingNames.add(lower);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to paste tags:", e);
+      toast("Could not read from clipboard.", "error");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
       {/* Save button */}
@@ -326,7 +407,6 @@ export default function EditPost({
             value={sources}
             onChange={(e) => setSources(e.target.value)}
             className="w-full p-2 rounded bg-secondary text-base text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
-            // maxLength={128}
           />
         </div>
 
@@ -358,14 +438,26 @@ export default function EditPost({
       {/* Tag selector */}
       <div className="mt-2">
         <div className="flex items-center justify-between mb-1">
-          <label className="text-white font-medium">Tags</label>
-          <button
-            type="button"
-            onClick={handleCopyTags}
-            className="text-xs text-accent hover:underline"
-          >
-            Copy to clipboard
-          </button>
+          <div>
+            <label className="text-white font-medium">Tags</label>
+          </div>
+
+          <div className="space-x-2">
+            <button
+              type="button"
+              onClick={handlePasteTags}
+              className="text-xs text-accent hover:underline"
+            >
+              Add from clipboard
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyTags}
+              className="text-xs text-accent hover:underline"
+            >
+              Copy to clipboard
+            </button>
+          </div>
         </div>
         <TagSelector
           onSelect={handleSelectTag}
