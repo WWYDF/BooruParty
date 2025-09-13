@@ -208,7 +208,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       select: { index: true },
     });
 
-    let currentIndex = lastItem?.index ?? -1;
+    let currentIndex = lastItem ? lastItem.index : 0;
 
     for (const postId of postIds) {
       const existing = await prisma.poolItems.findUnique({
