@@ -43,6 +43,10 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
   const [poolName, setPoolName] = useState<string | null>(null);
   const [flipNavigators, setFlipNavigators] = useState(false);
 
+  const isPool = !!poolId;
+  const leftShowsPrevious = isPool ? true : flipNavigators;  // pool: prev on left; non-pool: flip decides
+  const rightShowsNext   = isPool ? true : flipNavigators;   // pool: next on right; non-pool: flip decides
+
   const buildLink = (targetId: number) =>
     fullscreen
       ? (poolId ? `/post/${targetId}/fullscreen?pool=${poolId}` : `/post/${targetId}/fullscreen`)
@@ -65,13 +69,41 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
       .then(data => setPoolName(data?.name ?? null))
       .catch(() => setPoolName(null));
   }, [poolId]);
+  
+
+  // Arrow-key navigation that mirrors the button mapping
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // ignore when typing
+      const el = e.target as HTMLElement | null;
+      const typing =
+        !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+      if (typing) return;
+
+      const go = (targetId: number) => {
+        if (!targetId) return;
+        const href = fullscreen
+          ? (poolId ? `/post/${targetId}/fullscreen?pool=${poolId}` : `/post/${targetId}/fullscreen`)
+          : (poolId ? `/post/${targetId}?pool=${poolId}` : `/post/${targetId}`);
+        router.push(href);
+      };
+
+      if (e.key === "ArrowLeft") {
+        go(leftShowsPrevious ? previousPostId : nextPostId);
+      } else if (e.key === "ArrowRight") {
+        go(rightShowsNext ? nextPostId : previousPostId);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [leftShowsPrevious, rightShowsNext, previousPostId, nextPostId, poolId, fullscreen, router]);
 
   // Helpers that always point outward; label/target chosen by pool vs flip rules
   const LeftButton = () => {
     const isPool = !!poolId;
     // In pool: always PREVIOUS on left. Outside pool: flip decides.
-    const showPrevious = isPool ? true : flipNavigators; // if not pool: true when flipped
-    return showPrevious ? (
+    return leftShowsPrevious ? (
       <button
         disabled={!previousPostId}
         onClick={() => router.push(buildLink(previousPostId))}
@@ -95,8 +127,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
   const RightButton = () => {
     const isPool = !!poolId;
     // In pool: always NEXT on right. Outside pool: flip decides.
-    const showNext = isPool ? true : flipNavigators; // if not pool: true when flipped
-    return showNext ? (
+    return rightShowsNext ? (
       <button
         disabled={!nextPostId}
         onClick={() => router.push(buildLink(nextPostId))}
