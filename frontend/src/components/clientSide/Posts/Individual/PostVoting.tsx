@@ -91,8 +91,8 @@ export default function PostVoting({ post, user }: Props) {
         disabled={loading}
         className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
           ${vote === "UPVOTE"
-            ? "bg-green-400/10 text-green-400 border-secondary-border hover:border-zinc-700"
-            : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
+            ? "bg-green-400/10 text-green-400 border-secondary-border md:hover:border-zinc-700"
+            : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
         `}
         title={vote ? "Unlike This Post" : "Like This Post"}
       >
@@ -105,8 +105,8 @@ export default function PostVoting({ post, user }: Props) {
         disabled={loading}
         className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
           ${favorited
-            ? "bg-yellow-400/10 text-yellow-400 border-secondary-border hover:border-zinc-700"
-            : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
+            ? "bg-yellow-400/10 text-yellow-400 border-secondary-border md:hover:border-zinc-700"
+            : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
         `}
         title={favorited ? "Unfavorite This Post" : "Favorite This Post"}
       >
@@ -119,8 +119,8 @@ export default function PostVoting({ post, user }: Props) {
         disabled={loading}
         className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
           ${boosted
-            ? "bg-cyan-400/10 text-cyan-400 border-secondary-border hover:border-zinc-700"
-            : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
+            ? "bg-cyan-400/10 text-cyan-400 border-secondary-border md:hover:border-zinc-700"
+            : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
         `}
         title={boosted ? "Unboost This Post" : "Boost This Post"}
       >
