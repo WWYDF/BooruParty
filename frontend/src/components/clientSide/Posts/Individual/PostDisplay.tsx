@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PostVoting from "./PostVoting";
 import { resolveFileType } from "@/core/dictionary";
 import { Post, PostUserStatus } from "@/core/types/posts";
@@ -16,23 +16,52 @@ type Props = {
   disableFullscreen?: boolean;
 };
 
+type Dims = { w: number; h: number };
+
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
 export default function PostDisplay({ post, user, showVoting = true, disableFullscreen = false }: Props) {
   const [showFull, setShowFull] = useState(post.previewScale === 100 || post.previewScale == null);
+  const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const poolId = searchParams.get("pool");
   const toast = useToast();
-  const [isAnimating, setIsAnimating] = useState(false);
+
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   const fileType = resolveFileType(`.${post.fileExt}`);
-
   const fullSrc = `${fastify}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
 
   function handleFullscreen(toggle: boolean) {
     if (disableFullscreen == false) { setIsAnimating(toggle); }
   }
+
+  function saveDims(w: number, h: number) {
+    // persist per-post so it survives refresh
+    try {
+      sessionStorage.setItem(`bp:dims:${post.id}`, JSON.stringify({ w, h, at: Date.now(), src: showFull ? fullSrc : post.previewPath }));
+    } catch {}
+  }
+  
+  function publishDims(w: number, h: number) {
+    saveDims(w, h);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("post:image-dimensions", { detail: { postId: post.id, w, h } }));
+    }
+  }
+  
+  function handleImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    publishDims(naturalWidth, naturalHeight);
+  }
+
+  useEffect(() => {
+    const el = imgRef.current;
+    if (el && el.complete && el.naturalWidth && el.naturalHeight) {
+      publishDims(el.naturalWidth, el.naturalHeight);
+    }
+  }, [showFull, post.id]);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -52,6 +81,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
               loop
               // muted
               preload="metadata"
+              onLoadedMetadata={(e) => publishDims(e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
               className="min-w-[50vw] w-auto max-w-auto max-h-[70vh] object-contain"
             />
           ) : (
@@ -61,6 +91,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
               alt={`Error accessing ${fullSrc}`}
               title="Click to enter fullscreen mode"
               onClick={() => { handleFullscreen(true); }}
+              onLoad={handleImageLoad}
               className="md:max-h-[80vh] md:h-[80vh] md:max-w-[90vh] w-auto object-contain rounded-xl cursor-pointer"
             />
           )}

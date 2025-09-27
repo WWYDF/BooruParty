@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import EditPost from "./EditPost";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PencilSimple, Minus, Plus, Tag, Star, Heart, Sparkle } from "phosphor-react";
 import { formatCounts, formatStorageFromBytes } from "@/core/formats";
-import { FILE_TYPE_LABELS } from "@/core/dictionary";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { useToast } from "../../Toast";
 import { Post } from "@/core/types/posts";
+import { getCategoryFromExt } from "@/core/dictionary";
 
 const AVATAR_URL = "/i/user.png";
 
@@ -20,6 +20,7 @@ export interface canEdit {
 }
 
 export default function PostMetadata({ post, editPerms, userId }: { post: Post, editPerms: canEdit, userId: string | undefined }) {
+  const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null);
   const [editing, setEditing] = useState(false);
   const router = useRouter();
   const toast = useToast();
@@ -52,6 +53,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
 
   const displayName = post.uploadedBy?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : post.uploadedBy?.avatar || AVATAR_URL;
+  const fileType = getCategoryFromExt(post.fileExt) ?? post.fileExt;
 
   const isOwner = post.uploadedBy.id === userId;
   
@@ -77,6 +79,25 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
     await navigator.clipboard.writeText(`:${post.id}:`);
     toast("Copied Post Embed!", "success");
   };
+
+  useEffect(() => {
+    // first read from sessionStorage (instant on refresh)
+    try {
+      const raw = sessionStorage.getItem(`bp:dims:${post.id}`);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { w: number; h: number; src?: string; at?: number };
+        if (parsed?.w && parsed?.h) setDimensions({ w: parsed.w, h: parsed.h });
+      }
+    } catch {}
+  
+    // listen for live updates
+    const onDims = (e: Event) => {
+      const { postId, w, h } = (e as CustomEvent).detail || {};
+      if (postId === post.id && w && h) setDimensions({ w, h });
+    };
+    window.addEventListener("post:image-dimensions", onDims as EventListener);
+    return () => window.removeEventListener("post:image-dimensions", onDims as EventListener);
+  }, [post.id]);
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -209,7 +230,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
             {post.fileExt && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Type</span>
-                {FILE_TYPE_LABELS[post.fileExt] ?? post.fileExt}
+                {fileType.charAt(0).toUpperCase() + fileType.slice(1)} ({post.fileExt.toLocaleUpperCase()})
               </p>
             )}
 
@@ -217,6 +238,13 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Size</span>
                 {formatStorageFromBytes(post.fileSize ?? 0)}
+              </p>
+            )}
+
+            {dimensions && (
+              <p className="flex items-center gap-1 text-xs text-subtle">
+                <span className="text-white font-medium w-[80px]">Dimensions</span>
+                {dimensions.w} × {dimensions.h}
               </p>
             )}
 
