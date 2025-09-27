@@ -5,7 +5,7 @@ import EditPost from "./EditPost";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PencilSimple, Minus, Plus, Tag, Star, Heart, Sparkle } from "phosphor-react";
+import { PencilSimple, Minus, Plus, Tag, Star, Heart, Sparkle, ThumbsUp } from "phosphor-react";
 import { formatCounts, formatStorageFromBytes } from "@/core/formats";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { useToast } from "../../Toast";
@@ -170,13 +170,13 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
       {!editing && (
         <div className="flex items-center gap-4 mr-4">
           <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
-            <Star size={16} weight="fill" className="text-yellow-400" />
+            <ThumbsUp size={16} className="text-green-400" />
             <span className="text-xs text-white/80">Score</span>
             <span className="text-xs font-semibold text-subtle">{formatCounts(post.score ?? 0)}</span>
           </div>
 
           <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
-            <Heart size={16} weight="fill" className="text-rose-400" />
+            <Star size={16} className="text-yellow-400" />
             <span className="text-xs text-white/80">Favorites</span>
             <span className="text-xs font-semibold text-subtle">
               {formatCounts((typeof post._count?.favoritedBy === "number" ? post._count?.favoritedBy : 0) as number)}
@@ -184,7 +184,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
           </div>
 
           <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
-            <Sparkle size={16} weight="fill" className="text-sky-400" />
+            <Sparkle size={16} className="text-cyan-400" />
             <span className="text-xs text-white/80">Boosts</span>
             <span className="text-xs font-semibold text-subtle">
               {formatCounts((typeof post._count?.boosts === "number" ? post._count?.boosts : 0) as number)}
