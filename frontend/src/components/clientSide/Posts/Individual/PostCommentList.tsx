@@ -316,7 +316,7 @@ export default function PostCommentList({
         parts.push(
           <span
             key={`t-${lastIndex}`}
-            className="break-all"
+            className="break-words"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(before, SANITIZE_INLINE) }}
           />
         );
@@ -354,7 +354,7 @@ export default function PostCommentList({
       parts.push(
         <span
           key={`t-${lastIndex}-end`}
-          className="break-all"
+          className="break-words"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(tail, SANITIZE_INLINE) }}
         />
       );
@@ -394,7 +394,7 @@ export default function PostCommentList({
 
               {/* Content */}
               <div className="flex-1">
-                <div className="text-muted text-sm mb-1 text-zinc-400 overflow-hidden break-all">
+                <div className="text-muted text-sm mb-1 text-zinc-400 overflow-hidden break-words">
                   <Link
                     href={`/users/${encodeURIComponent(comment.author.username)}`}
                     className="text-accent hover:underline"
@@ -413,77 +413,77 @@ export default function PostCommentList({
                     })}
                   </a>
                 </div>
-                <div className="text-base text-zinc-400 whitespace-pre-wrap break-all">
-                {(() => {
-                  const embeds = comment.isEmbed
-                  ? extractEmbeds(comment.content, previewMap, blurUnsafeEmbeds, parentPostSafety)
-                  : [];
+                <div className="text-base text-zinc-400 whitespace-pre-wrap break-words hyphens-auto">
+                  {(() => {
+                    const embeds = comment.isEmbed
+                    ? extractEmbeds(comment.content, previewMap, blurUnsafeEmbeds, parentPostSafety)
+                    : [];
 
-                  const visibleContent = embeds.reduce((text, embed) => {
-                    if (embed.type === "url") {
-                      return text.replace(embed.value, "").trim();
-                    } else if (embed.type === "post" && !embed.inline) {
-                      return text.replace(`:${embed.postId}:`, "").trim();
-                    }
-                    return text;
-                  }, comment.content);
+                    const visibleContent = embeds.reduce((text, embed) => {
+                      if (embed.type === "url") {
+                        return text.replace(embed.value, "").trim();
+                      } else if (embed.type === "post" && !embed.inline) {
+                        return text.replace(`:${embed.postId}:`, "").trim();
+                      }
+                      return text;
+                    }, comment.content);
 
-                  return editingId === comment.id ? (
-                    <div className="space-y-2 mt-1">
-                      <textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-sm text-white resize-none  focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                        rows={4}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSaveEdit(comment.id)}
-                          className="text-green-400 hover:underline inline-flex items-center gap-1 text-xs"
-                        >
-                          <Check size={14} weight="bold" />
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="text-zinc-400 hover:underline inline-flex items-center gap-1 text-xs"
-                        >
-                          <X size={14} weight="bold" />
-                          Cancel
-                        </button>
+                    return editingId === comment.id ? (
+                      <div className="space-y-2 mt-1">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-sm text-white resize-none  focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                          rows={4}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveEdit(comment.id)}
+                            className="text-green-400 hover:underline inline-flex items-center gap-1 text-xs"
+                          >
+                            <Check size={14} weight="bold" />
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="text-zinc-400 hover:underline inline-flex items-center gap-1 text-xs"
+                          >
+                            <X size={14} weight="bold" />
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                  <>
-                    <div className="text-base text-zinc-400 whitespace-pre-wrap break-all">
-                      {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
-                        const match = chunk.match(/^:(\d+):$/);
-                        if (match) {
-                          const id = parseInt(match[1]);
-                          const isInline = embeds.some(
-                            (e) => e.type === "post" && e.postId === id && e.inline
-                          );
-                          if (isInline) {
-                            return (
-                              <a
-                                key={idx}
-                                href={`/post/${id}`}
-                                className="text-accent hover:underline"
-                              >
-                                {id}
-                              </a>
+                    ) : (
+                    <>
+                      <div className="text-base text-zinc-400 whitespace-pre-wrap break-words">
+                        {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
+                          const match = chunk.match(/^:(\d+):$/);
+                          if (match) {
+                            const id = parseInt(match[1]);
+                            const isInline = embeds.some(
+                              (e) => e.type === "post" && e.postId === id && e.inline
                             );
+                            if (isInline) {
+                              return (
+                                <a
+                                  key={idx}
+                                  href={`/post/${id}`}
+                                  className="text-accent hover:underline"
+                                >
+                                  {id}
+                                </a>
+                              );
+                            }
                           }
-                        }
-                        return <span key={idx} className="break-all">{renderTextWithMentions(chunk)}</span>;
-                      })}
-                      {comment.isEmbed && renderEmbeds(embeds)}
-                    </div>
-                  </>
-                );
-                })()}
+                          return <span key={idx} className="break-words">{renderTextWithMentions(chunk)}</span>;
+                        })}
+                        {comment.isEmbed && renderEmbeds(embeds)}
+                      </div>
+                    </>
+                  );
+                  })()}
                 </div>
-                <div className="flex gap-2 text-2xs mt-1 text-zinc-600 overflow-hidden break-all">
+                <div className="flex gap-2 text-2xs mt-1 text-zinc-600 overflow-hidden break-words">
                   {comment.canEdit && (
                     <button
                       onClick={() => {
