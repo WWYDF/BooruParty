@@ -3,9 +3,12 @@ import ClientPostsPage from "@/components/clientSide/Posts/PostsPage";
 import BackToTop from "@/components/clientSide/BackToTop";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { Metadata } from "next";
+import { Suspense } from "react";
+import LoadingOverlay from "@/components/clientSide/LoadingOverlay";
 
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
 const totalPosts = await prisma.posts.count();
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
@@ -40,7 +43,9 @@ export default async function PostsPage() {
 
   return (
     <main className="p-4 space-y-4">
-      <ClientPostsPage />
+      <Suspense fallback={<LoadingOverlay show label='Loading Posts...' />}>
+        <ClientPostsPage />
+      </Suspense>
       <BackToTop />
     </main>
   );

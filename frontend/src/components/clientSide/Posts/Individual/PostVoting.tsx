@@ -3,6 +3,7 @@ import { ThumbsUp, ThumbsDown, Star, Sparkle } from "@phosphor-icons/react";
 import { useState } from "react";
 import { PostUserStatus } from "@/core/types/posts";
 import { useToast } from "../../Toast";
+import { useRouter } from "next/navigation";
 
 type VoteType = "UPVOTE" | "DOWNVOTE" | null;
 
@@ -20,6 +21,7 @@ export default function PostVoting({ post, user }: Props) {
   const [favorited, setFavorited] = useState(user.favorited);
   const [boosted, setBoosted] = useState(user.boostedToday);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const toast = useToast();
   const postId = post.id;
 
@@ -37,6 +39,7 @@ export default function PostVoting({ post, user }: Props) {
     });
 
     setLoading(false);
+    router.refresh();
   };
 
   const toggleFavorite = async () => {
@@ -53,6 +56,7 @@ export default function PostVoting({ post, user }: Props) {
     if (data.favorited && vote !== "UPVOTE") {
       await handleVote("UPVOTE");
     }
+    router.refresh();
   };
 
   const boostPost = async () => {
@@ -82,6 +86,7 @@ export default function PostVoting({ post, user }: Props) {
     } else {
       setBoosted(false);
     }
+    router.refresh();
   };
 
   return (
