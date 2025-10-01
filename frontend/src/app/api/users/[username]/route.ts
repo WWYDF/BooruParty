@@ -17,6 +17,7 @@ const updateUserSchema = z.object({
   defaultSafety: z.array(z.enum(['SAFE', 'SKETCHY', 'UNSAFE'])).optional(),
   blacklistedTags: z.array(z.number()).optional(),
   profileBackground: z.number().optional(),
+  privateProfile: z.boolean().optional(),
 });
 
 // Returns non-sensitive information on the user
@@ -162,7 +163,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
     );
   }
 
-  const { username, email, description, password, blurUnsafeEmbeds, defaultSafety, blacklistedTags, profileBackground } = parsed.data;
+  const { username, email, description, password, blurUnsafeEmbeds, defaultSafety, blacklistedTags, profileBackground, privateProfile } = parsed.data;
 
   const updates: any = {};
   if (username) updates.username = username;
@@ -182,6 +183,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
     if (profileBackground == 0) prefUpdates.profileBackground = null;
     else prefUpdates.profileBackground = profileBackground;
   }
+  if (typeof privateProfile !== 'undefined') { prefUpdates.private = privateProfile };
 
   try {
     const current = await prisma.user.findUnique({

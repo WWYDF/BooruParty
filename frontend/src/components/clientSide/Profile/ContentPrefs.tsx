@@ -15,6 +15,7 @@ export default function ContentForm({ user }: { user: UserSelf }) {
   const [blacklistedTags, setBlacklistedTags] = useState<Tag[]>([]);
   const [profileBackground, setProfileBackground] = useState<number>(0);
   const [canChangeBG, setCanChangeBG] = useState<boolean>(false);
+  const [privateProfile, setPrivateProfile] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export default function ContentForm({ user }: { user: UserSelf }) {
         setDefaultSafety(user.preferences?.defaultSafety ?? ['SAFE']);
         setBlacklistedTags(user.preferences?.blacklistedTags ?? []);;
         setProfileBackground(user.preferences?.profileBackground ?? 0)
+        setPrivateProfile(user.preferences?.private ?? false)
       } catch (err) {
         toast('Could not load safety settings', 'error');
       }
@@ -34,7 +36,7 @@ export default function ContentForm({ user }: { user: UserSelf }) {
 
   const save = async () => {
     try {
-      await updateUser(user.username, { blurUnsafeEmbeds, defaultSafety, blacklistedTags: blacklistedTags.map((tag) => tag.id), profileBackground: Number(profileBackground) });
+      await updateUser(user.username, { blurUnsafeEmbeds, defaultSafety, blacklistedTags: blacklistedTags.map((tag) => tag.id), profileBackground: Number(profileBackground), privateProfile});
       toast('Safety Settings Saved!', 'success');
     } catch (err: any) {
       toast(err.message, 'error');
@@ -80,6 +82,19 @@ export default function ContentForm({ user }: { user: UserSelf }) {
             <p className='text-xs text-subtle'>Set to 0 to clear</p>
           </div>
         )}
+
+        <div className="flex-1">
+          <label className="block mb-1 text-subtle">Private Profile</label>
+          <select
+            value={privateProfile.toString()}
+            onChange={(e) => setPrivateProfile(e.target.value === 'true')}
+            className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
+          >
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+          <p className='text-xs text-subtle ital'>Hides your profile from others</p>
+        </div>
 
         <div className="flex-1">
           <label className="block mb-1 text-subtle">Blacklisted Tags</label>

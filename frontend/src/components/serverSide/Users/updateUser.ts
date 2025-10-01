@@ -16,6 +16,7 @@ export async function updateUser(
     blacklistedTags: number[],
     flipNavigators: boolean;
     profileBackground: number;
+    privateProfile: boolean;
   }>
 ) {
 

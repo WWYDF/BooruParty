@@ -247,7 +247,7 @@ export default function UserProfilePage() {
       <meta property="og:image" content={user.avatar || `/i/user.png`} />
       <meta name="theme-color" content={user.role?.color} />
 
-      {/* NEW: Background layer (blurred, darkened, scaled) */}
+      {/* Background layer (blurred, darkened, scaled) */}
       {bgUrl && (
         <div
           aria-hidden
@@ -271,8 +271,8 @@ export default function UserProfilePage() {
 
       {/* Owner-only banner for private accounts */}
       {isOwner && isPrivate && (
-        <div className="max-w-6xl mx-auto mt-8">
-          <div className="rounded-xl border border-amber-600/30 bg-amber-500/10 text-amber-300 px-4 py-3 text-sm">
+        <div className="max-w-6xl mx-auto mt-8 mb-4">
+          <div className="rounded-xl border border-amber-600/30 bg-amber-500/20 text-amber-300 px-4 py-3 text-sm">
             This profile is <span className="font-semibold">private</span>. Only you can see this page.
           </div>
         </div>

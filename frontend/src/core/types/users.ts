@@ -18,7 +18,8 @@ export type UserSelf = {
     defaultSafety: SafetyType[],
     blacklistedTags: Tag[],
     flipNavigators: boolean,
-    profileBackground: number
+    profileBackground: number,
+    private: boolean,
   },
   role: {
     id: number,
