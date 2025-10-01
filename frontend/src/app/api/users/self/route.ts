@@ -49,7 +49,9 @@ export async function GET() {
             include: {
               category: true
             }
-          }
+          },
+          profileBackground: true,
+          private: true
         }
       },
       role: {

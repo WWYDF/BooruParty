@@ -1,6 +1,7 @@
 'use client';
 
 import { formatStorageFromMB } from '@/core/formats';
+import { LEGIBLE_VERSION } from '@/core/version';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -35,6 +36,8 @@ export default function Footer() {
           ? `Total ${storage} used across ${postCount} posts`
           : 'Loading stats...'}
       </div>
+
+      <div className="text-right">BooruParty {LEGIBLE_VERSION}</div>
     </footer>
   );
 }

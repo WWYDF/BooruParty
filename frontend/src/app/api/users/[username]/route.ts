@@ -12,13 +12,12 @@ const updateUserSchema = z.object({
   email: z.string().email().optional(),
   password: z.string().min(6).optional(),
   description: z.string().max(64).optional(),
-  layout: z.enum(['GRID', 'COLLAGE']).optional(),
-  theme: z.enum(['DARK', 'LIGHT']).optional(),
-  postsPerPage: z.number().default(30),
   avatar: z.string().url().optional(),
   blurUnsafeEmbeds: z.boolean().optional(),
   defaultSafety: z.array(z.enum(['SAFE', 'SKETCHY', 'UNSAFE'])).optional(),
   blacklistedTags: z.array(z.number()).optional(),
+  profileBackground: z.number().optional(),
+  privateProfile: z.boolean().optional(),
 });
 
 // Returns non-sensitive information on the user
@@ -48,7 +47,9 @@ export async function GET(
             include: {
               category: true
             }
-          }
+          },
+          profileBackground: true,
+          private: true,
         }
       },
       _count: {
@@ -107,6 +108,18 @@ export async function GET(
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  // If this is a private account, we don't want to leak info through the public api.
+  if (user.preferences?.private == true) {
+    const session = await auth();
+
+    if (!session || user.id !== session.user.id) {
+      return NextResponse.json({
+        error: session ? 403 : 401,
+        message: "This account is private."
+      }, { status: session ? 403 : 401 });
+    }
+  }
+
   return NextResponse.json({
     ...user,
     avatar: setAvatarUrl(user?.avatar)
@@ -150,7 +163,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
     );
   }
 
-  const { username, email, description, password, layout, theme, postsPerPage, blurUnsafeEmbeds, defaultSafety, blacklistedTags } = parsed.data;
+  const { username, email, description, password, blurUnsafeEmbeds, defaultSafety, blacklistedTags, profileBackground, privateProfile } = parsed.data;
 
   const updates: any = {};
   if (username) updates.username = username;
@@ -159,16 +172,18 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
   if (password) updates.password = await bcrypt.hash(password, 10);
 
   const prefUpdates: any = {};
-  if (layout) prefUpdates.layout = layout;
-  if (theme) prefUpdates.theme = theme;
-  if (postsPerPage) prefUpdates.postsPerPage = postsPerPage;
   if (typeof blurUnsafeEmbeds !== 'undefined') { prefUpdates.blurUnsafeEmbeds = blurUnsafeEmbeds };
   if (defaultSafety) prefUpdates.defaultSafety = defaultSafety;
   if (blacklistedTags) {
     prefUpdates.blacklistedTags = {
       set: blacklistedTags.map((id) => ({ id }))
     };
+  };
+  if (profileBackground) {
+    if (profileBackground == 0) prefUpdates.profileBackground = null;
+    else prefUpdates.profileBackground = profileBackground;
   }
+  if (typeof privateProfile !== 'undefined') { prefUpdates.private = privateProfile };
 
   try {
     const current = await prisma.user.findUnique({

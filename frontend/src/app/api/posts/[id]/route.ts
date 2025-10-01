@@ -112,6 +112,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
         select: {
           favoritedBy: true,
           tags: true,
+          boosts: true
         }
       }
     }
@@ -123,6 +124,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 
   let hasFavorited = false;
   let voteType = null;
+  let boostedToday = false;
 
   // If user is logged in, check their post statuses
   if (session?.user) {
@@ -136,12 +138,20 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
         votes: {
           where: { postId },
           select: { type: true }
-        }
+        },
+        boosts: {
+          where: { postId },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+          take: 1,
+        },
       }
     });
 
     hasFavorited = (userStatus?.favorites?.length ?? 0) > 0;
     voteType = userStatus?.votes?.[0]?.type ?? null;
+    const latestBoost = userStatus?.boosts[0];
+    boostedToday = latestBoost ? latestBoost.createdAt.toDateString() == new Date().toDateString() : false;
   }
 
   // Might not need this anymore
@@ -199,7 +209,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   const userFormatted = {
     vote: voteType,
     favorited: hasFavorited,
-    signedIn: !!session?.user
+    signedIn: !!session?.user,
+    boostedToday
   }
 
   return NextResponse.json({post: postFormatted, user: userFormatted});

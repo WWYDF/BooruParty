@@ -6,115 +6,147 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-type Props = {
-  postId: number;
-  poolId?: number;
-  fullscreen?: boolean;
-};
+type Props = { postId: number; poolId?: number; fullscreen?: boolean };
 
 export function useAdjacentPosts(postId: number, poolId?: number) {
-  const [nav, setNav] = useState<PostNavigatorType>({
-    previousPostId: 0,
-    nextPostId: 0,
-  });
+  const [nav, setNav] = useState<PostNavigatorType>({ previousPostId: 0, nextPostId: 0 });
 
   useEffect(() => {
     async function fetchAdjacentPosts() {
       let res;
-    
       if (poolId) {
-        res = await fetch(`/api/pools/${poolId}/navigate?current=${postId}`, {
-          cache: "no-store",
-        });
+        res = await fetch(`/api/pools/${poolId}/navigate?current=${postId}`, { cache: "no-store" });
       } else {
         const saved = JSON.parse(localStorage.getItem("lastSearchParams") ?? "{}");
         const query = saved.query ?? "";
         const safety = saved.safety ?? "";
         const sort = saved.sort ?? "new";
-    
         const params = new URLSearchParams({
           current: postId.toString(),
           ...(query && { query }),
           ...(safety && { safety }),
           ...(sort && { sort }),
         });
-    
-        res = await fetch(`/api/posts/navigate?${params.toString()}`, {
-          cache: "no-store",
-        });
+        res = await fetch(`/api/posts/navigate?${params.toString()}`, { cache: "no-store" });
       }
-    
-      if (res?.ok) {
-        const data = await res.json();
-        setNav(data);
-      }
-    }    
-
+      if (res?.ok) setNav(await res.json());
+    }
     fetchAdjacentPosts();
   }, [postId, poolId]);
 
   return nav;
 }
 
-
 export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
   const router = useRouter();
   const { previousPostId, nextPostId } = useAdjacentPosts(postId, poolId);
   const [poolName, setPoolName] = useState<string | null>(null);
+  const [flipNavigators, setFlipNavigators] = useState(false);
 
-  const buildLink = (targetId: number) => {
-    if (fullscreen) {
-      return poolId
-        ? `/post/${targetId}/fullscreen?pool=${poolId}`
-        : `/post/${targetId}/fullscreen`;
-    } else {
-      return poolId ? `/post/${targetId}?pool=${poolId}` : `/post/${targetId}`;
+  const isPool = !!poolId;
+  const leftShowsPrevious = isPool ? true : flipNavigators;  // pool: prev on left; non-pool: flip decides
+  const rightShowsNext   = isPool ? true : flipNavigators;   // pool: next on right; non-pool: flip decides
+
+  const buildLink = (targetId: number) =>
+    fullscreen
+      ? (poolId ? `/post/${targetId}/fullscreen?pool=${poolId}` : `/post/${targetId}/fullscreen`)
+      : (poolId ? `/post/${targetId}?pool=${poolId}` : `/post/${targetId}`);
+
+  // load flip preference (non-pool only)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("browserPreferences");
+      if (saved) setFlipNavigators(!!JSON.parse(saved).flipNavigators);
+    } catch {
+      setFlipNavigators(false);
     }
-  };
-  
+  }, []);
+
   useEffect(() => {
     if (!poolId) return;
-  
     fetch(`/api/pools/${poolId}`, { cache: "no-store" })
-      .then(res => res.ok ? res.json() : null)
+      .then(res => (res.ok ? res.json() : null))
       .then(data => setPoolName(data?.name ?? null))
       .catch(() => setPoolName(null));
   }, [poolId]);
-
-  useEffect(() => {
-    let lastNavTime = 0;
-    const DEBOUNCE_MS = 250;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const now = Date.now();
-      if (now - lastNavTime < DEBOUNCE_MS) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
   
-      const isInPool = !!poolId;
 
-      const goPrev = () => {
-        if (previousPostId) {
-          router.push(buildLink(previousPostId));
-          lastNavTime = now;
-        }
-      };
+  // Arrow-key navigation that mirrors the button mapping
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // ignore when typing
+      const el = e.target as HTMLElement | null;
+      const typing =
+        !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+      if (typing) return;
 
-      const goNext = () => {
-        if (nextPostId) {
-          router.push(buildLink(nextPostId));
-          lastNavTime = now;
-        }
+      const go = (targetId: number) => {
+        if (!targetId) return;
+        const href = fullscreen
+          ? (poolId ? `/post/${targetId}/fullscreen?pool=${poolId}` : `/post/${targetId}/fullscreen`)
+          : (poolId ? `/post/${targetId}?pool=${poolId}` : `/post/${targetId}`);
+        router.push(href);
       };
 
       if (e.key === "ArrowLeft") {
-        isInPool ? goPrev() : goNext();
+        go(leftShowsPrevious ? previousPostId : nextPostId);
       } else if (e.key === "ArrowRight") {
-        isInPool ? goNext() : goPrev();
+        go(rightShowsNext ? nextPostId : previousPostId);
       }
     };
-  
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [previousPostId, nextPostId]);
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [leftShowsPrevious, rightShowsNext, previousPostId, nextPostId, poolId, fullscreen, router]);
+
+  // Helpers that always point outward; label/target chosen by pool vs flip rules
+  const LeftButton = () => {
+    const isPool = !!poolId;
+    // In pool: always PREVIOUS on left. Outside pool: flip decides.
+    return leftShowsPrevious ? (
+      <button
+        disabled={!previousPostId}
+        onClick={() => router.push(buildLink(previousPostId))}
+        className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <CaretLeft size={28} weight="bold" />
+        <span className="text-sm">Previous</span>
+      </button>
+    ) : (
+      <button
+        disabled={!nextPostId}
+        onClick={() => router.push(buildLink(nextPostId))}
+        className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <CaretLeft size={28} weight="bold" />
+        <span className="text-sm">Next</span>
+      </button>
+    );
+  };
+
+  const RightButton = () => {
+    const isPool = !!poolId;
+    // In pool: always NEXT on right. Outside pool: flip decides.
+    return rightShowsNext ? (
+      <button
+        disabled={!nextPostId}
+        onClick={() => router.push(buildLink(nextPostId))}
+        className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <span className="text-sm">Next</span>
+        <CaretRight size={28} weight="bold" />
+      </button>
+    ) : (
+      <button
+        disabled={!previousPostId}
+        onClick={() => router.push(buildLink(previousPostId))}
+        className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <span className="text-sm">Previous</span>
+        <CaretRight size={28} weight="bold" />
+      </button>
+    );
+  };
 
   return (
     <motion.div
@@ -125,69 +157,26 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
         fullscreen ? "bg-black/80 backdrop-blur sticky top-0 z-40 border-b border-zinc-800" : ""
       }`}
     >
-      {/* Left button */}
       <div className="flex items-center gap-1 whitespace-nowrap overflow-hidden">
-        {poolId ? (
-          <button
-            disabled={!previousPostId}
-            onClick={() => router.push(buildLink(previousPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <CaretLeft size={28} weight="bold" />
-            <span className="text-sm">Previous</span>
-          </button>
-        ) : (
-          <button
-            disabled={!nextPostId}
-            onClick={() => router.push(buildLink(nextPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <CaretLeft size={28} weight="bold" />
-            <span className="text-sm">Next</span>
-          </button>
-        )}
+        <LeftButton />
       </div>
-  
-      {/* Right button */}
       <div className="flex items-center gap-1 whitespace-nowrap overflow-hidden">
-        {poolId ? (
-          <button
-            disabled={!nextPostId}
-            onClick={() => router.push(buildLink(nextPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <span className="text-sm">Next</span>
-            <CaretRight size={28} weight="bold" />
-          </button>
-        ) : (
-          <button
-            disabled={!previousPostId}
-            onClick={() => router.push(buildLink(previousPostId))}
-            className="flex items-center gap-1 whitespace-nowrap text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <span className="text-sm">Previous</span>
-            <CaretRight size={28} weight="bold" />
-          </button>
-        )}
+        <RightButton />
       </div>
-  
-      {/* Center pool name */}
+
       {poolId && poolName && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm text-subtle text-center truncate max-w-[60%]"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm text-subtle text-center truncate max-w=[60%]"
         >
           Pool:{" "}
-          <a
-            href={`/pools/${poolId}`}
-            className="text-accent hover:underline underline-offset-2"
-          >
+          <a href={`/pools/${poolId}`} className="text-accent hover:underline underline-offset-2">
             {poolName}
           </a>
         </motion.div>
       )}
     </motion.div>
-  );  
+  );
 }

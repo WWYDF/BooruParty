@@ -29,6 +29,14 @@ type PreviewData = {
   safety: "SAFE" | "SKETCHY" | "UNSAFE";
 };
 
+type MentionMap = Record<string, boolean>; // username, user exists?
+
+const SANITIZE_INLINE: sanitizeHtml.IOptions = {
+  allowedTags: ['b', 'strong', 'i', 'em', 'h1'],
+  allowedAttributes: {},
+  allowedSchemes: [],
+};
+
 
 function extractEmbeds(
   content: string,
@@ -173,6 +181,51 @@ export default function PostCommentList({
   const [editContent, setEditContent] = useState<string>("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
+  const [mentionExists, setMentionExists] = useState<MentionMap>({});
+
+  useEffect(() => {
+    // Collect unique mentions
+    const uniques = Array.from(
+      new Set(
+        comments.flatMap(c =>
+          Array.from(
+            c.content.matchAll(/(?<=^|\s|[^\w])@([A-Za-z0-9_]{2,32})(?=$|\s|[^\w])/g)
+          ).map(m => m[1])
+        )
+      )
+    );
+    if (uniques.length === 0) return;
+  
+    const ac = new AbortController();
+  
+    (async () => {
+      try {
+        const results = await Promise.allSettled(
+          uniques.map(async (name) => {
+            const key = name.toLowerCase();
+            // skip if we already know
+            if (mentionExists[key] !== undefined) return [key, mentionExists[key]] as const;
+  
+            const res = await fetch(`/api/users/${encodeURIComponent(name)}`, { signal: ac.signal });
+            return [key, res.ok] as const; // 2xx = exists
+          })
+        );
+  
+        const map: Record<string, boolean> = {};
+        for (const r of results) {
+          if (r.status === "fulfilled") {
+            const [k, ok] = r.value;
+            if (typeof k === "string") map[k] = !!ok;
+          }
+        }
+        setMentionExists(prev => ({ ...prev, ...map }));
+      } catch {
+       // ignore
+      }
+    })();
+  
+    return () => ac.abort();
+  }, [comments]);
 
   useEffect(() => {
     if (referencedPostIds.length === 0) return;
@@ -247,6 +300,68 @@ export default function PostCommentList({
     setCommentToDelete(commentId);
     setShowConfirm(true);
   };
+
+  function renderTextWithMentions(text: string) {
+    const parts: React.ReactNode[] = [];
+    const regex = /(?<=^|\s|[^\w])@([A-Za-z0-9_]{2,32})(?=$|\s|[^\w])/g;
+    let lastIndex = 0;
+    let m: RegExpExecArray | null;
+  
+    while ((m = regex.exec(text)) !== null) {
+      const start = m.index;
+      const end = start + m[0].length;
+      const before = text.slice(lastIndex, start);
+  
+      if (before) {
+        parts.push(
+          <span
+            key={`t-${lastIndex}`}
+            className="break-words"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(before, SANITIZE_INLINE) }}
+          />
+        );
+      }
+  
+      const username = m[1];
+      const exists = mentionExists[username.toLowerCase()] === true;
+  
+      if (exists) {
+        parts.push(
+          <Link
+            key={`m-${start}`}
+            href={`/users/${encodeURIComponent(username)}`}
+            className="text-accent hover:underline"
+          >
+            @{username}
+          </Link>
+        );
+      } else {
+        // Not a valid user, render as plain text
+        parts.push(
+          <span
+            key={`p-${start}`}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(m[0], SANITIZE_INLINE) }}
+          />
+        );
+      }
+  
+      lastIndex = end;
+    }
+  
+    // Tail piece
+    if (lastIndex < text.length) {
+      const tail = text.slice(lastIndex);
+      parts.push(
+        <span
+          key={`t-${lastIndex}-end`}
+          className="break-words"
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(tail, SANITIZE_INLINE) }}
+        />
+      );
+    }
+  
+    return parts;
+  }
     
 
   return (
@@ -279,7 +394,7 @@ export default function PostCommentList({
 
               {/* Content */}
               <div className="flex-1">
-                <div className="text-muted text-sm mb-1 text-zinc-400 overflow-hidden break-all">
+                <div className="text-muted text-sm mb-1 text-zinc-400 overflow-hidden break-words">
                   <Link
                     href={`/users/${encodeURIComponent(comment.author.username)}`}
                     className="text-accent hover:underline"
@@ -298,88 +413,77 @@ export default function PostCommentList({
                     })}
                   </a>
                 </div>
-                <div className="text-base text-zinc-400 whitespace-pre-wrap break-all">
-                {(() => {
-                  const embeds = comment.isEmbed
-                  ? extractEmbeds(comment.content, previewMap, blurUnsafeEmbeds, parentPostSafety)
-                  : [];
+                <div className="text-base text-zinc-400 whitespace-pre-wrap break-words hyphens-auto">
+                  {(() => {
+                    const embeds = comment.isEmbed
+                    ? extractEmbeds(comment.content, previewMap, blurUnsafeEmbeds, parentPostSafety)
+                    : [];
 
-                  const visibleContent = embeds.reduce((text, embed) => {
-                    if (embed.type === "url") {
-                      return text.replace(embed.value, "").trim();
-                    } else if (embed.type === "post" && !embed.inline) {
-                      return text.replace(`:${embed.postId}:`, "").trim();
-                    }
-                    return text;
-                  }, comment.content);
+                    const visibleContent = embeds.reduce((text, embed) => {
+                      if (embed.type === "url") {
+                        return text.replace(embed.value, "").trim();
+                      } else if (embed.type === "post" && !embed.inline) {
+                        return text.replace(`:${embed.postId}:`, "").trim();
+                      }
+                      return text;
+                    }, comment.content);
 
-                  return editingId === comment.id ? (
-                    <div className="space-y-2 mt-1">
-                      <textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-sm text-white resize-none  focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                        rows={4}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSaveEdit(comment.id)}
-                          className="text-green-400 hover:underline inline-flex items-center gap-1 text-xs"
-                        >
-                          <Check size={14} weight="bold" />
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="text-zinc-400 hover:underline inline-flex items-center gap-1 text-xs"
-                        >
-                          <X size={14} weight="bold" />
-                          Cancel
-                        </button>
+                    return editingId === comment.id ? (
+                      <div className="space-y-2 mt-1">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-sm text-white resize-none  focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                          rows={4}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveEdit(comment.id)}
+                            className="text-green-400 hover:underline inline-flex items-center gap-1 text-xs"
+                          >
+                            <Check size={14} weight="bold" />
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="text-zinc-400 hover:underline inline-flex items-center gap-1 text-xs"
+                          >
+                            <X size={14} weight="bold" />
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                  <>
-                    <div className="text-base text-zinc-400 whitespace-pre-wrap break-all">
-                      {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
-                        const match = chunk.match(/^:(\d+):$/);
-                        if (match) {
-                          const id = parseInt(match[1]);
-                          const isInline = embeds.some(
-                            (e) => e.type === "post" && e.postId === id && e.inline
-                          );
-                          if (isInline) {
-                            return (
-                              <a
-                                key={idx}
-                                href={`/post/${id}`}
-                                className="text-accent hover:underline"
-                              >
-                                {id}
-                              </a>
+                    ) : (
+                    <>
+                      <div className="text-base text-zinc-400 whitespace-pre-wrap break-words">
+                        {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
+                          const match = chunk.match(/^:(\d+):$/);
+                          if (match) {
+                            const id = parseInt(match[1]);
+                            const isInline = embeds.some(
+                              (e) => e.type === "post" && e.postId === id && e.inline
                             );
+                            if (isInline) {
+                              return (
+                                <a
+                                  key={idx}
+                                  href={`/post/${id}`}
+                                  className="text-accent hover:underline"
+                                >
+                                  {id}
+                                </a>
+                              );
+                            }
                           }
-                        }
-                        return (
-                          <span
-                            key={idx}
-                            className="break-all"
-                            dangerouslySetInnerHTML={{
-                              __html: sanitizeHtml(chunk, {
-                                allowedTags: [], // no tags allowed at all
-                                allowedAttributes: {}, // no attributes allowed
-                              }),
-                            }}
-                          />
-                        );
-                      })}
-                      {comment.isEmbed && renderEmbeds(embeds)}
-                    </div>
-                  </>
-                );
-                })()}
+                          return <span key={idx} className="break-words">{renderTextWithMentions(chunk)}</span>;
+                        })}
+                        {comment.isEmbed && renderEmbeds(embeds)}
+                      </div>
+                    </>
+                  );
+                  })()}
                 </div>
-                <div className="flex gap-2 text-2xs mt-1 text-zinc-600 overflow-hidden break-all">
+                <div className="flex gap-2 text-2xs mt-1 text-zinc-600 overflow-hidden break-words">
                   {comment.canEdit && (
                     <button
                       onClick={() => {

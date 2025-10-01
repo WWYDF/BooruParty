@@ -16,7 +16,10 @@ export type UserSelf = {
     postsPerPage: number,
     blurUnsafeEmbeds: boolean,
     defaultSafety: SafetyType[],
-    blacklistedTags: Tag[]
+    blacklistedTags: Tag[],
+    flipNavigators: boolean,
+    profileBackground: number,
+    private: boolean,
   },
   role: {
     id: number,
@@ -80,4 +83,11 @@ export type UserPublic = {
       name: string
     }[]
   }
+}
+
+export type LocalUserPreferences = {
+  layout: 'GRID' | 'COLLAGE',
+  theme: 'DARK' | 'LIGHT',
+  postsPerPage: number,
+  flipNavigators: boolean,
 }

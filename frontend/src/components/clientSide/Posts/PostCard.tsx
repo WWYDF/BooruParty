@@ -2,7 +2,7 @@
 
 import { Post } from "@/core/types/posts";
 import Link from "next/link";
-import { ThumbsUp, Heart, FilmStrip, Chats } from "phosphor-react";
+import { ThumbsUp, Heart, FilmStrip, Chats, Sparkle } from "phosphor-react";
 
 interface PostCardProps {
   post: Post;
@@ -46,7 +46,7 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
         </div>
       )}
 
-      <div className="rounded-xl bg-secondary overflow-hidden relative transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-black/30">
+      <div className="rounded-xl bg-secondary overflow-hidden relative transform transition duration-200 md:hover:-translate-y-1.5 hover:shadow-lg hover:shadow-black/30">
         {viewMode === 'GRID' ? (
           <div className="aspect-square">
             <picture>
@@ -99,6 +99,13 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
               <Heart size={16} className="text-red-500" weight="bold" />
               <span>{post._count?.favoritedBy}</span>
+            </div>
+          )}
+
+          {post._count?.boosts > 0 && (
+            <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <Sparkle size={16} className="text-cyan-500" weight="bold" />
+              <span>{post._count?.boosts}</span>
             </div>
           )}
         </div>

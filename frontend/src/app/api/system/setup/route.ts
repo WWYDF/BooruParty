@@ -71,7 +71,8 @@ export async function POST(req: Request) {
         { name: "profile_create" }, // Registration
         { name: "profile_view" },
         { name: "profile_edit_avatar" },
-        { name: "profile_edit_others" }, // Includes editing user's avatar
+        { name: "profile_edit_background" },
+        { name: "profile_edit_others" }, // Includes editing user's avatar & bg
         { name: "profile_edit_roles" }, // Includes other users
         { name: "profile_archive_others" }, // Delete user but not posts
         { name: "profile_delete_others" },  // Delete user and posts
@@ -145,7 +146,8 @@ export async function POST(req: Request) {
           "comment_embed_url",
           "upload_type_video",
           "tags_create",
-          "tags_edit"
+          "tags_edit",
+          "profile_edit_background"
         ]
       },
       {

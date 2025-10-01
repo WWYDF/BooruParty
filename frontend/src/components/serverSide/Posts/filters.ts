@@ -1,6 +1,8 @@
 import { FILE_TYPE_MAP } from "@/core/dictionary";
-import { SafetyType } from "@prisma/client";
+import { Prisma, SafetyType } from "@prisma/client";
 import { parseSearch } from "./parseSearch";
+
+type SortDirection = "asc" | "desc";
 
 export function buildPostWhereAndOrder(
   rawQuery: string,
@@ -92,6 +94,15 @@ export function buildPostWhereAndOrder(
     });
   }
 
+  // Filter
+  if (systemOptions.filter) {
+    if (systemOptions.filter == 'tumbleweed' || systemOptions.filter == 'tumbleweeds') {
+      where.AND.push({
+        tags: { none: {} }
+      });
+    }
+  }
+
   // Safety filter — accept array or hyphenated string, enforce exact enum matches
   const allSafeties: SafetyType[] = ["SAFE", "UNSAFE", "SKETCHY"];
   if (safety && (Array.isArray(safety) ? safety.length : safety.trim().length)) {
@@ -132,17 +143,23 @@ export function buildPostWhereAndOrder(
     where.AND.push({ yearStart: parseInt(systemOptions.year) });
   }
 
-  // Order
-  let orderBy: any = { createdAt: sort === "old" ? "asc" : "desc" };
-
+  // Sort Order
+  const baseOrder: Prisma.PostsOrderByWithRelationInput = { createdAt: sort === "old" ? "asc" : "desc" };
+  const finalTiebreaker: Prisma.PostsOrderByWithRelationInput = { id: "desc" };
+  let orderBy: Prisma.PostsOrderByWithRelationInput[] = [];
+  
+  const dir = (suffix: string): SortDirection => systemOptions.order?.endsWith(suffix) ? "asc" : "desc";
+  
   if (systemOptions.order?.startsWith("score")) {
-    orderBy = { score: systemOptions.order.endsWith("_asc") ? "asc" : "desc" };
+    orderBy = [{ score: dir("_asc") }, baseOrder, finalTiebreaker];
   } else if (systemOptions.order?.startsWith("favorites")) {
-    orderBy = { favoritedBy: { _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc" } };
+    orderBy = [{ favoritedBy: { _count: dir("_asc") } }, baseOrder, finalTiebreaker];
   } else if (systemOptions.order?.startsWith("tags")) {
-    orderBy = {
-      tags: { _count: systemOptions.order.endsWith("_asc") ? "asc" : "desc" },
-    };
+    orderBy = [{ tags: { _count: dir("_asc") } }, baseOrder, finalTiebreaker];
+  } else if (systemOptions.order?.startsWith("boosts")) {
+    orderBy = [{ boosts: { _count: dir("_asc") } }, baseOrder, finalTiebreaker];
+  } else {
+    orderBy = [baseOrder, finalTiebreaker];
   }
 
   return { where, orderBy, useFavoriteOrdering, useLikesOrdering };

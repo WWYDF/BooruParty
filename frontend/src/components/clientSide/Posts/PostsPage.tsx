@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import PostGrid from "@/components/clientSide/Posts/PostGrid";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getSession } from "next-auth/react";
 import MassEditor from "./MassEditor";
 import PostToolbar from "./PostToolbar";
-import { UserPublic } from "@/core/types/users";
+import { loadPreferences } from "@/core/authClient";
+import { defaultLayout, defaultPostsPerPage } from "../Profile/Preferences";
+import LoadingOverlay from "../LoadingOverlay";
 
-export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number; }) {
+export default function ClientPostsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -31,23 +32,11 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
   const [modalOpen, setModalOpen] = useState(false);
   const isFirstLoad = useRef(true);
 
+  const prefs = loadPreferences();
+
   useEffect(() => {
-    getSession().then(async (session) => {
-      if (!session?.user?.id) return setLoadingViewMode(false);
-      const res = await fetch(`/api/users/${session.user.username}`);
-      const data: UserPublic = await res.json();
-      if (data?.preferences?.layout) setViewMode(data.preferences?.layout);
-      setLoadingViewMode(false);
-
-      // // Auto-fill selectedSafeties with defaultSafety preference (Shows them as selected in toolbar)
-      // if (
-      //   (!searchParams.get("safety") || searchParams.get("safety") === "") &&
-      //   Array.isArray(data.preferences?.defaultSafety)
-      // ) {
-      //   setSelectedSafeties(data.preferences.defaultSafety);
-      // }
-
-    });
+    setViewMode(prefs?.layout ?? defaultLayout)
+    setLoadingViewMode(false);
   }, []);
 
   const updateUrl = (query: string, safeties: string[]) => {
@@ -87,7 +76,7 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
     const params = new URLSearchParams();
     params.set("query", queryOverride);
     params.set("page", pageOverride.toString());
-    params.set("perPage", postsPerPage.toString());
+    params.set("perPage", (prefs?.postsPerPage.toString() ?? `${defaultPostsPerPage}`));
     if (safetyOverride.length > 0) {
       params.set("safety", safetyOverride.join("-"));
     }
@@ -95,6 +84,7 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
     try {
       const res = await fetch(`/api/posts?${params.toString()}`);
       const data = await res.json();
+      sessionStorage.setItem("postCount", data.totalPosts);
 
       if (append) {
         setPosts((prev) => {
@@ -204,13 +194,13 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
         setModalOpen={setModalOpen}
       />
 
-      <Suspense fallback={<p className="text-subtle">Loading posts...</p>}>
+      <Suspense fallback={<LoadingOverlay show label="Loading Posts..." />}>
         {!loadingViewMode ? (
           <PostGrid
             externalPosts={posts}
             viewMode={viewMode}
             page={page}
-            postsPerPage={postsPerPage ?? 30}
+            postsPerPage={prefs?.postsPerPage ?? defaultPostsPerPage}
             selectionMode={selectionMode}
             selectedPostIds={selectedPostIds}
             toggleSelect={(id, e) => {
@@ -240,7 +230,7 @@ export default function ClientPostsPage({ postsPerPage }: { postsPerPage: number
             }}
           />
         ) : (
-          <p className="text-subtle">Loading layout preference...</p>
+          <LoadingOverlay show={loadingViewMode} label="Loading Layout..." />
         )}
       </Suspense>
       <MassEditor

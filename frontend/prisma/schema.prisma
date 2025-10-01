@@ -13,6 +13,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Severity {
+  INFO
+  NOTE
+  WARNING
+  DANGER
+  SUCCESS
+}
+
 enum VoteType {
   UPVOTE
   DOWNVOTE
@@ -54,10 +62,12 @@ model User {
   preferences   UserPreferences?
   favorites     UserFavorites[]
   votes         Votes[]
+  boosts        Boosts[]
   posts         Posts[]
   comments      Comments[]
   commentVotes  CommentVotes[]
   poolVotes     PoolVotes[]
+  notifications Notifications[]
   audits        Audits[]
   roleId        Int?
   
@@ -65,17 +75,21 @@ model User {
   createdAt     DateTime  @default(now())
 }
 
+// Probably move to localStorage at some point
+// This way mobile & desktop can have diff settings
 model UserPreferences {
   id                  String          @id
   user                User            @relation(fields: [id], references: [id], onDelete: Cascade)
   
-  layout              LayoutType      @default(GRID)
-  theme               ThemeType       @default(DARK)
-  postsPerPage        Int             @default(50)
-  blurUnsafeEmbeds    Boolean         @default(true)        // Change if NSFW site
-  defaultSafety       SafetyType[]    @default([SAFE])      // Change if NSFW site
-
+  layout              LayoutType      @default(GRID)            // Unused Now
+  theme               ThemeType       @default(DARK)            // Unused Now
+  postsPerPage        Int             @default(50)              // Unused Now
+  blurUnsafeEmbeds    Boolean         @default(true)            // Change if NSFW site
+  defaultSafety       SafetyType[]    @default([SAFE])          // Change if NSFW site
   blacklistedTags     Tags[]          @relation("UserBLTags")
+  profileBackground   Int?                                      // Post ID
+
+  private             Boolean         @default(false)
 }
 
 model UserFavorites {
@@ -91,6 +105,17 @@ model UserFavorites {
   @@unique([userId, postId])
 }
 
+model Notifications {
+  id                String              @id @default(cuid())
+  receiverId        String
+  receiver          User                @relation(fields: [receiverId], references: [id], onDelete: Cascade)
+  severity          Severity            @default(INFO)
+  label             String
+  message           String
+  read              Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+}
+
 model Votes {
   id        Int      @id @default(autoincrement())
   postId    Int
@@ -102,6 +127,18 @@ model Votes {
   post      Posts    @relation(fields: [postId], references: [id], name: "PostVotes", onDelete: Cascade)
 
   @@unique([postId, userId])
+}
+
+model Boosts {
+  id          Int      @id @default(autoincrement())
+  postId      Int
+  userId      String
+  createdAt   DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Posts    @relation(fields: [postId], references: [id], name: "PostBoosts", onDelete: Cascade)
+
+  @@unique([postId, userId, createdAt])
 }
 
 model Role {
@@ -140,6 +177,7 @@ model Posts {
   dupeBypass    Boolean             @default(false)
 
   score         Int                 @default(0)
+  boosts        Boosts[]            @relation("PostBoosts")
   votes         Votes[]             @relation("PostVotes")
   comments      Comments[]          @relation("PostComments")
   favoritedBy   UserFavorites[]

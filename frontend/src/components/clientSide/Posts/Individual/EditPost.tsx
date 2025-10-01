@@ -13,6 +13,7 @@ import { useDropzone } from "react-dropzone";
 import { Post } from "@/core/types/posts";
 import { formatCounts } from "@/core/formats";
 import { motion, AnimatePresence } from "framer-motion";
+import { resolveFileType } from "@/core/dictionary";
 
 export default function EditPost({
   post,
@@ -42,7 +43,10 @@ export default function EditPost({
   const [newTagIds, setNewTagIds] = useState<number[]>([]);
   const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
   const [defaultCategory, setDefaultCategory] = useState<TagCategory>({ id: 1, name: 'Default', color: '#3c9aff', order: 10, isDefault: true, updatedAt: new Date() });
+  const [replacementThumb, setReplacementThumb] = useState<File | null>(null);
   const toast = useToast();
+
+  const fileType = resolveFileType(`.${post.fileExt}`);
 
   useEffect(() => {
     if (post.tags) {
@@ -159,6 +163,23 @@ export default function EditPost({
       }
     }
 
+    if (replacementThumb) {
+      const formData = new FormData();
+      formData.append("file", replacementThumb);
+      formData.append("postId", post.id.toString());
+  
+      const res = await fetch("/api/posts/thumbnail", {
+        method: "PATCH",
+        body: formData,
+      });
+  
+      if (!res.ok) {
+        toast(`Failed to replace thumbnail: ${(await res.json()).error}`, "error");
+        setSaving(false);
+        return;
+      }
+    }
+
     setSaving(false);
     onSaveSuccess();
   };
@@ -212,16 +233,26 @@ export default function EditPost({
     setOrderedTags([...nextInitial, ...nextNew]);
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  // Replace dropzone
+  const {
+    getRootProps: getReplaceRootProps,
+    getInputProps: getReplaceInputProps,
+    isDragActive: isReplaceActive,
+  } = useDropzone({
     multiple: false,
-    accept: {
-      "image/*": [],
-      "video/*": [],
-    },
-    onDrop: (acceptedFiles) => {
-      if (!acceptedFiles.length) return;
-      setReplacementFile(acceptedFiles[0]);
-    }
+    accept: { "image/*": [], "video/*": [] },
+    onDrop: (accepted) => setReplacementFile(accepted[0] ?? null),
+  });
+
+  // Thumbnail dropzone
+  const {
+    getRootProps: getThumbRootProps,
+    getInputProps: getThumbInputProps,
+    isDragActive: isThumbActive,
+  } = useDropzone({
+    multiple: false,
+    accept: { "image/*": [] },
+    onDrop: (accepted) => setReplacementThumb(accepted[0] ?? null),
   });
 
   async function createMissingTags(names: string[]): Promise<Tag[]> {
@@ -259,6 +290,87 @@ export default function EditPost({
     const tagNames = uniqueTags.map((t) => t.name).join("\n");
     await navigator.clipboard.writeText(tagNames);
     toast("Tags copied to clipboard!");
+  };
+
+  const handlePasteTags = async () => {
+    try {
+      const raw = await navigator.clipboard.readText();
+  
+      // Split by whitespace or commas; keep simple words only
+      const names = Array.from(
+        new Set(
+          raw
+            .replace(/[,\n\r\t]+/g, " ")
+            .split(/\s+/)
+            .map(s => s.trim())
+            .filter(Boolean)
+        )
+      );
+  
+      if (names.length === 0) return;
+  
+      // Build a quick lookup of already-selected names (case-insensitive)
+      const existingNames = new Set(
+        [...newlyAddedTags, ...initialOrderedTags].map(t => t.name.toLowerCase())
+      );
+  
+      for (const name of names) {
+        const lower = name.toLowerCase();
+  
+        // Skip if already selected
+        if (existingNames.has(lower)) continue;
+  
+        // Try to fetch an existing tag
+        let resolved: Tag | null = null;
+        try {
+          const res = await fetch(`/api/tags/${encodeURIComponent(name)}`);
+          if (res.ok) {
+            const data = await res.json();
+            // Make sure we have the fields handleSelectTag relies on
+            resolved = {
+              id: data.id,
+              name: data.name,
+              description: data.description ?? null,
+              aliases: data.aliases ?? [],
+              category: data.category ?? defaultCategory,
+              allImplications: data.allImplications ?? [],
+              _count: { posts: data._count?.posts ?? 0 },
+            } as Tag;
+          }
+        } catch {
+          // network error is treated same as "not found" -> fall back to fake tag
+        }
+  
+        if (resolved) {
+          // Add without implications
+          await handleSelectTag(resolved, false);
+          existingNames.add(lower);
+        } else {
+          // Not found → add as pending/fake tag (same behavior as typing a new tag)
+          if (!pendingTagNames.includes(lower)) {
+            setPendingTagNames(prev => [...prev, lower]);
+  
+            const fakeTag: Tag = {
+              id: -(pendingTagNames.length + 1), // negative temporary ID
+              name,
+              description: null,
+              aliases: [],
+              category: defaultCategory,
+              allImplications: [],
+              _count: { posts: 0 },
+            };
+  
+            setOrderedTags(prev => [fakeTag, ...prev]);
+            setNewlyAddedTags(prev => [fakeTag, ...prev]);
+  
+            existingNames.add(lower);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to paste tags:", e);
+      toast("Could not read from clipboard.", "error");
+    }
   };
 
   return (
@@ -326,7 +438,6 @@ export default function EditPost({
             value={sources}
             onChange={(e) => setSources(e.target.value)}
             className="w-full p-2 rounded bg-secondary text-base text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
-            // maxLength={128}
           />
         </div>
 
@@ -358,14 +469,26 @@ export default function EditPost({
       {/* Tag selector */}
       <div className="mt-2">
         <div className="flex items-center justify-between mb-1">
-          <label className="text-white font-medium">Tags</label>
-          <button
-            type="button"
-            onClick={handleCopyTags}
-            className="text-xs text-accent hover:underline"
-          >
-            Copy to clipboard
-          </button>
+          <div>
+            <label className="text-white font-medium">Tags</label>
+          </div>
+
+          <div className="space-x-2">
+            <button
+              type="button"
+              onClick={handlePasteTags}
+              className="text-xs text-accent hover:underline"
+            >
+              Add from clipboard
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyTags}
+              className="text-xs text-accent hover:underline"
+            >
+              Copy to clipboard
+            </button>
+          </div>
         </div>
         <TagSelector
           onSelect={handleSelectTag}
@@ -475,17 +598,34 @@ export default function EditPost({
       <div className="w-full mt-4">
         <label className="text-white font-medium block mb-1">Replace Post File</label>
         <div
-          {...getRootProps()}
+          {...getReplaceRootProps()}
           className="w-full h-28 border-2 border-dashed border-zinc-700 rounded-xl flex items-center justify-center text-sm text-subtle hover:border-zinc-400 cursor-pointer transition text-center px-4"
         >
-          <input {...getInputProps()} />
+          <input {...getReplaceInputProps()} />
           {replacementFile
             ? `Replacing with '${replacementFile.name}'`
-            : isDragActive
+            : isReplaceActive
               ? "Drop to replace"
               : "Drop or click to replace the file"}
         </div>
       </div>
+
+      {fileType == 'video' && (
+        <div className="w-full mt-4">
+          <label className="text-white font-medium block mb-1">Replace Thumbnail</label>
+          <div
+            {...getThumbRootProps()}
+            className="w-full h-28 border-2 border-dashed border-zinc-700 rounded-xl flex items-center justify-center text-sm text-subtle hover:border-zinc-400 cursor-pointer transition text-center px-4"
+          >
+            <input {...getThumbInputProps()} />
+            {replacementThumb
+              ? `Replacing with '${replacementThumb.name}'`
+              : isThumbActive
+                ? "Drop to replace"
+                : "Drop or click to replace the thumbnail"}
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         open={showDeleteModal}

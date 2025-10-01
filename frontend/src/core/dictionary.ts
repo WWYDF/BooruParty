@@ -1,10 +1,3 @@
-
-export const FILE_TYPE_LABELS: Record<string, string> = {
-  png: "Image",
-  webp: "Image",
-  gif: "Animated",
-};
-
 // This should match whats in Fastify.
 export const FILE_TYPE_MAP: Record<'image' | 'animated' | 'video' | 'other', string[]> = {
   image: ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff'],
@@ -41,6 +34,17 @@ export function getConversionType(ext: string): string {
   }
   
   return ext; // If not here, return itself
+}
+
+export function getCategoryFromExt(ext: string): keyof typeof FILE_TYPE_MAP {
+  const normalized = ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`;
+
+  for (const [category, exts] of Object.entries(FILE_TYPE_MAP)) {
+    if (exts.includes(normalized)) {
+      return category as keyof typeof FILE_TYPE_MAP;
+    }
+  }
+  return "other";
 }
 
 export const DISALLOWED_USERNAMES = [

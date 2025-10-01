@@ -54,44 +54,7 @@ export async function GET(req: Request) {
 
   // Build the base where/order using the safety array
   const parsed = parseSearch(rawQuery);
-  const trimmed = rawQuery.trim();
   const { where, orderBy, useFavoriteOrdering, useLikesOrdering } = buildPostWhereAndOrder(rawQuery, effectiveSafetyArray, sort, userBlacklist);
-  
-  // If parseSearch exposes a freeText/remainingText field, prefer it. Otherwise derive:
-  const freeText =
-  (parsed as any).freeText ??
-  trimmed
-    // remove known key:value tokens that we already turned into structural filters
-    .replace(/(?:^|\s)(posts|favorites|likes|pool|order|year|type):\S+/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  // Only create a text filter if there's actual free text left
-  const textFilter =
-  freeText.length > 0
-    ? {
-        OR: [
-          { notes: { contains: freeText, mode: "insensitive" } },
-          {
-            tags: {
-              some: {
-                name: { contains: freeText, mode: "insensitive" },
-              },
-            },
-          },
-          {
-            uploadedBy: {
-              is: {
-                username: { contains: freeText, mode: "insensitive" },
-              },
-            },
-          },
-        ],
-      }
-    : undefined;
-
-  // Safety/structural filters must always apply; text is optional
-  const finalWhere = textFilter ? { AND: [where, textFilter] } : where;
 
   const postSelect = {
     id: true,
@@ -113,6 +76,7 @@ export async function GET(req: Request) {
         favoritedBy: true,
         comments: true,
         votes: true,
+        boosts: true,
       },
     },
     comments: {
@@ -144,7 +108,7 @@ export async function GET(req: Request) {
     const favorites = await prisma.userFavorites.findMany({
       where: {
         user: { username: parsed.systemOptions.favorites },
-        post: finalWhere, // apply final filters
+        post: where,
       },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * perPage,
@@ -164,7 +128,7 @@ export async function GET(req: Request) {
             username: { equals: parsed.systemOptions.likes, mode: "insensitive" },
           },
         },
-        post: finalWhere, // apply final filters
+        post: where,
       },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * perPage,
@@ -177,7 +141,7 @@ export async function GET(req: Request) {
 
   } else {
     posts = await prisma.posts.findMany({
-      where: finalWhere, // no OR that bypasses safety
+      where,
       skip: (page - 1) * perPage,
       take: perPage,
       orderBy,
@@ -186,10 +150,10 @@ export async function GET(req: Request) {
   }
 
   // Count should match final filters
-  const totalCount = await prisma.posts.count({ where: finalWhere });
+  const totalCount = await prisma.posts.count({ where });
   const totalPages = Math.ceil(totalCount / perPage);
 
-  return NextResponse.json({ posts, totalPages });
+  return NextResponse.json({ posts, totalPages, totalPosts: totalCount });
 }
 
 

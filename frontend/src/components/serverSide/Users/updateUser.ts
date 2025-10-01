@@ -13,7 +13,10 @@ export async function updateUser(
     avatar: string;
     blurUnsafeEmbeds: boolean,
     defaultSafety: SafetyType[],
-    blacklistedTags: number[]
+    blacklistedTags: number[],
+    flipNavigators: boolean;
+    profileBackground: number;
+    privateProfile: boolean;
   }>
 ) {
 

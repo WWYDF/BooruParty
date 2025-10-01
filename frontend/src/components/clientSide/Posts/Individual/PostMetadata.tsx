@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import EditPost from "./EditPost";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PencilSimple, Minus, Plus, Tag } from "phosphor-react";
+import { PencilSimple, Minus, Plus, Tag, Star, Heart, Sparkle, ThumbsUp } from "phosphor-react";
 import { formatCounts, formatStorageFromBytes } from "@/core/formats";
-import { FILE_TYPE_LABELS } from "@/core/dictionary";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { useToast } from "../../Toast";
 import { Post } from "@/core/types/posts";
+import { getCategoryFromExt } from "@/core/dictionary";
 
 const AVATAR_URL = "/i/user.png";
 
@@ -20,6 +20,7 @@ export interface canEdit {
 }
 
 export default function PostMetadata({ post, editPerms, userId }: { post: Post, editPerms: canEdit, userId: string | undefined }) {
+  const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null);
   const [editing, setEditing] = useState(false);
   const router = useRouter();
   const toast = useToast();
@@ -52,6 +53,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
 
   const displayName = post.uploadedBy?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : post.uploadedBy?.avatar || AVATAR_URL;
+  const fileType = getCategoryFromExt(post.fileExt) ?? post.fileExt;
 
   const isOwner = post.uploadedBy.id === userId;
   
@@ -77,6 +79,25 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
     await navigator.clipboard.writeText(`:${post.id}:`);
     toast("Copied Post Embed!", "success");
   };
+
+  useEffect(() => {
+    // first read from sessionStorage (instant on refresh)
+    try {
+      const raw = sessionStorage.getItem(`bp:dims:${post.id}`);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { w: number; h: number; src?: string; at?: number };
+        if (parsed?.w && parsed?.h) setDimensions({ w: parsed.w, h: parsed.h });
+      }
+    } catch {}
+  
+    // listen for live updates
+    const onDims = (e: Event) => {
+      const { postId, w, h } = (e as CustomEvent).detail || {};
+      if (postId === post.id && w && h) setDimensions({ w, h });
+    };
+    window.addEventListener("post:image-dimensions", onDims as EventListener);
+    return () => window.removeEventListener("post:image-dimensions", onDims as EventListener);
+  }, [post.id]);
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -145,6 +166,33 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
         ) : null}
       </div>
 
+      {/* Stats bar (Score, Favorites, and Boosts) */}
+      {!editing && (
+        <div className="flex items-center gap-4 mr-4">
+          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+            <ThumbsUp size={16} className="text-green-400" />
+            <span className="text-xs text-white/80">Score</span>
+            <span className="text-xs font-semibold text-subtle">{formatCounts(post.score ?? 0)}</span>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+            <Star size={16} className="text-yellow-400" />
+            <span className="text-xs text-white/80">Favorites</span>
+            <span className="text-xs font-semibold text-subtle">
+              {formatCounts((typeof post._count?.favoritedBy === "number" ? post._count?.favoritedBy : 0) as number)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+            <Sparkle size={16} className="text-cyan-400" />
+            <span className="text-xs text-white/80">Boosts</span>
+            <span className="text-xs font-semibold text-subtle">
+              {formatCounts((typeof post._count?.boosts === "number" ? post._count?.boosts : 0) as number)}
+            </span>
+          </div>
+        </div>
+      )}
+
       {editing ? (
         <div className="mr-4">
           <EditPost
@@ -182,7 +230,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
             {post.fileExt && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Type</span>
-                {FILE_TYPE_LABELS[post.fileExt] ?? post.fileExt}
+                {fileType.charAt(0).toUpperCase() + fileType.slice(1)} ({post.fileExt.toLocaleUpperCase()})
               </p>
             )}
 
@@ -193,15 +241,10 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
               </p>
             )}
 
-            <p className="flex items-center gap-1 text-xs text-subtle">
-              <span className="text-white font-medium w-[80px]">User Score</span>
-              {post.score}
-            </p>
-
-            {typeof post._count?.favoritedBy === "number" && (
+            {dimensions && (
               <p className="flex items-center gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">Favorites</span>
-                {post._count?.favoritedBy}
+                <span className="text-white font-medium w-[80px]">Dimensions</span>
+                {dimensions.w} × {dimensions.h}
               </p>
             )}
 
@@ -301,8 +344,8 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
           {post.pools.length > 0 && (
             <div className="mt-4">
               <p className="text-white font-medium text-sm mb-1">Pools</p>
-              <div className="flex flex-wrap gap-4">
-                {post.pools.map(({ poolId, pool }) => {
+              <div className="flex flex-col gap-4">
+                {post.pools.map(({ pool }) => {
                   const cover = pool.items[0]?.post;
                   const match = pool.items.find(item => item.post.id === post.id);
                   const currentIndex = (match?.index ?? 1);
@@ -340,7 +383,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
                           {pool.name}
                         </p>
                         <p className="text-xs text-zinc-400 mt-0.5">
-                          Page {currentIndex + 1} of {total}
+                          Page {currentIndex} of {total}
                         </p>
                       </div>
                     </Link>
