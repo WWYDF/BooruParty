@@ -42,6 +42,11 @@ enum SafetyType {
   UNSAFE
 }
 
+enum AutoTaggerMode {
+  PASSIVE
+  AGGRESSIVE
+}
+
 model SiteSettings {
   id            Int       @id @default(1)
   setupComplete Boolean   @default(false)
@@ -375,4 +380,17 @@ model ImportLog {
   message    String
   level      String
   timestamp  DateTime     @default(now())
+}
+
+model AddonsConfig {
+  id                      Int                 @id @default(1) // singleton row
+  artistProfiles          Boolean             @default(false)
+
+  autoTagger              Boolean             @default(false)
+  autoTaggerUrl           String?             @db.VarChar(512)
+  autoTaggerMode          AutoTaggerMode      @default(PASSIVE)
+
+  updatedAt               DateTime            @updatedAt
+
+  @@map("addons_config")
 }

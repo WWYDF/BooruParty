@@ -179,6 +179,7 @@ export async function POST(req: Request) {
           "dashboard_import",
           "dashboard_update",
           "dashboard_roles",
+          "dashboard_addons",
           "administrator"
         ]
       }
@@ -264,6 +265,13 @@ export async function POST(req: Request) {
         }
       })
     }
+
+    // Seed Addons
+    await prisma.addonsConfig.upsert({
+      where: { id: 1 },
+      create: { id: 1 },
+      update: {}
+    });
 
     return NextResponse.json({ success: true });
   } catch (e) {
