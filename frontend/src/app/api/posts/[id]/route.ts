@@ -213,7 +213,12 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     boostedToday
   }
 
-  return NextResponse.json({post: postFormatted, user: userFormatted});
+  const addonOptions = await prisma.addonsConfig.findFirst({
+    where: { id: 1 },
+    select: { autoTagger: true, artistProfiles: true }
+  });
+
+  return NextResponse.json({post: postFormatted, user: userFormatted, addons: addonOptions});
 }
 
 // PATCH endpoint to update a post by ID

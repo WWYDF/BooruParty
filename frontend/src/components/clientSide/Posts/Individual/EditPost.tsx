@@ -14,6 +14,7 @@ import { Post } from "@/core/types/posts";
 import { formatCounts } from "@/core/formats";
 import { motion, AnimatePresence } from "framer-motion";
 import { resolveFileType } from "@/core/dictionary";
+import AutoTaggerModal from "./AutoTaggerModal";
 
 export default function EditPost({
   post,
@@ -44,6 +45,8 @@ export default function EditPost({
   const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
   const [defaultCategory, setDefaultCategory] = useState<TagCategory>({ id: 1, name: 'Default', color: '#3c9aff', order: 10, isDefault: true, updatedAt: new Date() });
   const [replacementThumb, setReplacementThumb] = useState<File | null>(null);
+  const [autoTaggerUrl, setAutoTaggerUrl] = useState<string>();
+  const [showAutoTagModal, setShowAutoTagModal] = useState(false);
   const toast = useToast();
 
   const fileType = resolveFileType(`.${post.fileExt}`);
@@ -71,6 +74,7 @@ export default function EditPost({
     setPools(post.pools.map(p => p.pool.id));
   }, [post.tags, post.relatedFrom, post.relatedTo, post.pools]);
 
+
   useEffect(() => {
     const loadDefaultCategory = async () => {
       const res = await fetch("/api/tag-categories?default=true");
@@ -81,6 +85,19 @@ export default function EditPost({
     };
   
     loadDefaultCategory();
+  }, []);
+
+  
+  useEffect(() => {
+    const fetchAddons = async () => {
+      const res = await fetch("/api/addons");
+      const data = await res.json();
+      if (data?.autotagger.enabled && data?.autotagger.mode == 'PASSIVE') {
+        setAutoTaggerUrl(data.autotagger.url)
+      }
+    };
+  
+    fetchAddons();
   }, []);
 
 
@@ -473,20 +490,41 @@ export default function EditPost({
             <label className="text-white font-medium">Tags</label>
           </div>
 
-          <div className="space-x-2">
+          <div className="space-x-1">
+            <AnimatePresence>
+              {autoTaggerUrl && (
+                <motion.span
+                  className="inline-flex items-center gap-1"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setShowAutoTagModal(true)}
+                    className="text-xs text-accent hover:underline"
+                  >
+                    Suggested Tags
+                  </button>
+                  <span className="text-zinc-600">•</span>
+                </motion.span>
+              )}
+            </AnimatePresence>
             <button
               type="button"
               onClick={handlePasteTags}
               className="text-xs text-accent hover:underline"
             >
-              Add from clipboard
+              Paste Tags
             </button>
+            <span className="text-zinc-600">•</span>
             <button
               type="button"
               onClick={handleCopyTags}
               className="text-xs text-accent hover:underline"
             >
-              Copy to clipboard
+              Copy Tags
             </button>
           </div>
         </div>
@@ -653,6 +691,15 @@ export default function EditPost({
         confirmText="Delete"
         cancelText="Cancel"
       />
+
+      {autoTaggerUrl && showAutoTagModal && (
+        <AutoTaggerModal
+          open={showAutoTagModal}
+          onClose={() => setShowAutoTagModal(false)}
+          imageUrl={post.previewPath}
+          autotaggerUrl={autoTaggerUrl}
+        />
+      )}
     </div>
   );
 }

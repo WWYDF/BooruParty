@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/authServer';
-import { checkPermissions } from '@/core/permissions';
+import { checkPermissions } from '@/components/serverSide/permCheck';
 
 type AutotagMode = 'PASSIVE' | 'AGGRESSIVE';
 
