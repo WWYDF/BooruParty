@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
-import TagSelector from "../../TagSelector";
+import TagSelector, { TagSelectorHandle } from "../../TagSelector";
 import TagSuggestionPopup from "../../Tags/SuggestionPopup";
 import ConfirmModal from "../../ConfirmModal";
 import { useToast } from "../../Toast";
@@ -47,6 +47,7 @@ export default function EditPost({
   const [replacementThumb, setReplacementThumb] = useState<File | null>(null);
   const [autoTaggerUrl, setAutoTaggerUrl] = useState<string>();
   const [showAutoTagModal, setShowAutoTagModal] = useState(false);
+  const tagSelectorRef = useRef<TagSelectorHandle | null>(null);
   const toast = useToast();
 
   const fileType = resolveFileType(`.${post.fileExt}`);
@@ -306,7 +307,7 @@ export default function EditPost({
   const handleCopyTags = async () => {
     const tagNames = uniqueTags.map((t) => t.name).join("\n");
     await navigator.clipboard.writeText(tagNames);
-    toast("Tags copied to clipboard!");
+    toast("Tags copied to clipboard!", 'success');
   };
 
   const handlePasteTags = async () => {
@@ -389,6 +390,20 @@ export default function EditPost({
       toast("Could not read from clipboard.", "error");
     }
   };
+
+  // Build exclusion sets from the current post
+  const existingTagIds = new Set<number>(
+    (orderedTags ?? []).map(t => t.id)
+  );
+
+  const existingNames = new Set<string>(
+    (orderedTags ?? [])
+      .flatMap(t => [
+        t.name,
+        ...(Array.isArray(t.aliases) ? t.aliases.map(a => a.alias) : []),
+      ])
+      .map(s => s.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -529,6 +544,7 @@ export default function EditPost({
           </div>
         </div>
         <TagSelector
+          ref={tagSelectorRef}
           onSelect={handleSelectTag}
           disabledTags={orderedTags}
           placeholder="Add tags..."
@@ -697,7 +713,24 @@ export default function EditPost({
           open={showAutoTagModal}
           onClose={() => setShowAutoTagModal(false)}
           imageUrl={post.previewPath}
-          autotaggerUrl={autoTaggerUrl}
+          onSave={async ({ matched, create }) => {
+            // Use matchedName so aliases work the same as user paste
+            const names = [
+              ...matched.map(m => m.matchedName || m.name),
+              ...create.map(n => n.name),
+            ];
+          
+            // Your TagSelector’s multiple-input parser splits on whitespace.
+            // If you prefer commas, change to names.join(', '), and update TagSelector to split on /[,\s]+/
+            const pastedText = names.join(' ');
+          
+            // Trigger the same behavior as paste+Enter (includes implications via addImpliedTags)
+            await tagSelectorRef.current?.applyPastedText(pastedText);
+          
+            setShowAutoTagModal(false);
+          }}
+          existingTagIds={[...existingTagIds]}
+          existingNames={[...existingNames]}
         />
       )}
     </div>
