@@ -4,19 +4,31 @@ import ArtistProfileSection from '@/components/clientSide/Dashboard/ConfigArtist
 import AutoTaggerSection from '@/components/clientSide/Dashboard/ConfigTagger';
 import LoadingOverlay from '@/components/clientSide/LoadingOverlay';
 import { useToast } from '@/components/clientSide/Toast';
-import { AutotagMode, AddonState } from '@/core/types/dashboard';
+import { AutotagMode } from '@/core/types/dashboard';
 import { useEffect, useRef, useState } from 'react';
+
+type LocalAddonState = {
+  artistProfile: { enabled: boolean };
+  autotagger: { enabled: boolean; url: string; mode: AutotagMode[] };
+};
+
+const ALLOWED: AutotagMode[] = ['PASSIVE', 'AGGRESSIVE'];
+const toModeArray = (m: unknown): AutotagMode[] => {
+  if (Array.isArray(m)) return (m as unknown[]).filter((x): x is AutotagMode => ALLOWED.includes(x as AutotagMode));
+  if (typeof m === 'string' && ALLOWED.includes(m as AutotagMode)) return [m as AutotagMode];
+  return [];
+};
 
 export default function AdminModulesPage() {
   const [loading, setLoading] = useState(true);
-  const [state, setState] = useState<AddonState>({
+  const [state, setState] = useState<LocalAddonState>({
     artistProfile: { enabled: false },
-    autotagger: { enabled: false, url: '', mode: 'PASSIVE' },
+    autotagger: { enabled: false, url: '', mode: [] }, // <-- array
   });
   const toast = useToast();
 
   // snapshot of last-loaded-from-server values
-  const originalRef = useRef<AddonState | null>(null);
+  const originalRef = useRef<LocalAddonState | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,12 +40,12 @@ export default function AdminModulesPage() {
         if (!res.ok) toast(`Error fetching addon settings! ${res.status}`, 'error');
 
         const data = await res.json();
-        const hydrated: AddonState = {
+        const hydrated: LocalAddonState = {
           artistProfile: { enabled: !!data?.artistProfile?.enabled },
           autotagger: {
             enabled: !!data?.autotagger?.enabled,
             url: String(data?.autotagger?.url ?? ''),
-            mode: (data?.autotagger?.mode ?? 'PASSIVE') as AutotagMode,
+            mode: toModeArray(data?.autotagger?.mode), // <-- normalize to array
           },
         };
 
@@ -65,18 +77,21 @@ export default function AdminModulesPage() {
   const setAutotagUrl = (url: string) =>
     setState(s => ({ ...s, autotagger: { ...s.autotagger, url } }));
 
-  const setAutotagMode = (mode: AutotagMode) =>
+  // now expects/sets an array
+  const setAutotagMode = (mode: AutotagMode[]) =>
     setState(s => ({ ...s, autotagger: { ...s.autotagger, mode } }));
 
   const handleSave = async () => {
+    // guard in code too (button is disabled anyway)
+    if (state.autotagger.enabled && (!isAutotagUrlValid || state.autotagger.mode.length === 0)) return;
+
     try {
       const payload = {
         artistProfileEnabled: state.artistProfile.enabled,
         autotagger: {
           enabled: state.autotagger.enabled,
-          // API clears URL when disabled; send null in that case
           url: state.autotagger.enabled ? (state.autotagger.url || null) : null,
-          mode: state.autotagger.mode, // 'PASSIVE' | 'AGGRESSIVE'
+          mode: state.autotagger.mode, // <-- send array
         },
       };
 
@@ -95,12 +110,12 @@ export default function AdminModulesPage() {
       const jayson = await res.json();
 
       // reflect server truth (in case it normalized anything)
-      const serverState: AddonState = {
+      const serverState: LocalAddonState = {
         artistProfile: { enabled: !!jayson?.addons?.artistProfile?.enabled },
         autotagger: {
           enabled: !!jayson?.addons?.autotagger?.enabled,
           url: String(jayson?.addons?.autotagger?.url ?? ''),
-          mode: (jayson?.addons?.autotagger?.mode ?? 'PASSIVE') as AutotagMode,
+          mode: toModeArray(jayson?.addons?.autotagger?.mode),
         },
       };
 
@@ -111,6 +126,10 @@ export default function AdminModulesPage() {
       console.error('Something went wrong!', e);
     }
   };
+
+  // Disable Save if autotagger is enabled but URL invalid OR no mode selected
+  const saveDisabled =
+    state.autotagger.enabled && (!isAutotagUrlValid || state.autotagger.mode.length === 0);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
@@ -149,8 +168,13 @@ export default function AdminModulesPage() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={state.autotagger.enabled && !isAutotagUrlValid}
+          disabled={saveDisabled}
           className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold transition text-white shadow hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+          title={
+            saveDisabled
+              ? 'Select at least one mode or fix the URL, or disable the autotagger.'
+              : undefined
+          }
         >
           Save changes
         </button>

@@ -10,7 +10,7 @@ export type AddonState = {
 export type AutoTaggerSettings = {
   enabled: boolean;
   url: string;
-  mode: AutotagMode;
+  mode: AutotagMode[];
 }
 
 // Based on Danbooru's Version

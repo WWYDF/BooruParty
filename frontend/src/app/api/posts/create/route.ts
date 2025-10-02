@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
     select: { autoTagger: true, autoTaggerMode: true, autoTaggerUrl: true}
   });
 
-  if (autoTaggerConf && autoTaggerConf.autoTaggerMode == 'AGGRESSIVE' && autoTaggerConf.autoTaggerUrl) {
+  if (autoTaggerConf && autoTaggerConf.autoTaggerMode.includes('AGGRESSIVE') && autoTaggerConf.autoTaggerUrl) {
     const {matches} = await fetchAutoTags(file, autoTaggerConf.autoTaggerUrl);
     
     for (const match of matches) {

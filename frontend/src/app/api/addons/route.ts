@@ -11,7 +11,7 @@ type Payload = {
   autotagger?: {
     enabled: boolean;
     url?: string | null;
-    mode?: AutotagMode;
+    mode?: AutotagMode | AutotagMode[];
   };
 };
 
@@ -47,7 +47,7 @@ export async function PUT(req: NextRequest) {
 
   let autoTagger: boolean | undefined;
   let autoTaggerUrl: string | null | undefined;
-  let autoTaggerMode: AutotagMode | undefined;
+  let autoTaggerMode: AutotagMode[] | undefined;
 
   if (body.autotagger) {
     const { enabled, url, mode } = body.autotagger;
@@ -58,25 +58,34 @@ export async function PUT(req: NextRequest) {
       );
     }
     autoTagger = enabled;
-
+  
     if (enabled) {
-      if (url && !/^https?:\/\/.+/i.test(url))
+      if (url && !/^https?:\/\/.+/i.test(url)) {
         return NextResponse.json(
           { error: 'autotagger.url must be a valid http(s) URL' },
           { status: 400 }
         );
-      autoTaggerUrl = url ?? null;
-
-      if (mode && mode !== 'PASSIVE' && mode !== 'AGGRESSIVE') {
-        return NextResponse.json(
-          { error: 'autotagger.mode must be PASSIVE or AGGRESSIVE' },
-          { status: 400 }
-        );
       }
-      autoTaggerMode = (mode ?? 'PASSIVE') as AutotagMode;
+      autoTaggerUrl = url ?? null;
+  
+      if (mode !== undefined) {
+        const arr = Array.isArray(mode) ? mode : [mode];
+        const allowed: AutotagMode[] = ['PASSIVE', 'AGGRESSIVE'];
+        if (!arr.every(m => allowed.includes(m))) {
+          return NextResponse.json(
+            { error: 'autotagger.mode must be PASSIVE or AGGRESSIVE' },
+            { status: 400 }
+          );
+        }
+        autoTaggerMode = arr;
+      } else {
+        // default at least one mode when enabled
+        autoTaggerMode = ['PASSIVE'];
+      }
     } else {
       autoTaggerUrl = null;
-      autoTaggerMode = 'PASSIVE';
+      // store a default when disabled (keeps previous behavior)
+      autoTaggerMode = ['PASSIVE'];
     }
   }
 

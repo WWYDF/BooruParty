@@ -13,9 +13,13 @@ function ModeChoice({
   value,
   onChange,
 }: {
-  value: AutotagMode;
-  onChange: (v: AutotagMode) => void;
+  value: AutotagMode[];
+  onChange: (v: AutotagMode[]) => void;
 }) {
+  const toggle = (m: AutotagMode) => {
+    const next = value.includes(m) ? value.filter(x => x !== m) : [...value, m];
+    onChange(next);
+  };
   const Option = ({
     label,
     desc,
@@ -56,14 +60,14 @@ function ModeChoice({
       <Option
         label="Passive"
         desc="Show received tags as suggestions in the editor; user chooses which tags to apply."
-        chosen={value === 'PASSIVE'}
-        onClick={() => onChange('PASSIVE')}
+        chosen={value.includes('PASSIVE')}
+        onClick={() => toggle('PASSIVE')}
       />
       <Option
         label="Aggressive"
         desc="Always apply received tags automatically on upload."
-        chosen={value === 'AGGRESSIVE'}
-        onClick={() => onChange('AGGRESSIVE')}
+        chosen={value.includes('AGGRESSIVE')}
+        onClick={() => toggle('AGGRESSIVE')}
       />
     </div>
   );
@@ -80,10 +84,10 @@ export default function AutoTaggerSection({
 }: {
   enabled: boolean;
   url: string;
-  mode: AutotagMode;
+  mode: AutotagMode[];
   onToggle: () => void;
   onChangeUrl: (v: string) => void;
-  onChangeMode: (v: AutotagMode) => void;
+  onChangeMode: (v: AutotagMode[]) => void;
   urlInvalid?: boolean;
 }) {
   return (

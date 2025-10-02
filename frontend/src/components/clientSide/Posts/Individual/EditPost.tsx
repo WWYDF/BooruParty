@@ -93,7 +93,7 @@ export default function EditPost({
     const fetchAddons = async () => {
       const res = await fetch("/api/addons");
       const data = await res.json();
-      if (data?.autotagger.enabled && data?.autotagger.mode == 'PASSIVE') {
+      if (data?.autotagger.enabled && data?.autotagger.mode.includes('PASSIVE')) {
         setAutoTaggerUrl(data.autotagger.url)
       }
     };

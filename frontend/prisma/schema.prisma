@@ -388,7 +388,7 @@ model AddonsConfig {
 
   autoTagger              Boolean             @default(false)
   autoTaggerUrl           String?             @db.VarChar(512)
-  autoTaggerMode          AutoTaggerMode      @default(PASSIVE)
+  autoTaggerMode          AutoTaggerMode[]    @default([PASSIVE])
 
   updatedAt               DateTime            @updatedAt
 
