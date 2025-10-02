@@ -18,7 +18,7 @@ function getBaseUrl(req: NextRequest) {
  * Convert AutoTaggerShape into a flat array of {name, score}.
  * If multiple items are present, collapse by tag name using max(score).
  */
-function normalizeResponse(raw: AutoTaggerShape): PredictTag[] {
+export function normalizeResponse(raw: AutoTaggerShape): PredictTag[] {
   if (!Array.isArray(raw) || raw.length === 0) return [];
 
   const maxByName = new Map<string, number>();

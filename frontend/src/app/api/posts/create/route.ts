@@ -6,6 +6,7 @@ import { resolveFileType } from '@/core/dictionary';
 import { fetch, Agent, FormData } from 'undici';
 import { FastifyUpload } from '@/core/types/posts';
 import { checkPermissions } from '@/components/serverSide/permCheck';
+import { fetchAutoTags } from '@/components/serverSide/UploadProcessing/autotagger';
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
@@ -54,6 +55,8 @@ export async function POST(request: NextRequest) {
     return Response.json({ duplicate: true, post: checkMatch.ogPost }, { status: 409 });
   }
 
+  let addedTagsArray: string[] = [];
+
   const anonymous = formData.get('anonymous') === 'true';
   const safety = formData.get('safety') as 'SAFE' | 'SKETCHY' | 'UNSAFE';
   const rawTags = formData.get('tags') as string | null;
@@ -61,6 +64,21 @@ export async function POST(request: NextRequest) {
   const sources: string[] = rawSource ? JSON.parse(rawSource) : [];
   const notes = formData.get("notes") as string | null;
   const relPostRaw = formData.get("relatedPosts") as string | null;
+
+  if (rawTags) {
+    try {
+      const parsed = JSON.parse(rawTags);
+      if (Array.isArray(parsed)) {
+        addedTagsArray = parsed as string[];
+      } else {
+        addedTagsArray = [];
+      }
+    } catch {
+      addedTagsArray = [];
+    }
+  }
+
+  console.log(addedTagsArray);
 
   const createdPost = await prisma.posts.create({
     data: {
@@ -130,11 +148,34 @@ export async function POST(request: NextRequest) {
   if (fastifyResult.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
   else { previewSrc = `/data/previews/${fileType}/${postId}.${fastifyResult.assignedExt}` }
 
+  // Check for AutoTagger
+  const autoTaggerConf = await prisma.addonsConfig.findFirst({
+    where: { id: 1 },
+    select: { autoTagger: true, autoTaggerMode: true, autoTaggerUrl: true}
+  });
+
+  if (autoTaggerConf && autoTaggerConf.autoTaggerMode == 'AGGRESSIVE' && autoTaggerConf.autoTaggerUrl) {
+    const {matches} = await fetchAutoTags(file, autoTaggerConf.autoTaggerUrl);
+    
+    for (const match of matches) {
+      if (
+        match.tag?.name &&                            // make sure it exists lol
+        match.score >= 0.125 &&                       // score filter
+        !addedTagsArray.includes(match.tag.name)      // prevent duplicates
+      ) {
+        addedTagsArray.push(match.tag.name);
+      }
+    }
+  }
+
+  const addedTags = addedTagsArray.length > 0 ? JSON.stringify(addedTagsArray) : '';
+  console.log(addedTags);
+
   // Mass Tagger on Upload
-  if (rawTags) {
+  if (addedTags.length > 0) {
     let tagNames: string[];
     try {
-      tagNames = JSON.parse(rawTags);
+      tagNames = JSON.parse(addedTags);
       if (!Array.isArray(tagNames)) throw new Error();
     } catch {
       return NextResponse.json({ error: "Invalid tag list format." }, { status: 400 });
