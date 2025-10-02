@@ -1,4 +1,4 @@
-import { normalizeResponse } from "@/app/api/addons/autotagger/route";
+import { PredictTag } from "@/app/api/addons/autotagger/route";
 import { AutoTaggerShape } from "@/core/types/dashboard";
 import { Tag } from "@/core/types/tags";
 
@@ -12,6 +12,29 @@ type FetchedShape = {
     name: string,
     score: number
   }[]
+}
+
+/**
+ * Convert AutoTaggerShape into a flat array of {name, score}.
+ * If multiple items are present, collapse by tag name using max(score).
+ */
+export function normalizeResponse(raw: AutoTaggerShape): PredictTag[] {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+
+  const maxByName = new Map<string, number>();
+  for (const item of raw) {
+    if (!item || !item.tags) continue;
+    for (const [name, score] of Object.entries(item.tags)) {
+      const n = String(name);
+      const s = Number(score);
+      if (!Number.isFinite(s)) continue;
+      const prev = maxByName.get(n);
+      if (prev === undefined || s > prev) maxByName.set(n, s);
+    }
+  }
+  const arr: PredictTag[] = Array.from(maxByName, ([name, score]) => ({ name, score }));
+  arr.sort((a, b) => b.score - a.score);
+  return arr;
 }
 
 export async function fetchAutoTags(file: File, url: string): Promise<FetchedShape> {
