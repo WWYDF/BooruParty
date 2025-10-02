@@ -13,7 +13,7 @@ import { useDropzone } from "react-dropzone";
 import { Post } from "@/core/types/posts";
 import { formatCounts } from "@/core/formats";
 import { motion, AnimatePresence } from "framer-motion";
-import { resolveFileType } from "@/core/dictionary";
+import { getCategoryFromExt, resolveFileType } from "@/core/dictionary";
 import AutoTaggerModal from "./AutoTaggerModal";
 
 export default function EditPost({
@@ -507,7 +507,7 @@ export default function EditPost({
 
           <div className="space-x-1">
             <AnimatePresence>
-              {autoTaggerUrl && (
+              {autoTaggerUrl && getCategoryFromExt(post.fileExt) != 'video' && (
                 <motion.span
                   className="inline-flex items-center gap-1"
                   initial={{ opacity: 0 }}
