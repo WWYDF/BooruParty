@@ -94,7 +94,7 @@ export default function AutoTaggerSection({
     <AddonSectionCard
       icon={<Robot size={24} weight="duotone" />}
       title="Automatic Tagging"
-      subtitle="Connect to danbooru autotagger server and choose how it applies tags."
+      subtitle="Connect to a WD14 autotagger server and choose how it applies tags."
       enabled={enabled}
       onToggle={onToggle}
     >
@@ -111,7 +111,7 @@ export default function AutoTaggerSection({
                 type="url"
                 value={url}
                 onChange={(e) => onChangeUrl(e.target.value)}
-                placeholder="http://192.168.1.50:5000/evaluate"
+                placeholder="http://127.0.0.1:7860"
                 required={enabled}
                 className="w-full rounded-lg border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-zinc-600"
               />
@@ -123,7 +123,7 @@ export default function AutoTaggerSection({
             </div>
           </div>
           <p className="text-xs text-zinc-500">
-            This is the endpoint your server will POST images to. (Example: <code>/evaluate</code>)
+            This is the root endpoint your server will send images to for evaluation. (No trailing slash)
           </p>
         </div>
 

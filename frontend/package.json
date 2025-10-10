@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@gradio/client": "^1.19.1",
     "@types/adm-zip": "^0.5.7",
     "@types/busboy": "^1.5.4",
     "@types/date-fns": "^2.6.3",

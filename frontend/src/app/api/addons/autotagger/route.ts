@@ -2,19 +2,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/authServer';
 import { checkPermissions } from '@/components/serverSide/permCheck';
-import { AutoTaggerShape } from '@/core/types/dashboard';
+import type { AutoTaggerShape } from '@/core/types/dashboard';
 import { normalizeResponse } from '@/components/serverSide/UploadProcessing/autotagger';
+import { Client } from '@gradio/client';
 
-export type PredictTag = {
-  name: string;
-  score: number;
-};
+export type PredictTag = { name: string; score: number };
 
 function getBaseUrl(req: NextRequest) {
-  // Prefer explicit env for server-to-server calls; fallback to current origin.
   return process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
 }
 
+function toTagKey(label: string): string {
+  return String(label).trim().toLowerCase().replace(/[\s\-]+/g, '_').replace(/_+/g, '_');
+}
+
+/** Build the API's "raw" payload from wd-14 shape, discarding ratings entirely */
+function buildApiRawFromWd14(raw: AutoTaggerShape) {
+  const ratingDrop = new Set(['general', 'sensitive', 'questionable', 'explicit']);
+  const tags: Record<string, number> = {};
+
+  for (const item of Array.isArray(raw) ? raw : []) {
+    for (const c of Array.isArray(item?.confidences) ? item.confidences : []) {
+      const lbl = String(c?.label ?? '').trim();
+      if (!lbl || ratingDrop.has(lbl)) continue;
+      const key = toTagKey(lbl);
+      const conf = Number(c?.confidence ?? 0) || 0;
+      const prev = tags[key];
+      if (prev === undefined || conf > prev) tags[key] = conf;
+    }
+  }
+
+  return [{ filename: 'preview', tags }];
+}
+
+/** Safe JSON read for the resolver */
+async function readJsonSafe(resp: Response): Promise<any> {
+  const ct = resp.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    const text = await resp.text();
+    const preview = text.slice(0, 512);
+    throw new Error(`Expected JSON but got ${resp.status} ${resp.statusText} (${ct}). Body preview: ${preview}`);
+  }
+  return resp.json();
+}
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -27,9 +57,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { imageUrl } = (await req.json()) as { imageUrl: string };
-    if (!imageUrl) {
-      return NextResponse.json({ error: 'imageUrl required' }, { status: 400 });
-    }
+    if (!imageUrl) return NextResponse.json({ error: 'imageUrl required' }, { status: 400 });
 
     // Load configured autotagger URL
     const cfg = await prisma.addonsConfig.findUnique({ where: { id: 1 } });
@@ -37,91 +65,80 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Autotagger disabled' }, { status: 400 });
     }
 
-    // 1) Fetch the image server-side
-    const imgRes = await fetch(imageUrl, { redirect: 'follow' });
-    if (!imgRes.ok) {
-      return NextResponse.json({ error: `image fetch ${imgRes.status}` }, { status: 502 });
-    }
+    // fetch image
+    const imgRes = await fetch(imageUrl, { redirect: 'follow', cache: 'no-store' });
+    if (!imgRes.ok) return NextResponse.json({ error: `image fetch ${imgRes.status}` }, { status: 502 });
     const blob = await imgRes.blob();
 
-    // 2) Send to autotagger (multipart/form-data)
-    const fd = new FormData();
-    fd.append('file', new File([blob], 'preview', { type: blob.type || 'image/jpeg' }));
-    fd.append('format', 'json');
-
-    const taggerResp = await fetch(cfg.autoTaggerUrl, { method: 'POST', body: fd });
-    const raw = (await taggerResp.json()) as AutoTaggerShape;
-    if (!taggerResp.ok) {
-      return NextResponse.json({ error: `autotagger ${taggerResp.status}`, raw }, { status: 502 });
+    // wd-14 via Gradio
+    let wd: AutoTaggerShape;
+    try {
+      const client = await Client.connect(cfg.autoTaggerUrl);
+      wd = (await client.predict('/predict', {
+        image: blob,
+        model_repo: 'SmilingWolf/wd-swinv2-tagger-v3',
+        general_thresh: 0,
+        general_mcut_enabled: true,
+        character_thresh: 0,
+        character_mcut_enabled: true,
+      })).data as AutoTaggerShape;
+    } catch (err: any) {
+      return NextResponse.json({ error: `Autotagger call failed: ${err?.message || String(err)}` }, { status: 502 });
     }
 
-    // 3) Normalize predictions and build lookup maps
-    const predicted = normalizeResponse(raw);
+    // Build API's raw payload from wd-14
+    const raw = buildApiRawFromWd14(wd);
+
+    // Normalize for resolver
+    const predicted = normalizeResponse(wd);
     if (predicted.length === 0) {
       return NextResponse.json({ raw, matches: [], nonMatched: [] });
     }
 
-    // Fast lookups
-    const scoreByLowerName = new Map<string, number>();
-    for (const p of predicted) scoreByLowerName.set(p.name.toLowerCase(), p.score);
-
-    const names = Array.from(new Set(predicted.map((p) => p.name).filter(Boolean)));
+    // Resolver cross-check
+    const scoreByLower = new Map<string, number>(predicted.map(p => [p.name.toLowerCase(), p.score]));
+    const names = Array.from(new Set(predicted.map(p => p.name)));
     const base = getBaseUrl(req);
 
-    // 4) Delegate to resolver for canonical tag objects
     const resolveResp = await fetch(`${base}/api/tags/batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
       body: JSON.stringify({ names }),
     });
 
-    const resolved = await resolveResp.json();
+    let resolved: any;
+    try {
+      resolved = await readJsonSafe(resolveResp);
+    } catch (err: any) {
+      return NextResponse.json({ error: `Resolver returned non-JSON. ${err?.message || String(err)}` }, { status: 502 });
+    }
     if (!resolveResp.ok) {
-      return NextResponse.json(
-        { error: (resolved as any)?.error || `resolver ${resolveResp.status}` },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: resolved?.error || `resolver ${resolveResp.status}` }, { status: 502 });
     }
 
     const resolvedTags = Array.isArray(resolved) ? resolved : [];
-
-    // 5) Attach prediction scores to matches
-    // For each resolved tag, find the best score among:
-    //   - its canonical name
-    //   - any of its aliases
-    // We also return which name actually matched (matchedName).
     const matches = resolvedTags.map((tag: any) => {
       const candidates: string[] = [
         String(tag?.name || ''),
         ...(Array.isArray(tag?.aliases) ? tag.aliases.map((a: any) => String(a.alias || '')) : []),
       ].filter(Boolean);
 
-      let bestScore = -Infinity;
+      let best = -Infinity;
       let matchedName = '';
       for (const c of candidates) {
-        const s = scoreByLowerName.get(c.toLowerCase());
-        if (typeof s === 'number' && s > bestScore) {
-          bestScore = s;
+        const s = scoreByLower.get(c.toLowerCase());
+        if (typeof s === 'number' && s > best) {
+          best = s;
           matchedName = c;
         }
       }
-      // If none matched (shouldn’t happen, but guard anyway), set to 0
-      if (!Number.isFinite(bestScore)) bestScore = 0;
+      if (!Number.isFinite(best)) best = 0;
+      return { tag, score: best, matchedName };
+    }).sort((a, b) => b.score - a.score);
 
-      return { tag, score: bestScore, matchedName };
-    });
-
-    matches.sort((a, b) => b.score - a.score);
-
-    // 6) Compute nonMatched (with scores) by excluding anything that matched via name or alias
-    const matchedNameSet = new Set<string>(
-      matches
-        .map((m) => m.matchedName.toLowerCase())
-        .filter(Boolean)
-    );
-
-    const nonMatched = predicted.filter((p) => !matchedNameSet.has(p.name.toLowerCase()));
-    nonMatched.sort((a, b) => b.score - a.score);
+    const matchedSet = new Set(matches.map(m => m.matchedName.toLowerCase()).filter(Boolean));
+    const nonMatched = predicted.filter(p => !matchedSet.has(p.name.toLowerCase())).sort((a, b) => b.score - a.score);
 
     return NextResponse.json({ raw, matches, nonMatched });
   } catch (e: any) {

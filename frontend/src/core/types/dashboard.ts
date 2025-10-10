@@ -12,9 +12,13 @@ export type AutoTaggerSettings = {
   url: string;
   mode: AutotagMode[];
 }
+// wd-14 output
+export type Wd14Confidence = {
+  label: string;
+  confidence: number;
+};
 
-// Based on Danbooru's Version
 export type AutoTaggerShape = {
-  filename: string;
-  tags: Record<string, number>;
-}[];
+  label: string;
+  confidences: Wd14Confidence[];
+};
