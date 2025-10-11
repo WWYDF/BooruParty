@@ -88,41 +88,35 @@ export default function AutoTaggerModal({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-
+    const ac = new AbortController();
+  
     (async () => {
       try {
         setLoading(true);
         setError(null);
         setMatches([]);
         setNonMatched([]);
-
+  
+        // snapshot props at fetch time (don’t put these in deps)
+        const idSet = new Set<number>(existingTagIds);
+        const nameSet = new Set<string>(existingNames.map(s => s.toLowerCase()));
+  
         const r = await fetch('/api/addons/autotagger', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ imageUrl }),
+          signal: ac.signal,
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data?.error || `proxy ${r.status}`);
-
-        // Build exclusion sets
-        const idSet = new Set<number>(existingTagIds);
-        const nameSet = new Set<string>(existingNames.map(s => s.toLowerCase()));
-
-        // Server already sorts by score, but we’ll re-filter here.
-        const respMatches = (data.matches ?? []) as {
-          tag: { id: number; name: string; aliases?: { alias: string }[]; category?: { color?: string | null } | null };
-          score: number;
-          matchedName: string;
-        }[];
-
-        const respNonMatched = (data.nonMatched ?? []) as { name: string; score: number }[];
-
-        // 1) Filter out matched tags that are already on the post (by id)
+  
+        const respMatches = (data.matches ?? []) as MatchRow[];
+        const respNonMatched = (data.nonMatched ?? []) as NonMatchedRow[];
+  
+        // filter using the snapshotted sets
         const filteredMatches = respMatches.filter(m => !idSet.has(m.tag.id));
-
-        // 2) Filter out unresolved names that are already present by name or alias
         const filteredNonMatched = respNonMatched.filter(n => !nameSet.has(n.name.toLowerCase()));
-
+  
         if (cancelled) return;
         setMatches(filteredMatches);
         setNonMatched(filteredNonMatched);
@@ -132,9 +126,12 @@ export default function AutoTaggerModal({
         if (!cancelled) setLoading(false);
       }
     })();
-
-    return () => { cancelled = true; };
-  }, [open, imageUrl, existingTagIds, existingNames]);
+  
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, [open, imageUrl]);
 
 
   if (!open) return null;

@@ -1,7 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
-import { auth } from '@/core/authServer';
-import { checkPermissions } from '@/components/serverSide/permCheck';
 import type { AutoTaggerShape } from '@/core/types/dashboard';
 import { Client } from '@gradio/client';
 import { Tag } from '@/core/types/tags';
@@ -57,12 +54,12 @@ async function readJsonSafe(resp: Response): Promise<any> {
   return resp.json();
 }
 
+
+/**
+ * Interfaces with WD-14 to look for tags in the image automatically.
+ * Does not check for permissions.
+ */
 export async function fetchAutoTags(imageUrl?: string, file?: File): Promise<FetchedShape> {
-  const session = await auth();
-  const perms = await checkPermissions(['post_edit_own', 'post_edit_others']);
-  const canEditOwnPost = perms['post_edit_own'];
-  const canEditOtherPosts = perms['post_edit_others'];
-  if (!session || (!canEditOwnPost && !canEditOtherPosts)) { return { matches: [], nonMatched: [] }; }
   if (!imageUrl && !file) return { matches: [], nonMatched: [] };
 
   try {
