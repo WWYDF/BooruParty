@@ -1,7 +1,7 @@
 'use client';
 
 import { formatStorageFromMB } from '@/core/formats';
-import { LEGIBLE_VERSION } from '@/core/version';
+import { LEGIBLE_VERSION } from '@/core/constants/version';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 

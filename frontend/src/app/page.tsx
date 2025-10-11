@@ -2,7 +2,7 @@
 
 import PostDisplay from '@/components/clientSide/Posts/Individual/PostDisplay';
 import { Post } from '@/core/types/posts';
-import { LEGIBLE_VERSION } from '@/core/version';
+import { LEGIBLE_VERSION } from '@/core/constants/version';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';

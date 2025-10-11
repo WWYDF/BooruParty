@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CURRENT_VERSION } from '@/core/version';
+import { CURRENT_VERSION } from '@/core/constants/version';
 import FadeIn from '../Motion/FadeIn';
 import { CursorClick } from '@phosphor-icons/react';
 import { ArrowRight } from 'phosphor-react';
