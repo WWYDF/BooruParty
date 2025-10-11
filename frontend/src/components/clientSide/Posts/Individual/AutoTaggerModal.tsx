@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, MinusCircle, PlusCircle, X, XCircle } from '@phosphor-icons/react';
 import LoadingOverlay from '../../LoadingOverlay';
+import { useLockBodyScroll } from '@/core/hooks/bodyScroll';
 
 type MatchRow = {
   tag: {
@@ -50,9 +51,9 @@ export default function AutoTaggerModal({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLDivElement | null>(null);
   const footerRef = useRef<HTMLDivElement | null>(null);
-  const previewRef = useRef<HTMLDivElement | null>(null);
   const [selectedMatched, setSelectedMatched] = useState<MatchedPick[]>([]);
   const [selectedNew, setSelectedNew] = useState<NewPick[]>([]);
+  const [mobileTab, setMobileTab] = useState<'matches' | 'new'>('matches');
 
   const isMatchedSelected = (tagId: number) =>
     selectedMatched.some((x) => x.tagId === tagId);
@@ -82,41 +83,49 @@ export default function AutoTaggerModal({
     if (open) {
       setSelectedMatched([]);
       setSelectedNew([]);
+      setMobileTab('matches');
     }
   }, [open]);
 
+  // fetch predictions
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    const ac = new AbortController();
-  
+
     (async () => {
       try {
         setLoading(true);
         setError(null);
         setMatches([]);
         setNonMatched([]);
-  
-        // snapshot props at fetch time (don’t put these in deps)
-        const idSet = new Set<number>(existingTagIds);
-        const nameSet = new Set<string>(existingNames.map(s => s.toLowerCase()));
-  
+
         const r = await fetch('/api/addons/autotagger', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ imageUrl }),
-          signal: ac.signal,
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data?.error || `proxy ${r.status}`);
-  
-        const respMatches = (data.matches ?? []) as MatchRow[];
-        const respNonMatched = (data.nonMatched ?? []) as NonMatchedRow[];
-  
-        // filter using the snapshotted sets
+
+        // Build exclusion sets
+        const idSet = new Set<number>(existingTagIds);
+        const nameSet = new Set<string>(existingNames.map(s => s.toLowerCase()));
+
+        // Server already sorts by score, but we’ll re-filter here.
+        const respMatches = (data.matches ?? []) as {
+          tag: { id: number; name: string; aliases?: { alias: string }[]; category?: { color?: string | null } | null };
+          score: number;
+          matchedName: string;
+        }[];
+
+        const respNonMatched = (data.nonMatched ?? []) as { name: string; score: number }[];
+
+        // Filter out matched tags that are already on the post (by id)
         const filteredMatches = respMatches.filter(m => !idSet.has(m.tag.id));
+
+        // Filter out unresolved names that are already present by name or alias
         const filteredNonMatched = respNonMatched.filter(n => !nameSet.has(n.name.toLowerCase()));
-  
+
         if (cancelled) return;
         setMatches(filteredMatches);
         setNonMatched(filteredNonMatched);
@@ -126,15 +135,12 @@ export default function AutoTaggerModal({
         if (!cancelled) setLoading(false);
       }
     })();
-  
-    return () => {
-      cancelled = true;
-      ac.abort();
-    };
-  }, [open, imageUrl]);
 
+    return () => { cancelled = true; };
+  }, [open, imageUrl, existingTagIds, existingNames]);
 
   if (!open) return null;
+  useLockBodyScroll(open);
 
   const hasSelection = selectedMatched.length > 0 || selectedNew.length > 0;
   const totalSelected = selectedMatched.length + selectedNew.length;
@@ -175,13 +181,32 @@ export default function AutoTaggerModal({
     }
   };
 
+  useEffect(() => {
+    if (!open) return;
+  
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+  
+    setVh();
+    window.addEventListener('resize', setVh);
+    window.addEventListener('orientationchange', setVh);
+    return () => {
+      window.removeEventListener('resize', setVh);
+      window.removeEventListener('orientationchange', setVh);
+    };
+  }, [open]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-stretch md:items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
 
       <div
         ref={dialogRef}
-        className="relative z-10 w-full max-w-[90%] max-h-[90vh] rounded-2xl border border-zinc-800 bg-zinc-900/90 shadow-xl flex flex-col"
+        className="relative z-10 w-screen h-[100dvh] max-w-none rounded-none
+           md:w-[min(100vw-2rem,64rem)] md:max-w-5xl md:h-auto md:max-h-[90vh] md:rounded-2xl
+           border border-zinc-800 bg-zinc-900/90 shadow-xl flex flex-col"
       >
         {/* Header */}
         <div ref={headerRef} className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 flex-none">
@@ -197,11 +222,185 @@ export default function AutoTaggerModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-hidden p-4">
-          <div className="flex gap-4 h-full">
+        <div className="flex-1 min-h-0 p-4 flex flex-col overflow-hidden">
+          {/* MOBILE (old design (sorta)) */}
+          <div className="md:hidden flex flex-col min-h-0 h-full">
+            {/* Preview image w/ fixed height */}
+            <div className="flex-none rounded-xl p-3">
+              <div className="overflow-hidden" style={{ height: 'calc(var(--dvh, 1dvh) * 24)' }}>
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  className="h-full w-full rounded object-contain"
+                />
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex-none grid grid-cols-2 gap-2 mt-3">
+              <button
+                type="button"
+                onClick={() => setMobileTab('matches')}
+                className={`rounded-md px-3 py-1.5 text-sm transition ${
+                  mobileTab === 'matches'
+                    ? 'border-emerald-800 bg-emerald-600/10 text-emerald-300 border'
+                    : 'border-zinc-800 bg-zinc-900 text-zinc-300'
+                }`}
+              >
+                Matches
+              </button>
+              {/* The amber border doesn't fuckin work at all on iOS and I give on figuring out why */}
+              <button
+                type="button"
+                onClick={() => setMobileTab('new')}
+                className={`rounded-md px-3 py-1.5 text-sm transition ${
+                  mobileTab === 'new'
+                    ? 'border-amber-800 bg-amber-600/10 text-amber-300 border'
+                    : 'border-zinc-800 bg-zinc-900 text-zinc-300'
+                }`}
+              >
+                New
+              </button>
+            </div>
+
+            {/* mobile scroller */}
+            <div
+              className="flex-1 min-h-0 mt-3 rounded-xl border border-zinc-800 bg-zinc-950 p-3 overflow-y-auto overscroll-contain touch-pan-y"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
+              {loading && <div className="text-sm text-zinc-300">Querying AutoTagger Service...</div>}
+              {error && <div className="text-sm text-red-300">Error: {error}</div>}
+
+              {!loading && !error && (
+                <>
+                  {mobileTab === 'matches' ? (
+                    <>
+                      <div className="flex items-center justify-between flex-none">
+                        <div className="text-xs font-medium text-emerald-300">Matches on server</div>
+                        <button
+                          type="button"
+                          onClick={toggleAllMatched}
+                          disabled={matches.length === 0}
+                          className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs border transition ${
+                            allMatchedSelected
+                              ? 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800'
+                              : 'border-emerald-800 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {allMatchedSelected ? (<><XCircle size={14}/> Deselect All</>) : (<><CheckCircle size={14}/> Select All</>)}
+                        </button>
+                      </div>
+
+                      <ul className="mt-2 space-y-2">
+                        {matches.length === 0 ? (
+                          <li className="text-sm text-zinc-500">None.</li>
+                        ) : (
+                          matches.map((m) => {
+                            const selected = isMatchedSelected(m.tag.id);
+                            return (
+                              <li
+                                key={`${m.tag.id}-${m.matchedName}`}
+                                className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1"
+                              >
+                                <div className="min-w-0">
+                                  <div
+                                    className="truncate font-medium flex items-center gap-1"
+                                    style={{ color: m.tag.category?.color || undefined }}
+                                    title={m.tag.name}
+                                  >
+                                    {m.tag.name}
+                                    {m.matchedName && m.matchedName.toLowerCase() !== m.tag.name.toLowerCase() && (
+                                      <span className="text-xs text-subtle">({m.matchedName})</span>
+                                    )}
+                                  </div>
+                                  <div className="truncate text-xs text-zinc-500">
+                                    Confidence: {(m.score * 100).toFixed(1)}%
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleMatched({ tagId: m.tag.id, name: m.tag.name, score: m.score, matchedName: m.matchedName })}
+                                  className="ml-3 shrink-0 inline-flex items-center rounded-md p-1.5 hover:bg-zinc-800"
+                                  aria-label={selected ? `Remove ${m.tag.name}` : `Add ${m.tag.name}`}
+                                  title={selected ? 'Remove' : 'Add'}
+                                >
+                                  {selected ? (
+                                    <MinusCircle size={18} className="text-red-400" weight="fill" />
+                                  ) : (
+                                    <PlusCircle size={18} className="text-emerald-400" weight="fill" />
+                                  )}
+                                </button>
+                              </li>
+                            );
+                          })
+                        )}
+                      </ul>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between flex-none">
+                        <div className="text-xs font-medium text-amber-300">Not found on server</div>
+                        <button
+                          type="button"
+                          onClick={toggleAllNew}
+                          disabled={nonMatched.length === 0}
+                          className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs border transition ${
+                            allNewSelected
+                              ? 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800'
+                              : 'border-emerald-800 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {allNewSelected ? (<><XCircle size={14}/> Deselect All</>) : (<><CheckCircle size={14}/> Select All</>)}
+                        </button>
+                      </div>
+
+                      <ul className="mt-2 space-y-2">
+                        {nonMatched.length === 0 ? (
+                          <li className="text-sm text-zinc-500">None.</li>
+                        ) : (
+                          nonMatched.map((n) => {
+                            const selected = isNewSelected(n.name);
+                            return (
+                              <li
+                                key={n.name}
+                                className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-900/40 px-2 py-1"
+                              >
+                                <div className="min-w-0">
+                                  <span className="block truncate text-zinc-300" title={n.name}>{n.name}</span>
+                                  <span className="block truncate text-xs text-zinc-500">
+                                    Confidence: {(n.score * 100).toFixed(1)}%
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNew({ name: n.name, score: n.score })}
+                                  className="ml-3 shrink-0 inline-flex items-center rounded-md p-1.5 hover:bg-zinc-800"
+                                  aria-label={selected ? `Remove ${n.name}` : `Create & add ${n.name}`}
+                                  title={selected ? 'Remove' : 'Create & add'}
+                                >
+                                  {selected ? (
+                                    <MinusCircle size={18} className="text-red-400" weight="fill" />
+                                  ) : (
+                                    <PlusCircle size={18} className="text-emerald-400" weight="fill" />
+                                  )}
+                                </button>
+                              </li>
+                            );
+                          })
+                        )}
+                      </ul>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+
+          {/* DESKTOP (new redesign): preview left, results right */}
+          <div className="hidden md:flex gap-4 h-full">
             {/* LEFT: Preview */}
             <div
-              ref={previewRef}
               className="flex-shrink-0 w-[40%] rounded-xl p-3 flex flex-col items-center"
             >
               <div className="text-xs text-zinc-400 mb-2">Post Preview</div>
@@ -213,17 +412,15 @@ export default function AutoTaggerModal({
             </div>
 
             {/* RIGHT: Tags/results */}
-            <div
-              className="flex-1 overflow-y-auto"
-            >
+            <div className="flex-1 overflow-y-auto">
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/75 p-3">
                 {loading && <div className="text-sm text-zinc-300">Querying AutoTagger Service...</div>}
                 {error && <div className="text-sm text-red-300">Error: {error}</div>}
 
                 {!loading && !error && (
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2">
                     {/* LEFT: Matches */}
-                    <div>
+                    <div className="flex flex-col min-h-0">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-medium text-emerald-300">Matches on server</div>
                         <button
@@ -247,7 +444,7 @@ export default function AutoTaggerModal({
                           )}
                         </button>
                       </div>
-                      <div className="mt-2 overflow-y-auto pr-1 flex-1 max-h-[74vh]">
+                      <div className="mt-2 pr-1 flex-1 overflow-y-auto max-h-[75vh]">
                         <ul className="space-y-2">
                           {matches.length === 0 ? (
                             <li className="text-sm text-zinc-500">None.</li>
@@ -303,7 +500,7 @@ export default function AutoTaggerModal({
                     </div>
     
                     {/* RIGHT: Non-matched */}
-                    <div>
+                    <div className="flex flex-col min-h-0">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-medium text-amber-300">Not found on server</div>
                         <button
@@ -327,7 +524,7 @@ export default function AutoTaggerModal({
                           )}
                         </button>
                       </div>
-                      <div className="mt-2 overflow-y-auto pr-1 flex-1 max-h-[74vh]">
+                      <div className="mt-2 pr-1 flex-1 overflow-y-auto max-h-[75vh]">
                         <ul className="space-y-2">
                           {nonMatched.length === 0 ? (
                             <li className="text-sm text-zinc-500">None.</li>
@@ -373,7 +570,7 @@ export default function AutoTaggerModal({
               </div>
             </div>
           </div>
-      </div>
+        </div>
   
         {/* Footer */}
         <div
