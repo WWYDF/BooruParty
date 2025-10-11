@@ -51,7 +51,6 @@ export default function AutoTaggerModal({
   const headerRef = useRef<HTMLDivElement | null>(null);
   const footerRef = useRef<HTMLDivElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
-  const [resultsMaxH, setResultsMaxH] = useState<number>(400);
   const [selectedMatched, setSelectedMatched] = useState<MatchedPick[]>([]);
   const [selectedNew, setSelectedNew] = useState<NewPick[]>([]);
 
@@ -137,41 +136,6 @@ export default function AutoTaggerModal({
     return () => { cancelled = true; };
   }, [open, imageUrl, existingTagIds, existingNames]);
 
-  useEffect(() => {
-    if (!open) return;
-  
-    const compute = () => {
-      // Modal uses max-height: 90vh; compute actual available px from viewport
-      const dialogCap = Math.floor(window.innerHeight * 0.9);
-  
-      const header = headerRef.current?.offsetHeight ?? 0;
-      const footer = footerRef.current?.offsetHeight ?? 0;
-      const preview = previewRef.current?.offsetHeight ?? 0;
-  
-      // p-4 adds 16px top + 16px bottom inside the body wrapper
-      const bodyPadding = 32;
-  
-      // A little margin between preview and results (your mt-4 = 16px)
-      const gap = 16;
-  
-      const available = dialogCap - header - footer - preview - bodyPadding - gap;
-  
-      setResultsMaxH(Math.max(160, available)); // clamp to a reasonable min
-    };
-  
-    compute();
-    const ro = new ResizeObserver(compute);
-    if (dialogRef.current) ro.observe(dialogRef.current);
-    if (previewRef.current) ro.observe(previewRef.current);
-    if (headerRef.current) ro.observe(headerRef.current);
-    if (footerRef.current) ro.observe(footerRef.current);
-  
-    window.addEventListener('resize', compute);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', compute);
-    };
-  }, [open]);
 
   if (!open) return null;
 
@@ -220,7 +184,7 @@ export default function AutoTaggerModal({
 
       <div
         ref={dialogRef}
-        className="relative z-10 w-[min(100vw-2rem,64rem)] max-w-4xl max-h-[90vh] rounded-2xl border border-zinc-800 bg-zinc-900 shadow-xl flex flex-col"
+        className="relative z-10 w-full max-w-[90%] max-h-[90vh] rounded-2xl border border-zinc-800 bg-zinc-900/90 shadow-xl flex flex-col"
       >
         {/* Header */}
         <div ref={headerRef} className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 flex-none">
@@ -237,174 +201,182 @@ export default function AutoTaggerModal({
 
         {/* Body */}
         <div className="flex-1 overflow-hidden p-4">
-          {/* Preview at the top (fixed within body) */}
-          <div ref={previewRef} className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-            <div className="text-xs text-zinc-400 text-center">Post Preview</div>
-            <img
-              src={imageUrl}
-              alt="Preview"
-              className="mt-2 w-full max-h-[38vh] rounded object-contain"
-            />
-          </div>
+          <div className="flex gap-4 h-full">
+            {/* LEFT: Preview */}
+            <div
+              ref={previewRef}
+              className="flex-shrink-0 w-[40%] rounded-xl p-3 flex flex-col items-center"
+            >
+              <div className="text-xs text-zinc-400 mb-2">Post Preview</div>
+              <img
+                src={imageUrl}
+                alt="Preview"
+                className="w-full max-h-[70vh] rounded object-contain shadow-xl border-black border"
+              />
+            </div>
 
-          {/* Results: scrollable, with measured maxHeight */}
-          <div
-            className="mt-4 pr-1 overflow-y-auto"
-            style={{ maxHeight: resultsMaxH }}
-          >
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-              {loading && <div className="text-sm text-zinc-300">Querying AutoTagger Service...</div>}
-              {error && <div className="text-sm text-red-300">Error: {error}</div>}
+            {/* RIGHT: Tags/results */}
+            <div
+              className="flex-1 overflow-y-auto"
+            >
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/75 p-3">
+                {loading && <div className="text-sm text-zinc-300">Querying AutoTagger Service...</div>}
+                {error && <div className="text-sm text-red-300">Error: {error}</div>}
 
-              {!loading && !error && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {/* LEFT: Matches */}
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-medium text-emerald-300">Matches on server</div>
-                      <button
-                        type="button"
-                        onClick={toggleAllMatched}
-                        disabled={matches.length === 0}
-                        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs border transition ${
-                          allMatchedSelected
-                            ? 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800'
-                            : 'border-emerald-800 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {allMatchedSelected ? (
-                          <>
-                            <XCircle size={14} /> Deselect All
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle size={14} /> Select All
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    <ul className="mt-2 space-y-2">
-                      {matches.length === 0 ? (
-                        <li className="text-sm text-zinc-500">None.</li>
-                      ) : (
-                        matches.map((m) => {
-                          const selected = isMatchedSelected(m.tag.id);
-                          return (
-                            <li
-                              key={`${m.tag.id}-${m.matchedName}`}
-                              className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1"
-                            >
-                              <div className="min-w-0">
-                                <div
-                                  className="truncate font-medium flex items-center gap-1"
-                                  style={{ color: m.tag.category?.color || undefined }}
-                                  title={m.tag.name}
+                {!loading && !error && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {/* LEFT: Matches */}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-medium text-emerald-300">Matches on server</div>
+                        <button
+                          type="button"
+                          onClick={toggleAllMatched}
+                          disabled={matches.length === 0}
+                          className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs border transition ${
+                            allMatchedSelected
+                              ? 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800'
+                              : 'border-emerald-800 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {allMatchedSelected ? (
+                            <>
+                              <XCircle size={14} /> Deselect All
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle size={14} /> Select All
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="mt-2 overflow-y-auto pr-1 flex-1 max-h-[74vh]">
+                        <ul className="space-y-2">
+                          {matches.length === 0 ? (
+                            <li className="text-sm text-zinc-500">None.</li>
+                          ) : (
+                            matches.map((m) => {
+                              const selected = isMatchedSelected(m.tag.id);
+                              return (
+                                <li
+                                  key={`${m.tag.id}-${m.matchedName}`}
+                                  className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-900/60 px-2 py-1"
                                 >
-                                  {m.tag.name}
-                                  {m.matchedName && m.matchedName.toLowerCase() !== m.tag.name.toLowerCase() && (
-                                    <span className="text-xs text-subtle">({m.matchedName})</span>
-                                  )}
-                                </div>
-                                <div className="truncate text-xs text-zinc-500">
-                                  Confidence: {(m.score * 100).toFixed(1)}%
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  toggleMatched({
-                                    tagId: m.tag.id,
-                                    name: m.tag.name,
-                                    score: m.score,
-                                    matchedName: m.matchedName,
-                                  })
-                                }
-                                className="ml-3 shrink-0 inline-flex items-center rounded-md p-1.5 hover:bg-zinc-800"
-                                aria-label={selected ? `Remove ${m.tag.name}` : `Add ${m.tag.name}`}
-                                title={selected ? 'Remove' : 'Add'}
-                              >
-                                {selected ? (
-                                  <MinusCircle size={18} className="text-red-400" weight="fill" />
-                                ) : (
-                                  <PlusCircle size={18} className="text-emerald-400" weight="fill" />
-                                )}
-                              </button>
-                            </li>
-                          );
-                        })
-                      )}
-                    </ul>
-                  </div>
-  
-                  {/* RIGHT: Non-matched */}
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-medium text-amber-300">Not found on server</div>
-                      <button
-                        type="button"
-                        onClick={toggleAllNew}
-                        disabled={nonMatched.length === 0}
-                        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs border transition ${
-                          allNewSelected
-                            ? 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800'
-                            : 'border-emerald-800 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {allNewSelected ? (
-                          <>
-                            <XCircle size={14} /> Deselect All
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle size={14} /> Select All
-                          </>
-                        )}
-                      </button>
+                                  <div className="min-w-0">
+                                    <div
+                                      className="truncate font-medium flex items-center gap-1"
+                                      style={{ color: m.tag.category?.color || undefined }}
+                                      title={m.tag.name}
+                                    >
+                                      {m.tag.name}
+                                      {m.matchedName && m.matchedName.toLowerCase() !== m.tag.name.toLowerCase() && (
+                                        <span className="text-xs text-subtle">({m.matchedName})</span>
+                                      )}
+                                    </div>
+                                    <div className="truncate text-xs text-zinc-500">
+                                      Confidence: {(m.score * 100).toFixed(1)}%
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      toggleMatched({
+                                        tagId: m.tag.id,
+                                        name: m.tag.name,
+                                        score: m.score,
+                                        matchedName: m.matchedName,
+                                      })
+                                    }
+                                    className="ml-3 shrink-0 inline-flex items-center rounded-md p-1.5 hover:bg-zinc-800"
+                                    aria-label={selected ? `Remove ${m.tag.name}` : `Add ${m.tag.name}`}
+                                    title={selected ? 'Remove' : 'Add'}
+                                  >
+                                    {selected ? (
+                                      <MinusCircle size={18} className="text-red-400" weight="fill" />
+                                    ) : (
+                                      <PlusCircle size={18} className="text-emerald-400" weight="fill" />
+                                    )}
+                                  </button>
+                                </li>
+                              );
+                            })
+                          )}
+                        </ul>
+                      </div>
                     </div>
-                    <ul className="mt-2 space-y-2">
-                      {nonMatched.length === 0 ? (
-                        <li className="text-sm text-zinc-500">None.</li>
-                      ) : (
-                        nonMatched.map((n) => {
-                          const selected = isNewSelected(n.name);
+    
+                    {/* RIGHT: Non-matched */}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-medium text-amber-300">Not found on server</div>
+                        <button
+                          type="button"
+                          onClick={toggleAllNew}
+                          disabled={nonMatched.length === 0}
+                          className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs border transition ${
+                            allNewSelected
+                              ? 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800'
+                              : 'border-emerald-800 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {allNewSelected ? (
+                            <>
+                              <XCircle size={14} /> Deselect All
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle size={14} /> Select All
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="mt-2 overflow-y-auto pr-1 flex-1 max-h-[74vh]">
+                        <ul className="space-y-2">
+                          {nonMatched.length === 0 ? (
+                            <li className="text-sm text-zinc-500">None.</li>
+                          ) : (
+                            nonMatched.map((n) => {
+                              const selected = isNewSelected(n.name);
 
-                          return (
-                          <li
-                            key={n.name}
-                            className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-900/40 px-2 py-1"
-                          >
-                            <div className="min-w-0">
-                              <span className="block truncate text-zinc-300" title={n.name}>
-                                {n.name}
-                              </span>
-                              <span className="block truncate text-xs text-zinc-500">
-                                Confidence: {(n.score * 100).toFixed(1)}%
-                              </span>
-                            </div>
+                              return (
+                              <li
+                                key={n.name}
+                                className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-900/40 px-2 py-1"
+                              >
+                                <div className="min-w-0">
+                                  <span className="block truncate text-zinc-300" title={n.name}>
+                                    {n.name}
+                                  </span>
+                                  <span className="block truncate text-xs text-zinc-500">
+                                    Confidence: {(n.score * 100).toFixed(1)}%
+                                  </span>
+                                </div>
 
-                            <button
-                              type="button"
-                              onClick={() => toggleNew({ name: n.name, score: n.score })}
-                              className="ml-3 shrink-0 inline-flex items-center rounded-md p-1.5 hover:bg-zinc-800"
-                              aria-label={selected ? `Remove ${n.name}` : `Create & add ${n.name}`}
-                              title={selected ? 'Remove' : 'Create & add'}
-                            >
-                              {selected ? (
-                                <MinusCircle size={18} className="text-red-400" weight="fill" />
-                              ) : (
-                                <PlusCircle size={18} className="text-emerald-400" weight="fill" />
-                              )}
-                            </button>
-                          </li>
-                        )})
-                      )}
-                    </ul>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNew({ name: n.name, score: n.score })}
+                                  className="ml-3 shrink-0 inline-flex items-center rounded-md p-1.5 hover:bg-zinc-800"
+                                  aria-label={selected ? `Remove ${n.name}` : `Create & add ${n.name}`}
+                                  title={selected ? 'Remove' : 'Create & add'}
+                                >
+                                  {selected ? (
+                                    <MinusCircle size={18} className="text-red-400" weight="fill" />
+                                  ) : (
+                                    <PlusCircle size={18} className="text-emerald-400" weight="fill" />
+                                  )}
+                                </button>
+                              </li>
+                            )})
+                          )}
+                        </ul>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
+      </div>
   
         {/* Footer */}
         <div
