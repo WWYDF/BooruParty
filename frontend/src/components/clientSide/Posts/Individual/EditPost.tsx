@@ -708,31 +708,26 @@ export default function EditPost({
         cancelText="Cancel"
       />
 
-      {autoTaggerUrl && showAutoTagModal && (
-        <AutoTaggerModal
-          open={showAutoTagModal}
-          onClose={() => setShowAutoTagModal(false)}
-          imageUrl={post.previewPath}
-          onSave={async ({ matched, create }) => {
-            // Use matchedName so aliases work the same as user paste
-            const names = [
-              ...matched.map(m => m.matchedName || m.name),
-              ...create.map(n => n.name),
-            ];
-          
-            // Your TagSelector’s multiple-input parser splits on whitespace.
-            // If you prefer commas, change to names.join(', '), and update TagSelector to split on /[,\s]+/
-            const pastedText = names.join(' ');
-          
-            // Trigger the same behavior as paste+Enter (includes implications via addImpliedTags)
-            await tagSelectorRef.current?.applyPastedText(pastedText);
-          
-            setShowAutoTagModal(false);
-          }}
-          existingTagIds={[...existingTagIds]}
-          existingNames={[...existingNames]}
-        />
-      )}
+      <AutoTaggerModal
+        open={showAutoTagModal}
+        onClose={() => setShowAutoTagModal(false)}
+        imageUrl={post.previewPath}
+        onSave={async ({ matched, create }) => {
+          // Use matchedName so aliases work the same as user paste
+          const names = [
+            ...matched.map(m => m.matchedName || m.name),
+            ...create.map(n => n.name),
+          ];
+          const pastedText = names.join(' ');
+        
+          // Trigger the same behavior as paste+Enter (includes implications via addImpliedTags)
+          await tagSelectorRef.current?.applyPastedText(pastedText);
+        
+          setShowAutoTagModal(false);
+        }}
+        existingTagIds={[...existingTagIds]}
+        existingNames={[...existingNames]}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { CheckCircle, MinusCircle, PlusCircle, X, XCircle } from '@phosphor-icon
 import LoadingOverlay from '../../LoadingOverlay';
 import { useLockBodyScroll } from '@/core/hooks/bodyScroll';
 import LoadingInline from '../../LoadingInline';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type MatchRow = {
   tag: {
@@ -140,7 +141,6 @@ export default function AutoTaggerModal({
     return () => { cancelled = true; };
   }, [open, imageUrl, existingTagIds, existingNames]);
 
-  if (!open) return null;
   useLockBodyScroll(open);
 
   const hasSelection = selectedMatched.length > 0 || selectedNew.length > 0;
@@ -200,8 +200,17 @@ export default function AutoTaggerModal({
   }, [open]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch md:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
+  <AnimatePresence>
+    {open && (
+      <motion.div
+        key="autotagger-modal"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
+        className="fixed inset-0 z-50 flex items-stretch md:items-center justify-center"
+      >
+        <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
 
       <div
         ref={dialogRef}
@@ -269,7 +278,7 @@ export default function AutoTaggerModal({
               className="flex-1 min-h-0 mt-3 rounded-xl border border-zinc-800 bg-zinc-950 p-3 overflow-y-auto overscroll-contain touch-pan-y"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
-              {loading && <div className="text-sm text-zinc-300">Querying AutoTagger Service...</div>}
+              <LoadingInline show={loading} label="Querying AutoTagger Service..." className="text-sm text-zinc-300" animatedExit={false} />
               {error && <div className="text-sm text-red-300">Error: {error}</div>}
 
               {!loading && !error && (
@@ -607,6 +616,7 @@ export default function AutoTaggerModal({
         </div>
       </div>
       <LoadingOverlay show={adding} label='Adding Tags...' />
-    </div>
-  );
-}
+    </motion.div>
+    )}
+  </AnimatePresence>
+)}
