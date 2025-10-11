@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, MinusCircle, PlusCircle, X, XCircle } from '@phosphor-icons/react';
 import LoadingOverlay from '../../LoadingOverlay';
 import { useLockBodyScroll } from '@/core/hooks/bodyScroll';
+import LoadingInline from '../../LoadingInline';
 
 type MatchRow = {
   tag: {
@@ -414,7 +415,7 @@ export default function AutoTaggerModal({
             {/* RIGHT: Tags/results */}
             <div className="flex-1 overflow-y-auto">
               <div className="rounded-xl border border-zinc-800 bg-zinc-950/75 p-3">
-                {loading && <div className="text-sm text-zinc-300">Querying AutoTagger Service...</div>}
+              <LoadingInline show={loading} label="Querying AutoTagger Service..." className="text-sm text-zinc-300" animatedExit={false} />
                 {error && <div className="text-sm text-red-300">Error: {error}</div>}
 
                 {!loading && !error && (
