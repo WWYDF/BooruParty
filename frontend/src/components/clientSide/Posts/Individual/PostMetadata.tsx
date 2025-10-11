@@ -169,27 +169,36 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
       {/* Stats bar (Score, Favorites, and Boosts) */}
       {!editing && (
         <div className="flex items-center gap-4 mr-4">
-          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+          <button
+            className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+            onClick={() => router.push('/posts?query=order%3Ascore')}
+          >
             <ThumbsUp size={16} className="text-green-400" />
             <span className="text-xs text-white/80">Score</span>
             <span className="text-xs font-semibold text-subtle">{formatCounts(post.score ?? 0)}</span>
-          </div>
+          </button>
 
-          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+          <button
+            className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+            onClick={() => router.push('/posts?query=order%3Afavorites')}
+          >
             <Star size={16} className="text-yellow-400" />
             <span className="text-xs text-white/80">Favorites</span>
             <span className="text-xs font-semibold text-subtle">
               {formatCounts((typeof post._count?.favoritedBy === "number" ? post._count?.favoritedBy : 0) as number)}
             </span>
-          </div>
+          </button>
 
-          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+          <button
+            className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+            onClick={() => router.push('/posts?query=order%3Aboosts')}
+          >
             <Sparkle size={16} className="text-cyan-400" />
             <span className="text-xs text-white/80">Boosts</span>
             <span className="text-xs font-semibold text-subtle">
               {formatCounts((typeof post._count?.boosts === "number" ? post._count?.boosts : 0) as number)}
             </span>
-          </div>
+          </button>
         </div>
       )}
 
