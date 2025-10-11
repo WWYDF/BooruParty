@@ -69,6 +69,12 @@ function ModeChoice({
         chosen={value.includes('AGGRESSIVE')}
         onClick={() => toggle('AGGRESSIVE')}
       />
+      <Option
+        label="Selective"
+        desc="Users can apply received tags to their upload batch if they decide to. (Requires Permission)"
+        chosen={value.includes('SELECTIVE')}
+        onClick={() => toggle('SELECTIVE')}
+      />
     </div>
   );
 }

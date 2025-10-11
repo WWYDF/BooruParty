@@ -45,6 +45,7 @@ enum SafetyType {
 enum AutoTaggerMode {
   PASSIVE
   AGGRESSIVE
+  SELECTIVE
 }
 
 model SiteSettings {

@@ -1,4 +1,4 @@
-export type AutotagMode = 'PASSIVE' | 'AGGRESSIVE';
+export type AutotagMode = 'PASSIVE' | 'AGGRESSIVE' | 'SELECTIVE';
 
 export type AddonState = {
   artistProfile: {

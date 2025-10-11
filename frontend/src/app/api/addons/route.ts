@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/authServer';
 import { checkPermissions } from '@/components/serverSide/permCheck';
-
-type AutotagMode = 'PASSIVE' | 'AGGRESSIVE';
+import { AutotagMode } from '@/core/types/dashboard';
 
 type Payload = {
   artistProfileEnabled?: boolean;
@@ -70,7 +69,7 @@ export async function PUT(req: NextRequest) {
   
       if (mode !== undefined) {
         const arr = Array.isArray(mode) ? mode : [mode];
-        const allowed: AutotagMode[] = ['PASSIVE', 'AGGRESSIVE'];
+        const allowed: AutotagMode[] = ['PASSIVE', 'AGGRESSIVE', 'SELECTIVE'];
         if (!arr.every(m => allowed.includes(m))) {
           return NextResponse.json(
             { error: 'autotagger.mode must be PASSIVE or AGGRESSIVE' },

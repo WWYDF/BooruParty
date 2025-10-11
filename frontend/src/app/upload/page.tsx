@@ -19,8 +19,20 @@ export const metadata: Metadata = {
 }
 
 export default async function UploadPage() {
-  const canUpload = (await checkPermissions(['post_create']))['post_create'];
-  const canDupe = (await checkPermissions(['post_create_dupes']))['post_create_dupes'];
+  const perms = await checkPermissions([
+    'post_create',
+    'post_create_dupes',
+    'post_autotag'
+  ]);
+
+  const canUpload = perms['post_create'];
+  const canDupe = perms['post_create_dupes'];
+  let showAutoTagButton = false;
+
+  const autoTagRules = await prisma?.addonsConfig.findFirst({ where: { id: 1 } });
+  if (autoTagRules && autoTagRules.autoTagger && autoTagRules.autoTaggerMode.includes('SELECTIVE')) {
+    showAutoTagButton = perms['post_autotag'];
+  }
 
   if (!canUpload) { 
     return (
@@ -33,7 +45,7 @@ export default async function UploadPage() {
 
   return (
     <div className="p-8">
-      <UploadQueue canDupe={canDupe} />
+      <UploadQueue canDupe={canDupe} showAutoTag={showAutoTagButton} />
     </div>
   )
 }

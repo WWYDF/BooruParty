@@ -12,7 +12,7 @@ type LocalAddonState = {
   autotagger: { enabled: boolean; url: string; mode: AutotagMode[] };
 };
 
-const ALLOWED: AutotagMode[] = ['PASSIVE', 'AGGRESSIVE'];
+const ALLOWED: AutotagMode[] = ['PASSIVE', 'AGGRESSIVE', 'SELECTIVE'];
 const toModeArray = (m: unknown): AutotagMode[] => {
   if (Array.isArray(m)) return (m as unknown[]).filter((x): x is AutotagMode => ALLOWED.includes(x as AutotagMode));
   if (typeof m === 'string' && ALLOWED.includes(m as AutotagMode)) return [m as AutotagMode];

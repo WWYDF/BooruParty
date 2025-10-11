@@ -85,7 +85,8 @@ export type PostUserStatus = {
   vote: 'UPVOTE' | 'DOWNVOTE' | null,
   favorited: boolean
   signedIn: boolean
-  boostedToday: boolean
+  boostedToday: boolean,
+  canAutoTag: boolean
 }
 
 export type PostNavigatorType = {

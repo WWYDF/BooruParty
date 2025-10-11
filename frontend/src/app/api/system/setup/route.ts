@@ -51,6 +51,7 @@ export async function POST(req: Request) {
         { name: "post_create_dupes" },
         { name: "post_edit_own" },
         { name: "post_edit_others" },
+        { name: "post_autotag" },
         { name: "post_delete_own" },
         { name: "post_delete_others" },
         { name: "post_feature" },
@@ -143,6 +144,7 @@ export async function POST(req: Request) {
         ownPermissions: [
           "post_create_dupes",
           "post_edit_others",
+          "post_autotag",
           "comment_embed_url",
           "upload_type_video",
           "tags_create",

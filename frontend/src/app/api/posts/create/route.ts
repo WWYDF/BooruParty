@@ -15,11 +15,13 @@ export async function POST(request: NextRequest) {
 
   const perms = await checkPermissions([
     'post_create',
-    'post_create_dupes'
+    'post_create_dupes',
+    'post_autotag'
   ]);
 
   const canCreatePosts = perms['post_create'];
   const canCreateDupes = perms['post_create_dupes'];
+  const canAutoTag = perms['post_autotag'];
 
   if (!session || !canCreatePosts) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
@@ -27,7 +29,9 @@ export async function POST(request: NextRequest) {
   const file = formData.get('file') as File;
   const { searchParams } = new URL(request.url);
   const skipDupeParam = searchParams.get("skipDupes") === "true";
+  const autoTagParam = searchParams.get("autoTag") === "true";
   let skipDupes = false;
+  const forceAutoTag = (autoTagParam && canAutoTag);
 
   if (!file) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -157,7 +161,15 @@ export async function POST(request: NextRequest) {
       select: { autoTagger: true, autoTaggerMode: true, autoTaggerUrl: true}
     });
   
-    if (fileType !== 'video' && autoTaggerConf && autoTaggerConf.autoTaggerMode.includes('AGGRESSIVE') && autoTaggerConf.autoTaggerUrl) {
+    if (
+      fileType !== 'video' &&
+      autoTaggerConf &&
+      (autoTaggerConf.autoTaggerMode.includes('AGGRESSIVE') ||
+        (autoTaggerConf.autoTaggerMode.includes('SELECTIVE') &&
+        forceAutoTag)
+      ) &&
+      autoTaggerConf.autoTaggerUrl
+    ) {
       const { matches } = await fetchAutoTags(undefined, file);
       
       for (const match of matches) {

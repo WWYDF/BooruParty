@@ -10,7 +10,7 @@ import { useToast } from "../../Toast";
 import { Tag, TagCategory } from "@/core/types/tags";
 import RelatedPostInput from "./PostRelation";
 import { useDropzone } from "react-dropzone";
-import { Post } from "@/core/types/posts";
+import { Post, PostUserStatus } from "@/core/types/posts";
 import { formatCounts } from "@/core/formats";
 import { motion, AnimatePresence } from "framer-motion";
 import { getCategoryFromExt, resolveFileType } from "@/core/dictionary";
@@ -18,10 +18,12 @@ import AutoTaggerModal from "./AutoTaggerModal";
 
 export default function EditPost({
   post,
+  user,
   onSaveSuccess = () => {},
   onDeleteSuccess = () => {},
 }: {
   post: Post;
+  user: PostUserStatus;
   onSaveSuccess?: () => void;
   onDeleteSuccess?: () => void;
 }) {
@@ -507,7 +509,7 @@ export default function EditPost({
 
           <div className="space-x-1">
             <AnimatePresence>
-              {autoTaggerUrl && getCategoryFromExt(post.fileExt) != 'video' && (
+              {autoTaggerUrl && getCategoryFromExt(post.fileExt) != 'video' && user.canAutoTag && (
                 <motion.span
                   className="inline-flex items-center gap-1"
                   initial={{ opacity: 0 }}

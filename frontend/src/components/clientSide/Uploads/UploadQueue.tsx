@@ -22,13 +22,15 @@ type UploadFile = {
 
 interface Props {
   canDupe: boolean
+  showAutoTag: boolean
 }
 
-export default function UploadQueue({ canDupe }: Props) {
+export default function UploadQueue({ canDupe, showAutoTag }: Props) {
   const [queue, setQueue] = useState<UploadFile[]>([])
   const [uploading, setUploading] = useState(false)
   const idCounter = useRef(0)
   const [anonymous, setAnonymous] = useState(false)
+  const [autoTag, setAutoTag] = useState(false)
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [bulkSafety, setBulkSafety] = useState<"SAFE" | "SKETCHY" | "UNSAFE">("SAFE");
   const [globalTags, setGlobalTags] = useState<Tag[]>([]);
@@ -115,7 +117,7 @@ export default function UploadQueue({ canDupe }: Props) {
       formData.append("tags", JSON.stringify(globalTags.map((t) => t.name)));
   
       try {
-        const res = await fetch('/api/posts/create', {
+        const res = await fetch(`/api/posts/create${autoTag ? '?autoTag=true' : ''}`, {
           method: 'POST',
           body: formData,
         });
@@ -205,7 +207,7 @@ export default function UploadQueue({ canDupe }: Props) {
     }
   
     try {
-      const res = await fetch('/api/posts/create?skipDupes=true', {
+      const res = await fetch(`/api/posts/create?skipDupes=true${autoTag ? '&autoTag=true' : ''}`, {
         method: 'POST',
         body: formData,
       });
@@ -258,7 +260,7 @@ export default function UploadQueue({ canDupe }: Props) {
       formData.append('tags', JSON.stringify(globalTags.map((t) => t.name)));
 
       try {
-        const res = await fetch('/api/posts/create?skipDupes=true', {
+        const res = await fetch(`/api/posts/create?skipDupes=true${autoTag ? '&autoTag=true' : ''}`, {
           method: 'POST',
           body: formData,
         });
@@ -332,6 +334,17 @@ export default function UploadQueue({ canDupe }: Props) {
             onChange={setGlobalTags}
             compactBelow
           />
+
+          {showAutoTag && (
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={autoTag}
+                onChange={(e) => setAutoTag(e.target.checked)}
+              />
+              AutoTag this batch
+            </label>
+          )}
         </div>
       </div>
 

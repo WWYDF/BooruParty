@@ -9,7 +9,7 @@ import { PencilSimple, Minus, Plus, Tag, Star, Heart, Sparkle, ThumbsUp } from "
 import { formatCounts, formatStorageFromBytes } from "@/core/formats";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { useToast } from "../../Toast";
-import { Post } from "@/core/types/posts";
+import { Post, PostUserStatus } from "@/core/types/posts";
 import { getCategoryFromExt } from "@/core/dictionary";
 
 const AVATAR_URL = "/i/user.png";
@@ -19,7 +19,7 @@ export interface canEdit {
   otherPosts: boolean
 }
 
-export default function PostMetadata({ post, editPerms, userId }: { post: Post, editPerms: canEdit, userId: string | undefined }) {
+export default function PostMetadata({ post, user, editPerms, userId }: { post: Post, user: PostUserStatus, editPerms: canEdit, userId: string | undefined }) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null);
   const [editing, setEditing] = useState(false);
   const router = useRouter();
@@ -197,6 +197,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
         <div className="mr-4">
           <EditPost
             post={post}
+            user={user}
             onSaveSuccess={() => {
               router.refresh();
               setEditing(false);
