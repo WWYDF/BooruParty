@@ -6,7 +6,7 @@ import { resolveFileType } from '@/core/dictionary';
 import { fetch, Agent, FormData } from 'undici';
 import { FastifyUpload } from '@/core/types/posts';
 import { checkPermissions } from '@/components/serverSide/permCheck';
-import { fetchAutoTags } from '@/components/serverSide/UploadProcessing/autotagger';
+import { fetchAutoTags } from '@/components/serverSide/autotag';
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  console.log(addedTagsArray);
+  // console.log(addedTagsArray);
 
   const createdPost = await prisma.posts.create({
     data: {
@@ -148,72 +148,72 @@ export async function POST(request: NextRequest) {
   if (fastifyResult.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
   else { previewSrc = `/data/previews/${fileType}/${postId}.${fastifyResult.assignedExt}` }
 
-  // Check for AutoTagger
-  const autoTaggerConf = await prisma.addonsConfig.findFirst({
-    where: { id: 1 },
-    select: { autoTagger: true, autoTaggerMode: true, autoTaggerUrl: true}
-  });
-
-  if (fileType !== 'video' && autoTaggerConf && autoTaggerConf.autoTaggerMode.includes('AGGRESSIVE') && autoTaggerConf.autoTaggerUrl) {
-    const {matches} = await fetchAutoTags(file, autoTaggerConf.autoTaggerUrl);
-    
-    for (const match of matches) {
-      if (
-        match.tag?.name &&                            // make sure it exists lol
-        match.score >= 0.125 &&                       // score filter
-        !addedTagsArray.includes(match.tag.name)      // prevent duplicates
-      ) {
-        addedTagsArray.push(match.tag.name);
-      }
-    }
-  }
-
-  const addedTags = addedTagsArray.length > 0 ? JSON.stringify(addedTagsArray) : '';
-  console.log(addedTags);
-
-  // Mass Tagger on Upload
-  if (addedTags.length > 0) {
-    let tagNames: string[];
-    try {
-      tagNames = JSON.parse(addedTags);
-      if (!Array.isArray(tagNames)) throw new Error();
-    } catch {
-      return NextResponse.json({ error: "Invalid tag list format." }, { status: 400 });
-    }
-  
-    // Force lowercase on all tag names
-    tagNames = tagNames.map((n) => n.toLowerCase());
-  
-    const tags = await prisma.tags.findMany({
-      where: {
-        name: {
-          in: tagNames,
-        },
-      },
+  // Add Tags non-destructively
+  let tags;
+  try {
+    // Check for AutoTagger
+    const autoTaggerConf = await prisma.addonsConfig.findFirst({
+      where: { id: 1 },
+      select: { autoTagger: true, autoTaggerMode: true, autoTaggerUrl: true}
     });
   
-    if (tags.length !== tagNames.length) {
-      const foundNames = tags.map((t) => t.name);
-      const missing = tagNames.filter((n) => !foundNames.includes(n));
-      return NextResponse.json(
-        { error: `Invalid tag(s): ${missing.join(", ")}` },
-        { status: 400 }
-      );
+    if (fileType !== 'video' && autoTaggerConf && autoTaggerConf.autoTaggerMode.includes('AGGRESSIVE') && autoTaggerConf.autoTaggerUrl) {
+      const { matches } = await fetchAutoTags(undefined, file);
+      
+      for (const match of matches) {
+        // prevent duplicates & add found tags
+        if (!addedTagsArray.includes(match.tag.name)) { addedTagsArray.push(match.tag.name) };
+      }
     }
-
-    // Update post with received stuff from Fastify / Tags
-    await prisma.posts.update({
-      where: { id: postId },
-      data: {
-        previewScale: fastifyResult.previewScale,
-        previewPath: previewSrc,
-        aspectRatio: fastifyResult.aspectRatio,
-        tags: {
-          connect: tags.map((t) => ({ id: t.id })),
+  
+    const addedTags = addedTagsArray.length > 0 ? JSON.stringify(addedTagsArray) : '';
+  
+    // Mass Tagger on Upload
+    if (addedTags.length > 0) {
+      let tagNames: string[];
+      try {
+        tagNames = JSON.parse(addedTags);
+        if (!Array.isArray(tagNames)) throw new Error();
+      } catch {
+        return NextResponse.json({ error: "Invalid tag list format." }, { status: 400 });
+      }
+    
+      // Force lowercase on all tag names
+      tagNames = tagNames.map((n) => n.toLowerCase());
+    
+      tags = await prisma.tags.findMany({
+        where: {
+          name: {
+            in: tagNames,
+          },
         },
-      },
-    })
+      });
+    
+      if (tags.length !== tagNames.length) {
+        const foundNames = tags.map((t) => t.name);
+        const missing = tagNames.filter((n) => !foundNames.includes(n));
+        return NextResponse.json(
+          { error: `Invalid tag(s): ${missing.join(", ")}` },
+          { status: 400 }
+        );
+      }
+    }
+  } catch (e) {
+    console.error(`Skipping tags process due to:`, e);
   }
+
+  // Update post with received stuff from Fastify / Tags
+  await prisma.posts.update({
+    where: { id: postId },
+    data: {
+      previewScale: fastifyResult.previewScale,
+      previewPath: previewSrc,
+      aspectRatio: fastifyResult.aspectRatio,
+      tags: {
+        connect: tags?.map((t) => ({ id: t.id })),
+      },
+    },
+  })
 
   return NextResponse.json({ success: true, postId, fileName: fastifyResult.fileName });
 }
