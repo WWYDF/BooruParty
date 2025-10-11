@@ -214,8 +214,8 @@ export default function AutoTaggerModal({
 
       <div
         ref={dialogRef}
-        className="relative z-10 w-screen h-[100dvh] max-w-none rounded-none
-           md:w-[min(100vw-2rem,64rem)] md:max-w-5xl md:h-auto md:max-h-[90vh] md:rounded-2xl
+        className="relative z-10 md:w-[80%] h-[100dvh] max-w-none rounded-none
+           md:max-w md:h-auto md:max-h-[90vh] md:rounded-2xl
            border border-zinc-800 bg-zinc-900/90 shadow-xl flex flex-col"
       >
         {/* Header */}
