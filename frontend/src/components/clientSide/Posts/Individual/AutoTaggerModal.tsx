@@ -50,6 +50,8 @@ export default function AutoTaggerModal({
 
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [nonMatched, setNonMatched] = useState<NonMatchedRow[]>([]);
+  const [rawMatches, setRawMatches] = useState<MatchRow[]>([]);
+  const [rawNonMatched, setRawNonMatched] = useState<NonMatchedRow[]>([]);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLDivElement | null>(null);
   const footerRef = useRef<HTMLDivElement | null>(null);
@@ -86,6 +88,7 @@ export default function AutoTaggerModal({
       setSelectedMatched([]);
       setSelectedNew([]);
       setMobileTab('matches');
+      setAdding(false);
     }
   }, [open]);
 
@@ -98,9 +101,8 @@ export default function AutoTaggerModal({
       try {
         setLoading(true);
         setError(null);
-        setMatches([]);
-        setNonMatched([]);
-
+        setAdding(false);
+  
         const r = await fetch('/api/addons/autotagger', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -109,11 +111,6 @@ export default function AutoTaggerModal({
         const data = await r.json();
         if (!r.ok) throw new Error(data?.error || `proxy ${r.status}`);
 
-        // Build exclusion sets
-        const idSet = new Set<number>(existingTagIds);
-        const nameSet = new Set<string>(existingNames.map(s => s.toLowerCase()));
-
-        // Server already sorts by score, but we’ll re-filter here.
         const respMatches = (data.matches ?? []) as {
           tag: { id: number; name: string; aliases?: { alias: string }[]; category?: { color?: string | null } | null };
           score: number;
@@ -122,15 +119,9 @@ export default function AutoTaggerModal({
 
         const respNonMatched = (data.nonMatched ?? []) as { name: string; score: number }[];
 
-        // Filter out matched tags that are already on the post (by id)
-        const filteredMatches = respMatches.filter(m => !idSet.has(m.tag.id));
-
-        // Filter out unresolved names that are already present by name or alias
-        const filteredNonMatched = respNonMatched.filter(n => !nameSet.has(n.name.toLowerCase()));
-
         if (cancelled) return;
-        setMatches(filteredMatches);
-        setNonMatched(filteredNonMatched);
+        setRawMatches(respMatches);
+        setRawNonMatched(respNonMatched);
       } catch (e: any) {
         if (!cancelled) setError(e?.message ?? 'Failed to fetch tags');
       } finally {
@@ -139,7 +130,20 @@ export default function AutoTaggerModal({
     })();
 
     return () => { cancelled = true; };
-  }, [open, imageUrl, existingTagIds, existingNames]);
+  }, [open, imageUrl]);
+
+  useEffect(() => {
+    if (!open) return;
+  
+    const idSet = new Set<number>(existingTagIds);
+    const nameSet = new Set<string>(existingNames.map(s => s.toLowerCase()));
+  
+    const filteredMatches = rawMatches.filter(m => !idSet.has(m.tag.id));
+    const filteredNonMatched = rawNonMatched.filter(n => !nameSet.has(n.name.toLowerCase()));
+  
+    setMatches(filteredMatches);
+    setNonMatched(filteredNonMatched);
+  }, [open, existingTagIds, existingNames, rawMatches, rawNonMatched]);
 
   useLockBodyScroll(open);
 
@@ -615,7 +619,7 @@ export default function AutoTaggerModal({
           </button>
         </div>
       </div>
-      <LoadingOverlay show={adding} label='Adding Tags...' />
+      <LoadingOverlay show={adding === true} label='Adding Tags...' />
     </motion.div>
     )}
   </AnimatePresence>

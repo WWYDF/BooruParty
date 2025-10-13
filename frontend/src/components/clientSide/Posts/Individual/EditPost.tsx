@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import TagSelector, { TagSelectorHandle } from "../../TagSelector";
@@ -51,6 +51,9 @@ export default function EditPost({
   const [showAutoTagModal, setShowAutoTagModal] = useState(false);
   const tagSelectorRef = useRef<TagSelectorHandle | null>(null);
   const toast = useToast();
+
+  const nextFakeId = useRef(-1);
+  const allocFakeId = () => nextFakeId.current--;
 
   const fileType = resolveFileType(`.${post.fileExt}`);
 
@@ -371,7 +374,7 @@ export default function EditPost({
             setPendingTagNames(prev => [...prev, lower]);
   
             const fakeTag: Tag = {
-              id: -(pendingTagNames.length + 1), // negative temporary ID
+              id: allocFakeId(), // negative temporary ID
               name,
               description: null,
               aliases: [],
@@ -406,6 +409,9 @@ export default function EditPost({
       ])
       .map(s => s.toLowerCase())
   );
+
+  const existingTagIdsArr = useMemo(() => Array.from(existingTagIds), [existingTagIds]);
+  const existingNamesArr = useMemo(() => Array.from(existingNames), [existingNames]);
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -565,7 +571,7 @@ export default function EditPost({
           
             // Create a temporary tag object
             const fakeTag: Tag = {
-              id: -(pendingTagNames.length + 1), // negative temporary ID
+              id: allocFakeId(), // negative temporary ID
               name,
               description: null,
               aliases: [],
@@ -727,8 +733,8 @@ export default function EditPost({
         
           setShowAutoTagModal(false);
         }}
-        existingTagIds={[...existingTagIds]}
-        existingNames={[...existingNames]}
+        existingTagIds={existingTagIdsArr}
+        existingNames={existingNamesArr}
       />
     </div>
   );
