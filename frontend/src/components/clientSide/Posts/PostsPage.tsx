@@ -37,6 +37,11 @@ export default function ClientPostsPage() {
   useEffect(() => {
     setViewMode(prefs?.layout ?? defaultLayout)
     setLoadingViewMode(false);
+
+    // Clear local storage for individual posts
+    Object.keys(sessionStorage)
+    .filter(k => k.startsWith('bp:dims:') || k.startsWith('bp:size:'))
+    .forEach(k => sessionStorage.removeItem(k));
   }, []);
 
   const updateUrl = (query: string, safeties: string[]) => {

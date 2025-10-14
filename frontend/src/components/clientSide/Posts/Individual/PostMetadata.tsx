@@ -21,6 +21,8 @@ export interface canEdit {
 
 export default function PostMetadata({ post, user, editPerms, userId }: { post: Post, user: PostUserStatus, editPerms: canEdit, userId: string | undefined }) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null);
+  const [fileSize, setfileSize] = useState<number | null>(null);
+  const [viewingFull, setViewingFullState] = useState<boolean>(false);
   const [editing, setEditing] = useState(false);
   const router = useRouter();
   const toast = useToast();
@@ -81,12 +83,28 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
   };
 
   useEffect(() => {
-    // first read from sessionStorage (instant on refresh)
+    // first clear metadata for other posts
+    Object.keys(sessionStorage)
+    .filter(
+      k =>
+        (k.startsWith("bp:dims:") || k.startsWith("bp:size:")) &&
+        !k.endsWith(`:${post.id}`)
+    )
+    .forEach(k => sessionStorage.removeItem(k));
+
+
+    // then read from sessionStorage (instant on refresh)
     try {
-      const raw = sessionStorage.getItem(`bp:dims:${post.id}`);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { w: number; h: number; src?: string; at?: number };
+      const rawDims = sessionStorage.getItem(`bp:dims:${post.id}`);
+      if (rawDims) {
+        const parsed = JSON.parse(rawDims) as { w: number; h: number; src?: string; at?: number };
         if (parsed?.w && parsed?.h) setDimensions({ w: parsed.w, h: parsed.h });
+      }
+
+      const rawSize = sessionStorage.getItem(`bp:size:${post.id}`);
+      if (rawSize) {
+        const parsed = JSON.parse(rawSize) as { bytes: number, at?: number; src?: string };
+        if (parsed?.bytes) setfileSize(parsed.bytes);
       }
     } catch {}
   
@@ -95,8 +113,26 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
       const { postId, w, h } = (e as CustomEvent).detail || {};
       if (postId === post.id && w && h) setDimensions({ w, h });
     };
+
+    const onViewingChange = (e: Event) => {
+      const { state } = (e as CustomEvent).detail || {};
+      setViewingFullState(state);
+      console.log(state)
+    };
+    
+    const onSize = (e: Event) => {
+      const { postId, bytes } = (e as CustomEvent).detail || {};
+      if (postId === post.id && bytes) setfileSize(bytes);
+    };
+
     window.addEventListener("post:image-dimensions", onDims as EventListener);
-    return () => window.removeEventListener("post:image-dimensions", onDims as EventListener);
+    window.addEventListener("post:image-size", onSize as EventListener);
+    window.addEventListener("post:changeViewingState", onViewingChange as EventListener);
+    return () => {
+      window.removeEventListener("post:image-dimensions", onDims as EventListener)
+      window.removeEventListener("post:image-size", onSize as EventListener)
+      window.removeEventListener("post:changeViewingState", onViewingChange as EventListener)
+    };
   }, [post.id]);
 
   return (
@@ -247,7 +283,7 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
             {typeof post.fileSize === "number" && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Size</span>
-                {formatStorageFromBytes(post.fileSize ?? 0)}
+                {viewingFull === true ? formatStorageFromBytes(post.fileSize ?? 0) : formatStorageFromBytes(fileSize ?? 0)}
               </p>
             )}
 
