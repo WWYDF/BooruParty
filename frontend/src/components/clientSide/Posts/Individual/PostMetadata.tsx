@@ -436,7 +436,7 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
                           >
                             <button
                               onClick={() => modifyQuery("add", tag.name)}
-                              className="hover:text-accent"
+                              className="hover:text-green-400 transition"
                               title="Add tag to search"
                             >
                               <Plus size={10} weight="bold" />
@@ -444,14 +444,14 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
 
                             <button
                               onClick={() => modifyQuery("exclude", tag.name)}
-                              className="hover:text-accent"
+                              className="hover:text-red-400 transition"
                               title="Exclude tag from search"
                             >
                               <Minus size={10} weight="bold" />
                             </button>
 
                             <Link href={`/tags/${encodeURIComponent(tag.name)}`} title="Edit tag">
-                              <Tag size={14} />
+                              <Tag size={14} className="hover:opacity-80 transition" />
                             </Link>
 
                             <button
