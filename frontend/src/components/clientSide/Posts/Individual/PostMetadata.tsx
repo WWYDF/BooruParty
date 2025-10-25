@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import EditPost from "./EditPost";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PencilSimple, Minus, Plus, Tag, Star, Heart, Sparkle, ThumbsUp } from "phosphor-react";
@@ -140,7 +139,7 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
       {/* Header with user info */}
       <div className="flex items-center gap-3">
         {displayAvatar ? (
-          <Image
+          <img
             src={displayAvatar}
             alt="Uploader avatar"
             width={48}

@@ -8,7 +8,6 @@ import LoadingOverlay from "@/components/clientSide/LoadingOverlay";
 
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
 const totalPosts = await prisma.posts.count();
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
