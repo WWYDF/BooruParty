@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { CreateTagModal } from "@/components/clientSide/Tags/CreateModal";
 import { checkPermissions } from "@/core/permissions";
 import { CaretUpDown } from "@phosphor-icons/react";
@@ -27,6 +26,7 @@ type TagListType = {
 export default function TagListPage() {
   const [tags, setTags] = useState<TagListType[]>([]);
   const [page, setPage] = useState(1);
+  const [totalTags, setTotalTags] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -35,8 +35,6 @@ export default function TagListPage() {
   const [canCreateTag, setCanCreateTag] = useState(false);
   const [sortField, setSortField] = useState<"name" | "category" | "usages" | "createdAt">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const router = useRouter();
-
   const perPage = 50;
 
   // Check if they can make tags
@@ -68,6 +66,7 @@ export default function TagListPage() {
       const data = await res.json();
       setTags(data.tags);
       setTotalPages(data.totalPages);
+      setTotalTags(data.totalTags);
     } catch (err) {
       console.error("Failed to load tags", err);
     } finally {
@@ -106,7 +105,7 @@ export default function TagListPage() {
           type="text"
           value={search}
           onChange={handleSearch}
-          placeholder="Search tags..."
+          placeholder={`Search ${totalTags ? `${totalTags} ` : ''}tags...`}
           className="bg-secondary p-2 rounded border border-secondary-border w-full max-w-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
         />
         {canCreateTag && (
