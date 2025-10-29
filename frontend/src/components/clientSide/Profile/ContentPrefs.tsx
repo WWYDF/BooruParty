@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserSelf } from '@/core/types/users';
 import ContentPrefsModal from './ContentPrefsModal';
+import { useRouter } from 'next/navigation';
 
 export default function ContentPrefsSection({ user }: { user: UserSelf }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <section className="rounded-2xl bg-secondary p-4">
@@ -25,7 +27,7 @@ export default function ContentPrefsSection({ user }: { user: UserSelf }) {
         Open Preferences
       </motion.button>
 
-      <ContentPrefsModal user={user} open={open} onClose={() => setOpen(false)} />
+      <ContentPrefsModal user={user} open={open} onClose={() => { setOpen(false); router.refresh();}} />
     </section>
   );
 }

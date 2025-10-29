@@ -49,6 +49,11 @@ export async function GET(
               category: true
             }
           },
+          favoriteTags: {
+            include: {
+              category: true
+            }
+          },
           profileBackground: true,
           private: true,
         }

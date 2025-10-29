@@ -241,6 +241,14 @@ export default function UserProfilePage() {
     router.push(`/post/${postId}`);
   }
 
+  function viewTag(tagName: string) {
+    localStorage.setItem(
+      "lastSearchParams",
+      JSON.stringify({ tagName, sort: "" })
+    );
+    router.push(`/posts?query=${encodeURIComponent(tagName)}`);
+  }
+
   return (
     <main className="relative pt-16 pb-20">
       {/* Meta */}
@@ -341,6 +349,32 @@ export default function UserProfilePage() {
             </motion.div>
           )}
         </div>
+
+        {/* Favorite Tags */}
+        {(user?.preferences?.favoriteTags?.length ?? 0) > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold mb-2">Favorite Tags</h2>
+
+            {/* chips row */}
+            <div className="flex flex-wrap gap-2">
+              {user.preferences.favoriteTags.map((tag: any) => (
+                <motion.button
+                  key={tag.id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => viewTag(tag.name)}
+                  className="shrink-0 inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1.5 text-sm hover:border-darkerAccent hover:bg-zinc-900 transition"
+                  title={`Search posts tagged "${tag.name}"`}
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: tag?.category?.color ?? '#a1a1aa' }}
+                  />
+                  <span className="text-zinc-200">{tag.name}</span>
+                </motion.button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Recent Posts */}
         {user.posts?.length > 0 && (
