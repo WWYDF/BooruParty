@@ -45,7 +45,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
         setProfileBackground(user.preferences?.profileBackground ?? 0);
         setPrivateProfile(user.preferences?.private ?? false);
       } catch {
-        toast('Could not load safety settings', 'error');
+        toast('Could not load content settings', 'error');
       }
     })();
   }, [open, user.preferences, toast]);
@@ -77,7 +77,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
         profileBackground: Number(profileBackground),
         privateProfile,
       });
-      toast('Safety Settings Saved!', 'success');
+      toast('Content Settings Saved!', 'success');
       onClose();
     } catch (err: any) {
       toast(err?.message ?? 'Failed to save', 'error');
@@ -304,7 +304,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                 whileTap={{ scale: 0.98 }}
                 className="cursor-pointer rounded bg-emerald-600 px-4 py-2 text-white transition hover:bg-emerald-600/90 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : 'Save'}
+                {saving ? 'Saving...' : 'Save'}
               </motion.button>
             </div>
           </motion.div>

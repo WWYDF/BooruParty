@@ -282,7 +282,7 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
             {typeof post.fileSize === "number" && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Size</span>
-                {viewingFull === true ? formatStorageFromBytes(post.fileSize ?? 0) : formatStorageFromBytes(fileSize ?? 0)}
+                {viewingFull === true ? formatStorageFromBytes(post.fileSize ?? 0) : formatStorageFromBytes(fileSize ?? post.fileSize)}
               </p>
             )}
 

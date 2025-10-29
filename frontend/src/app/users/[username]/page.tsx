@@ -251,7 +251,7 @@ export default function UserProfilePage() {
   }
 
   return (
-    <main className="relative pt-16 pb-20">
+    <main className="relative min-h-screen pt-16 pb-20">
       {/* Meta */}
       <meta property="og:image" content={user.avatar || `/i/user.png`} />
       <meta name="theme-color" content={user.role?.color} />
