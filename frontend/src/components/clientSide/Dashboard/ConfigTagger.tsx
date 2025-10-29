@@ -4,80 +4,30 @@ import { AutotagMode } from '@/core/types/dashboard';
 import AddonSectionCard from './SectionCard';
 import { Robot, Circle, LinkSimple } from '@phosphor-icons/react';
 import { CheckCircle } from 'phosphor-react';
+import ChoiceTiles, { ChoiceTileOption } from './ChoiceTiles';
+import SwitchIOS from '../SwitchIOS';
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-sm font-medium text-zinc-300">{children}</label>;
 }
 
-function ModeChoice({
-  value,
-  onChange,
-}: {
-  value: AutotagMode[];
-  onChange: (v: AutotagMode[]) => void;
-}) {
-  const toggle = (m: AutotagMode) => {
-    const next = value.includes(m) ? value.filter(x => x !== m) : [...value, m];
-    onChange(next);
-  };
-  const Option = ({
-    label,
-    desc,
-    chosen,
-    onClick,
-  }: {
-    label: string;
-    desc: string;
-    chosen: boolean;
-    onClick: () => void;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full rounded-xl border p-4 text-left transition
-        ${chosen
-          ? 'border-emerald-600 bg-emerald-600/10'
-          : 'border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800/60'
-        }`}
-      aria-pressed={chosen}
-    >
-      <div className="flex items-center justify-between">
-        <div className="text-zinc-100 font-semibold">{label}</div>
-        {chosen ? (
-          <CheckCircle size={20} weight="fill" className="text-emerald-400" />
-        ) : (
-          <Circle size={20} weight="regular" className="text-zinc-500" />
-        )}
-      </div>
-      <div className={`mt-1 text-sm ${chosen ? 'text-emerald-300' : 'text-zinc-400'}`}>
-        {desc}
-      </div>
-    </button>
-  );
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Option
-        label="Passive"
-        desc="Show received tags as suggestions in the editor; user chooses which tags to apply."
-        chosen={value.includes('PASSIVE')}
-        onClick={() => toggle('PASSIVE')}
-      />
-      <Option
-        label="Aggressive"
-        desc="Always apply received tags automatically on upload."
-        chosen={value.includes('AGGRESSIVE')}
-        onClick={() => toggle('AGGRESSIVE')}
-      />
-      <Option
-        label="Selective"
-        desc="Users can apply received tags to their upload batch if they decide to. (Requires Permission)"
-        chosen={value.includes('SELECTIVE')}
-        onClick={() => toggle('SELECTIVE')}
-      />
-    </div>
-  );
-}
+const modeOptions: ChoiceTileOption<AutotagMode>[] = [
+  {
+    value: 'PASSIVE',
+    label: 'Passive',
+    desc: 'Show received tags as suggestions in the editor; user chooses which tags to apply.',
+  },
+  {
+    value: 'AGGRESSIVE',
+    label: 'Aggressive',
+    desc: 'Always apply received tags automatically on upload.',
+  },
+  {
+    value: 'SELECTIVE',
+    label: 'Selective',
+    desc: 'Users can apply received tags to their upload batch if they decide to. (Requires Permission)',
+  },
+];
 
 export default function AutoTaggerSection({
   enabled,
@@ -136,7 +86,12 @@ export default function AutoTaggerSection({
         {/* Mode */}
         <div className="space-y-2">
           <FieldLabel>Mode</FieldLabel>
-          <ModeChoice value={mode} onChange={onChangeMode} />
+          <ChoiceTiles
+            value={mode}
+            onChange={onChangeMode}
+            options={modeOptions}
+            multiple
+          />
         </div>
       </div>
     </AddonSectionCard>
