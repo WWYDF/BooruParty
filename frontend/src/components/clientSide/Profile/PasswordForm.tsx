@@ -47,7 +47,7 @@ export default function PasswordChangeForm({ user }: { user: UserSelf }) {
             maxLength={128}
         />
         <motion.button
-          onClick={() => save}
+          onClick={() => save()}
           whileTap={{ scale: 0.98 }}
           className="cursor-pointer rounded bg-darkerAccent px-4 py-2 text-white transition hover:bg-darkerAccent/80 focus:outline-none"
         >
