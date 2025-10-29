@@ -189,7 +189,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                     <input
                       type="number"
                       min={0}
-                      max={100000}
+                      max={100_000_000} // idk if the user putting a gargantuan number would cause problems or not, so soft capped at 100 million lol
                       step={1}
                       value={profileBackground}
                       onChange={(e) => setProfileBackground(Number(e.target.value))}
@@ -247,8 +247,8 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                       <div className="mb-2 text-sm text-zinc-300">Favorite Tags (shows on profile)</div>
                       <TagSelector
                         onSelect={(tag) => {
-                          if (favoriteTags.length >= 10) {
-                            toast('You can only have up to 10 favorite tags.', 'error');
+                          if (favoriteTags.length >= 20) {
+                            toast('You can only have up to 20 favorite tags.', 'error');
                             return;
                           }
                           if (!favoriteTags.find((t) => t.id === tag.id)) {
@@ -256,7 +256,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                           }
                         }}
                         disabledTags={favoriteTags}
-                        placeholder={`Search tags... (${favoriteTags.length}/10)`}
+                        placeholder={`Search tags... (${favoriteTags.length}/20)`}
                       />
                       <div className="mt-2 flex flex-wrap gap-2">
                         {favoriteTags.map((tag) => (
