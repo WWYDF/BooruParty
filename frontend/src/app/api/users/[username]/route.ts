@@ -237,7 +237,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
       });
     }
 
-    if (favoriteTags) {
+    if (favoriteTags && favoriteTags.length >= 10) {
       await prisma.userPreferences.update({
         where: { id: targetUser.id },
         data: {

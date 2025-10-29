@@ -32,12 +32,13 @@ export type UserSelf = {
   }
 }
 
+// GET /api/users/[username]
 export type UserPublic = {
   id: string,
   username: string,
   avatar?: string,
   description?: string,
-  lastLogin: Date,
+  lastLogin: string,
   createdAt: Date,
   preferences: {
     layout: 'GRID' | 'COLLAGE',
@@ -45,7 +46,10 @@ export type UserPublic = {
     postsPerPage: number,
     blurUnsafeEmbeds: boolean,
     defaultSafety: SafetyType[],
-    blacklistedTags: Tag[]
+    blacklistedTags: Tag[],
+    favoriteTags: Tag[],
+    profileBackground: number,
+    private: boolean,
   },
   _count: {
     posts: number,

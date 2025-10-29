@@ -246,6 +246,10 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                       <div className="mb-2 text-sm text-zinc-300">Favorite Tags (shows on profile)</div>
                       <TagSelector
                         onSelect={(tag) => {
+                          if (favoriteTags.length >= 10) {
+                            toast('You can only have up to 10 favorite tags.', 'error');
+                            return;
+                          }
                           if (!favoriteTags.find((t) => t.id === tag.id)) {
                             setFavoriteTags((prev) => [...prev, tag]);
                           }

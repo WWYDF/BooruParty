@@ -12,6 +12,7 @@ import sanitizeHtml from "sanitize-html";
 import { checkPermissions } from "@/core/permissions";
 import { useToast } from "@/components/clientSide/Toast";
 import { hexToRgb } from "@/core/roles";
+import { UserPublic, UserSelf } from "@/core/types/users";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -71,7 +72,7 @@ type PrivateError = { code: number; message: string } | null;
 
 export default function UserProfilePage() {
   const { username } = useParams() as { username: string };
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserPublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<PrivateError>(null);
   const { data: session } = useSession();
@@ -225,9 +226,9 @@ export default function UserProfilePage() {
     let sort = "";
 
     if (type === "posts") {
-      query = `posts:${user.username}`;
+      query = `posts:${user!.username}`;
     } else if (type === "favorites") {
-      query = `favorites:${user.username}`;
+      query = `favorites:${user!.username}`;
     }
 
     localStorage.setItem(
@@ -298,7 +299,7 @@ export default function UserProfilePage() {
           <img
             src={user.avatar || `/i/user.png`}
             alt={user.username}
-            className="w-24 h-24 rounded-full object-cover border border-zinc-700"
+            className="w-24 h-24 rounded-full object-cover shadow-lg"
           />
 
           <div className="">
@@ -353,7 +354,9 @@ export default function UserProfilePage() {
         {/* Favorite Tags */}
         {(user?.preferences?.favoriteTags?.length ?? 0) > 0 && (
           <section>
-            <h2 className="text-lg font-semibold mb-2">Favorite Tags</h2>
+            <h2 className="text-lg font-semibold mb-2">
+              Favorite Tags <a className="text-sm text-subtle">({user.preferences.favoriteTags.length}/10)</a>
+            </h2>
 
             {/* chips row */}
             <div className="flex flex-wrap gap-2">
