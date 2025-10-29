@@ -52,7 +52,11 @@ export async function GET(
           favoriteTags: {
             include: {
               category: true
-            }
+            },
+            orderBy: [
+              { category: { order: 'asc' } },
+              { name: 'asc' }
+            ]
           },
           profileBackground: true,
           private: true,
@@ -65,7 +69,7 @@ export async function GET(
           favorites: true,
           votes: {
             where: {
-              user: { username }, // Make sure we're only pulling this user's votes.
+              user: { username },
               type: 'UPVOTE'
             }
           }
