@@ -19,6 +19,10 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
   // Assume post.fileExt tells us if it's a gif or video
   const isAnimated = post.fileExt === "gif" || post.fileExt === "mp4" || post.fileExt === "webm";
 
+  const liked = post.votes.some(v => v.type === 'UPVOTE');
+  const faved = post.favoritedBy.length > 0;
+
+  console.log(`Post #${post.id}: (Liked: ${liked} [${post.votes[0]}]) (Faved: ${faved})`);
   return (
     <Link
       href={selectionMode ? "#" : `/post/${post.id}`}
@@ -90,14 +94,14 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
 
           {post.score > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <ThumbsUp size={16} className="text-green-500" weight="bold" />
+              <ThumbsUp size={16} className="text-green-500" weight={liked ? 'fill' : 'bold'} />
               <span>{post.score}</span>
             </div>
           )}
 
           {post._count?.favoritedBy > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Heart size={16} className="text-red-500" weight="bold" />
+              <Heart size={16} className="text-red-500" weight={faved ? 'fill' : 'bold'} />
               <span>{post._count?.favoritedBy}</span>
             </div>
           )}
