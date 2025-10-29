@@ -365,7 +365,7 @@ export default function UserProfilePage() {
                   key={tag.id}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => viewTag(tag.name)}
-                  className="shrink-0 inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1.5 text-sm hover:border-darkerAccent hover:bg-zinc-900 transition"
+                  className="shrink-0 inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1.5 text-sm hover:border-darkerAccent hover:bg-zinc-900 transform transition duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:shadow-accent/30"
                   title={`Search posts tagged "${tag.name}"`}
                 >
                   <span
