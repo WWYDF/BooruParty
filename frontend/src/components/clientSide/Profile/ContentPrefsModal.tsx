@@ -10,6 +10,7 @@ import { Tag } from '@/core/types/tags';
 import TagSelector from '../TagSelector';
 import SwitchIOS from '../SwitchIOS';
 import { checkPermissions } from '@/core/permissions';
+import { X } from 'phosphor-react';
 
 type Props = {
   user: UserSelf;
@@ -211,7 +212,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                           }
                         }}
                         disabledTags={blacklistedTags}
-                        placeholder="Search tags…"
+                        placeholder="Search tags..."
                       />
                       <div className="mt-2 flex flex-wrap gap-2">
                         {blacklistedTags.map((tag) => (
@@ -234,7 +235,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                               aria-label={`Remove ${tag.name}`}
                               title="Remove"
                             >
-                              ×
+                              <X />
                             </button>
                           </motion.div>
                         ))}
@@ -255,7 +256,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                           }
                         }}
                         disabledTags={favoriteTags}
-                        placeholder="Search tags…"
+                        placeholder={`Search tags... (${favoriteTags.length}/10)`}
                       />
                       <div className="mt-2 flex flex-wrap gap-2">
                         {favoriteTags.map((tag) => (
@@ -278,7 +279,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                               aria-label={`Remove ${tag.name}`}
                               title="Remove"
                             >
-                              ×
+                              <X />
                             </button>
                           </motion.div>
                         ))}
