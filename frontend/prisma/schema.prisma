@@ -93,6 +93,7 @@ model UserPreferences {
   blurUnsafeEmbeds    Boolean         @default(true)            // Change if NSFW site
   defaultSafety       SafetyType[]    @default([SAFE])          // Change if NSFW site
   blacklistedTags     Tags[]          @relation("UserBLTags")
+  favoriteTags        Tags[]          @relation("UserFavTags")
   profileBackground   Int?                                      // Post ID
 
   private             Boolean         @default(false)
@@ -253,6 +254,7 @@ model Tags {
   suggestedBy    Tags[]             @relation("TagSuggestions")
 
   blacklistBy    UserPreferences[]  @relation("UserBLTags")
+  favoritedBy    UserPreferences[]  @relation("UserFavTags")
 
   createdAt      DateTime           @default(now())
 

@@ -20,6 +20,7 @@ export type UserSelf = {
     flipNavigators: boolean,
     profileBackground: number,
     private: boolean,
+    favoriteTags: Tag[],
   },
   role: {
     id: number,

@@ -18,6 +18,7 @@ const updateUserSchema = z.object({
   blacklistedTags: z.array(z.number()).optional(),
   profileBackground: z.number().optional(),
   privateProfile: z.boolean().optional(),
+  favoriteTags: z.array(z.number()).optional(),
 });
 
 // Returns non-sensitive information on the user
@@ -163,7 +164,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
     );
   }
 
-  const { username, email, description, password, blurUnsafeEmbeds, defaultSafety, blacklistedTags, profileBackground, privateProfile } = parsed.data;
+  const { username, email, description, password, blurUnsafeEmbeds, defaultSafety, blacklistedTags, profileBackground, privateProfile, favoriteTags } = parsed.data;
 
   const updates: any = {};
   if (username) updates.username = username;
@@ -177,6 +178,11 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
   if (blacklistedTags) {
     prefUpdates.blacklistedTags = {
       set: blacklistedTags.map((id) => ({ id }))
+    };
+  };
+  if (favoriteTags) {
+    prefUpdates.favoriteTags = {
+      set: favoriteTags.map((id) => ({ id }))
     };
   };
   if (profileBackground) {
@@ -200,11 +206,13 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
             upsert: {
               update: {
                 ...prefUpdates,
-                blacklistedTags: undefined, // we handle this after
+                blacklistedTags: undefined, // we handle these after
+                favoriteTags: undefined,
               },
               create: {
                 ...prefUpdates,
                 blacklistedTags: undefined,
+                favoriteTags: undefined,
               },
             },
           }
@@ -219,6 +227,17 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ usern
         data: {
           blacklistedTags: {
             set: blacklistedTags.map((id) => ({ id })),
+          },
+        },
+      });
+    }
+
+    if (favoriteTags) {
+      await prisma.userPreferences.update({
+        where: { id: targetUser.id },
+        data: {
+          favoriteTags: {
+            set: favoriteTags.map((id) => ({ id })),
           },
         },
       });

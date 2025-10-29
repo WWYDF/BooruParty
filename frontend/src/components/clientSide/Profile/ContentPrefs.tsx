@@ -16,6 +16,7 @@ export default function ContentForm({ user }: { user: UserSelf }) {
   const [profileBackground, setProfileBackground] = useState<number>(0);
   const [canChangeBG, setCanChangeBG] = useState<boolean>(false);
   const [privateProfile, setPrivateProfile] = useState(false);
+  const [favoriteTags, setFavoriteTags] = useState<Tag[]>([]);
   const toast = useToast();
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function ContentForm({ user }: { user: UserSelf }) {
         setBlacklistedTags(user.preferences?.blacklistedTags ?? []);;
         setProfileBackground(user.preferences?.profileBackground ?? 0)
         setPrivateProfile(user.preferences?.private ?? false)
+        setFavoriteTags(user.preferences?.favoriteTags ?? []);;
       } catch (err) {
         toast('Could not load safety settings', 'error');
       }
@@ -36,7 +38,7 @@ export default function ContentForm({ user }: { user: UserSelf }) {
 
   const save = async () => {
     try {
-      await updateUser(user.username, { blurUnsafeEmbeds, defaultSafety, blacklistedTags: blacklistedTags.map((tag) => tag.id), profileBackground: Number(profileBackground), privateProfile});
+      await updateUser(user.username, { blurUnsafeEmbeds, defaultSafety, blacklistedTags: blacklistedTags.map((tag) => tag.id), profileBackground: Number(profileBackground), privateProfile, favoriteTags: favoriteTags.map((tag) => tag.id)});
       toast('Safety Settings Saved!', 'success');
     } catch (err: any) {
       toast(err.message, 'error');
@@ -112,6 +114,43 @@ export default function ContentForm({ user }: { user: UserSelf }) {
 
             <div className="flex flex-wrap gap-2">
               {blacklistedTags.map((tag) => (
+                <div
+                  key={tag.id}
+                  className="flex items-center gap-1 bg-zinc-800 text-sm px-2 py-1 rounded-full"
+                >
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: tag.category.color }}
+                  />
+                  <span>{tag.name}</span>
+                  <button
+                    onClick={() => removeTag(tag.id)}
+                    className="text-red-400 hover:text-red-200 ml-1"
+                  >
+                    X
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1">
+          <label className="block mb-1 text-subtle">Favorite Tags</label>
+
+          <div className="space-y-2">
+            <TagSelector
+              onSelect={(tag) => {
+                if (!favoriteTags.find((t) => t.id === tag.id)) {
+                  setFavoriteTags((prev) => [...prev, tag]);
+                }
+              }}
+              disabledTags={favoriteTags}
+              placeholder="Search tags..."
+            />
+
+            <div className="flex flex-wrap gap-2">
+              {favoriteTags.map((tag) => (
                 <div
                   key={tag.id}
                   className="flex items-center gap-1 bg-zinc-800 text-sm px-2 py-1 rounded-full"
