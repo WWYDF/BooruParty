@@ -70,7 +70,13 @@ export default function InfoForm({ user }: { user: UserSelf }) {
             className="w-full p-2 rounded bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-zinc-800"
             maxLength={256}
         />
-        <button onClick={save} className="bg-darkerAccent hover:bg-darkerAccent/80 transition text-white px-4 py-2 rounded">Save Info</button>
+        <motion.button
+          onClick={() => save}
+          whileTap={{ scale: 0.98 }}
+          className="cursor-pointer rounded bg-darkerAccent px-4 py-2 text-white transition hover:bg-darkerAccent/80 focus:outline-none"
+        >
+          Save Info
+        </motion.button>
 
         {/* Trash button */}
         <button

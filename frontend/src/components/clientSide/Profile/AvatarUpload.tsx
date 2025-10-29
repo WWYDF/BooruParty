@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useToast } from '../Toast';
 import { UserSelf } from '@/core/types/users';
+import { motion } from 'framer-motion';
 
 export default function AvatarUpload({ user }: { user: UserSelf }) {
   const [current, setCurrent] = useState('/i/user.png');
@@ -94,13 +95,14 @@ export default function AvatarUpload({ user }: { user: UserSelf }) {
         </div>
       </div>
 
-      <button
+      <motion.button
         onClick={uploadAvatar}
         className="bg-darkerAccent hover:bg-darkerAccent/80 transition text-white px-4 py-2 rounded disabled:opacity-50"
+        whileTap={{ scale: 0.98 }}
         disabled={!file}
       >
         Upload Avatar
-      </button>
+      </motion.button>
       <p className="text-sm text-subtle mt-2">{status}</p>
     </section>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useToast } from '../Toast';
 import { UserSelf } from '@/core/types/users';
 import { browserPrefsKey } from '@/core/authClient';
+import { motion } from 'framer-motion';
 
 export const defaultLayout = 'GRID';
 export const defaultPostsPerPage = 30;
@@ -91,12 +92,13 @@ export default function PreferencesForm({ user }: { user: UserSelf }) {
         </div>
       </div>
 
-      <button
-        onClick={save}
-        className="bg-darkerAccent hover:bg-darkerAccent/80 transition text-white px-4 py-2 rounded"
+      <motion.button
+        onClick={() => save}
+        whileTap={{ scale: 0.98 }}
+        className="cursor-pointer rounded bg-darkerAccent px-4 py-2 text-white transition hover:bg-darkerAccent/80 focus:outline-none"
       >
         Save To Browser
-      </button>
+      </motion.button>
     </section>
   );
 }
