@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
-import { fetchAllImplications } from "@/core/recursiveImplications";
+import { fetchAllImplications } from "@/core/completeTags";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

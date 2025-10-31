@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/core/prisma";
-import { fetchAllImplications } from "@/core/recursiveImplications";
+import { fetchAllImplications, fetchTag } from "@/core/completeTags";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { auth } from "@/core/authServer";
@@ -9,76 +9,9 @@ import { auth } from "@/core/authServer";
 export async function GET(req: Request, context: { params: Promise<{ name: string }> }) {
   const tagName = (await context.params).name;
 
-  // Try exact match
-  let tag = await prisma.tags.findUnique({
-    where: { name: tagName },
-    include: {
-      category: true,
-      aliases: true,
-      implications: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          category: true,
-        }
-      },
-      suggestions: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          category: true,
-        }
-      },
-      _count: { select: { posts: true } },
-    },
-  });
+  const tagData = await fetchTag(tagName);
 
-  // If not found, try alias match
-  if (!tag) {
-    const alias = await prisma.tagAlias.findUnique({
-      where: { alias: tagName },
-      include: {
-        tag: {
-          include: {
-            category: true,
-            aliases: true,
-            implications: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                category: true,
-              }
-            },
-            suggestions: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                category: true,
-              }
-            },
-            _count: { select: { posts: true } },
-          },
-        },
-      },
-    });
-
-    tag = alias?.tag ?? null;
-  }
-
-  if (!tag) {
-    return NextResponse.json({ error: "Tag not found" }, { status: 404 });
-  }
-
-  const allImplications = await fetchAllImplications(tag.id);
-
-  return NextResponse.json({
-    ...tag,
-    allImplications,
-  });
+  return NextResponse.json(tagData);
 }
 
 // Delete Tag
