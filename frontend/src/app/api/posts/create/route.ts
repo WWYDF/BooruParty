@@ -65,8 +65,14 @@ export async function POST(request: NextRequest) {
   const anonymous = formData.get('anonymous') === 'true';
   const safety = formData.get('safety') as 'SAFE' | 'SKETCHY' | 'UNSAFE';
   const rawTags = formData.get('tags') as string | null;
-  const rawSource = formData.get("source") as string | null;
-  const sources: string[] = rawSource ? JSON.parse(rawSource) : [];
+  const rawSource = formData.get("source") as string | string[] | null;
+
+  const sources: string[] = Array.isArray(rawSource)
+    ? rawSource
+    : rawSource
+    ? rawSource.split(/\s*,\s*/).filter(Boolean)
+    : [];
+
   const notes = formData.get("notes") as string | null;
   const relPostRaw = formData.get("relatedPosts") as string | null;
 
@@ -197,22 +203,22 @@ export async function POST(request: NextRequest) {
         // Use new function (prev. /tags/[name])
         const tagObjs = await Promise.all(tagNames.map((name) => fetchTag(name)));
 
-        // Validate: every requested tag must resolve
-        const missing: string[] = [];
-        tagObjs.forEach((t, i) => { if (!t) missing.push(tagNames[i]); });
-        if (missing.length) {
-          return NextResponse.json(
-            { error: `Invalid tag(s): ${missing.join(', ')}` },
-            { status: 400 }
-          );
+        // Filter out any tags that didn't resolve
+        const validTags = tagObjs.filter((t): t is NonNullable<typeof t> => !!t);
+
+        if (validTags.length === 0) {
+          console.warn('No valid tags found — skipping tag linking.');
+        } else if (validTags.length < tagObjs.length) {
+          const skipped = tagNames.filter((_, i) => !tagObjs[i]);
+          console.warn(`Skipped invalid tags: ${skipped.join(', ')}`);
         }
 
         // Unionize
         const idSet = new Set<number>();
-        for (const t of tagObjs) {
-          idSet.add(t!.id);
-          if (t!.allImplications?.length) {
-            for (const imp of t!.allImplications) idSet.add(imp.id);
+        for (const t of validTags) {
+          idSet.add(t.id);
+          if (t.allImplications?.length) {
+            for (const imp of t.allImplications) idSet.add(imp.id);
           }
         }
         tags = Array.from(idSet).map((id) => ({ id }));
