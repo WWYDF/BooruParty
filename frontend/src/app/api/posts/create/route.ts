@@ -7,6 +7,7 @@ import { fetch, Agent, FormData } from 'undici';
 import { FastifyUpload } from '@/core/types/posts';
 import { checkPermissions } from '@/components/serverSide/permCheck';
 import { fetchAutoTags } from '@/components/serverSide/autotag';
+import { fetchTag } from '@/core/completeTags';
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
   
     const addedTags = addedTagsArray.length > 0 ? JSON.stringify(addedTagsArray) : '';
   
-    // Mass Tagger on Upload
+    // Add Tags on Upload
     if (addedTags.length > 0) {
       let tagNames: string[];
       try {
@@ -192,23 +193,29 @@ export async function POST(request: NextRequest) {
     
       // Force lowercase on all tag names
       tagNames = tagNames.map((n) => n.toLowerCase());
-    
-      tags = await prisma.tags.findMany({
-        where: {
-          name: {
-            in: tagNames,
-          },
-        },
-      });
-    
-      if (tags.length !== tagNames.length) {
-        const foundNames = tags.map((t) => t.name);
-        const missing = tagNames.filter((n) => !foundNames.includes(n));
-        return NextResponse.json(
-          { error: `Invalid tag(s): ${missing.join(", ")}` },
-          { status: 400 }
-        );
-      }
+
+        // Use new function (prev. /tags/[name])
+        const tagObjs = await Promise.all(tagNames.map((name) => fetchTag(name)));
+
+        // Validate: every requested tag must resolve
+        const missing: string[] = [];
+        tagObjs.forEach((t, i) => { if (!t) missing.push(tagNames[i]); });
+        if (missing.length) {
+          return NextResponse.json(
+            { error: `Invalid tag(s): ${missing.join(', ')}` },
+            { status: 400 }
+          );
+        }
+
+        // Unionize
+        const idSet = new Set<number>();
+        for (const t of tagObjs) {
+          idSet.add(t!.id);
+          if (t!.allImplications?.length) {
+            for (const imp of t!.allImplications) idSet.add(imp.id);
+          }
+        }
+        tags = Array.from(idSet).map((id) => ({ id }));
     }
   } catch (e) {
     console.error(`Skipping tags process due to:`, e);
