@@ -1,6 +1,9 @@
 import { FastifyPluginAsync } from 'fastify';
 import fs from 'fs';
 import path from 'path';
+import { appLogger } from '../plugins/logger';
+
+const logger = appLogger('Stats');
 
 const statsRoute: FastifyPluginAsync = async (fastify) => {
   fastify.get('/stats', async (req, reply) => {
@@ -27,7 +30,7 @@ const statsRoute: FastifyPluginAsync = async (fastify) => {
 
       return reply.send({ totalMB }); // Send total in megabytes
     } catch (err) {
-      fastify.log.error('Failed to calculate storage usage:', err);
+      logger.error('Failed to calculate storage usage:', err);
       return reply.code(500).send({ error: 'Failed to calculate storage usage' });
     }
   });

@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { FastifyInstance } from 'fastify';
+import { appLogger } from '../plugins/logger';
+
+const logger = appLogger('Preview');
 
 interface Props {
   filePath: string,
@@ -18,13 +21,13 @@ export default function checkDeletePreview(data: Props): boolean {
   if (fs.existsSync(previewPath)) {
     const previewSize = fs.statSync(previewPath).size;
     if (data.previewScale === 100 && previewSize >= originalSize) {
-      data.fastify.log.warn(`Deleting useless preview for post ${data.postId}`);
+      logger.warn(`Deleting useless preview for post ${data.postId}`);
       setTimeout(() => {
         try {
           fs.unlinkSync(previewPath);
-          data.fastify.log.warn(`Deleted redundant preview: ${previewPath}`);
+          logger.warn(`Deleted redundant preview: ${previewPath}`);
         } catch (err) {
-          data.fastify.log.error(`Failed to delete preview: ${err}`);
+          logger.error(`Failed to delete preview: ${err}`);
         }
       }, 50);
       return true;

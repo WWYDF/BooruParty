@@ -1,6 +1,9 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { ENCODER_PRIORITY_MAP } from '../types/encoders';
+import { appLogger } from '../plugins/logger';
+
+const logger = appLogger('Encoder');
 
 const execAsync = promisify(exec);
 
@@ -51,7 +54,7 @@ function encoderMatchesHw(encoder: string, hwSet: Set<string>): boolean {
 export async function getBestEncoder(codec: keyof typeof ENCODER_PRIORITY_MAP): Promise<string> {
   const manualOverride = process.env.VIDEO_ENCODER_IMPL;
   if (manualOverride) {
-    console.log(`[Encoder] Using manual override: ${manualOverride}`);
+    logger.debug(`Using manual override: ${manualOverride}`);
     return manualOverride;
   }
 
@@ -67,11 +70,11 @@ export async function getBestEncoder(codec: keyof typeof ENCODER_PRIORITY_MAP): 
     if (hwOkay && listed) {
       const usable = await isUsableEncoder(encoder);
       if (usable) {
-        console.log(`[Encoder] Selected encoder "${encoder}" for codec "${codec}"`);
+        logger.info(`Selected encoder "${encoder}" for codec "${codec}"`);
         usableEncoderCache[codec] = encoder;
         return encoder;
       } else {
-        console.log(`[Encoder] Rejected unusable encoder: ${encoder}`);
+        logger.warn(`Rejected unusable encoder: ${encoder}`);
       }
     }
   }
