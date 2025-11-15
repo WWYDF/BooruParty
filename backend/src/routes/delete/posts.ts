@@ -56,7 +56,7 @@ const postDeleteRoute: FastifyPluginAsync = async (fastify) => {
 
     for (const id of idsToDelete) {
       const idStr = String(id);
-      logger.info(`Trying to delete post #${id}`);
+      logger.info(`Attempting to delete post #${id}...`);
 
       for (const folder of mediaFolders) {
         try {

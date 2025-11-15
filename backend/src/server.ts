@@ -14,6 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import routeLogger, { appLogger, initAppLogFile } from './plugins/logger';
 import chalk from 'chalk';
+import integrityCheck from './routes/checks';
 
 dotenv.config();
 
@@ -66,6 +67,7 @@ async function buildServer() {
   await fastify.register(postDeleteRoute, { prefix: '/api' });
   await fastify.register(avatarDeleteRoute, { prefix: '/api' });
   await fastify.register(postReplaceRoute, { prefix: '/api' });
+  await fastify.register(integrityCheck, { prefix: '/api' });
   logger.info('[+] REST API Routes loaded successfully!');
 
   return fastify;

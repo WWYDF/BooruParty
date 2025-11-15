@@ -52,5 +52,6 @@ export const prismaPerms = [
   { name: "dashboard_roles" },
   { name: "dashboard_audit_log" },
   { name: "dashboard_addons" },
+  { name: "dashboard_checks" }, // Perform any and all server-side checks
   { name: "administrator" },
 ]

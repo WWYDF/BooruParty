@@ -1,5 +1,6 @@
 import AnalyticsOverview from "@/components/clientSide/Dashboard/AnalyticsBox";
 import DatabaseBackup from "@/components/clientSide/Dashboard/Backup";
+import IntegrityCheck from "@/components/clientSide/Dashboard/IntegrityCheck";
 import UpdaterBox from "@/components/clientSide/Dashboard/Updater";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { motion } from 'framer-motion';
@@ -10,16 +11,18 @@ export default async function AdminDashboard() {
     'dashboard_view',
     'dashboard_analytics',
     'dashboard_update',
-    'dashboard_backups'
+    'dashboard_backups',
+    'dashboard_checks'
   ]);
 
   const canViewDashboard = perms['dashboard_view'];
   const canViewAnalytics = perms['dashboard_analytics'];
   const canUpdateSite = perms['dashboard_update'];
   const canBackupDatabase = perms['dashboard_backups'];
+  const canRunChecks = perms['dashboard_checks'];
 
   // Hide page if user lacks base perm or all widget perms.
-  if (!canViewDashboard || !canViewAnalytics && !canUpdateSite && !canBackupDatabase) {
+  if (!canViewDashboard || !canViewAnalytics && !canUpdateSite && !canBackupDatabase && !canRunChecks) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center text-center px-4 text-red-400">
         <h1 className="text-3xl font-bold mb-2">Access Denied</h1>
@@ -46,6 +49,11 @@ export default async function AdminDashboard() {
         {/* Backup Component */}
         {canBackupDatabase && (
           <DatabaseBackup />
+        )}
+
+        {/* Integrity Component */}
+        {canRunChecks && (
+          <IntegrityCheck />
         )}
       </div>
     </div>

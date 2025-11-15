@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ConfirmModal from '../ConfirmModal';
 import ImportModal from './ImportModal';
 import FadeIn from '../Motion/FadeIn';
+import { DownloadSimple, Export } from 'phosphor-react';
 
 export default function DatabaseBackup() {
   const [showExportConfirm, setShowExportConfirm] = useState(false);
@@ -34,16 +35,16 @@ export default function DatabaseBackup() {
         <div className="flex gap-4">
           <button
             onClick={() => setShowExportConfirm(true)}
-            className="bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
+            className="flex gap-2 items-center transition bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
           >
-            📦 Export Backup
+            <Export /> Export Backup
           </button>
 
           <button
             onClick={() => setShowImportConfirm(true)}
-            className="bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
+            className="flex gap-2 items-center transition bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
           >
-            📥 Import Backup
+            <DownloadSimple />  Import Backup
           </button>
         </div>
 
