@@ -1,6 +1,7 @@
 import AnalyticsOverview from "@/components/clientSide/Dashboard/AnalyticsBox";
 import DatabaseBackup from "@/components/clientSide/Dashboard/Backup";
 import IntegrityCheck from "@/components/clientSide/Dashboard/IntegrityCheck";
+import PermissionSync from "@/components/clientSide/Dashboard/UpdatePerms";
 import UpdaterBox from "@/components/clientSide/Dashboard/Updater";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { motion } from 'framer-motion';
@@ -44,6 +45,11 @@ export default async function AdminDashboard() {
         {/* Updater Component */}
         {canUpdateSite && (
           <UpdaterBox />
+        )}
+
+        {/* Perms Component */}
+        {canUpdateSite && (
+          <PermissionSync />
         )}
 
         {/* Backup Component */}
