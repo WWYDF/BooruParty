@@ -24,7 +24,7 @@ const integrityCheck: FastifyPluginAsync = async (fastify) => {
 
     const idStrings = ids.map((id) => String(id));
     const uploadsRoot = path.join(process.cwd(), 'data', 'uploads');
-    const subdirs = ['image', 'video', 'other'] as const;
+    const subdirs = ['image', 'video', 'animated', 'other'] as const;
 
     // Read all subfolders once
     const dirEntries = await Promise.all(
