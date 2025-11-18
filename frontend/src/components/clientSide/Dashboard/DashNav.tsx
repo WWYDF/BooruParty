@@ -6,6 +6,7 @@ const links = [
   { name: "Home", href: "/dashboard" },
   { name: "Categories", href: "/dashboard/categories" },
   { name: "Roles", href: "/dashboard/roles" },
+  { name: "Addons", href: "/dashboard/addons" },
   { name: "Audit Log", href: "/dashboard/logs" },
   { name: "Importer", href: "/dashboard/import" },
 ];

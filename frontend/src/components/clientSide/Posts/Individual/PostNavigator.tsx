@@ -169,9 +169,9 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm text-subtle text-center truncate max-w=[60%]"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm text-subtle text-center truncate max-w-[40%]"
         >
-          Pool:{" "}
+          <a className="hidden sm:inline">Pool:{" "}</a>
           <a href={`/pools/${poolId}`} className="text-accent hover:underline underline-offset-2">
             {poolName}
           </a>

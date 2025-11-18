@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react";
 import EditPost from "./EditPost";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PencilSimple, Minus, Plus, Tag, Star, Heart, Sparkle, ThumbsUp } from "phosphor-react";
 import { formatCounts, formatStorageFromBytes } from "@/core/formats";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { useToast } from "../../Toast";
-import { Post } from "@/core/types/posts";
+import { Post, PostUserStatus } from "@/core/types/posts";
 import { getCategoryFromExt } from "@/core/dictionary";
 
 const AVATAR_URL = "/i/user.png";
@@ -19,8 +18,10 @@ export interface canEdit {
   otherPosts: boolean
 }
 
-export default function PostMetadata({ post, editPerms, userId }: { post: Post, editPerms: canEdit, userId: string | undefined }) {
+export default function PostMetadata({ post, user, editPerms, userId }: { post: Post, user: PostUserStatus, editPerms: canEdit, userId: string | undefined }) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null);
+  const [fileSize, setfileSize] = useState<number | null>(null);
+  const [viewingFull, setViewingFullState] = useState<boolean>(false);
   const [editing, setEditing] = useState(false);
   const router = useRouter();
   const toast = useToast();
@@ -81,12 +82,28 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
   };
 
   useEffect(() => {
-    // first read from sessionStorage (instant on refresh)
+    // first clear metadata for other posts
+    Object.keys(sessionStorage)
+    .filter(
+      k =>
+        (k.startsWith("bp:dims:") || k.startsWith("bp:size:")) &&
+        !k.endsWith(`:${post.id}`)
+    )
+    .forEach(k => sessionStorage.removeItem(k));
+
+
+    // then read from sessionStorage (instant on refresh)
     try {
-      const raw = sessionStorage.getItem(`bp:dims:${post.id}`);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { w: number; h: number; src?: string; at?: number };
+      const rawDims = sessionStorage.getItem(`bp:dims:${post.id}`);
+      if (rawDims) {
+        const parsed = JSON.parse(rawDims) as { w: number; h: number; src?: string; at?: number };
         if (parsed?.w && parsed?.h) setDimensions({ w: parsed.w, h: parsed.h });
+      }
+
+      const rawSize = sessionStorage.getItem(`bp:size:${post.id}`);
+      if (rawSize) {
+        const parsed = JSON.parse(rawSize) as { bytes: number, at?: number; src?: string };
+        if (parsed?.bytes) setfileSize(parsed.bytes);
       }
     } catch {}
   
@@ -95,8 +112,26 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
       const { postId, w, h } = (e as CustomEvent).detail || {};
       if (postId === post.id && w && h) setDimensions({ w, h });
     };
+
+    const onViewingChange = (e: Event) => {
+      const { state } = (e as CustomEvent).detail || {};
+      setViewingFullState(state);
+      console.log(state)
+    };
+    
+    const onSize = (e: Event) => {
+      const { postId, bytes } = (e as CustomEvent).detail || {};
+      if (postId === post.id && bytes) setfileSize(bytes);
+    };
+
     window.addEventListener("post:image-dimensions", onDims as EventListener);
-    return () => window.removeEventListener("post:image-dimensions", onDims as EventListener);
+    window.addEventListener("post:image-size", onSize as EventListener);
+    window.addEventListener("post:changeViewingState", onViewingChange as EventListener);
+    return () => {
+      window.removeEventListener("post:image-dimensions", onDims as EventListener)
+      window.removeEventListener("post:image-size", onSize as EventListener)
+      window.removeEventListener("post:changeViewingState", onViewingChange as EventListener)
+    };
   }, [post.id]);
 
   return (
@@ -104,7 +139,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
       {/* Header with user info */}
       <div className="flex items-center gap-3">
         {displayAvatar ? (
-          <Image
+          <img
             src={displayAvatar}
             alt="Uploader avatar"
             width={48}
@@ -169,27 +204,36 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
       {/* Stats bar (Score, Favorites, and Boosts) */}
       {!editing && (
         <div className="flex items-center gap-4 mr-4">
-          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+          <button
+            className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+            onClick={() => router.push('/posts?query=order%3Ascore')}
+          >
             <ThumbsUp size={16} className="text-green-400" />
             <span className="text-xs text-white/80">Score</span>
             <span className="text-xs font-semibold text-subtle">{formatCounts(post.score ?? 0)}</span>
-          </div>
+          </button>
 
-          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+          <button
+            className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+            onClick={() => router.push('/posts?query=order%3Afavorites')}
+          >
             <Star size={16} className="text-yellow-400" />
             <span className="text-xs text-white/80">Favorites</span>
             <span className="text-xs font-semibold text-subtle">
               {formatCounts((typeof post._count?.favoritedBy === "number" ? post._count?.favoritedBy : 0) as number)}
             </span>
-          </div>
+          </button>
 
-          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+          <button
+            className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+            onClick={() => router.push('/posts?query=order%3Aboosts')}
+          >
             <Sparkle size={16} className="text-cyan-400" />
             <span className="text-xs text-white/80">Boosts</span>
             <span className="text-xs font-semibold text-subtle">
               {formatCounts((typeof post._count?.boosts === "number" ? post._count?.boosts : 0) as number)}
             </span>
-          </div>
+          </button>
         </div>
       )}
 
@@ -197,6 +241,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
         <div className="mr-4">
           <EditPost
             post={post}
+            user={user}
             onSaveSuccess={() => {
               router.refresh();
               setEditing(false);
@@ -237,7 +282,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
             {typeof post.fileSize === "number" && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Size</span>
-                {formatStorageFromBytes(post.fileSize ?? 0)}
+                {viewingFull === true ? formatStorageFromBytes(post.fileSize ?? 0) : formatStorageFromBytes(fileSize ?? post.fileSize)}
               </p>
             )}
 
@@ -426,7 +471,7 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
                           >
                             <button
                               onClick={() => modifyQuery("add", tag.name)}
-                              className="hover:text-accent"
+                              className="hover:text-green-400 transition"
                               title="Add tag to search"
                             >
                               <Plus size={10} weight="bold" />
@@ -434,14 +479,14 @@ export default function PostMetadata({ post, editPerms, userId }: { post: Post, 
 
                             <button
                               onClick={() => modifyQuery("exclude", tag.name)}
-                              className="hover:text-accent"
+                              className="hover:text-red-400 transition"
                               title="Exclude tag from search"
                             >
                               <Minus size={10} weight="bold" />
                             </button>
 
                             <Link href={`/tags/${encodeURIComponent(tag.name)}`} title="Edit tag">
-                              <Tag size={14} />
+                              <Tag size={14} className="hover:opacity-80 transition" />
                             </Link>
 
                             <button

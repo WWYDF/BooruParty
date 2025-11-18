@@ -12,6 +12,7 @@ import sanitizeHtml from "sanitize-html";
 import { checkPermissions } from "@/core/permissions";
 import { useToast } from "@/components/clientSide/Toast";
 import { hexToRgb } from "@/core/roles";
+import { UserPublic, UserSelf } from "@/core/types/users";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -71,7 +72,7 @@ type PrivateError = { code: number; message: string } | null;
 
 export default function UserProfilePage() {
   const { username } = useParams() as { username: string };
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserPublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<PrivateError>(null);
   const { data: session } = useSession();
@@ -225,9 +226,9 @@ export default function UserProfilePage() {
     let sort = "";
 
     if (type === "posts") {
-      query = `posts:${user.username}`;
+      query = `posts:${user!.username}`;
     } else if (type === "favorites") {
-      query = `favorites:${user.username}`;
+      query = `favorites:${user!.username}`;
     }
 
     localStorage.setItem(
@@ -241,8 +242,16 @@ export default function UserProfilePage() {
     router.push(`/post/${postId}`);
   }
 
+  function viewTag(tagName: string) {
+    localStorage.setItem(
+      "lastSearchParams",
+      JSON.stringify({ tagName, sort: "" })
+    );
+    router.push(`/posts?query=${encodeURIComponent(tagName)}`);
+  }
+
   return (
-    <main className="relative pt-16 pb-20">
+    <main className="relative min-h-screen pt-16 pb-20">
       {/* Meta */}
       <meta property="og:image" content={user.avatar || `/i/user.png`} />
       <meta name="theme-color" content={user.role?.color} />
@@ -290,7 +299,7 @@ export default function UserProfilePage() {
           <img
             src={user.avatar || `/i/user.png`}
             alt={user.username}
-            className="w-24 h-24 rounded-full object-cover border border-zinc-700"
+            className="w-24 h-24 rounded-full object-cover shadow-lg"
           />
 
           <div className="">
@@ -341,6 +350,34 @@ export default function UserProfilePage() {
             </motion.div>
           )}
         </div>
+
+        {/* Favorite Tags */}
+        {(user?.preferences?.favoriteTags?.length ?? 0) > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold mb-2">
+              Favorite Tags <a className="text-sm text-subtle">({user.preferences.favoriteTags.length}/20)</a>
+            </h2>
+
+            {/* chips row */}
+            <div className="flex flex-wrap gap-2">
+              {user.preferences.favoriteTags.map((tag: any) => (
+                <motion.button
+                  key={tag.id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => viewTag(tag.name)}
+                  className="shrink-0 inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/50 px-3 py-1.5 text-sm hover:border-darkerAccent hover:bg-zinc-900 transform transition duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:shadow-accent/30"
+                  title={`Search posts tagged "${tag.name}"`}
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: tag?.category?.color ?? '#a1a1aa' }}
+                  />
+                  <span className="text-zinc-200">{tag.name}</span>
+                </motion.button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Recent Posts */}
         {user.posts?.length > 0 && (

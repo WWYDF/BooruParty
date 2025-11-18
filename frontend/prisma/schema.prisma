@@ -42,6 +42,12 @@ enum SafetyType {
   UNSAFE
 }
 
+enum AutoTaggerMode {
+  PASSIVE
+  AGGRESSIVE
+  SELECTIVE
+}
+
 model SiteSettings {
   id            Int       @id @default(1)
   setupComplete Boolean   @default(false)
@@ -87,6 +93,7 @@ model UserPreferences {
   blurUnsafeEmbeds    Boolean         @default(true)            // Change if NSFW site
   defaultSafety       SafetyType[]    @default([SAFE])          // Change if NSFW site
   blacklistedTags     Tags[]          @relation("UserBLTags")
+  favoriteTags        Tags[]          @relation("UserFavTags")
   profileBackground   Int?                                      // Post ID
 
   private             Boolean         @default(false)
@@ -247,6 +254,7 @@ model Tags {
   suggestedBy    Tags[]             @relation("TagSuggestions")
 
   blacklistBy    UserPreferences[]  @relation("UserBLTags")
+  favoritedBy    UserPreferences[]  @relation("UserFavTags")
 
   createdAt      DateTime           @default(now())
 
@@ -375,4 +383,17 @@ model ImportLog {
   message    String
   level      String
   timestamp  DateTime     @default(now())
+}
+
+model AddonsConfig {
+  id                      Int                 @id @default(1) // singleton row
+  artistProfiles          Boolean             @default(false)
+
+  autoTagger              Boolean             @default(false)
+  autoTaggerUrl           String?             @db.VarChar(512)
+  autoTaggerMode          AutoTaggerMode[]    @default([PASSIVE])
+
+  updatedAt               DateTime            @updatedAt
+
+  @@map("addons_config")
 }

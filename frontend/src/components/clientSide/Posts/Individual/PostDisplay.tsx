@@ -16,8 +16,6 @@ type Props = {
   disableFullscreen?: boolean;
 };
 
-type Dims = { w: number; h: number };
-
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
 export default function PostDisplay({ post, user, showVoting = true, disableFullscreen = false }: Props) {
@@ -37,6 +35,16 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
     if (disableFullscreen == false) { setIsAnimating(toggle); }
   }
 
+  async function getImageSizeBytes(url: string): Promise<number | null> {
+    try {
+      const res = await fetch(url, { method: "HEAD" });
+      const size = res.headers.get("content-length");
+      return size ? parseInt(size, 10) : null;
+    } catch {
+      return null;
+    }
+  }
+  
   function saveDims(w: number, h: number) {
     // persist per-post so it survives refresh
     try {
@@ -52,8 +60,28 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
   }
   
   function handleImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    const { naturalWidth, naturalHeight } = e.currentTarget;
+    const { naturalWidth, naturalHeight, currentSrc } = e.currentTarget;
     publishDims(naturalWidth, naturalHeight);
+    fetchAndPublishSize(currentSrc);
+  }
+  
+  async function fetchAndPublishSize(url: string) {
+    const bytes = await getImageSizeBytes(url);
+    if (bytes) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("post:image-size", {
+            detail: { postId: post.id, bytes },
+          })
+        );
+      }
+      try {
+        sessionStorage.setItem(
+          `bp:size:${post.id}`,
+          JSON.stringify({ bytes, at: Date.now(), src: url })
+        );
+      } catch {}
+    }
   }
 
   useEffect(() => {
@@ -86,13 +114,14 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
             />
           ) : (
             <img
+              ref={imgRef}
               loading="lazy"
               src={showFull ? fullSrc : post.previewPath}
               alt={`Error accessing ${fullSrc}`}
               title="Click to enter fullscreen mode"
               onClick={() => { handleFullscreen(true); }}
               onLoad={handleImageLoad}
-              className="md:max-h-[80vh] md:h-[80vh] md:max-w-[90vh] w-auto object-contain rounded-xl cursor-pointer"
+              className="lg:max-h-[80vh] lg:h-[80vh] w-auto object-contain rounded-xl cursor-pointer"
             />
           )}
         </motion.div>
@@ -100,7 +129,10 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
 
       {!showFull && post.previewScale !== 100 && showVoting ? (
         <button
-          onClick={() => setShowFull(true)}
+          onClick={() => {
+            setShowFull(true);
+            window.dispatchEvent(new CustomEvent("post:changeViewingState", { detail: { state: true } }));
+          }}
           className="text-subtle text-sm italic"
         >
           Viewing sample resized to {post.previewScale}% of original (

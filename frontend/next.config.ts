@@ -7,9 +7,6 @@ const nextjs = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:306
 const parsedProtocol = protocol.replace(':', '') as 'http' | 'https';
 
 const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       {

@@ -1,26 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { X, Tag as TagIcon } from "@phosphor-icons/react";
 import Link from "next/link";
-import TagSelector from "../../TagSelector";
+import TagSelector, { TagSelectorHandle } from "../../TagSelector";
 import TagSuggestionPopup from "../../Tags/SuggestionPopup";
 import ConfirmModal from "../../ConfirmModal";
 import { useToast } from "../../Toast";
 import { Tag, TagCategory } from "@/core/types/tags";
 import RelatedPostInput from "./PostRelation";
 import { useDropzone } from "react-dropzone";
-import { Post } from "@/core/types/posts";
+import { Post, PostUserStatus } from "@/core/types/posts";
 import { formatCounts } from "@/core/formats";
 import { motion, AnimatePresence } from "framer-motion";
-import { resolveFileType } from "@/core/dictionary";
+import { getCategoryFromExt, resolveFileType } from "@/core/dictionary";
+import AutoTaggerModal from "./AutoTaggerModal";
 
 export default function EditPost({
   post,
+  user,
   onSaveSuccess = () => {},
   onDeleteSuccess = () => {},
 }: {
   post: Post;
+  user: PostUserStatus;
   onSaveSuccess?: () => void;
   onDeleteSuccess?: () => void;
 }) {
@@ -44,7 +47,13 @@ export default function EditPost({
   const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
   const [defaultCategory, setDefaultCategory] = useState<TagCategory>({ id: 1, name: 'Default', color: '#3c9aff', order: 10, isDefault: true, updatedAt: new Date() });
   const [replacementThumb, setReplacementThumb] = useState<File | null>(null);
+  const [autoTaggerUrl, setAutoTaggerUrl] = useState<string>();
+  const [showAutoTagModal, setShowAutoTagModal] = useState(false);
+  const tagSelectorRef = useRef<TagSelectorHandle | null>(null);
   const toast = useToast();
+
+  const nextFakeId = useRef(-1);
+  const allocFakeId = () => nextFakeId.current--;
 
   const fileType = resolveFileType(`.${post.fileExt}`);
 
@@ -71,6 +80,7 @@ export default function EditPost({
     setPools(post.pools.map(p => p.pool.id));
   }, [post.tags, post.relatedFrom, post.relatedTo, post.pools]);
 
+
   useEffect(() => {
     const loadDefaultCategory = async () => {
       const res = await fetch("/api/tag-categories?default=true");
@@ -81,6 +91,19 @@ export default function EditPost({
     };
   
     loadDefaultCategory();
+  }, []);
+
+  
+  useEffect(() => {
+    const fetchAddons = async () => {
+      const res = await fetch("/api/addons");
+      const data = await res.json();
+      if (data?.autotagger.enabled && data?.autotagger.mode.includes('PASSIVE')) {
+        setAutoTaggerUrl(data.autotagger.url)
+      }
+    };
+  
+    fetchAddons();
   }, []);
 
 
@@ -289,7 +312,7 @@ export default function EditPost({
   const handleCopyTags = async () => {
     const tagNames = uniqueTags.map((t) => t.name).join("\n");
     await navigator.clipboard.writeText(tagNames);
-    toast("Tags copied to clipboard!");
+    toast("Tags copied to clipboard!", 'success');
   };
 
   const handlePasteTags = async () => {
@@ -351,7 +374,7 @@ export default function EditPost({
             setPendingTagNames(prev => [...prev, lower]);
   
             const fakeTag: Tag = {
-              id: -(pendingTagNames.length + 1), // negative temporary ID
+              id: allocFakeId(), // negative temporary ID
               name,
               description: null,
               aliases: [],
@@ -372,6 +395,23 @@ export default function EditPost({
       toast("Could not read from clipboard.", "error");
     }
   };
+
+  // Build exclusion sets from the current post
+  const existingTagIds = new Set<number>(
+    (orderedTags ?? []).map(t => t.id)
+  );
+
+  const existingNames = new Set<string>(
+    (orderedTags ?? [])
+      .flatMap(t => [
+        t.name,
+        ...(Array.isArray(t.aliases) ? t.aliases.map(a => a.alias) : []),
+      ])
+      .map(s => s.toLowerCase())
+  );
+
+  const existingTagIdsArr = useMemo(() => Array.from(existingTagIds), [existingTagIds]);
+  const existingNamesArr = useMemo(() => Array.from(existingNames), [existingNames]);
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -473,24 +513,46 @@ export default function EditPost({
             <label className="text-white font-medium">Tags</label>
           </div>
 
-          <div className="space-x-2">
+          <div className="space-x-1">
+            <AnimatePresence>
+              {autoTaggerUrl && getCategoryFromExt(post.fileExt) != 'video' && user.canAutoTag && (
+                <motion.span
+                  className="inline-flex items-center gap-1"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setShowAutoTagModal(true)}
+                    className="text-xs text-accent hover:underline"
+                  >
+                    Suggested Tags
+                  </button>
+                  <span className="text-zinc-600">•</span>
+                </motion.span>
+              )}
+            </AnimatePresence>
             <button
               type="button"
               onClick={handlePasteTags}
               className="text-xs text-accent hover:underline"
             >
-              Add from clipboard
+              Paste Tags
             </button>
+            <span className="text-zinc-600">•</span>
             <button
               type="button"
               onClick={handleCopyTags}
               className="text-xs text-accent hover:underline"
             >
-              Copy to clipboard
+              Copy Tags
             </button>
           </div>
         </div>
         <TagSelector
+          ref={tagSelectorRef}
           onSelect={handleSelectTag}
           disabledTags={orderedTags}
           placeholder="Add tags..."
@@ -509,7 +571,7 @@ export default function EditPost({
           
             // Create a temporary tag object
             const fakeTag: Tag = {
-              id: -(pendingTagNames.length + 1), // negative temporary ID
+              id: allocFakeId(), // negative temporary ID
               name,
               description: null,
               aliases: [],
@@ -652,6 +714,27 @@ export default function EditPost({
         description="This will permanently remove the post and its data. Are you sure?"
         confirmText="Delete"
         cancelText="Cancel"
+      />
+
+      <AutoTaggerModal
+        open={showAutoTagModal}
+        onClose={() => setShowAutoTagModal(false)}
+        imageUrl={post.previewPath}
+        onSave={async ({ matched, create }) => {
+          // Use matchedName so aliases work the same as user paste
+          const names = [
+            ...matched.map(m => m.matchedName || m.name),
+            ...create.map(n => n.name),
+          ];
+          const pastedText = names.join(' ');
+        
+          // Trigger the same behavior as paste+Enter (includes implications via addImpliedTags)
+          await tagSelectorRef.current?.applyPastedText(pastedText);
+        
+          setShowAutoTagModal(false);
+        }}
+        existingTagIds={existingTagIdsArr}
+        existingNames={existingNamesArr}
       />
     </div>
   );

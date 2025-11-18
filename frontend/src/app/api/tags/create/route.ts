@@ -5,7 +5,7 @@ import { reportAudit } from "@/components/serverSide/auditLog";
 import { auth } from "@/core/authServer";
 
 export async function POST(req: Request) {
-  const { name, categoryId } = await req.json();
+  const { name, categoryId, category, description } = await req.json();
   const session = await auth();
 
   const hasPerms = (await checkPermissions(['tags_create']))['tags_create'];
@@ -24,9 +24,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Tag already exists." }, { status: 400 });
     }
 
-    const setCategory = categoryId ?? (
-      await prisma.tagCategories.findFirst({ orderBy: { isDefault: 'desc' } })
-    )?.id;
+    const setCategory =
+      categoryId ??
+      (
+        category
+          ? (
+              await prisma.tagCategories.findFirst({
+                where: { name: category },
+              })
+            )?.id
+          : (
+              await prisma.tagCategories.findFirst({
+                orderBy: { isDefault: "desc" },
+              })
+            )?.id
+      );
     
     if (!setCategory) {
       return NextResponse.json({ error: "No default category available." }, { status: 500 });
@@ -36,6 +48,7 @@ export async function POST(req: Request) {
       data: {
         name,
         categoryId: setCategory,
+        description
       },
       include: {
         category: true,

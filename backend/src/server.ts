@@ -12,22 +12,28 @@ import postReplaceRoute from './routes/replace';
 import cors from '@fastify/cors'
 import fs from 'fs';
 import path from 'path';
+import routeLogger, { appLogger, initAppLogFile } from './plugins/logger';
+import chalk from 'chalk';
+import integrityCheck from './routes/checks';
 
 dotenv.config();
 
+const logger = appLogger('Server');
+
 async function buildServer() {
-    const fastify = Fastify({
-        logger: {
-          level: 'warn', // Only logs 'warn', 'error', 'fatal'
-          transport: {
-            target: 'pino-pretty',
-            options: {
-              translateTime: 'SYS:standard',
-              ignore: 'pid,hostname',
-            },
+  console.clear();
+  const fastify = Fastify({
+      logger: {
+        level: 'warn', // Only logs 'warn', 'error', 'fatal'
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname',
           },
         },
-      });
+      },
+    });
 
   await fastify.register(multipart, {
     limits: {
@@ -48,15 +54,21 @@ async function buildServer() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
-
+  initAppLogFile(); // rotate logs
+  await fastify.register(routeLogger);
+  logger.info('[+] Logger loaded successfully!');
   await fastify.register(ipFilter);
+  logger.info('[+] Plugins loaded successfully!');
   await fastify.register(registerStatic);
+  logger.info('[+] Asset Routes loaded successfully!');
   await fastify.register(uploadRoutes, { prefix: '/api' });
   await fastify.register(avatarUploadRoute, { prefix: '/api' });
   await fastify.register(statsRoute, { prefix: '/api' });
   await fastify.register(postDeleteRoute, { prefix: '/api' });
   await fastify.register(avatarDeleteRoute, { prefix: '/api' });
   await fastify.register(postReplaceRoute, { prefix: '/api' });
+  await fastify.register(integrityCheck, { prefix: '/api' });
+  logger.info('[+] REST API Routes loaded successfully!');
 
   return fastify;
 }
@@ -64,15 +76,17 @@ async function buildServer() {
 async function start() {
   const filePath = path.join(process.cwd(), 'data');
   fs.mkdirSync(filePath, { recursive: true });
-
   const server = await buildServer();
-  const port = Number(process.env.PORT) ?? 3005;
+
   try {
-    console.clear();
-    await server.listen({ port, host: '0.0.0.0' });
-    console.log(`Server running on http://localhost:${port}`);
+    // Activate Server
+    const PORT = Number(process.env.PORT || 3005);
+    await server.listen({ port: PORT, host: '0.0.0.0' });
+    console.log('');
+    console.log(chalk.greenBright(`[>] Server Startup Completed.`));
+    console.log('');
   } catch (err) {
-    server.log.error(err);
+    logger.error(err);
     process.exit(1);
   }
 }

@@ -4,6 +4,9 @@ import fs from 'fs';
 import { compressGif } from './processGifs';
 import { PreviewFile, resolveFileType } from '../types/mediaTypes';
 import { processVideoPreview } from './processVideos';
+import { appLogger } from '../plugins/logger';
+
+const logger = appLogger('Process/Previews');
 
 export async function processPreview(originalPath: string, postId: number): Promise<PreviewFile> {
   const ext = path.extname(originalPath).toLowerCase();
@@ -31,7 +34,7 @@ export async function processPreview(originalPath: string, postId: number): Prom
         assignedExt: 'gif'
       };
     } catch (err) {
-      console.error(`Compression failed:`, err);
+      logger.error(`Compression failed:`, err);
       return { previewScale: null, assignedExt: null };
     }
   }
@@ -41,7 +44,7 @@ export async function processPreview(originalPath: string, postId: number): Prom
       const { previewScale, assignedExt } = await processVideoPreview(originalPath, postId);
       return { previewScale, assignedExt };
     } catch (err) {
-      console.error('FFmpeg preview failed:', err);
+      logger.error('FFmpeg preview failed:', err);
       return { previewScale: null, assignedExt: null };
     }
   }

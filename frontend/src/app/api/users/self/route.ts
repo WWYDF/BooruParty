@@ -51,7 +51,12 @@ export async function GET() {
             }
           },
           profileBackground: true,
-          private: true
+          private: true,
+          favoriteTags: {
+            include: {
+              category: true
+            }
+          },
         }
       },
       role: {

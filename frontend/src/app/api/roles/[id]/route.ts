@@ -10,7 +10,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const roleId = Number(prams.id);
   const { name, permissions, isDefault, index } = await req.json();
   const session = await auth();
-  console.log(`${name}, ${permissions}, ${isDefault}, ${index}`);
 
   const hasPerms = (await checkPermissions(['dashboard_roles']))['dashboard_roles'];
   if (!hasPerms || !session) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }

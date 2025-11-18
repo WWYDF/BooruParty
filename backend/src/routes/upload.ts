@@ -7,6 +7,9 @@ import { processPreview } from '../utils/processPreview';
 import { generateThumbnails } from '../utils/generateThumbnails';
 import { PreviewFile, resolveFileType } from '../types/mediaTypes';
 import { getAspectRatio } from '../utils/aspectRatio';
+import { appLogger } from '../plugins/logger';
+
+const logger = appLogger('Uploader');
 
 const uploadRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/upload', async (req, reply) => {
@@ -62,7 +65,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
               await fs.promises.writeFile(filePath, buffer);
             }
 
-            fastify.log.info(`File saved: ${filePath}`);
+            logger.info(`File saved: ${filePath}`);
             let deletedPreview = false;
 
             if (fileFormat === 'image' || fileFormat === 'animated' || fileFormat === 'video') {
@@ -74,7 +77,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
                 try {
                   ratio = await getAspectRatio(filePath, fileFormat);
                 } catch (err) {
-                  fastify.log.warn(`Media reported no aspect ratio: ${err}`);
+                  logger.warn(`Media reported no aspect ratio: ${err}`);
                 }
 
                 const originalSize = fs.statSync(filePath).size;
@@ -83,13 +86,13 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
                 if (fs.existsSync(previewPath)) {
                   const previewSize = fs.statSync(previewPath).size;
                   if (previewScale === 100 && previewSize >= originalSize) {
-                    fastify.log.warn(`Deleting useless preview for post ${postId}`);
+                    logger.warn(`Deleting useless preview for post ${postId}`);
                     setTimeout(() => {
                       try {
                         fs.unlinkSync(previewPath);
-                        fastify.log.warn(`Deleted redundant preview: ${previewPath}`);
+                        logger.warn(`Deleted redundant preview: ${previewPath}`);
                       } catch (err) {
-                        fastify.log.error(`Failed to delete preview: ${err}`);
+                        logger.error(`Failed to delete preview: ${err}`);
                       }
                     }, 50);
                     previewScale = null;
@@ -97,13 +100,13 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
                   }
                 }
 
-                fastify.log.info(`Preview scale = ${previewScale}`);
+                logger.debug(`Preview scale = ${previewScale}`);
               } catch (err) {
-                fastify.log.error(`processPreview failed with ${err}`);
+                logger.error(`processPreview failed with ${err}`);
               }
 
               const thumbs = await generateThumbnails(filePath, fileFormat as any, Number(postId));
-              fastify.log.info(`Generated thumbnails:`, thumbs);
+              logger.verbose(`Generated thumbnails:`, thumbs);
             }
 
             reply.send({
@@ -116,7 +119,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             });
             resolve();
           } catch (err) {
-            fastify.log.error(`File handling failed: ${err}`);
+            logger.error(`File handling failed: ${err}`);
             reply.code(500).send({ error: 'Failed to process upload' });
             resolve();
           }

@@ -196,18 +196,18 @@ export default async function PostPage({
   const desc = `View this ${formatStorageFromBytes(post.fileSize ?? 0)}${fileTypeText}`
 
   return (
-    <main className="grid grid-cols-1 md:grid-cols-[375px_1fr] gap-6 p-4">
+    <main className="grid grid-cols-1 lg:grid-cols-[375px_1fr] gap-6 p-4">
       <meta name="description" content={desc} />
       <meta property="og:title" content={`Post #${post.id}${artistText} | ${process.env.NEXT_PUBLIC_SITE_NAME}`} />
       <meta property="og:description" content={desc} />
 
       {/* LEFT COLUMN - Metadata */}
-      <div className="order-3 md:order-1 md:col-span-1 mt-6 md:mt-0 border-r border-zinc-900">
-        <PostMetadata post={postData.post} editPerms={passPerms} userId={session?.user.id} />
+      <div className="order-3 lg:order-1 lg:col-span-1 mt-6 lg:mt-0 border-r border-zinc-900">
+        <PostMetadata post={postData.post} user={postData.user} editPerms={passPerms} userId={session?.user.id} />
       </div>
 
       {/* RIGHT COLUMN - Main content + Comments */}
-      <div className="order-1 md:order-2 space-y-6">
+      <div className="order-1 lg:order-2 space-y-6">
         <PostNavigator postId={postData.post.id} poolId={poolId ? parseInt(poolId) : undefined} />
         <PostDisplay post={postData.post} user={postData.user} />
 

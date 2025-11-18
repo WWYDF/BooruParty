@@ -1,6 +1,7 @@
 import UploadQueue from "@/components/clientSide/Uploads/UploadQueue";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { Metadata } from "next";
+import { prisma } from '@/core/prisma';
 
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
 
@@ -19,8 +20,15 @@ export const metadata: Metadata = {
 }
 
 export default async function UploadPage() {
-  const canUpload = (await checkPermissions(['post_create']))['post_create'];
-  const canDupe = (await checkPermissions(['post_create_dupes']))['post_create_dupes'];
+  const perms = await checkPermissions([
+    'post_create',
+    'post_create_dupes',
+    'post_autotag'
+  ]);
+
+  const canUpload = perms['post_create'];
+  const canDupe = perms['post_create_dupes'];
+  let showAutoTagButton = false;
 
   if (!canUpload) { 
     return (
@@ -31,9 +39,14 @@ export default async function UploadPage() {
     );
   }
 
+  const autoTagRules = await prisma.addonsConfig.findFirst({ where: { id: 1 } });
+  if (autoTagRules && autoTagRules.autoTagger && autoTagRules.autoTaggerMode.includes('SELECTIVE')) {
+    showAutoTagButton = perms['post_autotag'];
+  }
+
   return (
     <div className="p-8">
-      <UploadQueue canDupe={canDupe} />
+      <UploadQueue canDupe={canDupe} showAutoTag={showAutoTagButton} />
     </div>
   )
 }

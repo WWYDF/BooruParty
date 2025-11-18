@@ -12,11 +12,12 @@ export async function updateUser(
     postsPerPage: number;
     avatar: string;
     blurUnsafeEmbeds: boolean,
-    defaultSafety: SafetyType[],
-    blacklistedTags: number[],
+    defaultSafety: SafetyType[];
+    blacklistedTags: number[];
     flipNavigators: boolean;
     profileBackground: number;
     privateProfile: boolean;
+    favoriteTags: number[];
   }>
 ) {
 

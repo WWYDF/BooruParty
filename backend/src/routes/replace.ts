@@ -9,6 +9,9 @@ import { processPreview } from '../utils/processPreview';
 import { generateThumbnails, thumbnailSizes } from '../utils/generateThumbnails';
 import { getAspectRatio } from '../utils/aspectRatio';
 import checkDeletePreview from '../utils/deletePreview';
+import { appLogger } from '../plugins/logger';
+
+const logger = appLogger('Replacer');
 
 const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
   //
@@ -84,7 +87,7 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
             await fsp.writeFile(filePath, buffer);
           }
 
-          // 🛠 Re-generate previews & thumbnails
+          // Re-generate previews & thumbnails
           let previewScale: number | null = null;
           let ratio: number | null = null;
           let deletedPreview = false;
@@ -97,12 +100,12 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
             ratio = await getAspectRatio(filePath, fileFormat);
             await generateThumbnails(filePath, fileFormat, Number(postId));
           } catch (err) {
-            fastify.log.warn(`Preview/Thumbnail generation failed: ${err}`);
+            logger.warn(`Preview/Thumbnail generation failed: ${err}`);
           }
 
           return reply.send({ success: true, previewScale, aspectRatio: ratio, deletedPreview, assignedExt: previewData.assignedExt,});
         } catch (err) {
-          fastify.log.error(`Replace failed: ${err}`);
+          logger.error(`Replace failed: ${err}`);
           return reply.code(500).send({ error: 'Failed to replace post file' });
         }
       });
@@ -180,13 +183,13 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
             );
             if (results.length !== 3) { throw new Error('Not all images were processed successfully!') }
           } catch (err) {
-            fastify.log.warn(`Preview/Thumbnail generation failed: ${err}`);
+            logger.warn(`Preview/Thumbnail generation failed: ${err}`);
             return reply.status(500).send({ success: false });
           }
 
           return reply.status(200).send({ success: true });
         } catch (err) {
-          fastify.log.error(`Replace failed: ${err}`);
+          logger.error(`Replace failed: ${err}`);
           return reply.status(500).send({ error: 'Failed to replace post file' });
         }
       });

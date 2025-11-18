@@ -2,6 +2,7 @@
 
 import PostDisplay from '@/components/clientSide/Posts/Individual/PostDisplay';
 import { Post } from '@/core/types/posts';
+import { LEGIBLE_VERSION } from '@/core/constants/version';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -34,9 +35,11 @@ export default function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.5 }}
-          className="text-lg text-gray-300 max-w-xl mx-auto"
+          className="text-lg text-gray-300 max-w-lg mx-auto"
         >
-          Effortlessly upload, manage, and share your images. Built with modern tech and speed in mind.
+          A Modern "Booru" Board utilizing the latest technology for the best experience. Please enjoy your stay :)
+          <br /><br />
+          Currently running <a href='https://github.com/WWYDF/BooruParty' className='hover:underline text-accent'>BooruParty</a> {LEGIBLE_VERSION}!
         </motion.p>
       </section>
 

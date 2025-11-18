@@ -17,7 +17,20 @@ export type Post = {
   score: number;
   uploadedById: string;
   createdAt: string;
-  tags: TagGroup[]
+  tags: TagGroup[];
+  favoritedBy: {
+    id: number,
+    userId: string,
+    postId: number,
+    createdAt: Date
+  }[];
+  votes: {
+    id: number,
+    postId: number,
+    userId: string,
+    type: 'UPVOTE' | 'DOWNVOTE'
+    createdAt: Date
+  }[];
   uploadedBy: {
     id: string;
     username: string;
@@ -85,7 +98,8 @@ export type PostUserStatus = {
   vote: 'UPVOTE' | 'DOWNVOTE' | null,
   favorited: boolean
   signedIn: boolean
-  boostedToday: boolean
+  boostedToday: boolean,
+  canAutoTag: boolean
 }
 
 export type PostNavigatorType = {

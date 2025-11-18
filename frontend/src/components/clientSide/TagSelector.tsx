@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import { Tag } from "@/core/types/tags";
 import { formatCounts } from "@/core/formats";
 import AddButton from "./AddButton";
+
+export type TagSelectorHandle = {
+  applyPastedText: (text: string) => Promise<void>;
+};
 
 type TagSelectorProps = {
   onSelect: (tag: Tag, isNegated?: boolean, addImpliedTags?: boolean) => void;
@@ -16,16 +20,19 @@ type TagSelectorProps = {
   addPendingTagName?: (name: string) => void;
 };
 
-export default function TagSelector({
-  onSelect,
-  onDuplicateSelect,
-  addPendingTagName,
-  placeholder = "Type to search...",
-  disabledTags = [],
-  allowNegation = false,
-  addImpliedTags = false,
-  blacklist = [],
-}: TagSelectorProps) {
+export default forwardRef<TagSelectorHandle, TagSelectorProps>(function TagSelector(
+  {
+    onSelect,
+    onDuplicateSelect,
+    addPendingTagName,
+    placeholder = "Type to search...",
+    disabledTags = [],
+    allowNegation = false,
+    addImpliedTags = false,
+    blacklist = [],
+  }: TagSelectorProps,
+  ref
+) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Tag[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -84,6 +91,14 @@ export default function TagSelector({
       }
     };
   }, [query, disabledTags, allowNegation]);
+
+  useImperativeHandle(ref, () => ({
+    applyPastedText: async (text: string) => {
+      // Reuse the exact same logic as user paste+Enter
+      // (this path ends up calling onSelect(tag, addImpliedTags), so implications are included when the prop is true)
+      await processMultipleTags(text);
+    },
+  }));
 
   const processMultipleTags = async (input: string) => {
     const parts = input
@@ -261,4 +276,4 @@ export default function TagSelector({
       )}
     </div>
   );
-}
+});

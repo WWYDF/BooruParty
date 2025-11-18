@@ -100,6 +100,14 @@ export async function GET(req: Request) {
         category: true,
       },
     },
+    
+    // Returns if user has voted or faved each post, only if they are signed in
+    ...(session?.user
+      ? {
+        favoritedBy: { where: { userId: session.user.id } },
+        votes: { where: { userId: session.user.id } }
+      }
+      : {})
   };
 
   let posts;

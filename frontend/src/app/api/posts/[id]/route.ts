@@ -6,12 +6,19 @@ import { auth } from "@/core/authServer";
 import { getConversionType } from "@/core/dictionary";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
+import { PostUserStatus } from "@/core/types/posts";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET endpoint to retrieve a single post by ID
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  let canAutoTag = false;
   try {
-    let permCheck = (await checkPermissions(['post_view']))['post_view'];
+    const perms = await checkPermissions([
+      'post_view',
+      'post_autotag'
+    ]);
+    let permCheck = perms['post_view'];
+    canAutoTag = perms['post_autotag'];
 
     const authHeader = req.headers.get('X-Override'); // Allow internal server pages to access regardless.
     if (authHeader && authHeader == process.env.INTERNAL_API_SECRET) { permCheck = true }
@@ -206,14 +213,20 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     })),
   };
 
-  const userFormatted = {
+  const userFormatted: PostUserStatus = {
     vote: voteType,
     favorited: hasFavorited,
     signedIn: !!session?.user,
-    boostedToday
+    boostedToday,
+    canAutoTag
   }
 
-  return NextResponse.json({post: postFormatted, user: userFormatted});
+  const addonOptions = await prisma.addonsConfig.findFirst({
+    where: { id: 1 },
+    select: { autoTagger: true, artistProfiles: true }
+  });
+
+  return NextResponse.json({post: postFormatted, user: userFormatted, addons: addonOptions});
 }
 
 // PATCH endpoint to update a post by ID
