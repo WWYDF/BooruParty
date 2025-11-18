@@ -150,7 +150,12 @@ export function buildPostWhereAndOrder(
   
   const dir = (suffix: string): SortDirection => systemOptions.order?.endsWith(suffix) ? "asc" : "desc";
   
-  if (systemOptions.order?.startsWith("score")) {
+  // only allow 1 order tag at a time
+  if (systemOptions.order?.startsWith("date")) {
+    // order:date (desc) (default)
+    // order:date_asc (asc)
+    orderBy = [{ createdAt: dir("_asc") }, finalTiebreaker];
+  } else if (systemOptions.order?.startsWith("score")) {
     orderBy = [{ score: dir("_asc") }, baseOrder, finalTiebreaker];
   } else if (systemOptions.order?.startsWith("favorites")) {
     orderBy = [{ favoritedBy: { _count: dir("_asc") } }, baseOrder, finalTiebreaker];
