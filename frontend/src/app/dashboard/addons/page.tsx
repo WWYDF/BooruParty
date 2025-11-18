@@ -141,10 +141,10 @@ export default function AdminModulesPage() {
       </header>
 
       <div className="space-y-6">
-        <ArtistProfileSection
+        {/* <ArtistProfileSection
           enabled={state.artistProfile.enabled}
           onToggle={toggleArtist}
-        />
+        /> */}
 
         <AutoTaggerSection
           enabled={state.autotagger.enabled}
