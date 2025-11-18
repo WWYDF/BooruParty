@@ -5,7 +5,7 @@ import { reportAudit } from "@/components/serverSide/auditLog";
 import { auth } from "@/core/authServer";
 
 export async function POST(req: Request) {
-  const { name, categoryId, category } = await req.json();
+  const { name, categoryId, category, description } = await req.json();
   const session = await auth();
 
   const hasPerms = (await checkPermissions(['tags_create']))['tags_create'];
@@ -48,6 +48,7 @@ export async function POST(req: Request) {
       data: {
         name,
         categoryId: setCategory,
+        description
       },
       include: {
         category: true,
