@@ -78,7 +78,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
           // Trycatches should be inside of each function, so we have a better idea of what went wrong & where.
 
           const previewData = await processPreviews(subFile); logger.debug(`Saved Preview!`);
-          if (!previewData || previewData === null) { return reply.code(500).send({ error: 'Failed to process upload, check console for details.' }); resolve(); }
+          if (!previewData || previewData === null) { return reply.code(500).send({ error: 'Failed to process upload, check console for details.' }); }
           await generateThumbnails(subFile); logger.debug(`Saved Thumbnails!`);
           const ratio = await getAspectRatio(subFile); logger.debug(`Saved Aspect Ratio!`);
           const finalStats = fs.statSync(subFile.ogPath);
