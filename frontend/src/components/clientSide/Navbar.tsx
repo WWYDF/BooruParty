@@ -91,12 +91,12 @@ export default function Navbar() {
         className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800 md:sticky top-0 z-30"
       >
         <>
-          <Link
-            href="/posts"
+          <button
+            onClick={() => { window.location.replace('/posts'); }}
             className="text-xl font-semibold text-white md:hidden"
           >
             {process.env.NEXT_PUBLIC_SITE_NAME ?? "Imageboard"}
-          </Link>
+          </button>
 
           <Link
             href="/"
