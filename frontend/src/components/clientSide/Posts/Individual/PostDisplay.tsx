@@ -121,7 +121,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
               title="Click to enter fullscreen mode"
               onClick={() => { handleFullscreen(true); }}
               onLoad={handleImageLoad}
-              className="md:max-h-[80vh] md:h-[80vh] w-auto object-contain rounded-xl cursor-pointer"
+              className="lg:max-h-[80vh] lg:h-[80vh] w-auto object-contain rounded-xl cursor-pointer"
             />
           )}
         </motion.div>
