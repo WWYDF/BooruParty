@@ -83,7 +83,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
           const ratio = await getAspectRatio(subFile); logger.debug(`Saved Aspect Ratio!`);
           const finalStats = fs.statSync(subFile.ogPath);
 
-          const previewPath = `/data/previews/${subFile.type}/${subFile.postId}.${subFile.ogExt}`;
+          const previewPath = `/data/previews/${subFile.type}/${subFile.postId}.${previewData.extension}`;
           const originalPath = `/data/uploads/${subFile.type}/${subFile.postId}.${subFile.ogExt}`;
 
           reply.send({

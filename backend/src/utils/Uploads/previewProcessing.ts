@@ -64,6 +64,7 @@ export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePr
       let previewScale = Math.round((previewSize / originalSize) * 100);
 
       if (previewSize >= originalSize) {
+        logger.warn(`Deleting preview path for Post #${subFile.postId}. (${previewSize} >= ${originalSize})`);
         fs.unlinkSync(previewPath); // no benefit
         return { previewPath, extension: subFile.ogExt, previewScale: null }
       }
