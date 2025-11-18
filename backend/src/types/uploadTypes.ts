@@ -6,6 +6,7 @@ export type SubFileUpload = {
   type: FileType,
   buffer: Buffer,
   ogPath: string,
+  transType?: FileType
 }
 
 export type SubFilePreview = {

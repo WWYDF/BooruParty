@@ -3,8 +3,8 @@ import path from "path";
 import sharp from "sharp";
 import { SubFilePreview, SubFileUpload } from "../../types/uploadTypes";
 import { appLogger } from "../../plugins/logger";
-import { compressGif } from "./Animated/processGifs";
-import { processVideoPreview } from "./videoProcessing";
+import { compressGif } from "./Animated/processAnimations";
+import { processVideoPreview } from "./Animated/videoProcessing";
 
 const logger = appLogger('Previews');
 

@@ -65,7 +65,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
               subFile = await preProcessImage(subFile);
               break;
             case 'video':
-              await preProcessVideo(subFile);
+              subFile = await preProcessVideo(subFile);
               break;
             default:
               await fs.promises.writeFile(filePath, buffer);
@@ -78,17 +78,18 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
           // Trycatches should be inside of each function, so we have a better idea of what went wrong & where.
 
           const previewData = await processPreviews(subFile); logger.debug(`Saved Preview!`);
-          if (!previewData || previewData === null) { reply.code(500).send({ error: 'Failed to process upload, check console for details.' }); resolve(); }
+          if (!previewData || previewData === null) { return reply.code(500).send({ error: 'Failed to process upload, check console for details.' }); resolve(); }
           await generateThumbnails(subFile); logger.debug(`Saved Thumbnails!`);
           const ratio = await getAspectRatio(subFile); logger.debug(`Saved Aspect Ratio!`);
 
           reply.send({
             status: 'success',
             postId: Number(subFile.postId),
-            previewScale: previewData!.previewScale,
+            previewScale: previewData.previewScale,
             aspectRatio: ratio,
-            deletedPreview: !previewData!.previewScale,
-            assignedExt: previewData!.extension
+            deletedPreview: !previewData.previewScale,
+            assignedExt: previewData.extension,
+            transType: subFile.transType
           });
           resolve();
         })

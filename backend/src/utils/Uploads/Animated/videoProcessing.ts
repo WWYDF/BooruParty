@@ -2,9 +2,9 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
-import { appLogger } from '../../plugins/logger';
-import { ENCODER_OPTIONS_MAP } from '../../types/encoders';
-import { getBestEncoder } from './Animated/pickEncoder';
+import { appLogger } from '../../../plugins/logger';
+import { ENCODER_OPTIONS_MAP } from '../../../types/encoders';
+import { getBestEncoder } from './pickEncoder';
 
 const logger = appLogger('Encoding');
 const execAsync = promisify(exec);

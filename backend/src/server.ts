@@ -21,6 +21,7 @@ const DIRECTORIES = [
   "data/thumbnails",
   "data/previews/image",
   "data/previews/animated",
+  "data/temp",
 ]
 
 
