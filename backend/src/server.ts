@@ -3,23 +3,26 @@ import multipart from '@fastify/multipart';
 import * as dotenv from 'dotenv';
 import ipFilter from './plugins/ipFilter';
 import registerStatic from './plugins/static';
-import uploadRoutes from './routes/upload';
-import avatarUploadRoute from './routes/avatars';
-import statsRoute from './routes/stats';
-import postDeleteRoute from './routes/delete/posts';
-import avatarDeleteRoute from './routes/delete/avatars';
-import postReplaceRoute from './routes/replace';
 import cors from '@fastify/cors'
 import fs from 'fs';
 import path from 'path';
 import routeLogger, { appLogger, initAppLogFile } from './plugins/logger';
 import chalk from 'chalk';
-import integrityCheck from './routes/checks';
 import apiRoutes from './routes/api';
 
 dotenv.config();
-
 const logger = appLogger('Server');
+
+const DIRECTORIES = [
+  "data/uploads",
+  "data/uploads/video",
+  "data/uploads/image",
+  "data/uploads/animated",
+  "data/thumbnails",
+  "data/previews/image",
+  "data/previews/animated",
+]
+
 
 async function buildServer() {
   console.clear();
@@ -60,6 +63,10 @@ async function buildServer() {
   logger.info('[+] Logger loaded successfully!');
   await fastify.register(ipFilter);
   logger.info('[+] Plugins loaded successfully!');
+
+  for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
+  logger.info('[+] Essential Directories loaded successfully!');
+
   await fastify.register(registerStatic);
   logger.info('[+] Asset Routes loaded successfully!');
   await fastify.register(apiRoutes); // handles its own prefix /api/
