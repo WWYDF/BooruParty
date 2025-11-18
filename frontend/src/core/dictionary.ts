@@ -1,5 +1,5 @@
 // This should match whats in Fastify.
-export const FILE_TYPE_MAP: Record<'image' | 'animated' | 'video' | 'other', string[]> = {
+export const FILE_TYPE_MAP: Record<FileTypes, string[]> = {
   image: ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff'],
   animated: ['.gif', '.apng'],
   video: ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.quicktime'],
@@ -7,6 +7,7 @@ export const FILE_TYPE_MAP: Record<'image' | 'animated' | 'video' | 'other', str
 };
 
 export type FileType = keyof typeof FILE_TYPE_MAP;
+export type FileTypes = 'image' | 'animated' | 'video' | 'other';
 
 export function resolveFileType(ext: string): FileType {
   const lowered = ext.toLowerCase();

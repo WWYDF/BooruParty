@@ -16,8 +16,6 @@ type Props = {
   disableFullscreen?: boolean;
 };
 
-const fastify = process.env.NEXT_PUBLIC_FASTIFY;
-
 export default function PostDisplay({ post, user, showVoting = true, disableFullscreen = false }: Props) {
   const [showFull, setShowFull] = useState(post.previewScale === 100 || post.previewScale == null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -27,9 +25,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
   const toast = useToast();
 
   const imgRef = useRef<HTMLImageElement | null>(null);
-
   const fileType = resolveFileType(`.${post.fileExt}`);
-  const fullSrc = `${fastify}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
 
   function handleFullscreen(toggle: boolean) {
     if (disableFullscreen == false) { setIsAnimating(toggle); }
@@ -48,7 +44,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
   function saveDims(w: number, h: number) {
     // persist per-post so it survives refresh
     try {
-      sessionStorage.setItem(`bp:dims:${post.id}`, JSON.stringify({ w, h, at: Date.now(), src: showFull ? fullSrc : post.previewPath }));
+      sessionStorage.setItem(`bp:dims:${post.id}`, JSON.stringify({ w, h, at: Date.now(), src: showFull ? post.originalPath : post.previewPath }));
     } catch {}
   }
   
@@ -103,7 +99,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
         >
           {fileType === "video" ? (
             <video
-              src={showFull ? fullSrc : post.previewPath}
+              src={showFull ? post.originalPath : post.previewPath}
               controls
               playsInline
               loop
@@ -116,8 +112,8 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
             <img
               ref={imgRef}
               loading="lazy"
-              src={showFull ? fullSrc : post.previewPath}
-              alt={`Error accessing ${fullSrc}`}
+              src={showFull ? post.originalPath : post.previewPath}
+              alt={`Error accessing ${post.originalPath}`}
               title="Click to enter fullscreen mode"
               onClick={() => { handleFullscreen(true); }}
               onLoad={handleImageLoad}

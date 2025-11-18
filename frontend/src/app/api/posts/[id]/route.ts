@@ -198,6 +198,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
       : null,
     previewExt,
     previewPath: `${process.env.NEXT_PUBLIC_FASTIFY}${post.previewPath}`,
+    originalPath: `${process.env.NEXT_PUBLIC_FASTIFY}${post.originalPath}`,
     pools: post.pools.map((poolItem) => ({
       ...poolItem,
       pool: {

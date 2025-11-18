@@ -1,9 +1,11 @@
+import { FileTypes } from "../dictionary";
 import { Tag, TagGroup } from "./tags";
 
 // Returned when searching an individual post
 export type Post = {
   id: number;
   fileExt: string;
+  originalPath: string;
   previewPath: string;
   aspectRatio?: number;
   anonymous: boolean;
@@ -144,4 +146,9 @@ export type FastifyUpload = {
   deletedPreview?: boolean,
   fileName?: string
   assignedExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif' | null,
+  transType?: FileTypes,
+  finalExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif',
+  finalSize: number,
+  previewPath: string,
+  originalPath: string
 }

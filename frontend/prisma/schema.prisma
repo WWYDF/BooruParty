@@ -167,6 +167,7 @@ model Permission {
 model Posts {
   id            Int                 @id @default(autoincrement())
   fileExt       String
+  originalPath  String?             // No idea why I never included this day 1
   previewPath   String?
   aspectRatio   Float?
   uploadedBy    User                @relation(fields: [uploadedById], references: [id], onDelete: Cascade)

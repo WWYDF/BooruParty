@@ -53,7 +53,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
           // Build skeleton before pre-processing
           subFile = {
             postId,
-            ogExt: ext,
+            ogExt: ext.replace(/^\./, ""),
             type: fileFormat,
             ogPath: filePath,
             buffer,
@@ -81,6 +81,10 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
           if (!previewData || previewData === null) { return reply.code(500).send({ error: 'Failed to process upload, check console for details.' }); resolve(); }
           await generateThumbnails(subFile); logger.debug(`Saved Thumbnails!`);
           const ratio = await getAspectRatio(subFile); logger.debug(`Saved Aspect Ratio!`);
+          const finalStats = fs.statSync(subFile.ogPath);
+
+          const previewPath = `/data/previews/${subFile.type}/${subFile.postId}.${subFile.ogExt}`;
+          const originalPath = `/data/uploads/${subFile.type}/${subFile.postId}.${subFile.ogExt}`;
 
           reply.send({
             status: 'success',
@@ -89,7 +93,11 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             aspectRatio: ratio,
             deletedPreview: !previewData.previewScale,
             assignedExt: previewData.extension,
-            transType: subFile.transType
+            transType: subFile.transType,
+            finalExt: subFile.ogExt,
+            fileSize: finalStats.size,
+            previewPath,
+            originalPath
           });
           resolve();
         })

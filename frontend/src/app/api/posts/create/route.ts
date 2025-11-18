@@ -156,8 +156,8 @@ export async function POST(request: NextRequest) {
   const fastifyResult = await fastifyResponse.json() as FastifyUpload;
   
   let previewSrc;
-  if (fastifyResult.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
-  else { previewSrc = `/data/previews/${fileType}/${postId}.${fastifyResult.assignedExt}` }
+  if (fastifyResult.deletedPreview == true) { previewSrc = fastifyResult.originalPath; }
+  else { previewSrc = fastifyResult.previewPath }
 
   // Add Tags non-destructively
   let tags;
@@ -233,10 +233,13 @@ export async function POST(request: NextRequest) {
     data: {
       previewScale: fastifyResult.previewScale,
       previewPath: previewSrc,
+      originalPath: fastifyResult.originalPath,
       aspectRatio: fastifyResult.aspectRatio,
       tags: {
         connect: tags?.map((t) => ({ id: t.id })),
       },
+      fileExt: fastifyResult.finalExt,
+      fileSize: fastifyResult.finalSize
     },
   })
 
