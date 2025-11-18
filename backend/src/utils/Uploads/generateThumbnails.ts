@@ -23,12 +23,19 @@ const thumbFilters =
 export async function generateThumbnails(subFile: SubFileUpload) {
   try {
     const outputDir = path.join(process.cwd(), 'data/thumbnails');
+    const tempDir = path.join(process.cwd(), 'data/temp');
     let framePath = subFile.ogPath;
 
     if (subFile.type === 'video' || subFile.type === 'animated') {
-      const tmpFrame = path.join(outputDir, `${subFile.postId}_frame.png`);
-      // Scary!
-      await execAsync( `ffmpeg -y -i "${subFile.ogPath}" -vf "${thumbFilters}" -frames:v 1 "${tmpFrame}"`);
+      const tmpFrame = path.join(tempDir, `${subFile.postId}_frame.png`);
+
+      // Deal with animated webps separately from GIFs
+      if (subFile.ogExt == 'webp') {
+        await sharp(subFile.buffer).webp({ quality: 90 }).toFile(tmpFrame);
+      } else {
+        await execAsync( `ffmpeg -y -i "${subFile.ogPath}" -vf "${thumbFilters}" -frames:v 1 "${tmpFrame}"`);
+      }
+
       framePath = tmpFrame;
     }
 

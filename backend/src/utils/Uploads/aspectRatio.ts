@@ -18,7 +18,7 @@ export async function getAspectRatio(subFile: SubFileUpload): Promise<number> {
       return parseFloat((width / height).toFixed(6));
     }
 
-    if (subFile.type === 'animated' || subFile.type === 'video') {
+    if (subFile.ogExt !== 'webp' && subFile.type === 'animated' || subFile.type === 'video') {
       const cmd = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${subFile.ogPath}"`;
       const { stdout } = await execAsync(cmd);
       const [width, height] = stdout.trim().split(',').map(Number);
@@ -26,7 +26,14 @@ export async function getAspectRatio(subFile: SubFileUpload): Promise<number> {
       return parseFloat((width / height).toFixed(6));
     }
 
-    throw new Error(`Unsupported fileType: ${subFile.type}`);
+    // Deal with animated webp's separately
+    if (subFile.ogExt == 'webp' && subFile.type == 'animated') {
+      const metadata = await sharp(subFile.buffer, { animated: true }).metadata();
+      if (!metadata || !metadata.width || !metadata.height) { return 0; }
+      return parseFloat((metadata.width / metadata.height).toFixed(6));
+    }
+
+    throw new Error(`Unsupported fileType: ${subFile.type} (${subFile.ogExt})`);
   } catch (error) {
     logger.error(`Something went wrong while fetching the file's aspect ratio!`, error);
     return 0;

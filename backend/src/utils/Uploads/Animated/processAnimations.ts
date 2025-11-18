@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
 import { appLogger } from '../../../plugins/logger';
+import sharp from 'sharp';
 
 const execAsync = promisify(exec);
 const logger = appLogger('Animations');
@@ -29,14 +30,14 @@ export async function compressGif(
 }
 
 /**
- * Compresses an animated WEBP using system-installed ffmpeg.
+ * Creates an animated WEBP using system-installed ffmpeg.
  */
 export async function createAnimatedWebp(
   inputPath: string,
   outputPath: string,
-  quality: number = 80
+  quality: number = 90
 ): Promise<boolean> {
-  const cmd = `ffmpeg -i ${inputPath} -vcodec libwebp -lossless 0 -q:v ${quality} -preset picture -loop 0 -an -vf "scale=640:-1:flags=lanczos" ${outputPath}`;
+  const cmd = `ffmpeg -i ${inputPath} -vcodec libwebp -lossless 0 -q:v ${quality} -preset picture -loop 0 ${outputPath}`;
 
   try {
     await execAsync(cmd);
@@ -48,4 +49,22 @@ export async function createAnimatedWebp(
     logger.error("Animated WEBP compression failed:", err);
     return false;
   }
+}
+
+/**
+ * Compresses an animated WEBP using built-in Sharp.
+ */
+export async function compressAnimatedWebp(
+  inputBuffer: Buffer,
+  outputPath: string,
+  quality: number = 80
+): Promise<boolean> {
+
+  await sharp(inputBuffer, { animated: true })
+    .webp({ quality, loop: 0, effort: 5 })
+    .toFile(outputPath)
+    .then(() => logger.info(`Successfully compressed animation with Sharp!`))
+    .catch((e) => { logger.error(e); return false; });
+
+  return true;
 }

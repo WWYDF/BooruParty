@@ -3,7 +3,7 @@ import path from "path";
 import sharp from "sharp";
 import { SubFilePreview, SubFileUpload } from "../../types/uploadTypes";
 import { appLogger } from "../../plugins/logger";
-import { compressGif } from "./Animated/processAnimations";
+import { compressAnimatedWebp, compressGif } from "./Animated/processAnimations";
 import { processVideoPreview } from "./Animated/videoProcessing";
 
 const logger = appLogger('Previews');
@@ -49,19 +49,26 @@ export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePr
 
 
     else if (subFile.type == 'animated') {
-      const previewPath = path.join(previewDir, `${subFile.postId}.gif`);
-      await compressGif(subFile.ogPath, previewPath);
+      const previewPath = path.join(previewDir, `${subFile.postId}.${subFile.ogExt}`);
+      if (subFile.ogExt == 'webp') {
+        logger.debug(`Rendering animation with Sharp! (WebP)`);
+        await compressAnimatedWebp(subFile.buffer, previewPath);
+      } else {
+        logger.debug(`Rendering animation with Gifski!`);
+        await compressGif(subFile.ogPath, previewPath);
+      }
   
+      logger.debug(`Animations have been processed! Proceeding with compression math...`);
       const originalSize = fs.statSync(subFile.ogPath).size;
       const previewSize = fs.statSync(previewPath).size;
       let previewScale = Math.round((previewSize / originalSize) * 100);
 
       if (previewSize >= originalSize) {
         fs.unlinkSync(previewPath); // no benefit
-        return { previewPath, extension: 'gif', previewScale: null }
+        return { previewPath, extension: subFile.ogExt, previewScale: null }
       }
 
-      return { previewPath, extension: 'gif', previewScale }
+      return { previewPath, extension: subFile.ogExt, previewScale }
     }
 
     // Isn't 'image', 'video', or 'animated'. Throw error to cancel.
