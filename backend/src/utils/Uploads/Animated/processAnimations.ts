@@ -57,11 +57,11 @@ export async function createAnimatedWebp(
 export async function compressAnimatedWebp(
   inputBuffer: Buffer,
   outputPath: string,
-  quality: number = 80
+  quality: number = 60
 ): Promise<boolean> {
 
   await sharp(inputBuffer, { animated: true })
-    .webp({ quality, loop: 0, effort: 5 })
+    .webp({ quality, loop: 0, effort: 4 }) // effort can be tuned, its how much effort the pc puts into comp. (higher longer)
     .toFile(outputPath)
     .then(() => logger.info(`Successfully compressed animation with Sharp!`))
     .catch((e) => { logger.error(e); return false; });

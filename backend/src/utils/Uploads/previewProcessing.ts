@@ -49,16 +49,11 @@ export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePr
 
 
     else if (subFile.type == 'animated') {
-      const previewPath = path.join(previewDir, `${subFile.postId}.${subFile.ogExt}`);
-      if (subFile.ogExt == 'webp') {
-        logger.debug(`Rendering animation with Sharp! (WebP)`);
-        await compressAnimatedWebp(subFile.buffer, previewPath);
-      } else {
-        logger.debug(`Rendering animation with Gifski!`);
-        await compressGif(subFile.ogPath, previewPath);
-      }
+      const previewPath = path.join(previewDir, `${subFile.postId}.webp`);
+      logger.debug(`Rendering animation with Sharp! (WebP)`);
+      await compressAnimatedWebp(subFile.buffer, previewPath);
   
-      logger.debug(`Animations have been processed! Proceeding with compression math...`);
+      logger.debug(`Animation has been processed! Proceeding with compression math...`);
       const originalSize = fs.statSync(subFile.ogPath).size;
       const previewSize = fs.statSync(previewPath).size;
       let previewScale = Math.round((previewSize / originalSize) * 100);
@@ -69,7 +64,7 @@ export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePr
         return { previewPath, extension: subFile.ogExt, previewScale: null }
       }
 
-      return { previewPath, extension: subFile.ogExt, previewScale }
+      return { previewPath, extension: 'webp', previewScale }
     }
 
     // Isn't 'image', 'video', or 'animated'. Throw error to cancel.
