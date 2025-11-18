@@ -1,10 +1,10 @@
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
-import { compressGif } from './processGifs';
-import { PreviewFile, resolveFileType } from '../types/mediaTypes';
-import { processVideoPreview } from './processVideos';
-import { appLogger } from '../plugins/logger';
+import { compressGif } from './Animated/processGifs';
+import { PreviewFile, resolveFileType } from '../../types/mediaTypes';
+import { processVideoPreview } from './Animated/processVideos';
+import { appLogger } from '../../plugins/logger';
 
 const logger = appLogger('Process/Previews');
 

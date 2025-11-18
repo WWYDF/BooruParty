@@ -3,9 +3,9 @@ import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 import { getBestEncoder } from './pickEncoder';
-import { ENCODER_OPTIONS_MAP } from '../types/encoders';
-import { PreviewFile } from '../types/mediaTypes';
-import { appLogger } from '../plugins/logger';
+import { ENCODER_OPTIONS_MAP } from '../../../types/encoders';
+import { PreviewFile } from '../../../types/mediaTypes';
+import { appLogger } from '../../../plugins/logger';
 
 const logger = appLogger('Process/Previews');
 

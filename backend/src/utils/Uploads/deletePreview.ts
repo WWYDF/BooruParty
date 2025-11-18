@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { FastifyInstance } from 'fastify';
-import { appLogger } from '../plugins/logger';
+import { appLogger } from '../../plugins/logger';
 
 const logger = appLogger('Preview');
 

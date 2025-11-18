@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { ENCODER_PRIORITY_MAP } from '../types/encoders';
-import { appLogger } from '../plugins/logger';
+import { ENCODER_PRIORITY_MAP } from '../../../types/encoders';
+import { appLogger } from '../../../plugins/logger';
 
 const logger = appLogger('Encoder');
 

@@ -3,10 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import Busboy from 'busboy';
 import sharp from 'sharp';
-import { processPreview } from '../utils/processPreview';
-import { generateThumbnails } from '../utils/generateThumbnails';
+import { processPreview } from '../utils/Uploads/processPreview';
+import { generateThumbnails } from '../utils/Uploads/generateThumbnails';
 import { PreviewFile, resolveFileType } from '../types/mediaTypes';
-import { getAspectRatio } from '../utils/aspectRatio';
+import { getAspectRatio } from '../utils/Uploads/aspectRatio';
 import { appLogger } from '../plugins/logger';
 
 const logger = appLogger('Uploader');

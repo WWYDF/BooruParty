@@ -15,6 +15,7 @@ import path from 'path';
 import routeLogger, { appLogger, initAppLogFile } from './plugins/logger';
 import chalk from 'chalk';
 import integrityCheck from './routes/checks';
+import apiRoutes from './routes/api';
 
 dotenv.config();
 
@@ -61,13 +62,7 @@ async function buildServer() {
   logger.info('[+] Plugins loaded successfully!');
   await fastify.register(registerStatic);
   logger.info('[+] Asset Routes loaded successfully!');
-  await fastify.register(uploadRoutes, { prefix: '/api' });
-  await fastify.register(avatarUploadRoute, { prefix: '/api' });
-  await fastify.register(statsRoute, { prefix: '/api' });
-  await fastify.register(postDeleteRoute, { prefix: '/api' });
-  await fastify.register(avatarDeleteRoute, { prefix: '/api' });
-  await fastify.register(postReplaceRoute, { prefix: '/api' });
-  await fastify.register(integrityCheck, { prefix: '/api' });
+  await fastify.register(apiRoutes); // handles its own prefix /api/
   logger.info('[+] REST API Routes loaded successfully!');
 
   return fastify;

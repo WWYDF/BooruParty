@@ -5,10 +5,10 @@ import path from 'path';
 import Busboy from 'busboy';
 import sharp from 'sharp';
 import { PreviewFile, resolveFileType } from '../types/mediaTypes';
-import { processPreview } from '../utils/processPreview';
-import { generateThumbnails, thumbnailSizes } from '../utils/generateThumbnails';
-import { getAspectRatio } from '../utils/aspectRatio';
-import checkDeletePreview from '../utils/deletePreview';
+import { processPreview } from '../utils/Uploads/processPreview';
+import { generateThumbnails, thumbnailSizes } from '../utils/Uploads/generateThumbnails';
+import { getAspectRatio } from '../utils/Uploads/aspectRatio';
+import checkDeletePreview from '../utils/Uploads/deletePreview';
 import { appLogger } from '../plugins/logger';
 
 const logger = appLogger('Replacer');
