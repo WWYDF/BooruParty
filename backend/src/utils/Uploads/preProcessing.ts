@@ -60,14 +60,20 @@ export async function preProcessVideo(upload: SubFileUpload, convertVideos: bool
       type: 'animated',
       ogPath: newPath,
       buffer,
-      transType: 'animated' // tell NextJS that we converted it to an animation
+      transType: 'animated', // tell NextJS that we converted it to an animation
+      duration,
+      hasAudio
     }
 
     logger.debug(`Returning updated subFile.`);
     return newSubFile;
   }
-  // otherwise, return og video file
-  return upload;
+  // otherwise, return og video file (with added video metadata)
+  return {
+    ...upload,
+    duration,
+    hasAudio
+  };
 }
 
 export async function preProcessGIF(upload: SubFileUpload) {

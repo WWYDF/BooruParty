@@ -16,6 +16,8 @@ export type Post = {
   previewScale: number;
   fileSize?: number;
   previewSize?: number;
+  duration: number | null;
+  hasAudio: boolean | null;
   pHash: string;
   score: number;
   uploadedById: string;
@@ -152,5 +154,7 @@ export type FastifyUpload = {
   fileSize: number,
   previewSize?: number,
   previewPath: string,
-  originalPath: string
+  originalPath: string,
+  duration?: number,
+  hasAudio: boolean,
 }

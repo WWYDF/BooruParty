@@ -241,7 +241,9 @@ export async function POST(request: NextRequest) {
       },
       fileExt: fastifyResult.finalExt,
       fileSize: fastifyResult.fileSize,
-      previewSize: fastifyResult.previewSize // will always be set, if preview was deleted, it will just be the same as fileSize.
+      previewSize: fastifyResult.previewSize, // will always be set, if preview was deleted, it will just be the same as fileSize.
+      duration: fastifyResult.duration,
+      hasAudio: fastifyResult.hasAudio
     },
   })
 

@@ -67,6 +67,7 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
             type: fileFormat,
             ogPath: filePath,
             buffer,
+            hasAudio: false,
           }
 
           logger.debug(`Starting Pre-Processing for ${fileFormat}!`);
@@ -108,7 +109,9 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
             fileSize: finalStats.size,
             previewSize: previewData.previewSize ?? finalStats.size,
             previewPath,
-            originalPath
+            originalPath,
+            hasAudio: subFile.hasAudio,
+            duration: subFile.duration,
           });
           resolve();
         })
@@ -164,7 +167,8 @@ const thumbnailReplaceRoute: FastifyPluginAsync = async (fastify) => {
           ogExt: ext,
           type: 'video',
           buffer,
-          ogPath: tempFile
+          ogPath: tempFile,
+          hasAudio: false // unused, but still returned ig
         }
 
         await generateThumbnails(subFile);

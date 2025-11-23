@@ -64,6 +64,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             type: fileFormat,
             ogPath: filePath,
             buffer,
+            hasAudio: false,
           }
 
           logger.debug(`Starting Pre-Processing for ${fileFormat}!`);
@@ -105,7 +106,9 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             fileSize: finalStats.size,
             previewSize: previewData.previewSize ?? finalStats.size,
             previewPath,
-            originalPath
+            originalPath,
+            hasAudio: subFile.hasAudio,
+            duration: subFile.duration
           });
           resolve();
         })

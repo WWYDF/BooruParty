@@ -193,8 +193,10 @@ model Posts {
   uploadedById  String
   fileSize      Int?                // File Size of "Full" upload
   previewSize   Int?                // File Size of "Preview" sample
+  duration      Float?              // Duration in seconds, null if not video
+  hasAudio      Boolean?            // Not default to not autofill false positives
 
-  createdAt     DateTime     @default(now())
+  createdAt     DateTime            @default(now())
 
   @@index([uploadedById, createdAt])
   @@index([safety, createdAt])
