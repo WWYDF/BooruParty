@@ -135,6 +135,7 @@ export async function POST(request: NextRequest) {
 
   const fastifyFormData = new FormData();
   fastifyFormData.append('postId', postId.toString());
+  fastifyFormData.append('convert', false); // force false for now until Upload Page Revamp
   fastifyFormData.append('file', file);
 
   const fastifyResponse = await fetch(`${fastify}/api/upload`, {

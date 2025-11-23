@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
   // Forward to Fastify
   const proxyForm = new FormData();
   proxyForm.append("postId", postId);
+  proxyForm.append('convert', 'false'); // force false for now until Upload Page Revamp
   proxyForm.append("file", file, file.name);
 
   const fastifyResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/replace`, {

@@ -15,7 +15,7 @@ export async function preProcessImage(upload: SubFileUpload): Promise<SubFileUpl
   return upload; // Just return our original
 }
 
-export async function preProcessVideo(upload: SubFileUpload): Promise<SubFileUpload> {
+export async function preProcessVideo(upload: SubFileUpload, convertVideos: boolean): Promise<SubFileUpload> {
 
   await fs.promises.writeFile(upload.ogPath, upload.buffer); // write file regardless
   logger.debug(`Wrote file to: ${upload.ogPath}`);
@@ -36,10 +36,11 @@ export async function preProcessVideo(upload: SubFileUpload): Promise<SubFileUpl
   
   const isShort = duration < 5;
   const isMute = !hasAudio;
-  logger.debug(`Finished tests.`);
+  logger.verbose(`Finished video tests.`);
 
   // If true, convert to an animation, and update subFile.
-  if (isShort && isMute) {
+  if (isShort && isMute && convertVideos == true) {
+    logger.debug(`Short & mute video detected! Converting to animation...`);
     const outputPath = path.join(process.cwd(), `/data/temp/${upload.postId}.webp`);
     const createWebp = await createAnimatedWebp(upload.ogPath, outputPath);
     if (!createWebp) { return upload }; // something went wrong, don't process, and keep treating as video.
@@ -65,7 +66,7 @@ export async function preProcessVideo(upload: SubFileUpload): Promise<SubFileUpl
     logger.debug(`Returning updated subFile.`);
     return newSubFile;
   }
-  // fallback, return og video file
+  // otherwise, return og video file
   return upload;
 }
 

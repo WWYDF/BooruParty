@@ -21,6 +21,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
     return new Promise<void>((resolve, reject) => {
       let postId: string;
       let filePath = '';
+      let convertVideos = false;
       let fileFormat: FileType;
       let subFile: SubFileUpload;
 
@@ -29,6 +30,12 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
       busboy.on('field', (fieldname, value) => {
         if (fieldname === 'postId' && /^\d+$/.test(value)) {
           postId = value;
+        }
+      });
+
+      busboy.on('field', (fieldname, value) => {
+        if (fieldname === 'convert' && typeof value === 'boolean') {
+          convertVideos = value;
         }
       });
 
@@ -65,7 +72,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
               subFile = await preProcessImage(subFile);
               break;
             case 'video':
-              subFile = await preProcessVideo(subFile);
+              subFile = await preProcessVideo(subFile, convertVideos);
               break;
             default:
               await fs.promises.writeFile(filePath, buffer);

@@ -37,7 +37,7 @@ export async function createAnimatedWebp(
   outputPath: string,
   quality: number = 90
 ): Promise<boolean> {
-  const cmd = `ffmpeg -i ${inputPath} -vcodec libwebp -lossless 0 -q:v ${quality} -preset picture -loop 0 ${outputPath}`;
+  const cmd = `ffmpeg -i ${inputPath} -vcodec libwebp -lossless 0 -q:v ${quality} -compression_level 5 -preset photo -loop 0 ${outputPath}`;
 
   try {
     await execAsync(cmd);
