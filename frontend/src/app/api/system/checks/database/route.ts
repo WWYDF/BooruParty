@@ -27,6 +27,20 @@ export async function GET() {
         route: 'POST /api/system/checks/database?test=OgPaths'
       });
     }
+
+
+    const anyPreviewSizes = await prisma.posts.findFirst({
+      where: { previewSize: { not: null } }
+    });
+
+    // Database is missing previewSize column. Tell user what route to use to fix.
+    if (!anyPreviewSizes) {
+      returnedTests.push({
+        test: 'previewSizes',
+        passed: false,
+        route: 'POST /api/system/checks/database?test=previewSizes'
+      });
+    }
     
     return NextResponse.json({ tests: returnedTests });
   } catch (e) {
@@ -47,6 +61,9 @@ export async function POST(req: Request) {
   switch (test) {
     case 'OgPaths':
       await fixOriginalPath();
+      break;
+    case 'previewSizes':
+      await fixPreviewSizes();
       break;
   }
 
@@ -100,4 +117,75 @@ async function fixOriginalPath() {
   }
   const after = performance.now();
   console.log(`Done fixing originalPath for all posts. (${(after - before).toFixed(2)}ms)`);
+}
+
+
+////////////////////////////////////////////////////////////////////
+// TEST: Fix "Preview Sizes"!                                     //
+//                                                                //
+// Should be run prior to using the update!                       //
+////////////////////////////////////////////////////////////////////
+
+type PreviewItem = { // Matches Fastify
+  id: number,
+  previewPath: string,
+}
+
+type PreviewCheckBody = { // Matches Fastify
+  items: PreviewItem[]
+}
+
+type PreviewSizeResult = { // Matches Fastify
+  id: number,
+  size: number | null,
+}
+
+async function fixPreviewSizes() {
+  const before = performance.now();
+  try {
+    const posts = await prisma.posts.findMany({
+      where: { previewSize: null },
+      select: { id: true, previewPath: true }
+    });
+
+    const body: PreviewCheckBody = {
+      items: posts
+        .filter(p => p.previewPath)
+        .map(p => ({
+          id: p.id,
+          previewPath: p.previewPath!
+        }))
+    };
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/checks/previews`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data: PreviewSizeResult[] = await response.json();
+    if (!response.ok) { throw new Error(JSON.stringify(data, null, 0)) };
+
+    // Handle posts in 500-post chunks to not overwhelm database (..too much)
+    for (let i = 0; i < data.length; i += 500) {
+      const chunk = data.slice(i, i + 500);
+
+      await Promise.all(
+        chunk.map((item) =>
+          prisma.posts.update({
+            where: { id: item.id },
+            data: { previewSize: item.size },
+          })
+        )
+      );
+    }
+
+    const after = performance.now();
+    console.log(`Done updating previewSize for all posts. (${(after - before).toFixed(2)}ms)`);
+
+  } catch (error) {
+    console.error(`Something went wrong while fixing preview sizes!`, error);
+  }
 }
