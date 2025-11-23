@@ -159,10 +159,10 @@ async function fixPreviewSizes() {
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/checks/previews`, {
       method: 'POST',
+      body: JSON.stringify(body),
       headers: {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
+      }
     });
 
     const data: PreviewSizeResult[] = await response.json();

@@ -140,8 +140,8 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
     const _size = formatStorageFromBytes(post.fileSize ?? 0);
     fileSizeText = `${_size} (Full)`
   } else {
-    const _size = formatStorageFromBytes(fileSize ?? post.fileSize ?? 0);
-    fileSizeText = `${_size}${fileSize ? ' (Preview)' : ' (Full)'}`
+    const _size = formatStorageFromBytes(post.previewSize ?? post.fileSize ?? 0);
+    fileSizeText = `${_size}${post.previewSize ? ' (Preview)' : ' (Full)'}`
   }
 
   return (

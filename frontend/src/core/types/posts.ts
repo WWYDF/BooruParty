@@ -15,6 +15,7 @@ export type Post = {
   flags: string[];
   previewScale: number;
   fileSize?: number;
+  previewSize?: number;
   pHash: string;
   score: number;
   uploadedById: string;

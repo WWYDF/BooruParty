@@ -58,26 +58,6 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
   function handleImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { naturalWidth, naturalHeight, currentSrc } = e.currentTarget;
     publishDims(naturalWidth, naturalHeight);
-    fetchAndPublishSize(currentSrc);
-  }
-  
-  async function fetchAndPublishSize(url: string) {
-    const bytes = await getImageSizeBytes(url);
-    if (bytes) {
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("post:image-size", {
-            detail: { postId: post.id, bytes },
-          })
-        );
-      }
-      try {
-        sessionStorage.setItem(
-          `bp:size:${post.id}`,
-          JSON.stringify({ bytes, at: Date.now(), src: url })
-        );
-      } catch {}
-    }
   }
 
   useEffect(() => {
