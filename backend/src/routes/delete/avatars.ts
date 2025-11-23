@@ -6,7 +6,7 @@ import { appLogger } from "../../plugins/logger";
 const logger = appLogger('Delete Avatars');
 
 const avatarDeleteRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.delete("/delete/avatar/:userId", async (req, reply) => {
+  fastify.delete("/delete/avatar/:userId", { preHandler: fastify.verifyIp }, async (req, reply) => {
     const userId = (req.params as { userId: string }).userId;
     const avatarDir = path.join(process.cwd(), 'data/avatars');
 

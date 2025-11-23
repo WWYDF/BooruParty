@@ -17,7 +17,7 @@ import { appLogger } from "../plugins/logger";
 const logger = appLogger('Upload');
 
 const uploadRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.post('/upload', async (req, reply) => {
+  fastify.post('/upload', { preHandler: fastify.verifyIp }, async (req, reply) => {
     return new Promise<void>((resolve, reject) => {
       let postId: string;
       let filePath = '';

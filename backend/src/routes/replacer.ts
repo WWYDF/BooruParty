@@ -18,7 +18,7 @@ const logger = appLogger('Replacer');
 // And I would rather keep them separate rather than making
 // Some "all-in-one" zombie function...
 const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.post('/replace', async (req, reply) => {
+  fastify.post('/replace', { preHandler: fastify.verifyIp }, async (req, reply) => {
     return new Promise<void>((resolve, reject) => {
       let postId: string;
       let filePath = '';
@@ -115,7 +115,7 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
 
 const thumbnailReplaceRoute: FastifyPluginAsync = async (fastify) => {
   // For replacing thumbnails on videos
-  fastify.post('/replace/thumbnail', async (req, reply) => {
+  fastify.post('/replace/thumbnail', { preHandler: fastify.verifyIp }, async (req, reply) => {
     return new Promise<void>((resolve) => {
       let postId: string | undefined;
       const busboy = Busboy({ headers: req.headers });

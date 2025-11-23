@@ -39,6 +39,7 @@ async function buildServer() {
           },
         },
       },
+      trustProxy: true
     });
 
   await fastify.register(multipart, {
@@ -64,7 +65,7 @@ async function buildServer() {
   await fastify.register(routeLogger);
   logger.info('[+] Logger loaded successfully!');
   await fastify.register(ipFilter);
-  logger.info('[+] Plugins loaded successfully!');
+  logger.info('[+] Firewall loaded successfully!');
 
   for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
   logger.info('[+] Essential Directories loaded successfully!');
