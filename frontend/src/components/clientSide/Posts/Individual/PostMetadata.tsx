@@ -134,6 +134,16 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
     };
   }, [post.id]);
 
+  // {viewingFull === true ? formatStorageFromBytes(post.fileSize ?? 0) : formatStorageFromBytes(fileSize ?? post.fileSize)}
+  let fileSizeText = '';
+  if (viewingFull) {
+    const _size = formatStorageFromBytes(post.fileSize ?? 0);
+    fileSizeText = `${_size} (Full)`
+  } else {
+    const _size = formatStorageFromBytes(fileSize ?? post.fileSize ?? 0);
+    fileSizeText = `${_size}${fileSize ? ' (Preview)' : ' (Full)'}`
+  }
+
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
       {/* Header with user info */}
@@ -282,7 +292,7 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
             {typeof post.fileSize === "number" && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Size</span>
-                {viewingFull === true ? formatStorageFromBytes(post.fileSize ?? 0) : formatStorageFromBytes(fileSize ?? post.fileSize)}
+                {fileSizeText}
               </p>
             )}
 

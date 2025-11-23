@@ -34,7 +34,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
   async function getImageSizeBytes(url: string): Promise<number | null> {
     try {
       const res = await fetch(url, { method: "HEAD" });
-      const size = res.headers.get("content-length");
+      const size = res.headers.get("Content-Length");
       return size ? parseInt(size, 10) : null;
     } catch {
       return null;

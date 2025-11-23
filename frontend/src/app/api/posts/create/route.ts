@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       flags: [],
       pHash: checkMatch.genHash || null,
       dupeBypass: skipDupes,
-      fileSize: buffer.length,
+      // fileSize: buffer.length,
     },
   });
 
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
         connect: tags?.map((t) => ({ id: t.id })),
       },
       fileExt: fastifyResult.finalExt,
-      fileSize: fastifyResult.finalSize
+      fileSize: fastifyResult.fileSize
     },
   })
 

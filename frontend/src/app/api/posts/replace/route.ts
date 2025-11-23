@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       previewPath: previewSrc,
       aspectRatio: result.aspectRatio,
       fileExt: result.finalExt,
-      fileSize: result.finalSize,
+      fileSize: result.fileSize,
       originalPath: result.originalPath
     },
   });
