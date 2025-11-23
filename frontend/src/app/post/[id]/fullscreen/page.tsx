@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Post } from "@/core/types/posts";
 import { resolveFileType } from "@/core/dictionary";
 import PostNavigator from "@/components/clientSide/Posts/Individual/PostNavigator";
+import { CaretDoubleLeft } from "phosphor-react";
 
 export default function PostFullscreenPage(props: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState<string | null>(null);
@@ -17,7 +18,6 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // This hook is unconditional and safe
   useEffect(() => {
     props.params.then(p => setId(p.id));
   }, [props.params]);
@@ -69,16 +69,19 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
+  useEffect(() => {
+    if (!post) return;
+
+    const fileType = resolveFileType(`.${post.fileExt}`);
+    if (fileType === "video") {
+      router.replace(`/post/${post.id}`);
+    }
+  }, [post, router]);
+
   if (!post) return null;
 
   const fileType = resolveFileType(`.${post.fileExt}`);
-  if (fileType === "video") {
-    router.push(`/post/${post.id}`);
-    return null;
-  }
-
-  const fullSrc = `${process.env.NEXT_PUBLIC_FASTIFY}/data/uploads/${fileType}/${post.id}.${post.fileExt}`;
-  
+  if (fileType === "video") { return null } // redirect already kicked off above, so prevent rendering anything here
 
   return (
     <motion.div
@@ -110,7 +113,7 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
         )}
 
         <motion.img
-          src={fullSrc}
+          src={post.originalPath}
           alt={`Post ${post.id}`}
           onLoad={() => setLoading(false)}
           initial={{ opacity: 0.3 }}
@@ -128,9 +131,9 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
                   ? `/post/${post.id}?pool=${poolId}`
                   : `/post/${post.id}`)
               }
-              className="w-full py-2 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition text-white font-medium"
+              className="flex gap-2 items-center justify-center w-full py-2 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition text-white font-medium"
             >
-              ← Return to Post
+              <CaretDoubleLeft /> Return to Post
             </button>
           </div>
         )}

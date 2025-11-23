@@ -30,16 +30,6 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
   function handleFullscreen(toggle: boolean) {
     if (disableFullscreen == false) { setIsAnimating(toggle); }
   }
-
-  async function getImageSizeBytes(url: string): Promise<number | null> {
-    try {
-      const res = await fetch(url, { method: "HEAD" });
-      const size = res.headers.get("Content-Length");
-      return size ? parseInt(size, 10) : null;
-    } catch {
-      return null;
-    }
-  }
   
   function saveDims(w: number, h: number) {
     // persist per-post so it survives refresh
