@@ -239,7 +239,8 @@ export async function POST(request: NextRequest) {
         connect: tags?.map((t) => ({ id: t.id })),
       },
       fileExt: fastifyResult.finalExt,
-      fileSize: fastifyResult.fileSize
+      fileSize: fastifyResult.fileSize,
+      previewSize: fastifyResult.previewSize // will always be set, if preview was deleted, it will just be the same as fileSize.
     },
   })
 

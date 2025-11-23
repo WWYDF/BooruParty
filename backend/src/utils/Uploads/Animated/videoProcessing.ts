@@ -12,6 +12,7 @@ const execAsync = promisify(exec);
 type VideoPreview = {
   previewScale: number | null,
   assignedExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif' | null, // Just extensions that we encode previews to.
+  previewSize?: number
 }
 
 export async function processVideoPreview(originalPath: string, postId: number, previewDir: string): Promise<VideoPreview> {
@@ -74,11 +75,11 @@ export async function processVideoPreview(originalPath: string, postId: number, 
 
     if (previewSize >= originalSize) {
       fs.unlinkSync(previewPath);
-      return { previewScale: 100, assignedExt: encoderConfig.container }; // return 100 as the original was smaller so we should just use that
+      return { previewScale: 100, assignedExt: encoderConfig.container, previewSize: originalSize }; // return 100 as the original was smaller so we should just use that
     }
 
     const previewScale = Math.round((previewSize / originalSize) * 100);
-    return { previewScale, assignedExt: encoderConfig.container };
+    return { previewScale, assignedExt: encoderConfig.container, previewSize };
   } catch (err) {
     logger.error('FFmpeg video preview failed:', err);
     return { previewScale: null, assignedExt: encoderConfig.container };

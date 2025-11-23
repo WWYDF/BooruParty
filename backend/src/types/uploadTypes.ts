@@ -12,5 +12,6 @@ export type SubFileUpload = {
 export type SubFilePreview = {
   previewPath: string,
   extension: string,
-  previewScale: number | null
+  previewScale: number | null,
+  previewSize?: number
 }

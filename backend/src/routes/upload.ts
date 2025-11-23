@@ -96,6 +96,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             transType: subFile.transType,
             finalExt: subFile.ogExt,
             fileSize: finalStats.size,
+            previewSize: previewData.previewSize ?? finalStats.size,
             previewPath,
             originalPath
           });

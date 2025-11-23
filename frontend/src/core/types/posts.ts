@@ -149,6 +149,7 @@ export type FastifyUpload = {
   transType?: FileTypes,
   finalExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif',
   fileSize: number,
+  previewSize?: number,
   previewPath: string,
   originalPath: string
 }

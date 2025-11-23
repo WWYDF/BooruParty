@@ -16,3 +16,4 @@ core/prisma/.env
 frontend/.env
 backend/.env
 frontend/next-env.d.ts
+/.vscode

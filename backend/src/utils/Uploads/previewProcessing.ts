@@ -31,19 +31,21 @@ export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePr
       return {
         previewPath,
         extension: 'webp',
-        previewScale
+        previewScale,
+        previewSize: resizedMeta.size ?? metadata.size
       }
     }
 
     // Most of logic moved to sub function due to complexity and size.
     else if (subFile.type == 'video') {
       const previewDir = path.join(process.cwd(), '/data/previews/video');
-      const { previewScale, assignedExt } = await processVideoPreview(subFile.ogPath, Number(subFile.postId), previewDir);
+      const { previewScale, assignedExt, previewSize } = await processVideoPreview(subFile.ogPath, Number(subFile.postId), previewDir);
       const previewPath = path.join(previewDir, `${subFile.postId}.${assignedExt}`);
       return {
         previewPath,
         extension: `${assignedExt ?? 'webm'}`,
-        previewScale
+        previewScale,
+        previewSize
       }
     }
 
@@ -61,10 +63,10 @@ export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePr
       if (previewSize >= originalSize) {
         logger.warn(`Deleting preview path for Post #${subFile.postId}. (${previewSize} >= ${originalSize})`);
         fs.unlinkSync(previewPath); // no benefit
-        return { previewPath, extension: subFile.ogExt, previewScale: null }
+        return { previewPath, extension: subFile.ogExt, previewScale: null, previewSize: originalSize }
       }
 
-      return { previewPath, extension: 'webp', previewScale }
+      return { previewPath, extension: 'webp', previewScale, previewSize }
     }
 
     // Isn't 'image', 'video', or 'animated'. Throw error to cancel.

@@ -191,7 +191,8 @@ model Posts {
   favoritedBy   UserFavorites[]
   specialPosts  SpecialPosts[]
   uploadedById  String
-  fileSize      Int?
+  fileSize      Int?                // File Size of "Full" upload
+  previewSize   Int?                // File Size of "Preview" sample
 
   createdAt     DateTime     @default(now())
 
