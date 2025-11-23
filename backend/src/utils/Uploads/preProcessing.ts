@@ -7,7 +7,7 @@ import { createAnimatedWebp } from "./Animated/processAnimations";
 import { SubFileUpload } from "../../types/uploadTypes";
 import { appLogger } from "../../plugins/logger";
 
-const logger = appLogger('PreProcessing');
+const logger = appLogger('Processing');
 const execAsync = promisify(exec);
 
 export async function preProcessImage(upload: SubFileUpload): Promise<SubFileUpload> {

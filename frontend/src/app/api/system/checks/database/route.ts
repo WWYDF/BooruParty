@@ -41,13 +41,16 @@ export async function POST(req: Request) {
   const url = new URL(req.url);
   const test = url.searchParams.get("test");
 
+  if (!test) return NextResponse.json({ error: "No test specified"}, { status: 400 });
+
+  const beforeTime = performance.now();
   switch (test) {
     case 'OgPaths':
       await fixOriginalPath();
       break;
   }
 
-  return NextResponse.json({ });
+  return NextResponse.json({ success: true, elapsed: `${((performance.now() - beforeTime) / 1000).toFixed(2) } seconds`});
 }
 
 
@@ -96,5 +99,5 @@ async function fixOriginalPath() {
     });
   }
   const after = performance.now();
-  console.log(`Done fixing originalPath for all posts. (${after - before}ms)`);
+  console.log(`Done fixing originalPath for all posts. (${(after - before).toFixed(2)}ms)`);
 }

@@ -8,7 +8,7 @@ const logger = appLogger('Delete Avatars');
 const avatarDeleteRoute: FastifyPluginAsync = async (fastify) => {
   fastify.delete("/delete/avatar/:userId", async (req, reply) => {
     const userId = (req.params as { userId: string }).userId;
-    const avatarDir = path.resolve("data/avatars");
+    const avatarDir = path.join(process.cwd(), 'data/avatars');
 
     try {
       const files = await fs.readdir(avatarDir);

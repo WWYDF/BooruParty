@@ -5,6 +5,7 @@ import { checkFile } from "@/components/serverSide/UploadProcessing/checkHash";
 import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { FastifyUpload } from "@/core/types/posts";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -60,8 +61,8 @@ export async function POST(req: NextRequest) {
 
   // Forward to Fastify
   const proxyForm = new FormData();
-  proxyForm.append("file", file, file.name);
   proxyForm.append("postId", postId);
+  proxyForm.append("file", file, file.name);
 
   const fastifyResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/replace`, {
     method: "POST",
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fastify upload failed" }, { status: 500 });
   }
   
-  const result = await fastifyResponse.json();
+  const result = await fastifyResponse.json() as FastifyUpload;
   if (result.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
   else { previewSrc = `/data/previews/${fileType}/${postId}.${result.assignedExt}` }
   
@@ -80,10 +81,12 @@ export async function POST(req: NextRequest) {
     where: { id: Number(postId) },
     data: {
       pHash: hashResult.genHash ?? null,
-      fileExt: extension,
       previewScale: result.previewScale,
       previewPath: previewSrc,
       aspectRatio: result.aspectRatio,
+      fileExt: result.finalExt,
+      fileSize: result.finalSize,
+      originalPath: result.originalPath
     },
   });
 
