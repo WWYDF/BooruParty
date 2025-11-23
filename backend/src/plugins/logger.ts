@@ -71,7 +71,7 @@ export function appLogger(
 
   const paddedPrefix = `[${name}]`.padEnd(20)
   const formatLevel = (level: LogLevel) => {
-    const raw = `[${level.toUpperCase()}]`.padEnd(8)
+    const raw = `[${level.toUpperCase()}]`.padEnd(10)
     return levelColor[level](raw)
   }
 

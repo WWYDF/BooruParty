@@ -17,7 +17,7 @@ type VideoPreview = {
 
 export async function processVideoPreview(originalPath: string, postId: number, previewDir: string): Promise<VideoPreview> {
   if (process.env.DISABLE_VIDEO_PREVIEWS == 'true') {
-    // logger.debug('Skipping video encoding.')
+    logger.debug('Skipping video encoding.')
     return { previewScale: 100, assignedExt: null };
   }
 

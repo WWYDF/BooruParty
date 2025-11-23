@@ -83,6 +83,10 @@ async function start() {
   fs.mkdirSync(filePath, { recursive: true });
   const server = await buildServer();
 
+  if (process.env.LOG_LEVEL && process.env.LOG_LEVEL.toUpperCase() == 'VERBOSE') {
+    logger.verbose(`[!] Logging is set to verbose! It's not recommended to run a production instance like this!`)
+  }
+
   try {
     // Activate Server
     const PORT = Number(process.env.PORT || 3005);

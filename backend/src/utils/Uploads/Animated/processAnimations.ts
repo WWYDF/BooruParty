@@ -57,14 +57,31 @@ export async function createAnimatedWebp(
 export async function compressAnimatedWebp(
   inputBuffer: Buffer,
   outputPath: string,
-  quality: number = 60
+  qualityOverride?: number,
 ): Promise<boolean> {
+  const maxWidth = 1280;
+  const effort = Number(process.env.ANIMATION_COMPRESSION ?? 4);
+  const quality = qualityOverride ?? Number(process.env.ANIMATION_QUALITY ?? 80);
 
-  await sharp(inputBuffer, { animated: true })
-    .webp({ quality, loop: 0, effort: 4 }) // effort can be tuned, its how much effort the pc puts into comp. (higher longer)
-    .toFile(outputPath)
-    .then(() => logger.info(`Successfully compressed animation with Sharp!`))
-    .catch((e) => { logger.error(e); return false; });
+  // Single sharp instance
+  const image = sharp(inputBuffer, { animated: true, limitInputPixels: false });
 
-  return true;
+  try {
+    const meta = await image.metadata();
+
+    if (meta.width && meta.width > maxWidth) { logger.warn( `Resizing animation preview since input width was too large (${meta.width}px > ${maxWidth}px)` );
+      // Mutate the same instance as to not re-encode multiple times lol
+      image.resize({ width: maxWidth, withoutEnlargement: true });
+    }
+
+    logger.verbose(`Compressing animation with quality ${quality} & effort ${effort}...`);
+
+    await image.webp({ quality, loop: 0, effort }).toFile(outputPath);
+    
+    logger.info(`Successfully compressed animation with Sharp!`);
+    return true;
+  } catch (error) {
+    logger.error(error);
+    return false;
+  }
 }

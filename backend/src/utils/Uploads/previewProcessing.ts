@@ -51,6 +51,10 @@ export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePr
 
 
     else if (subFile.type == 'animated') {
+      // if (process.env.DISABLE_ANIMATION_PREVIEWS == 'true') {
+      //   logger.debug('Skipping animation optimization.')
+      //   return { previewPath: null, extension: subFile.ogExt, previewScale: null, previewSize: originalSize };
+      // }
       const previewPath = path.join(previewDir, `${subFile.postId}.webp`);
       logger.debug(`Rendering animation with Sharp! (WebP)`);
       await compressAnimatedWebp(subFile.buffer, previewPath);
