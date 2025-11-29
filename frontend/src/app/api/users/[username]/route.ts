@@ -27,6 +27,15 @@ export async function GET(
   context: { params: Promise<{ username: string }> }
 ) {
   const { username } = await context.params;
+  const session = await auth();
+
+  if (!session && process.env.GUEST_VIEWING == 'false') {
+    return NextResponse.json({
+      error: 401,
+      type: 'guest',
+      message: "You are not logged in."
+    }, { status: 401 });
+  }
 
   const user = await prisma.user.findUnique({
     where: { username },
@@ -120,11 +129,10 @@ export async function GET(
 
   // If this is a private account, we don't want to leak info through the public api.
   if (user.preferences?.private == true) {
-    const session = await auth();
-
     if (!session || user.id !== session.user.id) {
       return NextResponse.json({
         error: session ? 403 : 401,
+        type: 'private',
         message: "This account is private."
       }, { status: session ? 403 : 401 });
     }

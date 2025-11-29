@@ -68,7 +68,7 @@ function renderCommentEmbeds(embeds: { type: "url" | "post"; value: string }[]) 
   });
 }
 
-type PrivateError = { code: number; message: string } | null;
+type PrivateError = { code: number; type: 'private' | 'guest' | undefined, message: string } | null;
 
 export default function UserProfilePage() {
   const { username } = useParams() as { username: string };
@@ -94,12 +94,29 @@ export default function UserProfilePage() {
         if (!res.ok) {
           if (!cancelled) {
             if (data?.error === 403 || data?.error === 401) {
-              setError({
-                code: data?.error,
-                message: data?.message || "This account is private.",
-              });
+              if (data?.type == 'private') {
+                setError({
+                  code: data?.error,
+                  type: 'private',
+                  message: data?.message || "This account is private.",
+                });
+              }
+              if (data?.type == 'guest') {
+                setError({
+                  code: data?.error,
+                  type: 'guest',
+                  message: data?.message || "You are not logged in.",
+                });
+              }
+              else {
+                setError({
+                  code: data?.error,
+                  type: undefined,
+                  message: data?.message || "You cannot view this profile.",
+                });
+              }
             } else {
-              setError({ code: res.status, message: data?.message || "Failed to load user." });
+              setError({ code: res.status, type: undefined, message: data?.message || "Failed to load user." });
             }
             setUser(null);
           }
@@ -109,7 +126,7 @@ export default function UserProfilePage() {
         if (!cancelled) setUser(data);
       })
       .catch(() => {
-        if (!cancelled) setError({ code: 500, message: "Failed to load user." });
+        if (!cancelled) setError({ code: 500, type: undefined, message: "Failed to load user." });
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -189,7 +206,8 @@ export default function UserProfilePage() {
 
   // Private profile OR other fetch error
   if (error) {
-    const isPrivate = error.code === 401 || error.code === 403;
+    const isPrivate = error.type == 'private';
+    // const isGuest = error.type == 'guest';
     return (
       <main>
         <motion.div
