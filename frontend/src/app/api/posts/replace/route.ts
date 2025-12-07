@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
   const fastifyResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/replace`, {
     method: "POST",
     body: proxyForm,
+    headers: { 'x-internal-secret': process.env.INTERNAL_SHARED_SECRET! }
   });
   
   if (!fastifyResponse.ok) {

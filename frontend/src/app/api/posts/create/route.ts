@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
     dispatcher: new Agent({ connectTimeout: 900 }),
     method: 'POST',
     body: fastifyFormData,
+    headers: { 'x-internal-secret': process.env.INTERNAL_SHARED_SECRET }
   });
 
   if (!fastifyResponse.ok) {

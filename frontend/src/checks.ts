@@ -73,6 +73,12 @@ export async function systemCheckup(prisma?: PrismaClient): Promise<TestStatus[]
 
 async function main() {
   console.log(`[Checks] Executing preliminary database checks...`);
+
+  if (!process.env.INTERNAL_SHARED_SECRET) {
+    console.error(`[Checks] INTERNAL_SHARED_SECRET is not defined in .env! Your site will not work properly.`);
+    return 1;
+  };
+
   const prisma = new PrismaClient();
   const checks = await systemCheckup(prisma);
   if (!checks) { console.error(`[Checks] Check failed! Read logs above for more information.`); return 1; };

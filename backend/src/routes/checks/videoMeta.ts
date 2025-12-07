@@ -31,7 +31,7 @@ const FFPROBE_DURATION = [
 ];
 
 const videoMeta: FastifyPluginAsync = async (fastify) => {
-  fastify.post<{Body: CheckBody; Reply: VideoMetaResult[];}>('/videoMeta', { preHandler: fastify.verifyIp }, async function (req, reply) {
+  fastify.post<{Body: CheckBody; Reply: VideoMetaResult[];}>('/videoMeta', { preHandler: fastify.verifySecret }, async function (req, reply) {
     const { items } = req.body;
     if (!items || !Array.isArray(items) || items.length === 0) { return reply.code(400).send({ error: 'No items provided' } as any) };
 

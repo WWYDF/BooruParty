@@ -5,7 +5,7 @@ import { deletePostData } from "../../utils/cleanupPost";
 const logger = appLogger('Delete Posts');
 
 const postDeleteRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.post("/delete/posts", { preHandler: fastify.verifyIp }, async function (req, reply) {
+  fastify.post("/delete/posts", { preHandler: fastify.verifySecret }, async function (req, reply) {
     const { postId, postIds } = (await req.body) as {
       postId?: number;
       postIds?: number[];

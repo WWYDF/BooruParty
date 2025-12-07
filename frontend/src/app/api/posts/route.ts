@@ -232,7 +232,7 @@ export async function DELETE(req: NextRequest) {
 
       await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/delete/posts`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", 'x-internal-secret': process.env.INTERNAL_SHARED_SECRET! },
         body: JSON.stringify({ postIds: deletable }),
       });
 

@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 
 const integrityCheck: FastifyPluginAsync = async (fastify) => {
-  fastify.post('/integrity', { preHandler: fastify.verifyIp }, async function (req, reply) {
+  fastify.post('/integrity', { preHandler: fastify.verifySecret }, async function (req, reply) {
     let ids = req.body as unknown;
 
     // If body somehow comes in as string, try to parse

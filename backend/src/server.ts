@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import * as dotenv from 'dotenv';
-import ipFilter from './plugins/ipFilter';
+import ipFilter from './plugins/auth';
 import registerStatic from './plugins/static';
 import cors from '@fastify/cors'
 import fs from 'fs';
@@ -9,6 +9,7 @@ import path from 'path';
 import routeLogger, { appLogger, initAppLogFile } from './plugins/logger';
 import chalk from 'chalk';
 import apiRoutes from './routes/api';
+import { LEGIBLE_VERSION } from './version';
 
 dotenv.config();
 const logger = appLogger('Server');
@@ -50,7 +51,7 @@ async function buildServer() {
 
   await fastify.register(cors, {
     origin: (origin, cb) => {
-      // Accept any origin and echo it back — as long as it's defined (browser request)
+      // Accept any origin and echo it back - as long as it's defined (browser request)
       if (origin) {
         cb(null, origin); // echo origin back = "fake *"
       } else {
@@ -92,7 +93,7 @@ async function start() {
     const PORT = Number(process.env.PORT || 3005);
     await server.listen({ port: PORT, host: '0.0.0.0' });
     console.log('');
-    console.log(chalk.greenBright(`[>] Server Startup Completed.`));
+    console.log(chalk.greenBright(`[>] Server Startup Completed. (${LEGIBLE_VERSION})`));
     console.log('');
   } catch (err) {
     logger.error(err);

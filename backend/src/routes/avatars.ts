@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs/promises';
 
 const avatarUploadRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.post('/avatars', { preHandler: fastify.verifyIp }, async function (req, reply) {
+  fastify.post('/avatars', { preHandler: fastify.verifySecret }, async function (req, reply) {
     const parts = req.parts();
     let userId: string | null = null;
     let avatarBuffer: Buffer | null = null;
