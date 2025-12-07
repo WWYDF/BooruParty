@@ -1,13 +1,12 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 import { appLogger } from '../../../plugins/logger';
 import { ENCODER_OPTIONS_MAP } from '../../../types/encoders';
 import { getBestEncoder } from './pickEncoder';
+import { spawn } from 'child_process';
+import { runFFmpeg, runFFprobe } from './ffInterface';
 
 const logger = appLogger('Encoding');
-const execAsync = promisify(exec);
 
 type VideoPreview = {
   previewScale: number | null,
@@ -47,24 +46,37 @@ export async function processVideoPreview(originalPath: string, postId: number, 
       'setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709,scale=1280:-2';
   }
 
-  const ffmpegCmd = [
-    'ffmpeg', '-y',
+  const ffmpegArgs: string[] = [
+    '-y',
     ...(needsQSV ? ['-init_hw_device', 'qsv=hw', '-filter_hw_device', 'hw'] : []),
-    '-i', `"${originalPath}"`,
-    '-vf', `"${filters}"`,
-    '-c:v', encoderConfig.encoder,
-    ...(encoderConfig.qualityFlag && encoderConfig.qualityValue !== undefined
-      ? [encoderConfig.qualityFlag, String(encoderConfig.qualityValue)]
-      : []),
-    ...(encoderConfig.preset  ? ['-preset',  encoderConfig.preset]  : []),
-    ...(encoderConfig.profile ? ['-profile:v', encoderConfig.profile] : []),
-    ...(encoderConfig.extraArgs || []),
-    '-c:a', 'libopus', '-b:a', '128k',
-    `"${previewPath}"`
-  ].join(' ');
-  
+    '-i',
+    originalPath,
+    '-vf',
+    filters,
+    '-c:v',
+    encoderConfig.encoder,
+  ];
+
+  if (encoderConfig.qualityFlag && encoderConfig.qualityValue !== undefined) {
+    ffmpegArgs.push(encoderConfig.qualityFlag, String(encoderConfig.qualityValue));
+  }
+
+  if (encoderConfig.preset) {
+    ffmpegArgs.push('-preset', encoderConfig.preset);
+  }
+
+  if (encoderConfig.profile) {
+    ffmpegArgs.push('-profile:v', encoderConfig.profile);
+  }
+
+  if (encoderConfig.extraArgs && encoderConfig.extraArgs.length) {
+    ffmpegArgs.push(...encoderConfig.extraArgs);
+  }
+
+  ffmpegArgs.push('-c:a', 'libopus', '-b:a', '128k', previewPath);
+
   try {
-    await execAsync(ffmpegCmd);
+    await runFFmpeg(ffmpegArgs, 'ffmpeg:preview');
 
     if (!fs.existsSync(previewPath)) {
       throw new Error('FFmpeg did not produce a preview file.');
@@ -75,7 +87,8 @@ export async function processVideoPreview(originalPath: string, postId: number, 
 
     if (previewSize >= originalSize) {
       fs.unlinkSync(previewPath);
-      return { previewScale: 100, assignedExt: encoderConfig.container, previewSize: originalSize }; // return 100 as the original was smaller so we should just use that
+      // Return 100 as the original was smaller so we should just use that
+      return { previewScale: 100, assignedExt: encoderConfig.container };
     }
 
     const previewScale = Math.round((previewSize / originalSize) * 100);
@@ -112,11 +125,28 @@ async function getBestEncoderFromEnv(): Promise<string> {
   return encoder;
 }
 
-async function getVideoDimensions(path: string): Promise<{ width: number; height: number }> {
-  const { stdout } = await execAsync(
-    `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of json "${path}"`
+async function getVideoDimensions(filePath: string): Promise<{ width: number; height: number }> {
+  const stdout = await runFFprobe(
+    [
+      '-v',
+      'error',
+      '-select_streams',
+      'v:0',
+      '-show_entries',
+      'stream=width,height',
+      '-of',
+      'json',
+      filePath,
+    ],
+    'ffprobe:dimensions',
   );
+
   const info = JSON.parse(stdout);
+
+  if (!info.streams || !info.streams[0]) {
+    throw new Error('ffprobe did not return any video streams');
+  }
+
   return {
     width: info.streams[0].width,
     height: info.streams[0].height,
