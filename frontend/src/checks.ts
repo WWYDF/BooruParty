@@ -11,6 +11,13 @@ export async function systemCheckup(prisma?: PrismaClient): Promise<TestStatus[]
   if (!prisma) { prisma = new PrismaClient() }
 
   try {
+
+    const posts = await prisma.posts.count();
+    if (!posts || posts == 0) {
+      console.warn(`[Checks] No posts detected, skipping checks...`);
+      return []
+    };
+
     const anyOgPaths = await prisma.posts.findFirst({
       where: { originalPath: { not: null } }
     });
