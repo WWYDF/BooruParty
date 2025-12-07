@@ -1,8 +1,4 @@
-// prob scrap this in favor of preflight script
-
-import { NextResponse } from 'next/server';
-import { prisma } from '@/core/prisma';
-import { checkPermissions } from '@/components/serverSide/permCheck';
+import { PrismaClient } from "@prisma/client";
 
 type TestStatus = {
   test: string,
@@ -10,11 +6,9 @@ type TestStatus = {
   route: string
 }
 
-export async function GET() {
-  const hasPerms = (await checkPermissions(['dashboard_update']))['dashboard_update'];
-  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
-
+export async function systemCheckup(prisma?: PrismaClient): Promise<TestStatus[] | null> {
   const returnedTests: TestStatus[] = [];
+  if (!prisma) { prisma = new PrismaClient() }
 
   try {
     const anyOgPaths = await prisma.posts.findFirst({
@@ -43,35 +37,61 @@ export async function GET() {
         route: 'POST /api/system/checks/database?test=previewSizes'
       });
     }
-    
-    return NextResponse.json({ tests: returnedTests });
-  } catch (e) {
-    return NextResponse.json({ error: 'Failed to run database tests.' }, { status: 500 });
+
+    const anyVideoMetadata = await prisma.posts.findFirst({
+      where: {
+        AND: [
+          {
+            fileExt: {
+              in: ['mp4', 'webm', 'mkv'],
+            },
+          },
+          {
+            OR: [
+              { duration: { not: null } },
+              { hasAudio: { not: null } },
+            ],
+          },
+        ],
+      },
+    });
+
+    // Database is missing previewSize column. Tell user what route to use to fix.
+    if (!anyVideoMetadata) {
+      returnedTests.push({
+        test: 'videoMeta',
+        passed: false,
+        route: 'POST /api/system/checks/database?test=videoMeta'
+      });
+    }
+
+    return returnedTests;
+  } catch (error) {
+    return null;
   }
 }
 
-export async function POST(req: Request) {
-  const hasPerms = (await checkPermissions(['dashboard_update']))['dashboard_update'];
-  if (!hasPerms) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
+async function main() {
+  console.log(`[Checks] Executing preliminary database checks...`);
+  const prisma = new PrismaClient();
+  const checks = await systemCheckup(prisma);
+  if (!checks) { console.error(`[Checks] Check failed! Read logs above for more information.`); return 1; };
 
-  const url = new URL(req.url);
-  const test = url.searchParams.get("test");
-
-  if (!test) return NextResponse.json({ error: "No test specified"}, { status: 400 });
-
-  const beforeTime = performance.now();
-  switch (test) {
-    case 'OgPaths':
-      await fixOriginalPath();
-      break;
-    case 'previewSizes':
-      await fixPreviewSizes();
-      break;
+  // In specific order
+  if (checks.some(c => c.test === "OgPaths")) {
+    await ogPaths(prisma);
   }
 
-  return NextResponse.json({ success: true, elapsed: `${((performance.now() - beforeTime) / 1000).toFixed(2) } seconds`});
-}
+  if (checks.some(c => c.test === "previewSizes")) {
+    await fixPreviewSizes(prisma);
+  }
 
+  if (checks.some(c => c.test === "videoMeta")) {
+    await videoMeta(prisma);
+  }
+
+  console.log("[Checks] Checks finished with no errors. Starting Next Server...");
+}
 
 ////////////////////////////////////////////////////////////////////
 // TEST: Fix "Original Path"!                                     //
@@ -98,8 +118,7 @@ function getFileType(ext: string): string {
   return "other";
 }
 
-
-async function fixOriginalPath() {
+async function ogPaths(prisma: PrismaClient) {
   const before = performance.now();
   const posts = await prisma.posts.findMany({
     where: { originalPath: { equals: null } },
@@ -123,9 +142,9 @@ async function fixOriginalPath() {
 
 
 ////////////////////////////////////////////////////////////////////
+//                                                                //
 // TEST: Fix "Preview Sizes"!                                     //
 //                                                                //
-// Should be run prior to using the update!                       //
 ////////////////////////////////////////////////////////////////////
 
 type PreviewItem = { // Matches Fastify
@@ -142,7 +161,7 @@ type PreviewSizeResult = { // Matches Fastify
   size: number | null,
 }
 
-async function fixPreviewSizes() {
+async function fixPreviewSizes(prisma: PrismaClient) {
   const before = performance.now();
   try {
     const posts = await prisma.posts.findMany({
@@ -191,3 +210,79 @@ async function fixPreviewSizes() {
     console.error(`Something went wrong while fixing preview sizes!`, error);
   }
 }
+
+
+////////////////////////////////////////////////////////////////////
+//                                                                //
+// TEST: Fix "Video Metadata"!                                    //
+// Adds "duration" and "hasAudio" columns to existing videos      //
+//                                                                //
+////////////////////////////////////////////////////////////////////
+
+type IncomingItem = {
+  id: number,
+  originalPath: string,
+}
+
+type CheckBody = {
+  items: IncomingItem[]
+}
+
+type VideoMetaResult = {
+  id: number,
+  duration: number | null,
+  hasAudio: boolean | null,
+}
+
+async function videoMeta(prisma: PrismaClient) {
+  const before = performance.now();
+  try {
+    const posts = await prisma.posts.findMany({
+      where: { previewSize: null },
+      select: { id: true, originalPath: true }
+    });
+
+    const body: CheckBody = {
+      items: posts
+        .filter(p => p.originalPath)
+        .map(p => ({
+          id: p.id,
+          originalPath: p.originalPath!
+        }))
+    };
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/checks/videoMeta`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data: VideoMetaResult[] = await response.json();
+    if (!response.ok) { throw new Error(JSON.stringify(data, null, 0)) };
+
+    // Handle posts in 500-post chunks to not overwhelm database (..too much)
+    for (let i = 0; i < data.length; i += 500) {
+      const chunk = data.slice(i, i + 500);
+
+      await Promise.all(
+        chunk.map((item) =>
+          prisma.posts.update({
+            where: { id: item.id },
+            data: { duration: item.duration, hasAudio: item.hasAudio },
+          })
+        )
+      );
+    }
+
+    const after = performance.now();
+    console.log(`Done updating video metadata for all posts. (${(after - before).toFixed(2)}ms)`);
+
+  } catch (error) {
+    console.error(`Something went wrong while fixing video metadata!`, error);
+  }
+}
+
+
+main();

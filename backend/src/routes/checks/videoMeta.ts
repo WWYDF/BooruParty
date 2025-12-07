@@ -1,5 +1,4 @@
 import { FastifyPluginAsync } from "fastify";
-import fs from "fs/promises";
 import path from "path";
 import { runFFprobe } from "../../utils/Uploads/Animated/ffInterface";
 
