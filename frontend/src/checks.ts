@@ -31,13 +31,15 @@ export async function systemCheckup(prisma?: PrismaClient): Promise<TestStatus[]
       });
     }
 
-
-    const anyPreviewSizes = await prisma.posts.findFirst({
-      where: { previewSize: { not: null } }
+    // Instead look for any missing entries
+    const missingPreviewSizes = await prisma.posts.findFirst({
+      where: {
+        previewPath: { not: null },
+        previewSize: null,
+      }
     });
 
-    // Database is missing previewSize column. Tell user what route to use to fix.
-    if (!anyPreviewSizes) {
+    if (missingPreviewSizes) {
       returnedTests.push({
         test: 'previewSizes',
         passed: false,
@@ -178,7 +180,7 @@ async function fixPreviewSizes(prisma: PrismaClient) {
   const before = performance.now();
   try {
     const posts = await prisma.posts.findMany({
-      where: { previewSize: null },
+      where: { previewSize: null, previewPath: { not: null } },
       select: { id: true, previewPath: true }
     });
 
@@ -218,10 +220,10 @@ async function fixPreviewSizes(prisma: PrismaClient) {
     }
 
     const after = performance.now();
-    console.log(`Done updating previewSize for all posts. (${(after - before).toFixed(2)}ms)`);
+    console.log(`[Checks] Done updating previewSize for all posts. (${(after - before).toFixed(2)}ms)`);
 
   } catch (error) {
-    console.error(`Something went wrong while fixing preview sizes!`, error);
+    console.error(`[Checks] Something went wrong while fixing preview sizes!`, error);
   }
 }
 
