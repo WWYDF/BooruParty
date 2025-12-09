@@ -75,7 +75,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
               loop
               autoPlay={(post.duration && post.duration < 5 && !post.hasAudio) ? true : false}
               // muted
-              preload="metadata"
+              preload="auto"
               onLoadedMetadata={(e) => publishDims(e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
               className="min-w-[50vw] w-auto max-w-auto max-h-[70vh] object-contain"
             />
