@@ -35,14 +35,63 @@ export async function runFFmpeg(args: string[], label = 'ffmpeg'): Promise<void>
   });
 }
 
-export async function runFFprobe(args: string[], label = 'ffprobe'): Promise<string> {
-  return new Promise((resolve, reject) => {
+export async function runFFprobe(
+  args: string[],
+  label = 'ffprobe',
+  options: { timeoutMs?: number; signal?: AbortSignal } = {},
+): Promise<string> {
+  const { timeoutMs, signal } = options;
+
+  return new Promise<string>((resolve, reject) => {
     const proc = spawn('ffprobe', args, {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     let stdout = '';
     let stderr = '';
+    let settled = false;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const safeKill = () => {
+      if (!proc.killed) {
+        try {
+          proc.kill('SIGKILL');
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    const cleanup = () => {
+      proc.stdout.removeAllListeners();
+      proc.stderr.removeAllListeners();
+      proc.removeAllListeners();
+      if (signal) signal.removeEventListener('abort', onAbort);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      safeKill();
+      cleanup();
+      reject(err);
+    };
+
+    const onAbort = () => {
+      fail(new Error(`${label} aborted`));
+    };
+
+    if (typeof timeoutMs === 'number' && timeoutMs > 0) {
+      timeoutId = setTimeout(() => {
+        fail(new Error(`${label} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }
+
+    if (signal) {
+      if (signal.aborted) return onAbort();
+      signal.addEventListener('abort', onAbort);
+    }
 
     proc.stdout.on('data', (chunk) => {
       stdout += chunk.toString();
@@ -55,16 +104,22 @@ export async function runFFprobe(args: string[], label = 'ffprobe'): Promise<str
     });
 
     proc.on('error', (err) => {
-      reject(err);
+      fail(err);
     });
 
     proc.on('close', (code) => {
+      if (settled) return; // might have already failed via timeout/abort/error
+
       if (code === 0) {
+        settled = true;
+        cleanup();
         resolve(stdout);
       } else {
-        reject(
+        fail(
           new Error(
-            `${label} exited with code ${code ?? 'null'}${stderr ? `: ${stderr}` : ''}`,
+            `${label} exited with code ${code ?? 'null'}${
+              stderr ? `: ${stderr}` : ''
+            }`,
           ),
         );
       }

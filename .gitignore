@@ -17,3 +17,4 @@ frontend/.env
 backend/.env
 frontend/next-env.d.ts
 /.vscode
+frontend/next-env.d.ts

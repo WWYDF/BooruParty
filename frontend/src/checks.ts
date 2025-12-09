@@ -50,7 +50,7 @@ export async function systemCheckup(prisma?: PrismaClient): Promise<TestStatus[]
         AND: [
           {
             fileExt: {
-              in: ['mp4', 'webm', 'mkv'],
+              in: ['mp4', 'webm', 'mkv', 'mov', 'avi', 'quicktime'],
             },
           },
           {
@@ -252,8 +252,26 @@ async function videoMeta(prisma: PrismaClient) {
   const before = performance.now();
   try {
     const posts = await prisma.posts.findMany({
-      where: { previewSize: null },
-      select: { id: true, originalPath: true }
+      
+      where: {
+        AND: [
+          {
+            fileExt: {
+              in: ['mp4', 'webm', 'mkv', 'mov', 'avi', 'quicktime'],
+            },
+          },
+          {
+            OR: [
+              { duration: null },
+              { hasAudio: null },
+            ],
+          },
+        ],
+      },
+      select: {
+        id: true,
+        originalPath: true
+      },
     });
 
     const body: CheckBody = {
