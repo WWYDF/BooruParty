@@ -16,7 +16,7 @@ const mediaFolders = [
 ];
 
 // Helper to decide if a given filename belongs to a post id in a folder
-function fileBelongsToPost(file: string, idStr: string, folder: string): boolean {
+export function fileBelongsToPost(file: string, idStr: string, folder: string): boolean {
   const isThumbnailFolder = folder.includes("thumbnails");
 
   if (isThumbnailFolder) {
@@ -38,7 +38,7 @@ function fileBelongsToPost(file: string, idStr: string, folder: string): boolean
 }
 
 const postDeleteRoute: FastifyPluginAsync = async (fastify) => {
-  fastify.post("/delete/posts", async function (req, reply) {
+  fastify.post("/delete/posts", { preHandler: fastify.verifySecret }, async function (req, reply) {
     const { postId, postIds } = (await req.body) as {
       postId?: number;
       postIds?: number[];

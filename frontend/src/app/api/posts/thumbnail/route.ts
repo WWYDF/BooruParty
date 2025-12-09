@@ -55,6 +55,7 @@ export async function PATCH(req: NextRequest) {
   const fastifyResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/replace/thumbnail`, {
     method: "POST",
     body: proxyForm,
+    headers: { 'x-internal-secret': process.env.INTERNAL_SHARED_SECRET! }
   });
   
   if (!fastifyResponse.ok) {

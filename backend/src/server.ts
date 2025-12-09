@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import * as dotenv from 'dotenv';
-import ipFilter from './plugins/ipFilter';
 import registerStatic from './plugins/static';
 import uploadRoutes from './routes/upload';
 import avatarUploadRoute from './routes/avatars';
@@ -15,6 +14,7 @@ import path from 'path';
 import routeLogger, { appLogger, initAppLogFile } from './plugins/logger';
 import chalk from 'chalk';
 import integrityCheck from './routes/checks';
+import auth from './plugins/auth';
 
 dotenv.config();
 
@@ -57,8 +57,8 @@ async function buildServer() {
   initAppLogFile(); // rotate logs
   await fastify.register(routeLogger);
   logger.info('[+] Logger loaded successfully!');
-  await fastify.register(ipFilter);
-  logger.info('[+] Plugins loaded successfully!');
+  await fastify.register(auth);
+  logger.info('[+] Firewall loaded successfully!');
   await fastify.register(registerStatic);
   logger.info('[+] Asset Routes loaded successfully!');
   await fastify.register(uploadRoutes, { prefix: '/api' });

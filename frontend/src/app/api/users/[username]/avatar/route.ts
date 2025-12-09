@@ -59,6 +59,7 @@ export async function POST(req: Request, context: { params: Promise<{ username: 
   const fastifyRes = await fetch(`${fastifyUrl}/api/avatars`, {
     method: 'POST',
     body: formData,
+    headers: { 'x-internal-secret': process.env.INTERNAL_SHARED_SECRET! }
   });
 
   const data = await fastifyRes.json();

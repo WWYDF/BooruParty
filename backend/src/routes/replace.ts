@@ -17,7 +17,7 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
   //
   // For replacing content entirely
   //
-  fastify.post('/replace', async (req, reply) => {
+  fastify.post('/replace', { preHandler: fastify.verifySecret }, async (req, reply) => {
     return new Promise<void>((resolve) => {
       let postId: string | undefined;
       let previewData: PreviewFile;
@@ -118,7 +118,7 @@ const postReplaceRoute: FastifyPluginAsync = async (fastify) => {
   //
   // For replacing thumbnails on videos
   //
-  fastify.post('/replace/thumbnail', async (req, reply) => {
+  fastify.post('/replace/thumbnail', { preHandler: fastify.verifySecret }, async (req, reply) => {
     return new Promise<void>((resolve) => {
       let postId: string | undefined;
       const busboy = Busboy({ headers: req.headers });
