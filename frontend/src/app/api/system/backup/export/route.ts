@@ -77,7 +77,7 @@ export async function GET() {
     const zip = new JSZip();
     zip.file('booru_backup.json', json);
 
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    const zipBuffer = await zip.generateAsync({ type: 'arraybuffer' });
 
     return new NextResponse(zipBuffer, {
       headers: {
