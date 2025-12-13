@@ -29,7 +29,7 @@ export async function syncPostPools(postId: number, desiredPoolIds: number[]) {
       return {
         poolId,
         postId,
-        index: (maxIndex._max.index ?? -1) + 1,
+        index: (maxIndex._max.index ?? 0) + 1,
       };
     })
   );
