@@ -163,7 +163,8 @@ async function fixPreviewSizes() {
       method: 'POST',
       body: JSON.stringify(body),
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-internal-secret': process.env.INTERNAL_SHARED_SECRET!
       }
     });
 
