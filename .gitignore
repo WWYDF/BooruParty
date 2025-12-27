@@ -18,3 +18,5 @@ backend/.env
 frontend/next-env.d.ts
 /.vscode
 frontend/next-env.d.ts
+/backend/test_data
+frontend/next-env.d.ts

@@ -16,13 +16,13 @@ const registerStatic: FastifyPluginAsync = async (fastify) => {
         res.setHeader('Cache-Control', 'public, max-age=21600');
       }
 
-      // Add file size header
-      try {
-        const stat = await fs.stat(filePath);
-        res.setHeader('Content-Length', stat.size);
-      } catch {
-        // ignore missing files
-      }
+      // // Add file size header
+      // try {
+      //   const stat = await fs.stat(filePath);
+      //   res.setHeader('Content-Length', stat.size);
+      // } catch {
+      //   // ignore missing files
+      // }
     },
   });
 };

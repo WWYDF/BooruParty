@@ -22,7 +22,6 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
   const liked = post.votes.some(v => v.type === 'UPVOTE');
   const faved = post.favoritedBy.length > 0;
 
-  console.log(`Post #${post.id}: (Liked: ${liked} [${post.votes[0]}]) (Faved: ${faved})`);
   return (
     <Link
       href={selectionMode ? "#" : `/post/${post.id}`}

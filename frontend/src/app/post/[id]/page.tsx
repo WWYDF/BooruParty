@@ -77,7 +77,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const data = await res.json();
 
   if (!data || !data.title || !data.description) {
-    console.log('3')
     return {
       title: `Post #${prams.id}`,
       description: `Guest viewing is disabled for this site, please login to view this post.`,

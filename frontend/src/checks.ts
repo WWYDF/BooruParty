@@ -74,6 +74,21 @@ export async function systemCheckup(prisma?: PrismaClient): Promise<TestStatus[]
       });
     }
 
+    const fakePreviews = await prisma.posts.findFirst({
+      where: {
+        previewPath: { not: null },
+        previewScale: 100 // 100 scale posts do not have a preview
+      }
+    });
+
+    if (fakePreviews) {
+      returnedTests.push({
+        test: 'fakePreviews',
+        passed: false,
+        route: 'POST /api/system/checks/database?test=fakePreviews'
+      })
+    };
+
     return returnedTests;
   } catch (error) {
     return null;
@@ -103,6 +118,10 @@ async function main() {
 
   if (checks.some(c => c.test === "videoMeta")) {
     await videoMeta(prisma);
+  }
+
+  if (checks.some(c => c.test === "fakePreviews")) {
+    await fakePreviews(prisma);
   }
 
   console.log("[Checks] Checks finished with no errors. Starting Next Server...");
@@ -152,7 +171,7 @@ async function ogPaths(prisma: PrismaClient) {
     });
   }
   const after = performance.now();
-  console.log(`Done fixing originalPath for all posts. (${(after - before).toFixed(2)}ms)`);
+  console.log(`[Checks] Done fixing originalPath for all posts. (${(after - before).toFixed(2)}ms)`);
 }
 
 
@@ -312,10 +331,40 @@ async function videoMeta(prisma: PrismaClient) {
     }
 
     const after = performance.now();
-    console.log(`Done updating video metadata for all posts. (${(after - before).toFixed(2)}ms)`);
+    console.log(`[Checks] Done updating video metadata for all posts. (${(after - before).toFixed(2)}ms)`);
 
   } catch (error) {
-    console.error(`Something went wrong while fixing video metadata!`, error);
+    console.error(`[Checks] Something went wrong while fixing video metadata!`, error);
+  }
+}
+
+////////////////////////////////////////////////////////////////////
+//                                                                //
+// TEST: Fix "Fake Previews"!                                     //
+// Removes previewPath from videos where previewScale is 100      //
+//                                                                //
+////////////////////////////////////////////////////////////////////
+
+
+async function fakePreviews(prisma: PrismaClient) {
+  const before = performance.now();
+  try {
+    const posts = await prisma.posts.updateMany({
+      where: {
+        previewPath: { not: null },
+        previewScale: 100,
+        duration: { not: null } // important that this comes after videoMeta
+      },
+      data: {
+        previewPath: null
+      }
+    });
+
+    const after = performance.now();
+    console.log(`[Checks] Done removing video previews for posts that don't have them. (${(after - before).toFixed(2)}ms)`);
+
+  } catch (error) {
+    console.error(`[Checks] Something went wrong while cleaning video previews!`, error);
   }
 }
 

@@ -116,7 +116,6 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
     const onViewingChange = (e: Event) => {
       const { state } = (e as CustomEvent).detail || {};
       setViewingFullState(state);
-      console.log(state)
     };
     
     const onSize = (e: Event) => {
