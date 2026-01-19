@@ -23,10 +23,8 @@ export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePr
       await fs.promises.writeFile(previewPath, resizedBuffer);
 
       const resizedMeta = await sharp(resizedBuffer).metadata();
-      const previewScale =
-        metadata.width && resizedMeta.width
-          ? Math.round((resizedMeta.width / metadata.width) * 100)
-          : null;
+      const originalSize = fs.statSync(subFile.ogPath).size;
+      const previewScale = Math.round((resizedBuffer.length / originalSize) * 100);
 
       return {
         previewPath,
