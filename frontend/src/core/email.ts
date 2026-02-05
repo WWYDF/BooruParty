@@ -37,7 +37,6 @@ export async function sendEmail({
 
 export async function requestPasswordReset(email: string) {
   const user = await prisma.user.findFirst({ where: { email: { equals: email, mode: 'insensitive' } } });
-  console.log(`User: ${JSON.stringify(user, null, 1)}`);
   
   if (!user) {
     // Don't reveal if user exists
@@ -59,12 +58,13 @@ export async function requestPasswordReset(email: string) {
 
   await sendEmail({
     to: email,
-    subject: 'Password Reset Request',
+    subject: `${process.env.NEXT_PUBLIC_SITE_NAME} Password Reset Request`,
     html: `
       <h2>Reset Your Password</h2>
-      <p>Click the link below to reset your password:</p>
+      <p>You are receiving this email because you submitted a password reset request on <a href="${process.env.NEXTAUTH_URL}">${process.env.NEXT_PUBLIC_SITE_NAME}</a>.</p>
+      <p>If this was you, click the link below to reset your password:</p>
       <a href="${resetUrl}">${resetUrl}</a>
-      <p>This link expires in 15 minutes.</p>
+      <p>If this was not you, you can ignore this email. The link expires in 15 minutes.</p>
     `,
   });
 
