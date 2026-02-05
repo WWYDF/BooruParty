@@ -57,6 +57,14 @@ model SiteSettings {
   deletePosts   Boolean   @default(false)
 }
 
+model VerificationToken {
+  identifier   String
+  token         String    @unique
+  expires       DateTime
+
+  @@unique([identifier, token])
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique

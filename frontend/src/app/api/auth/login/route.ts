@@ -11,8 +11,13 @@ export async function POST(req: Request) {
 
   if (email == "deleted@system.local") { return NextResponse.json({ error: 'This account cannot be logged into.' }, { status: 401 }); }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
+  const user = await prisma.user.findFirst({
+    where: {
+      email: {
+        equals: email,
+        mode: 'insensitive',
+      },
+    },
   });
 
   if (!user || !(await compare(password, user.password))) {

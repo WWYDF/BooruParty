@@ -5,22 +5,17 @@ import { getSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function RegisterPage() {
-  const [form, setForm] = useState({
-    email: '',
-    username: '',
-    password: '',
-  });
-
-  const [loading, setLoading] = useState(false);
-  const toast = useToast();
+export default function LoginPage() {
+  const [form, setForm] = useState({ email: '', password: '' });
   const router = useRouter();
+  const toast = useToast();
 
   useEffect(() => {
     const checkSession = async () => {
       const session = await getSession();
       if (session) {
         router.replace('/posts');
+        toast('You have been logged in.', 'success');
       }
     };
   
@@ -33,38 +28,19 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+    const res = await signIn('credentials', {
+      redirect: false,
+      email: form.email,
+      password: form.password,
     });
 
-    const data = await res.json();
-    setLoading(false);
-
-    if (!res.ok) {
-      toast(data.error || 'Something went wrong', 'error');
+    if (res?.error) {
+      toast('Unable to sign in.', 'error');
     } else {
-      toast('Successfully registered! Redirecting...', 'success');
+      router.push('/posts');
       setTimeout(() => {
-        (async () => {
-          const res = await signIn('credentials', {
-            redirect: false,
-            email: form.email,
-            password: form.password,
-          });
-      
-          if (res?.error) {
-            toast('Unable to sign in automatically.', 'error');
-            router.push('/login');
-          } else {
-            await new Promise((r) => setTimeout(r, 100));
-            window.location.reload();
-          }
-        })();
-      }, 1250);
+        window.location.reload();
+      }, 100);
     }
   };
 
@@ -75,7 +51,7 @@ export default function RegisterPage() {
           onSubmit={handleSubmit}
           className="bg-secondary border border-secondary-border p-6 rounded-xl w-full space-y-4"
         >
-          <h1 className="text-xl font-bold text-neutral-400">Register Page</h1>
+          <h1 className="text-xl font-bold text-neutral-400">Login Page</h1>
   
           <input
             type="email"
@@ -86,17 +62,6 @@ export default function RegisterPage() {
             value={form.email}
             required
             maxLength={128}
-          />
-  
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            className="w-full p-2 bg-background border border-secondary-border bg-zinc-900 text-white rounded focus:outline-none focus:ring-1 focus:ring-zinc-700"
-            onChange={handleChange}
-            value={form.username}
-            required
-            maxLength={24}
           />
   
           <input
@@ -113,19 +78,22 @@ export default function RegisterPage() {
           <button
             type="submit"
             className="w-full py-2 bg-green-600 text-white rounded hover:opacity-90 transition"
-            disabled={loading}
           >
-            {loading ? 'Registering...' : 'Register'}
-          </button>  
+            Login
+          </button>
         </form>
   
         <p className="text-sm text-subtle mt-4">
-          Already have an account?{" "}
-          <a href="/login" className="text-accent hover:underline">
-            Login
+          Don't have an account?{" "}
+          <a href="/auth/register" className="text-accent hover:underline">
+            Register
+          </a>
+          {" | "}
+          <a href="/auth/forgot-password" className="text-accent hover:underline">
+            Forgot password?
           </a>
         </p>
       </div>
     </main>
-  );
-}  
+  );    
+}

@@ -150,14 +150,14 @@ export default function Navbar() {
                     className="absolute right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-md shadow-md z-50 min-w-[120px]"
                   >
                     <Link
-                      href="/login"
+                      href="/auth/login"
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm hover:bg-zinc-800"
                     >
                       Login
                     </Link>
                     <Link
-                      href="/register"
+                      href="/auth/register"
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm hover:bg-zinc-800"
                     >
