@@ -89,6 +89,17 @@ export async function systemCheckup(prisma?: PrismaClient): Promise<TestStatus[]
       })
     };
 
+    const users = await prisma.user.findMany({ select: { id: true, email: true } });
+    const withCapitals = users.filter(user => user.email !== user.email.toLowerCase());
+
+    if (withCapitals.length > 0) {
+      returnedTests.push({
+        test: 'normalizedEmails',
+        passed: false,
+        route: 'POST /api/system/checks/database?test=normalizedEmails'
+      })
+    };
+
     return returnedTests;
   } catch (error) {
     return null;
@@ -122,6 +133,10 @@ async function main() {
 
   if (checks.some(c => c.test === "fakePreviews")) {
     await fakePreviews(prisma);
+  }
+
+  if (checks.some(c => c.test === "normalizedEmails")) {
+    await normalizeEmails(prisma);
   }
 
   console.log("[Checks] Checks finished with no errors. Starting Next Server...");
@@ -367,6 +382,52 @@ async function fakePreviews(prisma: PrismaClient) {
     console.error(`[Checks] Something went wrong while cleaning video previews!`, error);
   }
 }
+
+
+////////////////////////////////////////////////////////////////////
+//                                                                //
+// TEST: Fix "Normalized Emails"!                                 //
+// Makes all emails lowercase to make db checks safer and easier  //
+//                                                                //
+////////////////////////////////////////////////////////////////////
+
+async function normalizeEmails(prisma: PrismaClient) {
+  const before = performance.now();
+  try {
+    const users = await prisma.user.findMany({ select: { id: true, email: true } });
+
+    console.log(`Found ${users.length} users to process emails for.`);
+
+    let updated = 0;
+    let skipped = 0;
+
+    for (const user of users) {
+      const normalized = user.email.toLocaleLowerCase().trim();
+      
+      if (user.email !== normalized) {
+        try {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { email: normalized },
+          });
+          console.log(`[+] Updated: ${user.email} -> ${normalized}`);
+          updated++;
+        } catch (error: any) {
+          console.error(`[X] Failed to update ${user.email}:`, error.message);
+        }
+      } else {
+        skipped++;
+      }
+    }
+
+    const after = performance.now();
+    console.log(`[Checks] Done normalizing ${updated} email(s)! (${(after - before).toFixed(2)}ms)`);
+
+  } catch (error) {
+    console.error(`[Checks] Something went wrong while normalizing emails!`, error);
+  }
+}
+
 
 
 main();

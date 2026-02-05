@@ -30,7 +30,7 @@ export default function LoginPage() {
     e.preventDefault();
     const res = await signIn('credentials', {
       redirect: false,
-      email: form.email,
+      email: form.email.toLocaleLowerCase(),
       password: form.password,
     });
 
