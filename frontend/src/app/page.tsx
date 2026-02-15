@@ -2,17 +2,34 @@
 
 import PostDisplay from '@/components/clientSide/Posts/Individual/PostDisplay';
 import { Post } from '@/core/types/posts';
-import { LEGIBLE_VERSION } from '@/core/constants/version';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useSearchBarLogic } from '@/core/searchBarLogic';
 import { useRouter } from 'next/navigation';
 
+function NumberDisplay({ number, size = 'w-16' }: { number: number, size?: string }) {
+  const digits = String(number).split('');
+
+  return (
+    <div className="flex items-center gap-1">
+      {digits.map((digit, index) => (
+        <img
+          key={index}
+          src={`/i/numbers/${digit}.png`} // do webp once finished testing
+          alt={digit}
+          className={`bg-red-500 ${size}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [post, setPost] = useState<Post | null>(null);
   const [postCount, setPostCount] = useState<number>(0);
+  const [randomPostId, setRandomPostId] = useState<number | null>(null);
   const [input, setInput] = useState('');
   const router = useRouter();
 
@@ -67,6 +84,16 @@ export default function HomePage() {
     fetchPostCount();
   }, []);
 
+  useEffect(() => {
+    const fetchPostCount = async () => {
+      const res = await fetch('/api/posts/random');
+      const resJson = await res.json();
+      // setRandomPostId(Number(resJson?.post?.id) ?? null);
+      setRandomPostId(12794);
+    };
+    fetchPostCount();
+  }, []);
+
   return (
     <main className="min-h-screen bg-zinc-950 text-white flex flex-col">
       <section className="pt-12 pb-6 px-4 text-center">
@@ -76,7 +103,7 @@ export default function HomePage() {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="text-4xl font-bold mb-2"
         >
-          Welcome to {process.env.NEXT_PUBLIC_SITE_NAME ?? 'Imageboard'}
+          Welcome to {process.env.NEXT_PUBLIC_SITE_NAME ?? 'BooruParty'}
         </motion.h1>
 
         <motion.p
@@ -85,18 +112,33 @@ export default function HomePage() {
           transition={{ delay: 0.4, duration: 0.5 }}
           className="text-lg text-gray-300 max-w-lg mx-auto"
         >
-          A Modern "Booru" Board utilizing the latest technology for the best experience. Please enjoy your stay :)
-          <br /><br />
-          Currently running <a href='https://github.com/WWYDF/BooruParty' className='hover:underline text-accent'>BooruParty</a> {LEGIBLE_VERSION}!
+          A Modern "Booru" Board utilizing the latest technology for the best experience. Please enjoy your stay! ❤️
         </motion.p>
       </section>
 
+      {/* Post Numbers */}
+      {randomPostId && (
+        <section>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className='flex justify-center'
+          >
+            <Suspense>
+              <NumberDisplay number={randomPostId} size='w-24' />
+            </Suspense>
+          </motion.div>
+        </section>
+      )}
+
+      {/* Search Bar + Buttons */}
       <section>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.5 }}
-          className='flex justify-center'
+          className='flex justify-center mt-6'
         >
           <form onSubmit={handleSearch} className="w-full max-w-2xl space-y-6">
             {/* Search Bar */}
@@ -177,7 +219,7 @@ export default function HomePage() {
       </section>
 
       {post && (
-        <section className="px-4 pb-12 mt-8 text-center">
+        <section className="px-4 pb-12 mt-12 text-center">
           <h2 className="text-2xl font-semibold mb-4">Featured Post</h2>
           <Link href={`/post/${post.id}`} className="inline-block">
             <PostDisplay post={post} showVoting={false} disableFullscreen={true} />
