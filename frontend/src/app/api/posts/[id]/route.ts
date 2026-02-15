@@ -3,7 +3,6 @@ import { checkPermissions } from "@/components/serverSide/permCheck";
 import { syncPostPools } from "@/components/serverSide/Posts/syncPools";
 import { syncPostRelations } from "@/components/serverSide/Posts/syncRelations";
 import { auth } from "@/core/authServer";
-import { getConversionType } from "@/core/dictionary";
 import { prisma } from "@/core/prisma";
 import { setAvatarUrl } from "@/core/reformatProfile";
 import { PostUserStatus } from "@/core/types/posts";
@@ -161,9 +160,6 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     boostedToday = latestBoost ? latestBoost.createdAt.toDateString() == new Date().toDateString() : false;
   }
 
-  // Might not need this anymore
-  const previewExt = getConversionType(post.fileExt);
-
   // Sort Tags by Category
   const groupedTags = post.tags.reduce((acc, tag) => {
     const categoryName = tag.category?.name || "Uncategorized";
@@ -196,7 +192,6 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
           avatar: setAvatarUrl(post.uploadedBy.avatar)
         }
       : null,
-    previewExt,
     previewPath: `${process.env.NEXT_PUBLIC_FASTIFY}${post.previewPath}`,
     originalPath: `${process.env.NEXT_PUBLIC_FASTIFY}${post.originalPath}`,
     pools: post.pools.map((poolItem) => ({

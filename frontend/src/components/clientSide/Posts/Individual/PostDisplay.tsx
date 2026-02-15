@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import PostVoting from "./PostVoting";
-import { resolveFileType } from "@/core/dictionary";
 import { Post, PostUserStatus } from "@/core/types/posts";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,7 +24,6 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
   const toast = useToast();
 
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const fileType = resolveFileType(`.${post.fileExt}`);
 
   function handleFullscreen(toggle: boolean) {
     if (disableFullscreen == false) { setIsAnimating(toggle); }
@@ -67,7 +65,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
-          {fileType === "video" ? (
+          {post.type === "video" ? (
             <video
               src={showFull ? post.originalPath : post.previewPath}
               controls

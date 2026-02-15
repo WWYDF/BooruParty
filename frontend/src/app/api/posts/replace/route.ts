@@ -1,4 +1,3 @@
-import { resolveFileType } from "@/core/dictionary";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/core/prisma';
 import { checkFile } from "@/components/serverSide/UploadProcessing/checkHash";
@@ -6,6 +5,7 @@ import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { FastifyUpload } from "@/core/types/posts";
+import { fileTypeFromBuffer } from "file-type";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -47,16 +47,16 @@ export async function POST(req: NextRequest) {
   }
 
   const extension = file.name.split(".").pop()?.toLowerCase() || "";
-  const fileType = resolveFileType(`.${extension}`);
   let previewSrc;
 
-  const buffer = Buffer.from(await file.arrayBuffer());
   // run pHash duplicate detection
-  const hashResult = await checkFile(buffer, extension, fileType);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const incomingType = await fileTypeFromBuffer(buffer);
+  const hashResult = await checkFile(buffer, extension, incomingType);
 
   // Reject duplicates by comparing result IDs
   if (hashResult.status === true && hashResult.ogPost!.id != parseInt(postId) && currentPost.dupeBypass == false) {
-    return NextResponse.json({ error: `This image already exists in post #${hashResult.ogPost!.id}!`, duplicate: true, postId: hashResult.ogPost!.id }, { status: 409 });
+    return NextResponse.json({ error: `This post already exists in #${hashResult.ogPost!.id}!`, duplicate: true, postId: hashResult.ogPost!.id }, { status: 409 });
   }
 
   // Forward to Fastify
@@ -76,15 +76,14 @@ export async function POST(req: NextRequest) {
   }
   
   const result = await fastifyResponse.json() as FastifyUpload;
-  if (result.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
-  else { previewSrc = `/data/previews/${fileType}/${postId}.${result.assignedExt}` }
   
   await prisma.posts.update({
     where: { id: Number(postId) },
     data: {
       pHash: hashResult.genHash ?? null,
+      type: result.type,
       previewScale: result.previewScale,
-      previewPath: previewSrc,
+      previewPath: result.previewPath,
       aspectRatio: result.aspectRatio,
       fileExt: result.finalExt,
       fileSize: result.fileSize,

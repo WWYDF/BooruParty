@@ -6,13 +6,13 @@ import fs from "fs";
 import path from "path";
 import Busboy from "busboy";
 import { FastifyPluginAsync } from "fastify"
-import { FileType, resolveFileType } from "../types/mediaTypes";
 import { preProcessImage, preProcessVideo } from "../utils/Uploads/preProcessing";
 import { SubFileUpload } from "../types/uploadTypes";
 import { processPreviews } from "../utils/Uploads/previewProcessing";
 import { generateThumbnails } from "../utils/Uploads/generateThumbnails";
 import { getAspectRatio } from "../utils/Uploads/aspectRatio";
 import { appLogger } from "../plugins/logger";
+import { getMediaType } from "../utils/mediaTypes";
 
 const logger = appLogger('Upload');
 
@@ -22,7 +22,6 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
       let postId: string;
       let filePath = '';
       let convertVideos = process.env.FORCE_CONVERT_SHORT_VIDEOS == 'true' ? true : false;
-      let fileFormat: FileType;
       let subFile: SubFileUpload;
 
       const busboy = Busboy({ headers: req.headers });
@@ -39,36 +38,32 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
         }
       });
 
-      busboy.on('file', (fieldname, file, info) => {
-        const { filename } = info;
-        if (!postId) { return reply.code(400).send({ error: 'Missing postId' }); };
-        logger.debug(`Received postId! (${postId})`);
+      busboy.on('file', async (fieldname, file, info) => {
+        try {
+          const { filename } = info;
+          if (!postId) { return reply.code(400).send({ error: 'Missing postId' }); };
+          logger.debug(`Received postId! (${postId})`);
 
-        const ext = path.extname(filename);
-        fileFormat = resolveFileType(ext); // will be 'image', 'animated', 'video', or 'other'
-        filePath = path.join(process.cwd(), '/data/uploads', fileFormat, `${postId}${ext}`);
-        
-
-        const chunks: Buffer[] = [];
-        file.on('data', (chunk) => chunks.push(chunk)); // save each data chunk in order
-
-        // Once the file is done uploading, begin processing
-        file.on('end', async () => {
+          const ext = path.extname(filename);
+          const { type, buffer } = await getMediaType(file, info);
+          logger.debug(`File looks like a(n) ${type}...`);
+          if (!type) { return reply.code(415).send({ error: 'File type not allowed' }); };
+          
+          filePath = path.join(process.cwd(), '/data/uploads', type, `${postId}${ext}`);
           logger.debug(`Entire file has been received and saved to a buffer.`);
-          const buffer = Buffer.concat(chunks);
 
           // Build skeleton before pre-processing
           subFile = {
             postId,
             ogExt: ext.replace(/^\./, ""),
-            type: fileFormat,
+            type,
             ogPath: filePath,
             buffer,
             hasAudio: false,
           }
 
-          logger.debug(`Starting Pre-Processing for ${fileFormat}!`);
-          switch (fileFormat) {
+          logger.debug(`Starting Pre-Processing for ${type}!`);
+          switch (type) {
             case 'image':
               subFile = await preProcessImage(subFile);
               break;
@@ -80,10 +75,6 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
           };
 
           logger.debug(`SubFile Generated for ${subFile.postId}!`);
-
-          // At this point, subFile contains updated information from our preprocessing,
-          // and should be used as the definite source of truth.
-          // Trycatches should be inside of each function, so we have a better idea of what went wrong & where.
 
           const previewData = await processPreviews(subFile); logger.debug(`Saved Preview!`);
           if (!previewData || previewData === null) { return reply.code(500).send({ error: 'Failed to process upload, check console for details.' }); }
@@ -97,6 +88,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
           reply.send({
             status: 'success',
             postId: Number(subFile.postId),
+            type: subFile.type,
             previewScale: previewData.previewScale,
             aspectRatio: ratio,
             deletedPreview: !previewData.previewScale,
@@ -110,11 +102,12 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
             hasAudio: subFile.hasAudio,
             duration: subFile.duration
           });
-          resolve();
-        })
+          resolve(); // tell fastify to send the response now
+        } catch (error) {
+          reject(error);
+        }
       });
 
-      busboy.on('finish', () => { if (!filePath) { reply.code(400).send({ error: 'No file received' }) } });
       req.raw.pipe(busboy);
     });
   });

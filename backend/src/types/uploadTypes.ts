@@ -1,12 +1,12 @@
-import { FileType } from "./mediaTypes";
+import { FileTypes } from "../utils/mediaTypes"
 
 export type SubFileUpload = {
   postId: string | number,
   ogExt: string,
-  type: FileType,
+  type: FileTypes,
   buffer: Buffer,
   ogPath: string,
-  transType?: FileType,
+  transType?: FileTypes,
   duration?: number,
   hasAudio: boolean
 }

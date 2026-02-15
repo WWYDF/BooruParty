@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/core/authServer';
 import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
-import { resolveFileType } from '@/core/dictionary';
 import { checkPermissions } from '@/components/serverSide/permCheck';
+import { fileTypeFromBuffer } from 'file-type';
+import { ALLOWED_EXTENSIONS } from '@/core/dictionary';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -23,9 +24,7 @@ export async function POST(request: NextRequest) {
   if (!file) { return NextResponse.json({ error: 'No file provided' }, { status: 400 }); };
 
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
-  const fileType = resolveFileType(`.${extension}`);
-
-  if (fileType === 'other') {
+  if (!ALLOWED_EXTENSIONS.includes(extension)) {
     return NextResponse.json(
       { error: `File type .${extension} is not supported.` },
       { status: 415 } // 415 Unsupported Media Type
@@ -34,7 +33,8 @@ export async function POST(request: NextRequest) {
 
   // Begin processing stuff
   const buffer = Buffer.from(await file.arrayBuffer());
-  const checkMatch = await checkFile(buffer, extension, fileType);
+  const incomingType = await fileTypeFromBuffer(buffer);
+  const checkMatch = await checkFile(buffer, extension, incomingType);
 
   return NextResponse.json({ duplicate: checkMatch.status, dupePerms: canCreateDupes, post: checkMatch.ogPost?.id }, { status: checkMatch.status ? 409 : 200 });
 }

@@ -7,7 +7,6 @@ import { Comments } from "@/core/types/comments";
 import { cookies } from "next/headers";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { Metadata } from "next";
-import { resolveFileType } from "@/core/dictionary";
 import { Post } from "@/core/types/posts";
 import { formatStorageFromBytes } from "@/core/formats";
 import { Tag } from "@/core/types/tags";
@@ -189,10 +188,7 @@ export default async function PostPage({
     artistText = ` by ${firstArtist.name}`;
   }
     
-  let fileTypeText = '';
-  const fileType = resolveFileType(`.${post.fileExt}`);
-  if (fileType != 'other') { fileTypeText = ` ${fileType}` }
-  const desc = `View this ${formatStorageFromBytes(post.fileSize ?? 0)}${fileTypeText}`
+  const desc = `View this ${formatStorageFromBytes(post.fileSize ?? 0)} ${post.type}`
 
   return (
     <main className="grid grid-cols-1 lg:grid-cols-[375px_1fr] gap-6 p-4">

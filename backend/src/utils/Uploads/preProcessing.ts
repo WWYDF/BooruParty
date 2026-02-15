@@ -71,6 +71,7 @@ export async function preProcessVideo(upload: SubFileUpload, convertVideos: bool
   // otherwise, return og video file (with added video metadata)
   return {
     ...upload,
+    type: 'video',
     duration,
     hasAudio
   };

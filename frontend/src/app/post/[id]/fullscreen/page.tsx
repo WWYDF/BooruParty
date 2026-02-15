@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Post } from "@/core/types/posts";
-import { resolveFileType } from "@/core/dictionary";
 import PostNavigator from "@/components/clientSide/Posts/Individual/PostNavigator";
 import { CaretDoubleLeft } from "phosphor-react";
 
@@ -72,16 +71,14 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
   useEffect(() => {
     if (!post) return;
 
-    const fileType = resolveFileType(`.${post.fileExt}`);
-    if (fileType === "video") {
+    if (post.type === "video") {
       router.replace(`/post/${post.id}`);
     }
   }, [post, router]);
 
   if (!post) return null;
 
-  const fileType = resolveFileType(`.${post.fileExt}`);
-  if (fileType === "video") { return null } // redirect already kicked off above, so prevent rendering anything here
+  if (post.type === "video") { return null } // redirect already kicked off above, so prevent rendering anything here
 
   return (
     <motion.div

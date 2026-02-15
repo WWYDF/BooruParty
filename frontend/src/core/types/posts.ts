@@ -5,6 +5,7 @@ import { Tag, TagGroup } from "./tags";
 export type Post = {
   id: number;
   fileExt: string;
+  type: FileTypes; // null isn't available because it should never be null
   originalPath: string;
   previewPath: string;
   aspectRatio?: number;
@@ -144,6 +145,7 @@ export type Posts = {
 export type FastifyUpload = {
   status: string,
   postId: number,
+  type: FileTypes,
   previewScale: number | null,
   aspectRatio: number,
   deletedPreview?: boolean,

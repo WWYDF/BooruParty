@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/authServer';
 import { checkPermissions } from '@/components/serverSide/permCheck';
-import { FILE_TYPE_MAP, FileType } from '@/core/dictionary';
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -17,11 +16,7 @@ export async function GET(req: Request) {
   let whereClause: any = {};
 
   // Add file type filter if provided
-  if (postType) {
-    whereClause.fileExt = { 
-      in: FILE_TYPE_MAP[postType as FileType].map(ext => ext.replace('.', ''))
-    };
-  }
+  if (postType) { whereClause.type = postType };
 
   // Add vague tag exclusion if enabled
   if (removeVague) {

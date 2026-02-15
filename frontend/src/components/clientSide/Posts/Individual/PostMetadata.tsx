@@ -9,7 +9,6 @@ import { formatCounts, formatStorageFromBytes } from "@/core/formats";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { useToast } from "../../Toast";
 import { Post, PostUserStatus } from "@/core/types/posts";
-import { getCategoryFromExt } from "@/core/dictionary";
 
 const AVATAR_URL = "/i/user.png";
 
@@ -57,7 +56,6 @@ export default function PostMetadata(
 
   const displayName = post.uploadedBy?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : post.uploadedBy?.avatar || AVATAR_URL;
-  const fileType = getCategoryFromExt(post.fileExt) ?? post.fileExt;
 
   const isOwner = post.uploadedBy.id === userId;
   
@@ -287,7 +285,7 @@ export default function PostMetadata(
             {post.fileExt && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Type</span>
-                {fileType.charAt(0).toUpperCase() + fileType.slice(1)} ({post.fileExt.toLocaleUpperCase()})
+                {post.type.charAt(0).toUpperCase() + post.type.slice(1)} ({post.fileExt.toLocaleUpperCase()})
               </p>
             )}
 

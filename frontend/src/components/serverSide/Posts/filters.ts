@@ -1,4 +1,3 @@
-import { FILE_TYPE_MAP } from "@/core/dictionary";
 import { Prisma, SafetyType } from "@prisma/client";
 import { parseSearch } from "./parseSearch";
 
@@ -127,16 +126,14 @@ export function buildPostWhereAndOrder(
     // console.log("Final where clause:", JSON.stringify(where, null, 2));
   }
 
-  // File type filters
-  const resolveExts = (types: string[]) =>
-    types.flatMap(t => (t in FILE_TYPE_MAP ? FILE_TYPE_MAP[t as keyof typeof FILE_TYPE_MAP] : [t]))
-      .map(ext => ext.replace(/^\./, ""));
+  // File type filters (updated)
+  if (includeTypes.length > 0) {
+    where.AND.push({ type: { in: includeTypes } });
+  }
 
-  const includeExts = resolveExts(includeTypes);
-  const excludeExts = resolveExts(excludeTypes);
-
-  if (includeExts.length > 0) where.AND.push({ fileExt: { in: includeExts } });
-  if (excludeExts.length > 0) where.AND.push({ fileExt: { notIn: excludeExts } });
+  if (excludeTypes.length > 0) {
+    where.AND.push({ type: { notIn: excludeTypes } });
+  }
 
   // Year filter
   if (systemOptions.year?.match(/^\d{4}$/)) {
