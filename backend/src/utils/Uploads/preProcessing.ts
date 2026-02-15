@@ -61,8 +61,8 @@ export async function preProcessVideo(upload: SubFileUpload, convertVideos: bool
       ogPath: newPath,
       buffer,
       transType: 'animated', // tell NextJS that we converted it to an animation
-      duration,
-      hasAudio
+      duration: undefined, // strip video-only tags
+      hasAudio: false, // strip video-only tags
     }
 
     logger.debug(`Returning updated subFile.`);
