@@ -30,6 +30,11 @@ export async function GET(req: Request) {
       skip,
       take: 1
     });
+    if (!post) { return NextResponse.json({ error: "No posts found matching query" }, { status: 404 }); };
+
+    if (post.previewPath) { post.previewPath = `${process.env.NEXT_PUBLIC_FASTIFY}${post.previewPath}`; };
+    post.originalPath = `${process.env.NEXT_PUBLIC_FASTIFY}${post.originalPath}`;
+
     return NextResponse.json({ post }, { status: 200 });
   } catch (e) {
     console.error('Failed to fetch storage stats:', e);

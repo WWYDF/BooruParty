@@ -1,0 +1,443 @@
+'use client';
+
+import { Suspense, use, useEffect, useState, useCallback, useMemo } from 'react';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, useSortable, arraySwap } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { ArrowsClockwise, Shuffle, Play, Pause } from '@phosphor-icons/react';
+import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
+
+type Post = {
+  id: number;
+  fileExt: string;
+  originalPath: string;
+  previewPath: string;
+  aspectRatio?: number;
+  anonymous: boolean;
+  safety: 'SAFE' | 'SKETCHY' | 'UNSAFE';
+  sources: string[];
+  notes: string;
+  flags: string[];
+  previewScale: number;
+  fileSize?: number;
+  previewSize?: number;
+  duration: number | null;
+  hasAudio: boolean | null;
+  pHash: string;
+  score: number;
+  uploadedById: string;
+  createdAt: string;
+};
+
+type PuzzlePiece = {
+  id: string;
+  correctIndex: number;
+  currentIndex: number;
+};
+
+const STORAGE_KEY = 'jigsaw-auto-scramble';
+
+function shuffleArray<T>(array: T[]): T[] {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function SortablePuzzlePiece({ 
+  piece, 
+  imageUrl, 
+  gridSize, 
+  totalPieces,
+  activeId,
+  overId
+}: { 
+  piece: PuzzlePiece; 
+  imageUrl: string; 
+  gridSize: number;
+  totalPieces: number;
+  activeId: string | null;
+  overId: string | null;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    isDragging,
+  } = useSortable({ 
+    id: piece.id,
+    animateLayoutChanges: () => false
+  });
+
+  const isActive = piece.id === activeId;
+  const isOver = piece.id === overId;
+
+  const row = Math.floor(piece.correctIndex / gridSize);
+  const col = piece.correctIndex % gridSize;
+  const backgroundPositionX = (col / (gridSize - 1)) * 100;
+  const backgroundPositionY = (row / (gridSize - 1)) * 100;
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={`aspect-square border rounded-sm overflow-hidden cursor-grab active:cursor-grabbing ${
+        isActive ? 'opacity-0 border-zinc-700' : isOver ? 'border-yellow-500 border-2 ring-2 ring-yellow-500/50' : 'border-zinc-700'
+      }`}
+    >
+      <div
+        className="w-full h-full"
+        style={{
+          backgroundImage: `url(${imageUrl})`,
+          backgroundSize: `${gridSize * 100}% ${gridSize * 100}%`,
+          backgroundPosition: `${backgroundPositionX}% ${backgroundPositionY}%`,
+        }}
+      />
+    </div>
+  );
+}
+
+function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize: number; onGridSizeChange: (size: number) => void }) {
+  const imageUrl = post.previewPath || post.originalPath;
+  const totalPieces = gridSize * gridSize;
+  
+  const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [isSolved, setIsSolved] = useState(false);
+  const [autoScramble, setAutoScramble] = useState(true);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  // Load auto-scramble preference
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) {
+      setAutoScramble(stored === 'true');
+    }
+  }, []);
+
+  // Initialize puzzle
+  useEffect(() => {
+    const initialPieces: PuzzlePiece[] = Array.from({ length: totalPieces }, (_, i) => ({
+      id: `piece-${i}`,
+      correctIndex: i,
+      currentIndex: i,
+    }));
+
+    if (autoScramble) {
+      const shuffled = shuffleArray(initialPieces);
+      setPieces(shuffled.map((piece, idx) => ({ ...piece, currentIndex: idx })));
+    } else {
+      setPieces(initialPieces);
+    }
+
+    setTimerSeconds(0);
+    setIsTimerRunning(false);
+    setHasStarted(false);
+    setIsSolved(false);
+  }, [totalPieces, post.id, autoScramble]);
+
+  // Timer effect
+  useEffect(() => {
+    if (!isTimerRunning) return;
+    
+    const interval = setInterval(() => {
+      setTimerSeconds(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isTimerRunning]);
+
+  // Check if solved
+  useEffect(() => {
+    if (pieces.length === 0) return;
+    
+    const solved = pieces.every((piece, idx) => piece.correctIndex === idx);
+    
+    if (solved && hasStarted && !isSolved) {
+      setIsSolved(true);
+      setIsTimerRunning(false);
+      
+      // Confetti celebration
+      const duration = 3000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      function randomInRange(min: number, max: number) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        });
+      }, 250);
+    }
+  }, [pieces, hasStarted, isSolved]);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+    
+    if (!hasStarted) {
+      setHasStarted(true);
+      setIsTimerRunning(true);
+    }
+  };
+
+  const handleDragOver = (event: any) => {
+    setOverId(event.over?.id as string | null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+    setOverId(null);
+
+    if (!over || active.id === over.id) return;
+
+    setPieces((items) => {
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
+
+      // Use arraySwap for clean swap behavior
+      const newItems = arraySwap(items, oldIndex, newIndex);
+
+      return newItems.map((item, idx) => ({ ...item, currentIndex: idx }));
+    });
+  };
+
+  const handleScramble = () => {
+    const shuffled = shuffleArray(pieces);
+    setPieces(shuffled.map((piece, idx) => ({ ...piece, currentIndex: idx })));
+    setTimerSeconds(0);
+    setIsTimerRunning(false);
+    setHasStarted(false);
+    setIsSolved(false);
+  };
+
+  const toggleAutoScramble = async () => {
+    const newValue = !autoScramble;
+    setAutoScramble(newValue);
+    localStorage.setItem(STORAGE_KEY, String(newValue));
+  };
+
+  const activePiece = useMemo(
+    () => pieces.find((piece) => piece.id === activeId),
+    [activeId, pieces]
+  );
+
+  return (
+    <div className="flex gap-6 p-6 min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Sidebar */}
+      <div className="w-64 flex-shrink-0 space-y-6">
+        <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+          <h2 className="text-lg font-semibold mb-4">Settings</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm text-zinc-400 mb-2 block">
+                Grid Size: {gridSize}x{gridSize}
+              </label>
+              <input
+                type="range"
+                min="4"
+                max="12"
+                value={gridSize}
+                onChange={(e) => onGridSizeChange(Number(e.target.value))}
+                disabled={hasStarted}
+                className="w-full accent-zinc-600 disabled:opacity-50"
+              />
+              {hasStarted && (
+                <p className="text-xs text-zinc-500 mt-1">Locked during play</p>
+              )}
+            </div>
+
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              <ArrowsClockwise size={18} />
+              New Image
+            </button>
+
+            <button
+              onClick={handleScramble}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+            >
+              <Shuffle size={18} />
+              Scramble
+            </button>
+
+            <button
+              onClick={toggleAutoScramble}
+              className={`w-full px-4 py-2 rounded-lg transition-colors ${
+                autoScramble 
+                  ? 'bg-emerald-600 hover:bg-emerald-700' 
+                  : 'bg-zinc-800 hover:bg-zinc-700'
+              }`}
+            >
+              Auto-scramble: {autoScramble ? 'ON' : 'OFF'}
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+          <h2 className="text-lg font-semibold mb-4">Timer</h2>
+          <div className="text-4xl font-mono text-center mb-4">
+            {formatTime(timerSeconds)}
+          </div>
+          {isSolved && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center text-emerald-400 font-semibold"
+            >
+              🎉 Solved!
+            </motion.div>
+          )}
+        </div>
+
+        <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+          <h2 className="text-sm font-semibold mb-2 text-zinc-400">Preview</h2>
+          <img
+            src={imageUrl}
+            alt="Puzzle preview"
+            className="w-full rounded-lg border border-zinc-700 opacity-30 hover:opacity-100 transition-opacity"
+          />
+        </div>
+      </div>
+
+      {/* Puzzle Grid */}
+      <div className="flex-1 flex items-start justify-center">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div 
+            className="grid gap-1 max-w-4xl w-full aspect-square"
+            style={{
+              gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+            }}
+          >
+            <SortableContext items={pieces.map(p => p.id)}>
+              {pieces.map((piece) => (
+                <SortablePuzzlePiece
+                  key={piece.id}
+                  piece={piece}
+                  imageUrl={imageUrl}
+                  gridSize={gridSize}
+                  totalPieces={totalPieces}
+                  activeId={activeId}
+                  overId={overId}
+                />
+              ))}
+            </SortableContext>
+          </div>
+
+          <DragOverlay>
+            {activeId && activePiece ? (
+              <div className="aspect-square border-2 border-zinc-400 rounded-sm overflow-hidden shadow-2xl">
+                <div
+                  className="w-full h-full"
+                  style={{
+                    backgroundImage: `url(${imageUrl})`,
+                    backgroundSize: `${gridSize * 100}% ${gridSize * 100}%`,
+                    backgroundPosition: `${((activePiece.correctIndex % gridSize) / (gridSize - 1)) * 100}% ${(Math.floor(activePiece.correctIndex / gridSize) / (gridSize - 1)) * 100}%`,
+                  }}
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
+    </div>
+  );
+}
+
+function PuzzleContent({ gridSize, setGridSize }: { gridSize: number; setGridSize: (size: number) => void }) {
+  const [post, setPost] = useState<Post | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/posts/random?type=image')
+      .then(res => res.json())
+      .then(data => {
+        setPost(data.post);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch post:', err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-zinc-400 text-xl">Loading puzzle...</div>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-zinc-400 text-xl">Failed to load image</div>
+      </div>
+    );
+  }
+
+  return <PuzzleGrid post={post} gridSize={gridSize} onGridSizeChange={setGridSize} />;
+}
+
+export default function JigsawPuzzlePage() {
+  const [gridSize, setGridSize] = useState(4); // default size
+
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-zinc-400 text-xl">Loading puzzle...</div>
+      </div>
+    }>
+      <PuzzleContent gridSize={gridSize} setGridSize={setGridSize} />
+    </Suspense>
+  );
+}
