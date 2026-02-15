@@ -224,7 +224,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 
   const addonOptions = await prisma.addonsConfig.findFirst({
     where: { id: 1 },
-    select: { autoTagger: true, artistProfiles: true }
+    select: { autoTagger: true, artistProfiles: true, jigsaw: true }
   });
 
   return NextResponse.json({post: postFormatted, user: userFormatted, addons: addonOptions});

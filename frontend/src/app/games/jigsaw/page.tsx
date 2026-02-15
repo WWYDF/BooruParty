@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useEffect, useState, useMemo } from 'react';
+import { Suspense, use, useEffect, useState, useCallback, useMemo } from 'react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arraySwap } from '@dnd-kit/sortable';
-import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import { ArrowsClockwiseIcon, ShuffleIcon } from '@phosphor-icons/react';
+import { CSS } from '@dnd-kit/utilities';
+import { ArrowsClockwise as ArrowsClockwiseIcon, Shuffle as ShuffleIcon, Play as PlayIcon, Pause as PauseIcon, Confetti as ConfettiIcon } from '@phosphor-icons/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { useRouter } from 'next/navigation';
 
 type Post = {
   id: number;
@@ -423,7 +424,12 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFil
             </div>
 
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                // Remove postId from URL if present
+                const url = new URL(window.location.href);
+                url.searchParams.delete('postId');
+                window.location.href = url.toString();
+              }}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
             >
               <ArrowsClockwiseIcon size={18} />
@@ -503,7 +509,14 @@ function PuzzleContent({ gridSize, setGridSize }: { gridSize: number; setGridSiz
   };
 
   useEffect(() => {
-    const url = `/api/posts/random?type=image${filterVague ? '&removeVague=true' : ''}`;
+    // Check for postId in URL params
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('postId');
+    
+    const url = postId 
+      ? `/api/posts/${postId}`
+      : `/api/posts/random?type=image${filterVague ? '&removeVague=true' : ''}`;
+    
     fetch(url)
       .then(res => res.json())
       .then(data => {

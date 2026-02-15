@@ -202,7 +202,7 @@ export default async function PostPage({
 
       {/* LEFT COLUMN - Metadata */}
       <div className="order-3 lg:order-1 lg:col-span-1 mt-6 lg:mt-0 border-r border-zinc-900">
-        <PostMetadata post={postData.post} user={postData.user} editPerms={passPerms} userId={session?.user.id} />
+        <PostMetadata post={postData.post} user={postData.user} editPerms={passPerms} userId={session?.user.id} addons={postData.addons} />
       </div>
 
       {/* RIGHT COLUMN - Main content + Comments */}

@@ -18,7 +18,10 @@ export interface canEdit {
   otherPosts: boolean
 }
 
-export default function PostMetadata({ post, user, editPerms, userId }: { post: Post, user: PostUserStatus, editPerms: canEdit, userId: string | undefined }) {
+export default function PostMetadata(
+  { post, user, editPerms, userId, addons }:
+  { post: Post, user: PostUserStatus, editPerms: canEdit, userId: string | undefined, addons: { autoTagger: boolean, artistProfiles: boolean, jigsaw: boolean } }
+) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null);
   const [fileSize, setfileSize] = useState<number | null>(null);
   const [viewingFull, setViewingFullState] = useState<boolean>(false);
@@ -367,6 +370,19 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
                 Click to Copy
               </button>
             </p>
+
+            {/* If Jigsaw is enabled, show button to play with this image */}
+            {addons.jigsaw && !post.duration && (
+              <p className="flex items-start gap-1 text-xs text-subtle">
+                <span className="text-white font-medium w-[80px]">Jigsaw</span>
+                <button
+                  onClick={() => router.push(`/games/jigsaw?postId=${post.id}`)}
+                  className="text-accent hover:underline focus:outline-none"
+                >
+                  Click to Play
+                </button>
+              </p>
+            )}
           </div>
 
 
