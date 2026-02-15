@@ -26,16 +26,18 @@ export async function GET(req: Request) {
   // Add vague tag exclusion if enabled
   if (removeVague) {
     const addonsConfig = await prisma.addonsConfig.findFirst();
-    if (!addonsConfig || !addonsConfig.vagueTagName) { 
-      return NextResponse.json({ error: "Vague Tag not setup in Addons Dashboard" }, { status: 500 }); 
+  
+    if (addonsConfig && addonsConfig.vagueTagName.length > 0) {
+      addonsConfig.vagueTagName.forEach(tag => {
+        if (!whereClause.AND) whereClause.AND = [];
+        whereClause.AND.push({ 
+          tags: { 
+            none: { name: tag } 
+          } 
+        });
+      });
     };
-    
-    whereClause.tags = {
-      none: {
-        name: addonsConfig.vagueTagName
-      }
-    };
-  }
+  };
 
   try {
     const allPosts = await prisma.posts.count({ where: whereClause });

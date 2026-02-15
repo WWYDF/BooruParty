@@ -27,5 +27,5 @@ export type AutoTaggerShape = {
 
 export type JigsawShape = {
   enabled: boolean,
-  vagueTagName: string | null,
+  vagueTagName: string[],
 };

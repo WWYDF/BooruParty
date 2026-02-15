@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 type LocalAddonState = {
   artistProfile: { enabled: boolean };
   autotagger: { enabled: boolean; url: string; mode: AutotagMode[] };
-  jigsaw: { enabled: boolean; vagueTagName: string };
+  jigsaw: { enabled: boolean; vagueTagName: string[] };
 };
 
 const ALLOWED: AutotagMode[] = ['PASSIVE', 'AGGRESSIVE', 'SELECTIVE'];
@@ -26,7 +26,7 @@ export default function AdminModulesPage() {
   const [state, setState] = useState<LocalAddonState>({
     artistProfile: { enabled: false },
     autotagger: { enabled: false, url: '', mode: [] },
-    jigsaw: { enabled: false, vagueTagName: '' },
+    jigsaw: { enabled: false, vagueTagName: [] },
   });
   const toast = useToast();
 
@@ -52,7 +52,7 @@ export default function AdminModulesPage() {
           },
           jigsaw: {
             enabled: !!data?.jigsaw?.enabled,
-            vagueTagName: String(data?.jigsaw?.vagueTagName ?? ''),
+            vagueTagName: Array.isArray(data?.jigsaw?.vagueTagName) ? data.jigsaw.vagueTagName : [],
           },
         };
 
@@ -90,7 +90,7 @@ export default function AdminModulesPage() {
   const setAutotagMode = (mode: AutotagMode[]) =>
     setState(s => ({ ...s, autotagger: { ...s.autotagger, mode } }));
 
-  const setJigsawVagueTagName = (vagueTagName: string) =>
+  const setJigsawVagueTagName = (vagueTagName: string[]) =>
     setState(s => ({ ...s, jigsaw: { ...s.jigsaw, vagueTagName } }));
 
   const handleSave = async () => {
@@ -98,7 +98,7 @@ export default function AdminModulesPage() {
     if (state.autotagger.enabled && (!isAutotagUrlValid || state.autotagger.mode.length === 0)) return;
     
     // Validate jigsaw
-    if (state.jigsaw.enabled && !state.jigsaw.vagueTagName.trim()) return;
+    if (state.jigsaw.enabled && state.jigsaw.vagueTagName.length === 0) return;
 
     try {
       const payload = {
@@ -110,7 +110,7 @@ export default function AdminModulesPage() {
         },
         jigsaw: {
           enabled: state.jigsaw.enabled,
-          vagueTagName: state.jigsaw.enabled ? state.jigsaw.vagueTagName.trim() : null,
+          vagueTagName: state.jigsaw.enabled ? state.jigsaw.vagueTagName : null,
         },
       };
 
@@ -138,7 +138,7 @@ export default function AdminModulesPage() {
         },
         jigsaw: {
           enabled: !!jayson?.addons?.jigsaw?.enabled,
-          vagueTagName: String(jayson?.addons?.jigsaw?.vagueTagName ?? ''),
+          vagueTagName: state.jigsaw.enabled ? state.jigsaw.vagueTagName : [],
         },
       };
 
@@ -154,7 +154,7 @@ export default function AdminModulesPage() {
   // OR if jigsaw is enabled but no vague tag name
   const saveDisabled =
     (state.autotagger.enabled && (!isAutotagUrlValid || state.autotagger.mode.length === 0)) ||
-    (state.jigsaw.enabled && !state.jigsaw.vagueTagName.trim());
+    (state.jigsaw.enabled && state.jigsaw.vagueTagName.length === 0);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">

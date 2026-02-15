@@ -15,7 +15,7 @@ type Payload = {
 
   jigsaw?: {
     enabled: boolean;
-    vagueTagName?: string | null;
+    vagueTagName?: string[];
   };
 };
 
@@ -32,7 +32,7 @@ export async function GET() {
     },
     jigsaw: {
       enabled: row.jigsaw,
-      vagueTagName: row.vagueTagName ?? '',
+      vagueTagName: row.vagueTagName ?? [],
     },
     updatedAt: row.updatedAt,
   });
@@ -100,10 +100,10 @@ export async function PUT(req: NextRequest) {
 
   // Jigsaw Config
   let jigsaw: boolean | undefined;
-  let vagueTagName: string | null | undefined;
+  let vagueTagName: string[] | undefined;
 
   if (body.jigsaw) {
-    const { enabled, vagueTagName: vagueName } = body.jigsaw;
+    const { enabled, vagueTagName: vagueNames } = body.jigsaw;
     if (typeof enabled !== 'boolean') {
       return NextResponse.json(
         { error: 'jigsaw.enabled must be boolean' },
@@ -113,15 +113,23 @@ export async function PUT(req: NextRequest) {
     jigsaw = enabled;
 
     if (enabled) {
-      if (!vagueName || !vagueName.trim()) {
+      if (!Array.isArray(vagueNames) || vagueNames.length === 0) {
         return NextResponse.json(
-          { error: 'jigsaw.vagueTagName is required when jigsaw is enabled' },
+          { error: 'jigsaw.vagueTagName must be a non-empty array when jigsaw is enabled' },
           { status: 400 }
         );
       }
-      vagueTagName = vagueName.trim();
+      // Filter out empty strings
+      vagueTagName = vagueNames.filter(name => name.trim().length > 0);
+      
+      if (vagueTagName.length === 0) {
+        return NextResponse.json(
+          { error: 'jigsaw.vagueTagName must contain at least one non-empty tag' },
+          { status: 400 }
+        );
+      }
     } else {
-      vagueTagName = null;
+      vagueTagName = [];
     }
   }
 
@@ -158,7 +166,7 @@ export async function PUT(req: NextRequest) {
     },
     jigsaw: {
       enabled: updated.jigsaw,
-      vagueTagName: updated.vagueTagName ?? '',
+      vagueTagName: Array.isArray(updated.vagueTagName) ? updated.vagueTagName : [],
     },
     updatedAt: updated.updatedAt,
   }

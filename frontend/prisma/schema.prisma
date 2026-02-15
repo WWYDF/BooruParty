@@ -407,7 +407,7 @@ model AddonsConfig {
   autoTaggerMode          AutoTaggerMode[]    @default([PASSIVE])
 
   jigsaw                  Boolean             @default(false)
-  vagueTagName            String?
+  vagueTagName            String[]
 
   updatedAt               DateTime            @updatedAt
 
