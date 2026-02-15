@@ -464,15 +464,7 @@ export default function PostCommentList({
                               (e) => e.type === "post" && e.postId === id && e.inline
                             );
                             if (isInline) {
-                              return (
-                                <a
-                                  key={idx}
-                                  href={`/post/${id}`}
-                                  className="text-accent hover:underline"
-                                >
-                                  {id}
-                                </a>
-                              );
+                              return;
                             }
                           }
                           return <span key={idx} className="break-words">{renderTextWithMentions(chunk)}</span>;
