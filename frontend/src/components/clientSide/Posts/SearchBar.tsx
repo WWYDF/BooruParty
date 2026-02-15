@@ -1,20 +1,11 @@
 "use client";
 
 import { MagnifyingGlass, Trash, HashStraight, Question } from "@phosphor-icons/react";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { motion } from 'framer-motion';
 import { useToast } from "../Toast";
 import InfoModal from "../InfoModal";
-
-type TagType = {
-  id: number;
-  name: string;
-  category: {
-    id: number;
-    name: string;
-    color: string;
-  };
-};
+import { useSearchBarLogic } from "../../../core/searchBarLogic";
 
 type PostSearchBarProps = {
   input: string;
@@ -23,103 +14,26 @@ type PostSearchBarProps = {
 };
 
 export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarProps) {
-  const [suggestions, setSuggestions] = useState<TagType[]>([]);
-  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
-  useEffect(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    if (!input.trim() || input.endsWith(" ")) {
-      setSuggestions([]);
-      return;
-    }
-
-    // Only fetch suggestions for the last "word" the user typed
-    const lastWord = input.split(/\s+/).pop();
-    if (!lastWord) return;
-
-    debounceRef.current = setTimeout(() => {
-      setIsSearching(true);
-
-      fetch(`/api/tags/autocomplete?query=${encodeURIComponent(lastWord.replace("-", ""))}`)
-        .then((res) => res.json())
-        .then((data: TagType[]) => {
-          const words = input.toLowerCase().trim().split(/\s+/);
-          const finalizedTags = words.slice(0, -1).map(w => w.replace("-", ""));
-        
-          const filtered = data
-            .filter((tag) => !finalizedTags.includes(tag.name.toLowerCase()))
-            .slice(0, 10);
-        
-          setSuggestions(filtered);
-          setHighlightedIndex(filtered.length > 0 ? 0 : -1);
-        })
-        .catch(() => {
-          setSuggestions([]);
-        })
-        .finally(() => setIsSearching(false));
-    }, 200);
-
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, [input]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlightedIndex((prev) => (prev + 1) % suggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlightedIndex((prev) =>
-        prev === 0 ? suggestions.length - 1 : prev - 1
-      );
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
-        insertTag(suggestions[highlightedIndex].name);
-      } else {
-        onSubmit(input);
-      }
-    }
-  };
-
-  const insertTag = (tagName: string) => {
-    const parts = input.trim().split(/\s+/);
-    const lastWord = parts.pop() || "";
-    const negated = lastWord.startsWith("-");
-    parts.push(negated ? `-${tagName}` : tagName);
-    setInput(parts.join(" ") + " ");
-    setSuggestions([]);
-    setHighlightedIndex(-1);
-  };
-
-  const handleSuggestionClick = (tagName: string) => {
-    insertTag(tagName);
-  };
-
-  const handleSubmit = () => {
-    onSubmit(input);
-  };
+  const {
+    suggestions,
+    highlightedIndex,
+    isFocused,
+    inputRef,
+    handleKeyDown,
+    handleChange,
+    handleSuggestionClick,
+    handleSubmit,
+    handleClear,
+    handleFocus,
+    handleBlur,
+  } = useSearchBarLogic({ input, setInput, onSubmit });
 
   const showPostCount = () => {
     const postCount = sessionStorage.getItem("postCount")
     toast(`There are ${postCount} posts matching this search.`);
-  }
-
-  const handleClear = () => {
-    setInput("");
-    onSubmit("");
   };
 
   return (
@@ -130,10 +44,10 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
           ref={inputRef}
           type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setTimeout(() => setIsFocused(false), 100)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder="Search by tags (example: cat -dog)"
           className="w-full bg-secondary text-white py-2 text-base focus:outline-none"
         />

@@ -17,7 +17,7 @@ export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePr
       const metadata = await sharp(subFile.ogPath).metadata();
       const resizedBuffer = await sharp(subFile.ogPath)
         .resize({ width: 1280, withoutEnlargement: true })
-        .webp({ quality: 90 })
+        .webp({ quality: 80 })
         .toBuffer();
 
       await fs.promises.writeFile(previewPath, resizedBuffer);
