@@ -4,7 +4,7 @@ import { Suspense, use, useEffect, useState, useCallback, useMemo } from 'react'
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arraySwap } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowsClockwise, Shuffle, Play, Pause } from '@phosphor-icons/react';
+import { ArrowsClockwise, Shuffle, Play, Pause, ConfettiIcon } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useRouter } from 'next/navigation';
@@ -37,7 +37,7 @@ type PuzzlePiece = {
   currentIndex: number;
 };
 
-const STORAGE_KEY = 'jigsaw-auto-scramble';
+const FILTER_VAGUE_KEY = 'jigsaw-filter-vague';
 const GRID_SIZE_KEY = 'jigsaw-grid-size';
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -128,7 +128,7 @@ function SortablePuzzlePiece({
   );
 }
 
-function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize: number; onGridSizeChange: (size: number) => void }) {
+function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFilterVague }: { post: Post; gridSize: number; onGridSizeChange: (size: number) => void; filterVague: boolean; onToggleFilterVague: () => void }) {
   const imageUrl = post.previewPath || post.originalPath;
   const totalPieces = gridSize * gridSize;
   const router = useRouter();
@@ -141,7 +141,6 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [isSolved, setIsSolved] = useState(false);
-  const [autoScramble, setAutoScramble] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   // Detect mobile
@@ -162,14 +161,6 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
     })
   );
 
-  // Load auto-scramble preference
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored !== null) {
-      setAutoScramble(stored === 'true');
-    }
-  }, []);
-
   // Save grid size to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(GRID_SIZE_KEY, String(gridSize));
@@ -183,18 +174,15 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
       currentIndex: i,
     }));
 
-    if (autoScramble) {
-      const shuffled = shuffleArray(initialPieces);
-      setPieces(shuffled.map((piece, idx) => ({ ...piece, currentIndex: idx })));
-    } else {
-      setPieces(initialPieces);
-    }
+    // Always scramble the puzzle
+    const shuffled = shuffleArray(initialPieces);
+    setPieces(shuffled.map((piece, idx) => ({ ...piece, currentIndex: idx })));
 
     setTimerSeconds(0);
     setIsTimerRunning(false);
     setHasStarted(false);
     setIsSolved(false);
-  }, [totalPieces, post.id, autoScramble]);
+  }, [totalPieces, post.id]);
 
   // Timer effect
   useEffect(() => {
@@ -316,12 +304,6 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
     }
   };
 
-  const toggleAutoScramble = async () => {
-    const newValue = !autoScramble;
-    setAutoScramble(newValue);
-    localStorage.setItem(STORAGE_KEY, String(newValue));
-  };
-
   const activePiece = useMemo(
     () => pieces.find((piece) => piece.id === activeId),
     [activeId, pieces]
@@ -422,14 +404,14 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
             </button>
 
             <button
-              onClick={toggleAutoScramble}
+              onClick={onToggleFilterVague}
               className={`w-full px-4 py-2 rounded-lg transition-colors ${
-                autoScramble 
+                filterVague 
                   ? 'bg-emerald-600 hover:bg-emerald-700' 
                   : 'bg-zinc-800 hover:bg-zinc-700'
               }`}
             >
-              Auto-scramble: {autoScramble ? 'ON' : 'OFF'}
+              Remove Vagues: {filterVague ? 'ON' : 'OFF'}
             </button>
           </div>
         </div>
@@ -443,9 +425,9 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="text-center text-emerald-400 font-semibold"
+              className="flex justify-center text-emerald-400 font-semibold"
             >
-              🎉 Solved!
+              Solved!
             </motion.div>
           )}
         </div>
@@ -468,9 +450,26 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
 function PuzzleContent({ gridSize, setGridSize }: { gridSize: number; setGridSize: (size: number) => void }) {
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [filterVague, setFilterVague] = useState(false);
+
+  // Load filter preference
+  useEffect(() => {
+    const stored = localStorage.getItem(FILTER_VAGUE_KEY);
+    if (stored !== null) {
+      setFilterVague(stored === 'true');
+    }
+  }, []);
+
+  const toggleFilterVague = () => {
+    const newValue = !filterVague;
+    localStorage.setItem(FILTER_VAGUE_KEY, String(newValue));
+    // Reload the page to fetch a new image with the updated filter
+    window.location.reload();
+  };
 
   useEffect(() => {
-    fetch('/api/posts/random?type=image')
+    const url = `/api/posts/random?type=image${filterVague ? '&removeVague=true' : ''}`;
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         setPost(data.post);
@@ -480,7 +479,7 @@ function PuzzleContent({ gridSize, setGridSize }: { gridSize: number; setGridSiz
         console.error('Failed to fetch post:', err);
         setIsLoading(false);
       });
-  }, []);
+  }, [filterVague]);
 
   if (isLoading) {
     return (
@@ -498,7 +497,7 @@ function PuzzleContent({ gridSize, setGridSize }: { gridSize: number; setGridSiz
     );
   }
 
-  return <PuzzleGrid post={post} gridSize={gridSize} onGridSizeChange={setGridSize} />;
+  return <PuzzleGrid post={post} gridSize={gridSize} onGridSizeChange={setGridSize} filterVague={filterVague} onToggleFilterVague={toggleFilterVague} />;
 }
 
 export default function JigsawPuzzlePage() {

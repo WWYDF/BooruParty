@@ -397,6 +397,7 @@ model ImportLog {
   timestamp  DateTime     @default(now())
 }
 
+// Everything must have defaults or nullables
 model AddonsConfig {
   id                      Int                 @id @default(1) // singleton row
   artistProfiles          Boolean             @default(false)
@@ -404,6 +405,9 @@ model AddonsConfig {
   autoTagger              Boolean             @default(false)
   autoTaggerUrl           String?             @db.VarChar(512)
   autoTaggerMode          AutoTaggerMode[]    @default([PASSIVE])
+
+  jigsaw                  Boolean             @default(false)
+  vagueTagName            String?
 
   updatedAt               DateTime            @updatedAt
 

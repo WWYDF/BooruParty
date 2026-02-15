@@ -2,10 +2,8 @@
 
 import { AutotagMode } from '@/core/types/dashboard';
 import AddonSectionCard from './SectionCard';
-import { Robot, Circle, LinkSimple } from '@phosphor-icons/react';
-import { CheckCircle } from 'phosphor-react';
-import ChoiceTiles, { ChoiceTileOption } from './ChoiceTiles';
-import SwitchIOS from '../SwitchIOS';
+import { LinkSimpleIcon, RobotIcon } from '@phosphor-icons/react';
+import ChoiceTiles, { ChoiceTileOption } from '../ChoiceTiles';
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-sm font-medium text-zinc-300">{children}</label>;
@@ -48,7 +46,7 @@ export default function AutoTaggerSection({
 }) {
   return (
     <AddonSectionCard
-      icon={<Robot size={24} weight="duotone" />}
+      icon={<RobotIcon size={24} weight="duotone" />}
       title="Automatic Tagging"
       subtitle="Connect to a WD14 autotagger server and choose how it applies tags."
       enabled={enabled}
@@ -60,7 +58,7 @@ export default function AutoTaggerSection({
           <FieldLabel>Autotagger URL</FieldLabel>
           <div className="flex items-center gap-3">
             <span className="rounded-lg border border-zinc-700 bg-zinc-900/70 px-2.5 py-2">
-              <LinkSimple size={18} className="text-zinc-400" />
+              <LinkSimpleIcon size={18} className="text-zinc-400" />
             </span>
             <div className="flex-1">
               <input

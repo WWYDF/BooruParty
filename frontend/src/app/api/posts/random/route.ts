@@ -11,16 +11,31 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const postType = searchParams.get("type") || "";
+  const removeVague = searchParams.get("removeVague") || "";
   if (postType && !["image", "animated", "video", "other"].includes(postType)) { return NextResponse.json({ error: "Invalid Post Type" }, { status: 400 }); };
 
-  const whereClause = postType 
-    ? { 
-        fileExt: { 
-          in: FILE_TYPE_MAP[postType as FileType].map(ext => ext.replace('.', ''))
-        } 
+  let whereClause: any = {};
+
+  // Add file type filter if provided
+  if (postType) {
+    whereClause.fileExt = { 
+      in: FILE_TYPE_MAP[postType as FileType].map(ext => ext.replace('.', ''))
+    };
+  }
+
+  // Add vague tag exclusion if enabled
+  if (removeVague) {
+    const addonsConfig = await prisma.addonsConfig.findFirst();
+    if (!addonsConfig || !addonsConfig.vagueTagName) { 
+      return NextResponse.json({ error: "Vague Tag not setup in Addons Dashboard" }, { status: 500 }); 
+    };
+    
+    whereClause.tags = {
+      none: {
+        name: addonsConfig.vagueTagName
       }
-    : {}
-  ;
+    };
+  }
 
   try {
     const allPosts = await prisma.posts.count({ where: whereClause });

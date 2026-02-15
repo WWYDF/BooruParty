@@ -12,6 +12,11 @@ type Payload = {
     url?: string | null;
     mode?: AutotagMode | AutotagMode[];
   };
+
+  jigsaw?: {
+    enabled: boolean;
+    vagueTagName?: string | null;
+  };
 };
 
 export async function GET() {
@@ -24,6 +29,10 @@ export async function GET() {
       enabled: row.autoTagger,
       url: row.autoTaggerUrl ?? '',
       mode: row.autoTaggerMode,
+    },
+    jigsaw: {
+      enabled: row.jigsaw,
+      vagueTagName: row.vagueTagName ?? '',
     },
     updatedAt: row.updatedAt,
   });
@@ -38,12 +47,13 @@ export async function PUT(req: NextRequest) {
 
   const body = (await req.json()) as Payload;
 
-  // Basic validation
+  // Artist Profiles Config
   const artistProfiles =
     typeof body.artistProfileEnabled === 'boolean'
       ? body.artistProfileEnabled
       : undefined;
 
+  // AutoTagger Config
   let autoTagger: boolean | undefined;
   let autoTaggerUrl: string | null | undefined;
   let autoTaggerMode: AutotagMode[] | undefined;
@@ -72,7 +82,7 @@ export async function PUT(req: NextRequest) {
         const allowed: AutotagMode[] = ['PASSIVE', 'AGGRESSIVE', 'SELECTIVE'];
         if (!arr.every(m => allowed.includes(m))) {
           return NextResponse.json(
-            { error: 'autotagger.mode must be PASSIVE or AGGRESSIVE' },
+            { error: 'autotagger.mode must be PASSIVE, AGGRESSIVE, or SELECTIVE' },
             { status: 400 }
           );
         }
@@ -85,6 +95,33 @@ export async function PUT(req: NextRequest) {
       autoTaggerUrl = null;
       // store a default when disabled (keeps previous behavior)
       autoTaggerMode = ['PASSIVE'];
+    }
+  }
+
+  // Jigsaw Config
+  let jigsaw: boolean | undefined;
+  let vagueTagName: string | null | undefined;
+
+  if (body.jigsaw) {
+    const { enabled, vagueTagName: vagueName } = body.jigsaw;
+    if (typeof enabled !== 'boolean') {
+      return NextResponse.json(
+        { error: 'jigsaw.enabled must be boolean' },
+        { status: 400 }
+      );
+    }
+    jigsaw = enabled;
+
+    if (enabled) {
+      if (!vagueName || !vagueName.trim()) {
+        return NextResponse.json(
+          { error: 'jigsaw.vagueTagName is required when jigsaw is enabled' },
+          { status: 400 }
+        );
+      }
+      vagueTagName = vagueName.trim();
+    } else {
+      vagueTagName = null;
     }
   }
 
@@ -103,6 +140,12 @@ export async function PUT(req: NextRequest) {
       ...(autoTaggerMode !== undefined && {
         autoTaggerMode,
       }),
+      ...(jigsaw !== undefined && {
+        jigsaw,
+      }),
+      ...(vagueTagName !== undefined && {
+        vagueTagName,
+      }),
     },
   });
 
@@ -114,6 +157,10 @@ export async function PUT(req: NextRequest) {
         enabled: updated.autoTagger,
         url: updated.autoTaggerUrl ?? '',
         mode: updated.autoTaggerMode,
+      },
+      jigsaw: {
+        enabled: updated.jigsaw,
+        vagueTagName: updated.vagueTagName ?? '',
       },
       updatedAt: updated.updatedAt,
     },
