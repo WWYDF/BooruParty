@@ -175,6 +175,7 @@ model Permission {
 model Posts {
   id            Int                 @id @default(autoincrement())
   fileExt       String
+  type          String?             // No idea why I never included this day 1
   originalPath  String?             // No idea why I never included this day 1
   previewPath   String?
   aspectRatio   Float?

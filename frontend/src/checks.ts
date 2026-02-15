@@ -100,6 +100,17 @@ export async function systemCheckup(prisma?: PrismaClient): Promise<TestStatus[]
       })
     };
 
+    // Just need one to initiate the full check
+    const anyMissingTypes = await prisma.posts.findFirst({  where: { type: null } });
+
+    if (anyMissingTypes) {
+      returnedTests.push({
+        test: 'missingTypes',
+        passed: false,
+        route: 'POST /api/system/checks/database?test=missingTypes'
+      })
+    };
+
     return returnedTests;
   } catch (error) {
     return null;
@@ -137,6 +148,10 @@ async function main() {
 
   if (checks.some(c => c.test === "normalizedEmails")) {
     await normalizeEmails(prisma);
+  }
+
+  if (checks.some(c => c.test === "missingTypes")) {
+    await fixMissingTypes(prisma);
   }
 
   console.log("[Checks] Checks finished with no errors. Starting Next Server...");
@@ -428,6 +443,57 @@ async function normalizeEmails(prisma: PrismaClient) {
   }
 }
 
+
+////////////////////////////////////////////////////////////////////
+//                                                                //
+// TEST: Fix "Missing Types"!                                     //
+// Automatically defines whether a post is an image, anim, or vid //
+//                                                                //
+////////////////////////////////////////////////////////////////////
+
+async function fixMissingTypes(prisma: PrismaClient) {
+  const before = performance.now();
+  try {                                                              // Should already be fixed, but just in case
+    const fixingPosts = await prisma.posts.findMany({ where: { type: null, originalPath: { not: null } }, select: { id: true, originalPath: true }});
+
+    // Helper function to extract type from path
+    function getTypeFromPath(originalPath: string): string {
+      // Extract directory name from path like "/data/uploads/animated/1.webp"
+      const pathParts = originalPath.split('/');
+      const directory = pathParts[pathParts.length - 2]; // Gets "animated" from the path
+      
+      // Check if directory matches our known types
+      if (['image', 'animated', 'video'].includes(directory)) {
+        return directory;
+      }
+      
+      return 'other';
+    }
+
+    // Batch update approach
+    const updatesByType = fixingPosts.reduce((acc, post) => {
+      const type = getTypeFromPath(post.originalPath!);
+      if (!acc[type]) acc[type] = [];
+      acc[type].push(post.id);
+      return acc;
+    }, {} as Record<string, number[]>);
+
+    // Update each type in batches
+    for (const [type, ids] of Object.entries(updatesByType)) {
+      await prisma.posts.updateMany({
+        where: { id: { in: ids } },
+        data: { type }
+      });
+      console.log(`Updated ${ids.length} posts to type: ${type}`);
+    }
+
+    const after = performance.now();
+    console.log(`[Checks] Done fixing post types! (${(after - before).toFixed(2)}ms)`);
+
+  } catch (error) {
+    console.error(`[Checks] Something went wrong while fixing post types!`, error);
+  }
+}
 
 
 main();
