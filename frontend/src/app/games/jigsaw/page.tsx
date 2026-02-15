@@ -1,13 +1,12 @@
 'use client';
 
-import { Suspense, use, useEffect, useState, useCallback, useMemo } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arraySwap } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { ArrowsClockwise, Shuffle, Play, Pause, ConfettiIcon } from '@phosphor-icons/react';
-import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { ArrowsClockwiseIcon, ShuffleIcon } from '@phosphor-icons/react';
+import confetti from 'canvas-confetti';
 
 type Post = {
   id: number;
@@ -55,10 +54,29 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+function calculateGridDimensions(difficulty: number, aspectRatio: number): { cols: number; rows: number } {
+  // difficulty is now a multiplier (2-12)
+  // We want the smaller dimension to be approximately equal to difficulty
+  // And maintain the aspect ratio
+  
+  if (aspectRatio >= 1) {
+    // Landscape or square: rows = difficulty, cols = rows * aspectRatio
+    const rows = difficulty;
+    const cols = Math.round(rows * aspectRatio);
+    return { cols, rows };
+  } else {
+    // Portrait: cols = difficulty, rows = cols / aspectRatio
+    const cols = difficulty;
+    const rows = Math.round(cols / aspectRatio);
+    return { cols, rows };
+  }
+}
+
 function SortablePuzzlePiece({ 
   piece, 
   imageUrl, 
-  gridSize, 
+  cols,
+  rows,
   totalPieces,
   activeId,
   overId,
@@ -68,7 +86,8 @@ function SortablePuzzlePiece({
 }: { 
   piece: PuzzlePiece; 
   imageUrl: string; 
-  gridSize: number;
+  cols: number;
+  rows: number;
   totalPieces: number;
   activeId: string | null;
   overId: string | null;
@@ -90,10 +109,10 @@ function SortablePuzzlePiece({
   const isOver = piece.id === overId;
   const isSelected = piece.id === selectedPieceId;
 
-  const row = Math.floor(piece.correctIndex / gridSize);
-  const col = piece.correctIndex % gridSize;
-  const backgroundPositionX = (col / (gridSize - 1)) * 100;
-  const backgroundPositionY = (row / (gridSize - 1)) * 100;
+  const row = Math.floor(piece.correctIndex / cols);
+  const col = piece.correctIndex % cols;
+  const backgroundPositionX = cols > 1 ? (col / (cols - 1)) * 100 : 50;
+  const backgroundPositionY = rows > 1 ? (row / (rows - 1)) * 100 : 50;
 
   const handleClick = () => {
     if (isMobile) {
@@ -120,7 +139,7 @@ function SortablePuzzlePiece({
         className="w-full h-full"
         style={{
           backgroundImage: `url(${imageUrl})`,
-          backgroundSize: `${gridSize * 100}% ${gridSize * 100}%`,
+          backgroundSize: `${cols * 100}% ${rows * 100}%`,
           backgroundPosition: `${backgroundPositionX}% ${backgroundPositionY}%`,
         }}
       />
@@ -130,7 +149,21 @@ function SortablePuzzlePiece({
 
 function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFilterVague }: { post: Post; gridSize: number; onGridSizeChange: (size: number) => void; filterVague: boolean; onToggleFilterVague: () => void }) {
   const imageUrl = post.previewPath || post.originalPath;
-  const totalPieces = gridSize * gridSize;
+  
+  // Calculate grid dimensions based on aspect ratio
+  const aspectRatio = post.aspectRatio || 1;
+  const { cols, rows } = calculateGridDimensions(gridSize, aspectRatio);
+  const totalPieces = cols * rows;
+  
+  // Determine max width based on aspect ratio to avoid vertical scrolling
+  // Only shrink for tall images (portrait), wide images can stay large
+  const getMaxWidthClass = () => {
+    if (aspectRatio < 0.5) return 'max-w-xl';   // Very tall portrait
+    if (aspectRatio < 0.75) return 'max-w-2xl'; // Tall portrait
+    if (aspectRatio < 0.9) return 'max-w-3xl';  // Slightly tall
+    return 'max-w-4xl'; // Square or landscape - full size
+  };
+  const maxWidthClass = getMaxWidthClass();
   const router = useRouter();
   
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
@@ -321,9 +354,10 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFil
           onDragEnd={handleDragEnd}
         >
           <div 
-            className="grid gap-1 w-full aspect-square max-w-4xl"
+            className={`grid gap-1 w-full ${maxWidthClass}`}
             style={{
-              gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+              gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              aspectRatio: `${cols}/${rows}`,
             }}
           >
             <SortableContext items={pieces.map(p => p.id)}>
@@ -332,7 +366,8 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFil
                   key={piece.id}
                   piece={piece}
                   imageUrl={imageUrl}
-                  gridSize={gridSize}
+                  cols={cols}
+                  rows={rows}
                   totalPieces={totalPieces}
                   activeId={activeId}
                   overId={overId}
@@ -352,8 +387,8 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFil
                     className="w-full h-full"
                     style={{
                       backgroundImage: `url(${imageUrl})`,
-                      backgroundSize: `${gridSize * 100}% ${gridSize * 100}%`,
-                      backgroundPosition: `${((activePiece.correctIndex % gridSize) / (gridSize - 1)) * 100}% ${(Math.floor(activePiece.correctIndex / gridSize) / (gridSize - 1)) * 100}%`,
+                      backgroundSize: `${cols * 100}% ${rows * 100}%`,
+                      backgroundPosition: `${((activePiece.correctIndex % cols) / (cols > 1 ? cols - 1 : 1)) * 100}% ${(Math.floor(activePiece.correctIndex / cols) / (rows > 1 ? rows - 1 : 1)) * 100}%`,
                     }}
                   />
                 </div>
@@ -371,7 +406,7 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFil
           <div className="space-y-4">
             <div>
               <label className="text-sm text-zinc-400 mb-2 block">
-                Grid Size: {gridSize}x{gridSize}
+                Grid Size: {cols}x{rows} ({totalPieces} pieces)
               </label>
               <input
                 type="range"
@@ -391,7 +426,7 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFil
               onClick={() => window.location.reload()}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
             >
-              <ArrowsClockwise size={18} />
+              <ArrowsClockwiseIcon size={18} />
               New Image
             </button>
 
@@ -399,7 +434,7 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFil
               onClick={handleScramble}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
             >
-              <Shuffle size={18} />
+              <ShuffleIcon size={18} />
               Scramble
             </button>
 

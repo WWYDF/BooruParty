@@ -19,7 +19,7 @@ function NumberDisplay({ number, size = 'w-16' }: { number: number, size?: strin
           key={index}
           src={`/i/numbers/${digit}.png`} // do webp once finished testing
           alt={digit}
-          className={`bg-red-500 ${size}`}
+          className={`${size}`} // add bg-red-500 for debugging easier
         />
       ))}
     </div>
