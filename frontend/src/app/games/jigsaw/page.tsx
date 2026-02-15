@@ -7,6 +7,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { ArrowsClockwise, Shuffle, Play, Pause } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { useRouter } from 'next/navigation';
 
 type Post = {
   id: number;
@@ -37,6 +38,7 @@ type PuzzlePiece = {
 };
 
 const STORAGE_KEY = 'jigsaw-auto-scramble';
+const GRID_SIZE_KEY = 'jigsaw-grid-size';
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -59,7 +61,10 @@ function SortablePuzzlePiece({
   gridSize, 
   totalPieces,
   activeId,
-  overId
+  overId,
+  selectedPieceId,
+  isMobile,
+  onTap
 }: { 
   piece: PuzzlePiece; 
   imageUrl: string; 
@@ -67,6 +72,9 @@ function SortablePuzzlePiece({
   totalPieces: number;
   activeId: string | null;
   overId: string | null;
+  selectedPieceId: string | null;
+  isMobile: boolean;
+  onTap: (pieceId: string) => void;
 }) {
   const {
     attributes,
@@ -80,19 +88,32 @@ function SortablePuzzlePiece({
 
   const isActive = piece.id === activeId;
   const isOver = piece.id === overId;
+  const isSelected = piece.id === selectedPieceId;
 
   const row = Math.floor(piece.correctIndex / gridSize);
   const col = piece.correctIndex % gridSize;
   const backgroundPositionX = (col / (gridSize - 1)) * 100;
   const backgroundPositionY = (row / (gridSize - 1)) * 100;
 
+  const handleClick = () => {
+    if (isMobile) {
+      onTap(piece.id);
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      className={`aspect-square border rounded-sm overflow-hidden cursor-grab active:cursor-grabbing ${
-        isActive ? 'opacity-0 border-zinc-700' : isOver ? 'border-yellow-500 border-2 ring-2 ring-yellow-500/50' : 'border-zinc-700'
+      {...(isMobile ? {} : attributes)}
+      {...(isMobile ? {} : listeners)}
+      onClick={handleClick}
+      className={`aspect-square border rounded-sm overflow-hidden ${
+        isMobile ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
+      } ${
+        isActive ? 'opacity-0 border-zinc-700' : 
+        isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-500/50' :
+        isOver ? 'border-yellow-500 border-2 ring-2 ring-yellow-500/50' : 
+        'border-zinc-700'
       }`}
     >
       <div
@@ -110,15 +131,28 @@ function SortablePuzzlePiece({
 function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize: number; onGridSizeChange: (size: number) => void }) {
   const imageUrl = post.previewPath || post.originalPath;
   const totalPieces = gridSize * gridSize;
+  const router = useRouter();
   
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [isSolved, setIsSolved] = useState(false);
   const [autoScramble, setAutoScramble] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -135,6 +169,11 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
       setAutoScramble(stored === 'true');
     }
   }, []);
+
+  // Save grid size to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(GRID_SIZE_KEY, String(gridSize));
+  }, [gridSize]);
 
   // Initialize puzzle
   useEffect(() => {
@@ -248,6 +287,33 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
     setIsTimerRunning(false);
     setHasStarted(false);
     setIsSolved(false);
+    setSelectedPieceId(null);
+  };
+
+  const handlePieceTap = (pieceId: string) => {
+    if (!isMobile) return;
+
+    if (!hasStarted) {
+      setHasStarted(true);
+      setIsTimerRunning(true);
+    }
+
+    if (selectedPieceId === null) {
+      // First tap - select the piece
+      setSelectedPieceId(pieceId);
+    } else if (selectedPieceId === pieceId) {
+      // Tapped the same piece - deselect
+      setSelectedPieceId(null);
+    } else {
+      // Second tap - swap pieces
+      setPieces((items) => {
+        const oldIndex = items.findIndex((item) => item.id === selectedPieceId);
+        const newIndex = items.findIndex((item) => item.id === pieceId);
+        const newItems = arraySwap(items, oldIndex, newIndex);
+        return newItems.map((item, idx) => ({ ...item, currentIndex: idx }));
+      });
+      setSelectedPieceId(null);
+    }
   };
 
   const toggleAutoScramble = async () => {
@@ -262,9 +328,61 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
   );
 
   return (
-    <div className="flex gap-6 p-6 min-h-screen bg-zinc-950 text-zinc-100">
-      {/* Sidebar */}
-      <div className="w-64 flex-shrink-0 space-y-6">
+    <div className="flex flex-col md:flex-row gap-6 p-4 md:p-6 min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Puzzle Grid - First on mobile, second on desktop */}
+      <div className="flex-1 flex items-start justify-center order-1 md:order-2">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div 
+            className="grid gap-1 w-full aspect-square max-w-4xl"
+            style={{
+              gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+            }}
+          >
+            <SortableContext items={pieces.map(p => p.id)}>
+              {pieces.map((piece) => (
+                <SortablePuzzlePiece
+                  key={piece.id}
+                  piece={piece}
+                  imageUrl={imageUrl}
+                  gridSize={gridSize}
+                  totalPieces={totalPieces}
+                  activeId={activeId}
+                  overId={overId}
+                  selectedPieceId={selectedPieceId}
+                  isMobile={isMobile}
+                  onTap={handlePieceTap}
+                />
+              ))}
+            </SortableContext>
+          </div>
+
+          {!isMobile && (
+            <DragOverlay>
+              {activeId && activePiece ? (
+                <div className="aspect-square border-2 border-zinc-400 rounded-sm overflow-hidden shadow-2xl">
+                  <div
+                    className="w-full h-full"
+                    style={{
+                      backgroundImage: `url(${imageUrl})`,
+                      backgroundSize: `${gridSize * 100}% ${gridSize * 100}%`,
+                      backgroundPosition: `${((activePiece.correctIndex % gridSize) / (gridSize - 1)) * 100}% ${(Math.floor(activePiece.correctIndex / gridSize) / (gridSize - 1)) * 100}%`,
+                    }}
+                  />
+                </div>
+              ) : null}
+            </DragOverlay>
+          )}
+        </DndContext>
+      </div>
+
+      {/* Sidebar - Second on mobile, first on desktop */}
+      <div className="w-full md:w-64 flex-shrink-0 space-y-4 md:space-y-6 order-2 md:order-1">
         <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
           <h2 className="text-lg font-semibold mb-4">Settings</h2>
           
@@ -275,12 +393,12 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
               </label>
               <input
                 type="range"
-                min="4"
-                max="12"
+                min="2"
+                max={isMobile ? "6" : "12"}
                 value={gridSize}
                 onChange={(e) => onGridSizeChange(Number(e.target.value))}
                 disabled={hasStarted}
-                className="w-full accent-zinc-600 disabled:opacity-50"
+                className="w-full accent-accent disabled:opacity-50"
               />
               {hasStarted && (
                 <p className="text-xs text-zinc-500 mt-1">Locked during play</p>
@@ -332,61 +450,16 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange }: { post: Post; gridSize
           )}
         </div>
 
-        <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+        <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800 hidden md:block">
           <h2 className="text-sm font-semibold mb-2 text-zinc-400">Preview</h2>
           <img
             src={imageUrl}
             alt="Puzzle preview"
-            className="w-full rounded-lg border border-zinc-700 opacity-30 hover:opacity-100 transition-opacity"
+            title={`Click to open post`}
+            onClick={() => router.push(`/post/${post.id}`)}
+            className="w-full rounded-lg border border-zinc-700 opacity-30 hover:opacity-100 transition-opacity hover:cursor-pointer"
           />
         </div>
-      </div>
-
-      {/* Puzzle Grid */}
-      <div className="flex-1 flex items-start justify-center">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div 
-            className="grid gap-1 max-w-4xl w-full aspect-square"
-            style={{
-              gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-            }}
-          >
-            <SortableContext items={pieces.map(p => p.id)}>
-              {pieces.map((piece) => (
-                <SortablePuzzlePiece
-                  key={piece.id}
-                  piece={piece}
-                  imageUrl={imageUrl}
-                  gridSize={gridSize}
-                  totalPieces={totalPieces}
-                  activeId={activeId}
-                  overId={overId}
-                />
-              ))}
-            </SortableContext>
-          </div>
-
-          <DragOverlay>
-            {activeId && activePiece ? (
-              <div className="aspect-square border-2 border-zinc-400 rounded-sm overflow-hidden shadow-2xl">
-                <div
-                  className="w-full h-full"
-                  style={{
-                    backgroundImage: `url(${imageUrl})`,
-                    backgroundSize: `${gridSize * 100}% ${gridSize * 100}%`,
-                    backgroundPosition: `${((activePiece.correctIndex % gridSize) / (gridSize - 1)) * 100}% ${(Math.floor(activePiece.correctIndex / gridSize) / (gridSize - 1)) * 100}%`,
-                  }}
-                />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
       </div>
     </div>
   );
@@ -429,7 +502,19 @@ function PuzzleContent({ gridSize, setGridSize }: { gridSize: number; setGridSiz
 }
 
 export default function JigsawPuzzlePage() {
-  const [gridSize, setGridSize] = useState(4); // default size
+  const [gridSize, setGridSize] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('jigsaw-grid-size');
+      if (saved) {
+        const size = Number(saved);
+        // Validate the saved size is within bounds
+        if (size >= 2 && size <= 12) {
+          return size;
+        }
+      }
+    }
+    return 4; // default size
+  });
 
   return (
     <Suspense fallback={
