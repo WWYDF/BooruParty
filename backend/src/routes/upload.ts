@@ -21,7 +21,7 @@ const uploadRoute: FastifyPluginAsync = async (fastify) => {
     return new Promise<void>((resolve, reject) => {
       let postId: string;
       let filePath = '';
-      let convertVideos = false;
+      let convertVideos = process.env.FORCE_CONVERT_SHORT_VIDEOS == 'true' ? true : false;
       let fileFormat: FileType;
       let subFile: SubFileUpload;
 
