@@ -4,7 +4,9 @@ export type AddonState = {
   artistProfile: {
     enabled: boolean;
   };
-  autotagger: AutoTaggerSettings
+  autotagger: AutoTaggerSettings,
+  jigsaw: JigsawShape,
+  updatedAt: Date,
 };
 
 export type AutoTaggerSettings = {
@@ -21,4 +23,9 @@ export type Wd14Confidence = {
 export type AutoTaggerShape = {
   label: string;
   confidences: Wd14Confidence[];
+};
+
+export type JigsawShape = {
+  enabled: boolean,
+  vagueTagName: string | null,
 };

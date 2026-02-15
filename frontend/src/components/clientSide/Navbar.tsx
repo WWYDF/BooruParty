@@ -7,6 +7,7 @@ import { Images, List, X, UserCircle, Users, ChartPie, UploadSimple, House } fro
 import { NavItem } from './NavItem';
 import { usePathname, useRouter } from "next/navigation";
 import { FolderOpen, HouseLine, Tag } from 'phosphor-react';
+import { AddonState } from '@/core/types/dashboard';
 
 
 type UserInfo = {
@@ -21,6 +22,7 @@ type UserInfo = {
 
 export default function Navbar() {
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [addonsConfig, setAddons] = useState<AddonState | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -38,6 +40,15 @@ export default function Navbar() {
         else if (data?.role?.name === 'GUEST') setUser(data);
         else setUser(null);
       });
+  }, []);
+
+  useEffect(() => {
+    const fetchAddons = async () => {
+      const res = await fetch('/api/addons');
+      const resJson = await res.json() as AddonState;
+      setAddons(resJson);
+    };
+    fetchAddons();
   }, []);
 
   useEffect(() => {
@@ -117,6 +128,9 @@ export default function Navbar() {
           )}
           {hasPerm('post_view') && (
             <NavItem href="/tags">Tags</NavItem>
+          )}
+          {addonsConfig?.jigsaw.enabled == true && (
+            <NavItem href="/games/jigsaw">Games</NavItem>
           )}
           {hasPerm('dashboard_view') && (
             <NavItem href="/dashboard">Dashboard</NavItem>

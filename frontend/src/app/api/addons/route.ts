@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/authServer';
 import { checkPermissions } from '@/components/serverSide/permCheck';
-import { AutotagMode } from '@/core/types/dashboard';
+import { AddonState, AutotagMode } from '@/core/types/dashboard';
 
 type Payload = {
   artistProfileEnabled?: boolean;
@@ -149,20 +149,22 @@ export async function PUT(req: NextRequest) {
     },
   });
 
+  const respond: AddonState = {
+    artistProfile: { enabled: updated.artistProfiles },
+    autotagger: {
+      enabled: updated.autoTagger,
+      url: updated.autoTaggerUrl ?? '',
+      mode: updated.autoTaggerMode,
+    },
+    jigsaw: {
+      enabled: updated.jigsaw,
+      vagueTagName: updated.vagueTagName ?? '',
+    },
+    updatedAt: updated.updatedAt,
+  }
+
   return NextResponse.json({
     ok: true,
-    addons: {
-      artistProfile: { enabled: updated.artistProfiles },
-      autotagger: {
-        enabled: updated.autoTagger,
-        url: updated.autoTaggerUrl ?? '',
-        mode: updated.autoTaggerMode,
-      },
-      jigsaw: {
-        enabled: updated.jigsaw,
-        vagueTagName: updated.vagueTagName ?? '',
-      },
-      updatedAt: updated.updatedAt,
-    },
+    addons: respond,
   });
 }

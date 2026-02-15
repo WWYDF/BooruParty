@@ -22,7 +22,7 @@ export default function JigsawSection({
     <AddonSectionCard
       icon={<PuzzlePieceIcon size={24} weight="duotone" />}
       title="Jigsaw"
-      subtitle="Configure the vague tag for random post filtering."
+      subtitle="Play fun, randomly generated Jigsaw puzzles based on your Posts."
       enabled={enabled}
       onToggle={onToggle}
     >
