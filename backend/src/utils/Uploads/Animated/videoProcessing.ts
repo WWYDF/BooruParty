@@ -3,7 +3,6 @@ import fs from 'fs';
 import { appLogger } from '../../../plugins/logger';
 import { ENCODER_OPTIONS_MAP } from '../../../types/encoders';
 import { getBestEncoder } from './pickEncoder';
-import { spawn } from 'child_process';
 import { runFFmpeg, runFFprobe } from './ffInterface';
 
 const logger = appLogger('Encoding');
@@ -116,7 +115,7 @@ async function getBestEncoderFromEnv(): Promise<string> {
   const envCodec = (process.env.VIDEO_ENCODER || 'h264').toLowerCase();
 
   if (!['h264', 'vp9', 'av1', 'h265'].includes(envCodec)) {
-    logger.warn(`Unsupported VIDEO_ENCODER "${envCodec}", falling back to h264`);
+    logger.warn(`Unsupported VIDEO_ENCODER "${envCodec}", falling back to h264...`);
   }
 
   const codec = ['h264', 'vp9', 'av1', 'h265'].includes(envCodec) ? envCodec : 'h264';

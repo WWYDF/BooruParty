@@ -1,6 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { ENCODER_PRIORITY_MAP } from '../../../types/encoders';
+import { ENCODER_PRIORITY_MAP, ENCODER_OPTIONS_MAP } from '../../../types/encoders';
 import { appLogger } from '../../../plugins/logger';
 
 const logger = appLogger('Encoder');
@@ -64,17 +64,22 @@ export async function getBestEncoder(codec: keyof typeof ENCODER_PRIORITY_MAP): 
   const hwaccels = await loadHwaccels();
   const priorityList = ENCODER_PRIORITY_MAP[codec];
 
-  for (const encoder of priorityList) {
-    const hwOkay = encoderMatchesHw(encoder, hwaccels);
-    const listed = encoders.has(encoder);
+  for (const encoderKey of priorityList) {
+    const encoderConfig = ENCODER_OPTIONS_MAP[encoderKey];
+    if (!encoderConfig) continue;
+
+    const actualEncoderName = encoderConfig.encoder;
+    const hwOkay = encoderMatchesHw(actualEncoderName, hwaccels);
+    const listed = encoders.has(actualEncoderName);
     if (hwOkay && listed) {
-      const usable = await isUsableEncoder(encoder);
+      const usable = await isUsableEncoder(actualEncoderName);
       if (usable) {
-        logger.info(`Selected encoder "${encoder}" for codec "${codec}"`);
-        usableEncoderCache[codec] = encoder;
-        return encoder;
+        logger.info(`Selected encoder "${encoderKey}" (${actualEncoderName}) for codec "${codec}"`);
+        usableEncoderCache[codec] = encoderKey;
+        return encoderKey;
       } else {
-        logger.warn(`Rejected unusable encoder: ${encoder}`);
+        logger.warn(`Rejected unusable encoder: ${encoderKey} (${actualEncoderName})`);
+        continue;
       }
     }
   }
