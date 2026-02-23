@@ -17,7 +17,7 @@ function NumberDisplay({ number, size = 'w-16' }: { number: number, size?: strin
       {digits.map((digit, index) => (
         <img
           key={index}
-          src={`/i/numbers/${digit}.png`} // do webp once finished testing
+          src={`/i/numbers/${digit}.webp`}
           alt={digit}
           className={`${size}`} // add bg-red-500 for debugging easier
         />
@@ -88,8 +88,7 @@ export default function HomePage() {
     const fetchPostCount = async () => {
       const res = await fetch('/api/posts/random');
       const resJson = await res.json();
-      // setRandomPostId(Number(resJson?.post?.id) ?? null);
-      setRandomPostId(12794);
+      setRandomPostId(Number(resJson?.post?.id) ?? null);
     };
     fetchPostCount();
   }, []);
@@ -126,7 +125,9 @@ export default function HomePage() {
             className='flex justify-center'
           >
             <Suspense>
-              <NumberDisplay number={randomPostId} size='w-24' />
+              <div className='w-full max-w-1/2 flex justify-center'>
+                <NumberDisplay number={randomPostId} size='w-24 md:w-48'/>
+              </div>
             </Suspense>
           </motion.div>
         </section>
