@@ -11,6 +11,7 @@ let appLogStream: fs.WriteStream | null = null;
 const routeLogger: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', async (req) => {
     (req as any).startTime = process.hrtime();
+    (req as any).clientIp = req.headers['x-forwarded-for'] as string ?? req.ip;
   });
 
   fastify.addHook('onResponse', async (req, res) => {
@@ -20,6 +21,8 @@ const routeLogger: FastifyPluginAsync = async (fastify) => {
     const method = req.raw.method ?? 'GET';
     const url = req.raw.url ?? '';
     const status = res.statusCode;
+
+    const ip = (req as any).clientIp;
 
     // Skip logging for /data/* unless it's a 404
     if (url.startsWith('/data/') && status !== 404) return;
@@ -44,13 +47,12 @@ const routeLogger: FastifyPluginAsync = async (fastify) => {
     }[method] || chalk.white;
 
     console.log(
-      `${time} ${methodColor(method)} ${chalk.white(url)} ${statusColor(status)} ${chalk.gray(`(${duration}ms)`)}`
+      `${time} ${methodColor(method)} ${chalk.white(url)} ${statusColor(status)} ${chalk.gray(`(${duration}ms) ${ip == '192.168.0.1' ? '' : `[${ip}]`}`)}`
     );
   });
 };
 
 export default fp(routeLogger);
-
 
 export type LogLevel = 'verbose' | 'debug' | 'info' | 'warn' | 'error';
 
