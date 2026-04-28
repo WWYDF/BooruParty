@@ -373,7 +373,7 @@ export default function UserProfilePage() {
         {(user?.preferences?.favoriteTags?.length ?? 0) > 0 && (
           <section>
             <h2 className="text-lg font-semibold mb-2">
-              Favorite Tags <a className="text-sm text-subtle">({user.preferences.favoriteTags.length}/20)</a>
+              Favorite Tags <a className="text-sm text-subtle">({user.preferences.favoriteTags.length}/25)</a>
             </h2>
 
             {/* chips row */}
