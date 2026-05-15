@@ -8,6 +8,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useSearchBarLogic } from '@/core/searchBarLogic';
 import { useRouter } from 'next/navigation';
+import { UserInfo } from '@/components/clientSide/Navbar';
 
 function NumberDisplay({ number, size = 'w-16' }: { number: number, size?: string }) {
   const digits = String(number).split('');
@@ -31,6 +32,7 @@ export default function HomePage() {
   const [postCount, setPostCount] = useState<number>(0);
   const [randomPostId, setRandomPostId] = useState<number | null>(null);
   const [input, setInput] = useState('');
+  const [user, setUser] = useState<UserInfo | null>(null);
   const router = useRouter();
 
   const onSubmit = (query?: string) => {
@@ -67,6 +69,16 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    fetch('/api/users/self')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.username) setUser(data);
+        else if (data?.role?.name === 'GUEST') setUser(data);
+        else setUser(null);
+      });
+  }, []);
+
+  useEffect(() => {
     const fetchFeaturedPost = async () => {
       const res = await fetch('/api/posts/featured');
       const resJson = await res.json();
@@ -93,6 +105,9 @@ export default function HomePage() {
     fetchPostCount();
   }, []);
 
+  const hasPerm = (perm: string) =>
+    user?.role?.permissions?.some((p) => p.name === perm);
+
   return (
     <main className="min-h-screen bg-zinc-950 text-white flex flex-col">
       <section className="pt-12 pb-6 px-4 text-center">
@@ -116,7 +131,7 @@ export default function HomePage() {
       </section>
 
       {/* Post Numbers */}
-      {randomPostId && (
+      {hasPerm('post_view') && randomPostId && (
         <section>
           <motion.div
             initial={{ opacity: 0 }}

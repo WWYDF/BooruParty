@@ -18,4 +18,3 @@ backend/.env
 frontend/next-env.d.ts
 /.vscode
 /backend/test_data
-frontend/public/i/numbers

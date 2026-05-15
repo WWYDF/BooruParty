@@ -19,8 +19,8 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
   // Assume post.fileExt tells us if it's a gif or video
   const isAnimated = post.fileExt === "gif" || post.fileExt === "mp4" || post.fileExt === "webm";
 
-  const liked = post.votes.some(v => v.type === 'UPVOTE');
-  const faved = post.favoritedBy.length > 0;
+  const liked = post.votes?.some(v => v.type === 'UPVOTE');
+  const faved = post.favoritedBy?.length > 0;
 
   return (
     <Link

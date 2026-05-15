@@ -3,14 +3,13 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Images, List, X, UserCircle, Users, ChartPie, UploadSimple, House } from '@phosphor-icons/react';
+import { ChartPieIcon, FolderOpenIcon, HouseIcon, ImagesIcon, ListIcon, SignInIcon, TagIcon, UploadSimpleIcon, UserCircleCheckIcon, UserCircleIcon, UserCirclePlusIcon, UsersIcon, XIcon } from '@phosphor-icons/react';
 import { NavItem } from './NavItem';
 import { usePathname, useRouter } from "next/navigation";
-import { FolderOpen, HouseLine, Tag } from 'phosphor-react';
 import { AddonState } from '@/core/types/dashboard';
 
 
-type UserInfo = {
+export type UserInfo = {
   id: string;
   username?: string;
   avatar?: string;
@@ -102,13 +101,15 @@ export default function Navbar() {
         className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800 md:sticky top-0 z-30"
       >
         <>
-          <button
-            onClick={() => { window.location.replace('/posts'); }}
+          {/* Mobile logo */}
+          <Link
+            href={hasPerm('post_view') ? '/posts' : '/'}
             className="text-xl font-semibold text-white md:hidden"
           >
             {process.env.NEXT_PUBLIC_SITE_NAME ?? "Imageboard"}
-          </button>
+          </Link>
 
+          {/* Desktop logo */}
           <Link
             href="/"
             className="text-xl font-semibold text-white hidden md:inline ml-2"
@@ -152,7 +153,7 @@ export default function Navbar() {
                 onClick={() => setDropdownOpen((v) => !v)}
                 className="text-subtle hover:text-accent transition focus:outline-none"
               >
-                <UserCircle size={28} weight="fill" />
+                <UserCircleIcon size={28} weight="fill" />
               </button>
               <AnimatePresence>
                 {dropdownOpen && (
@@ -189,7 +190,7 @@ export default function Navbar() {
           className="md:hidden text-white"
           onClick={() => setSidebarOpen(true)}
         >
-          <List size={28} />
+          <ListIcon size={28} />
         </button>
       </motion.nav>
 
@@ -216,16 +217,16 @@ export default function Navbar() {
               <div className="flex justify-between items-center mb-4">
                 <span className="text-white font-semibold text-lg">Menu</span>
                 <button onClick={() => setSidebarOpen(false)}>
-                  <X size={24} className="text-subtle hover:text-white" />
+                  <XIcon size={24} className="text-subtle hover:text-white" />
                 </button>
               </div>
               <nav className="flex flex-col gap-3 text-md text-subtle">
-                <NavItem href="/" icon={<House size={18} />} onClick={() => setSidebarOpen(false)}>
+                <NavItem href="/" icon={<HouseIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                   Home
                 </NavItem>
                 <NavItem
                   href={pathname === "/posts" ? "#" : "/posts"}
-                  icon={<Images size={18} />}
+                  icon={<ImagesIcon size={18} />}
                   onClick={(e) => {
                     setSidebarOpen(false)
                     if (pathname === "/posts") {
@@ -237,38 +238,53 @@ export default function Navbar() {
                   Posts
                 </NavItem>
                 {hasPerm('post_view') && (
-                  <NavItem href="/pools" icon={<FolderOpen size={18} />} onClick={() => setSidebarOpen(false)}>
+                  <NavItem href="/pools" icon={<FolderOpenIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     Pools
                   </NavItem>
                 )}
                 {hasPerm('post_view') && (
-                  <NavItem href="/tags" icon={<Tag size={18} />} onClick={() => setSidebarOpen(false)}>
+                  <NavItem href="/tags" icon={<TagIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     Tags
                   </NavItem>
                 )}
                 {hasPerm('post_create') && (
-                  <NavItem href="/upload" icon={<UploadSimple size={18} />} onClick={() => setSidebarOpen(false)}>
+                  <NavItem href="/upload" icon={<UploadSimpleIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     Upload
                   </NavItem>
                 )}
                 {hasPerm('dashboard_view') && (
-                  <NavItem href="/dashboard" icon={<ChartPie size={18} />} onClick={() => setSidebarOpen(false)}>
+                  <NavItem href="/dashboard" icon={<ChartPieIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     Dashboard
                   </NavItem>
                 )}
                 {hasPerm('post_view') && (
-                  <NavItem href="/users" icon={<Users size={18} />} onClick={() => setSidebarOpen(false)}>
+                  <NavItem href="/users" icon={<UsersIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     Users
                   </NavItem>
                 )}
                 {user?.username ? (
-                  <NavItem href={`/users/${user?.username}`} icon={<UserCircle size={18} />} onClick={() => setSidebarOpen(false)}>
+                  <NavItem href={`/users/${user?.username}`} icon={<UserCircleIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     My Profile
                   </NavItem>
                 ) : (
                   <>
-                    <Link href="/login" onClick={() => setSidebarOpen(false)} className="hover:text-white">Login</Link>
-                    <Link href="/register" onClick={() => setSidebarOpen(false)} className="hover:text-white">Register</Link>
+                    <Link
+                      href="/auth/login"
+                      onClick={() => setSidebarOpen(false)}
+                      className="hover:text-white flex items-center gap-2"
+                    >
+                      <SignInIcon size={18} />
+                      Login
+                    </Link>
+                    
+                    <Link
+                      href="/auth/register"
+                      onClick={() => setSidebarOpen(false)}
+                      className="hover:text-white flex items-center gap-2"
+                    >
+                      <UserCirclePlusIcon size={18} />
+                      Register
+                    </Link>
                   </>
                 )}
               </nav>
