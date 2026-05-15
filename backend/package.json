@@ -1,6 +1,6 @@
 {
   "name": "booruparty-backend",
-  "version": "1.4.0",
+  "version": "0.14.0",
   "description": "Hosts posts and avatars for a BooruParty instance.",
   "author": "WWYDF",
   "license": "MIT",
@@ -15,6 +15,7 @@
     "fastify": "^5.2.2",
     "fastify-plugin": "^5.1.0",
     "glob": "^13.0.1",
+    "node-cron": "^4.2.1",
     "pino-pretty": "^13.0.0",
     "sharp": "^0.33.5"
   },

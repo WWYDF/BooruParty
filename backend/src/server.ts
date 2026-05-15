@@ -3,6 +3,7 @@ import multipart from '@fastify/multipart';
 import * as dotenv from 'dotenv';
 import ipFilter from './plugins/auth';
 import registerStatic from './plugins/static';
+import cronPlugin from './plugins/cron';
 import cors from '@fastify/cors'
 import fs from 'fs';
 import path from 'path';
@@ -10,6 +11,8 @@ import routeLogger, { appLogger, initAppLogFile } from './plugins/logger';
 import chalk from 'chalk';
 import apiRoutes from './routes/api';
 import { LEGIBLE_VERSION } from './version';
+import { LapisData, lapisDbExists, writeLapisDb } from './utils/lapisDb';
+import { updateSpaceUsed } from './cronjobs/serverSize';
 
 dotenv.config();
 const logger = appLogger('Server');
@@ -75,6 +78,21 @@ async function buildServer() {
   logger.info('[+] Asset Routes loaded successfully!');
   await fastify.register(apiRoutes); // handles its own prefix /api/
   logger.info('[+] REST API Routes loaded successfully!');
+
+  // Create LapisDB if not exist
+  const lapisExists = await lapisDbExists();
+  if (!lapisExists) {
+    await writeLapisDb<LapisData>({
+      megaBytesUsed: 0
+    })
+  }
+  
+  await fastify.register(cronPlugin);
+  logger.info('[+] Cronjobs loaded successfully!');
+
+  // Autorun on Startup
+  console.log(' ');
+  await updateSpaceUsed();
 
   return fastify;
 }
