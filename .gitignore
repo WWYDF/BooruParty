@@ -19,3 +19,4 @@ backend/.env
 # Generated Files
 yarn.lock
 pnpm-lock.yaml
+frontend/next-env.d.ts
