@@ -38,8 +38,8 @@ export default function PostVoting({ post, user }: Props) {
       body: JSON.stringify({ postId, type: newVote }),
     });
 
-    if (favorited) { await toggleFavorite() };
-    if (boosted) { await boostPost() };
+    if (newVote == 'DOWNVOTE' && favorited) { await toggleFavorite() };
+    if (newVote == 'DOWNVOTE' && boosted) { await boostPost() };
 
     setLoading(false);
     router.refresh();
@@ -94,70 +94,73 @@ export default function PostVoting({ post, user }: Props) {
   };
 
   return (
-    <div className="flex gap-2">
-      <button
-        onClick={() => handleVote("UPVOTE")}
-        disabled={loading}
-        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
-          ${vote === "UPVOTE"
-            ? "bg-green-400/10 text-green-400 border-secondary-border md:hover:border-zinc-700"
-            : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
-        `}
-        title={vote ? "Unlike This Post" : "Like This Post"}
-      >
-        <ThumbsUpIcon size={18} weight={vote === "UPVOTE" ? "fill" : "regular"} />
-        Upvote
-      </button>
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-2 justify-center">
+        <button
+          onClick={() => handleVote("UPVOTE")}
+          disabled={loading}
+          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
+            ${vote === "UPVOTE"
+              ? "bg-green-400/10 text-green-400 border-secondary-border md:hover:border-zinc-700"
+              : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
+          `}
+          title={vote ? "Unlike This Post" : "Like This Post"}
+        >
+          <ThumbsUpIcon size={18} weight={vote === "UPVOTE" ? "fill" : "regular"} />
+          Upvote
+        </button>
 
-      <button
-        onClick={toggleFavorite}
-        disabled={loading}
-        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
-          ${favorited
-            ? "bg-yellow-400/10 text-yellow-400 border-secondary-border md:hover:border-zinc-700"
-            : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
-        `}
-        title={favorited ? "Unfavorite This Post" : "Favorite This Post"}
-      >
-        <StarIcon size={18} weight={favorited ? "fill" : "regular"} />
-        Favorite
-      </button>
+        <button
+          onClick={toggleFavorite}
+          disabled={loading}
+          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
+            ${favorited
+              ? "bg-yellow-400/10 text-yellow-400 border-secondary-border md:hover:border-zinc-700"
+              : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
+          `}
+          title={favorited ? "Unfavorite This Post" : "Favorite This Post"}
+        >
+          <StarIcon size={18} weight={favorited ? "fill" : "regular"} />
+          Favorite
+        </button>
 
-      <button
-        onClick={() => handleVote("DOWNVOTE")}
-        disabled={loading}
-        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
-          ${vote === "DOWNVOTE"
-            ? "bg-red-400/10 text-red-400 border-secondary-border hover:border-zinc-700"
-            : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
-        `}
-      >
-        <ThumbsDownIcon size={18} weight={vote === "DOWNVOTE" ? "fill" : "regular"} />
-        Downvote
-      </button>
+        <button
+          onClick={() => handleVote("DOWNVOTE")}
+          disabled={loading}
+          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
+            ${vote === "DOWNVOTE"
+              ? "bg-red-400/10 text-red-400 border-secondary-border hover:border-zinc-700"
+              : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
+          `}
+        >
+          <ThumbsDownIcon size={18} weight={vote === "DOWNVOTE" ? "fill" : "regular"} />
+          Downvote
+        </button>
+      </div>
 
-      <button
-        onClick={boostPost}
-        disabled={loading}
-        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
-          ${boosted
-            ? "bg-cyan-400/10 text-cyan-400 border-secondary-border md:hover:border-zinc-700"
-            : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
-        `}
-        title={boosted ? "Unboost This Post" : "Boost This Post"}
-      >
-        <SparkleIcon size={18} weight={boosted ? "fill" : "regular"} />
-        Boost
-      </button>
+      <div className="flex gap-2 justify-center">
+        <button
+          onClick={boostPost}
+          disabled={loading}
+          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
+            ${boosted
+              ? "bg-cyan-400/10 text-cyan-400 border-secondary-border md:hover:border-zinc-700"
+              : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
+          `}
+          title={boosted ? "Unboost This Post" : "Boost This Post"}
+        >
+          <SparkleIcon size={18} weight={boosted ? "fill" : "regular"} />
+          Boost
+        </button>
 
-      <button
-        // onClick={() => handleVote("DOWNVOTE")}
-        disabled={loading}
-        className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"
-      >
-        <BookmarksSimpleIcon size={18} weight={vote === "DOWNVOTE" ? "fill" : "regular"} />
-        Collection
-      </button>
+        <button
+          disabled={loading}
+          className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"
+        >
+          <BookmarksSimpleIcon size={18} />
+          Collection
+        </button>
+      </div>
     </div>
   );
 }
