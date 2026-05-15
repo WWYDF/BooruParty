@@ -1,51 +1,11 @@
 // This should match whats in Fastify.
-export const FILE_TYPE_MAP: Record<'image' | 'animated' | 'video' | 'other', string[]> = {
-  image: ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff'],
-  animated: ['.gif', '.apng'],
-  video: ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.quicktime'],
-  other: []
-};
+export const ALLOWED_EXTENSIONS = [
+  'png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff',
+  'gif', 'apng',
+  'mp4', 'webm', 'mov', 'avi', 'mkv', 'quicktime'
+];
 
-export type FileType = keyof typeof FILE_TYPE_MAP;
-
-export function resolveFileType(ext: string): FileType {
-  const lowered = ext.toLowerCase();
-
-  for (const type of Object.keys(FILE_TYPE_MAP) as FileType[]) {
-    if (FILE_TYPE_MAP[type].includes(lowered)) {
-      return type;
-    }
-  }
-
-  return 'other';
-}
-
-export function getConversionType(ext: string): string {
-  if (ext == 'png' || ext == 'jpg' || ext == 'jpeg' || ext == 'bmp' || ext == 'tiff') {
-    return 'webp'
-  }
-  
-  if (ext == 'mp4' || ext == 'webm' || ext == 'mov' || ext == 'avi' || ext == 'mkv' || ext == 'quicktime') {
-    return 'mp4'
-  }
-  
-  if (ext == 'gif' || ext == 'apng') {
-    return 'gif'
-  }
-  
-  return ext; // If not here, return itself
-}
-
-export function getCategoryFromExt(ext: string): keyof typeof FILE_TYPE_MAP {
-  const normalized = ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`;
-
-  for (const [category, exts] of Object.entries(FILE_TYPE_MAP)) {
-    if (exts.includes(normalized)) {
-      return category as keyof typeof FILE_TYPE_MAP;
-    }
-  }
-  return "other";
-}
+export type FileTypes = 'image' | 'animated' | 'video';
 
 export const DISALLOWED_USERNAMES = [
   "admin",

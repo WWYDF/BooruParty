@@ -1,135 +1,110 @@
-import { FastifyPluginAsync } from 'fastify';
-import fs from 'fs';
-import path from 'path';
-import Busboy from 'busboy';
-import sharp from 'sharp';
-import { processPreview } from '../utils/processPreview';
-import { generateThumbnails } from '../utils/generateThumbnails';
-import { PreviewFile, resolveFileType } from '../types/mediaTypes';
-import { getAspectRatio } from '../utils/aspectRatio';
-import { appLogger } from '../plugins/logger';
+// I hate files that are just one long function of if/elses,
+// but it's imperative that we do all this linearly to prevent data loss.
+// It's ugly but it works.
 
-const logger = appLogger('Uploader');
+import fs from "fs";
+import path from "path";
+import Busboy from "busboy";
+import { FastifyPluginAsync } from "fastify"
+import { preProcessImage, preProcessVideo } from "../utils/Uploads/preProcessing";
+import { SubFileUpload } from "../types/uploadTypes";
+import { processPreviews } from "../utils/Uploads/previewProcessing";
+import { generateThumbnails } from "../utils/Uploads/generateThumbnails";
+import { getAspectRatio } from "../utils/Uploads/aspectRatio";
+import { appLogger } from "../plugins/logger";
+import { getMediaType } from "../utils/mediaTypes";
+
+const logger = appLogger('Upload');
 
 const uploadRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post('/upload', { preHandler: fastify.verifySecret }, async (req, reply) => {
     return new Promise<void>((resolve, reject) => {
-      let postId: string | undefined;
-      let finalFileName = '';
-      let fileFormat = '';
+      let postId: string;
       let filePath = '';
-      let previewScale: number | null = null;
-      let ratio: number | null = null;
-      let previewData: PreviewFile;
+      let convertVideos = process.env.FORCE_CONVERT_SHORT_VIDEOS == 'true' ? true : false;
+      let subFile: SubFileUpload;
 
       const busboy = Busboy({ headers: req.headers });
-
+      logger.debug('Received file!');
       busboy.on('field', (fieldname, value) => {
         if (fieldname === 'postId' && /^\d+$/.test(value)) {
           postId = value;
         }
       });
 
-      busboy.on('file', (fieldname, file, info) => {
-        const { filename } = info;
-
-        if (!postId) {
-          file.resume();
-          return reply.code(400).send({ error: 'Missing postId' });
+      busboy.on('field', (fieldname, value) => {
+        if (fieldname === 'convert' && typeof value === 'boolean') {
+          convertVideos = value;
         }
-
-        const ext = path.extname(filename);
-        fileFormat = resolveFileType(ext); // will be 'image', 'animated', 'video', or 'other'
-
-        finalFileName = `${postId}${ext}`;
-        filePath = path.join(process.cwd(), 'data/uploads', fileFormat, finalFileName);
-        fs.mkdirSync(path.dirname(filePath), { recursive: true });
-
-        const targetExts = ['.jpg', '.jpeg', '.webp', '.avif'];
-        const shouldStrip = fileFormat === 'image' && targetExts.includes(ext.toLowerCase());
-
-        const chunks: Buffer[] = [];
-
-        file.on('data', (chunk) => chunks.push(chunk));
-
-        file.on('end', async () => {
-          const buffer = Buffer.concat(chunks);
-
-          try {
-            if (shouldStrip) {
-              await sharp(buffer)
-                .rotate()
-                .withMetadata({ exif: undefined })
-                .toFile(filePath);
-            } else {
-              await fs.promises.writeFile(filePath, buffer);
-            }
-
-            logger.info(`File saved: ${filePath}`);
-            let deletedPreview = false;
-
-            if (fileFormat === 'image' || fileFormat === 'animated' || fileFormat === 'video') {
-              try {
-                previewData = await processPreview(filePath, Number(postId));
-                previewScale = previewData.previewScale;
-                if (previewScale == null) throw new Error('PreviewScale came back null.');
-
-                try {
-                  ratio = await getAspectRatio(filePath, fileFormat);
-                } catch (err) {
-                  logger.warn(`Media reported no aspect ratio: ${err}`);
-                }
-
-                const originalSize = fs.statSync(filePath).size;
-                const previewPath = path.join(process.cwd(), 'data/previews/image', `${postId}.webp`);
-
-                if (fs.existsSync(previewPath)) {
-                  const previewSize = fs.statSync(previewPath).size;
-                  if (previewScale === 100 && previewSize >= originalSize) {
-                    logger.warn(`Deleting useless preview for post ${postId}`);
-                    setTimeout(() => {
-                      try {
-                        fs.unlinkSync(previewPath);
-                        logger.warn(`Deleted redundant preview: ${previewPath}`);
-                      } catch (err) {
-                        logger.error(`Failed to delete preview: ${err}`);
-                      }
-                    }, 50);
-                    previewScale = null;
-                    deletedPreview = true;
-                  }
-                }
-
-                logger.debug(`Preview scale = ${previewScale}`);
-              } catch (err) {
-                logger.error(`processPreview failed with ${err}`);
-              }
-
-              const thumbs = await generateThumbnails(filePath, fileFormat as any, Number(postId));
-              logger.verbose(`Generated thumbnails:`, thumbs);
-            }
-
-            reply.send({
-              status: 'success',
-              postId: Number(postId),
-              previewScale,
-              aspectRatio: ratio,
-              deletedPreview,
-              assignedExt: previewData.assignedExt,
-            });
-            resolve();
-          } catch (err) {
-            logger.error(`File handling failed: ${err}`);
-            reply.code(500).send({ error: 'Failed to process upload' });
-            resolve();
-          }
-        });
       });
 
-      busboy.on('finish', () => {
-        if (!filePath) {
-          reply.code(400).send({ error: 'No file received' });
-          resolve();
+      busboy.on('file', async (fieldname, file, info) => {
+        try {
+          const { filename } = info;
+          if (!postId) { return reply.code(400).send({ error: 'Missing postId' }); };
+          logger.debug(`Received postId! (${postId})`);
+
+          const ext = path.extname(filename);
+          const { type, buffer } = await getMediaType(file, info);
+          logger.debug(`File looks like a(n) ${type}...`);
+          if (!type) { return reply.code(415).send({ error: 'File type not allowed' }); };
+          
+          filePath = path.join(process.cwd(), '/data/uploads', type, `${postId}${ext}`);
+          logger.debug(`Entire file has been received and saved to a buffer.`);
+
+          // Build skeleton before pre-processing
+          subFile = {
+            postId,
+            ogExt: ext.replace(/^\./, ""),
+            type,
+            ogPath: filePath,
+            buffer,
+            hasAudio: false,
+          }
+
+          logger.debug(`Starting Pre-Processing for ${type}!`);
+          switch (type) {
+            case 'image':
+              subFile = await preProcessImage(subFile);
+              break;
+            case 'video':
+              subFile = await preProcessVideo(subFile, convertVideos);
+              break;
+            default:
+              await fs.promises.writeFile(filePath, buffer);
+          };
+
+          logger.debug(`SubFile Generated for ${subFile.postId}!`);
+
+          const previewData = await processPreviews(subFile); logger.debug(`Saved Preview!`);
+          if (!previewData || previewData === null) { return reply.code(500).send({ error: 'Failed to process upload, check console for details.' }); }
+          await generateThumbnails(subFile); logger.debug(`Saved Thumbnails!`);
+          const ratio = await getAspectRatio(subFile); logger.debug(`Saved Aspect Ratio!`);
+          const finalStats = fs.statSync(subFile.ogPath);
+
+          const previewPath = previewData.previewScale == 100 ? null : `/data/previews/${subFile.type}/${subFile.postId}.${previewData.extension}`;
+          const originalPath = `/data/uploads/${subFile.type}/${subFile.postId}.${subFile.ogExt}`;
+
+          reply.send({
+            status: 'success',
+            postId: Number(subFile.postId),
+            type: subFile.type,
+            previewScale: previewData.previewScale,
+            aspectRatio: ratio,
+            deletedPreview: !previewData.previewScale,
+            assignedExt: previewData.extension,
+            transType: subFile.transType,
+            finalExt: subFile.ogExt,
+            fileSize: finalStats.size,
+            previewSize: previewData.previewSize ?? finalStats.size,
+            previewPath,
+            originalPath,
+            hasAudio: subFile.hasAudio,
+            duration: subFile.duration
+          });
+          resolve(); // tell fastify to send the response now
+        } catch (error) {
+          reject(error);
         }
       });
 

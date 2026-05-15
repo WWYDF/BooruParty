@@ -124,7 +124,6 @@ export default function TagEditPage() {
   };
 
   const handleTagSelect = (tag: Tag, type: "implication" | "suggestion") => {
-    console.log(tag)
     const [list, setList, pendingNames, setPending] =
       type === "implication"
         ? [implications, setImplications, pendingImplicationNames, setPendingImplicationNames]

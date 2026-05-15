@@ -1,0 +1,80 @@
+import fs from "fs";
+import path from "path";
+import sharp from "sharp";
+import { SubFilePreview, SubFileUpload } from "../../types/uploadTypes";
+import { appLogger } from "../../plugins/logger";
+import { compressAnimatedWebp, compressGif } from "./Animated/processAnimations";
+import { processVideoPreview } from "./Animated/videoProcessing";
+
+const logger = appLogger('Previews');
+
+export async function processPreviews(subFile: SubFileUpload): Promise<SubFilePreview | null> {
+  const previewDir = path.join(process.cwd(), `/data/previews/${subFile.type}`);
+
+  try {
+    if (subFile.type == 'image') {
+      const previewPath = path.join(previewDir, `${subFile.postId}.webp`);
+      const metadata = await sharp(subFile.ogPath).metadata();
+      const resizedBuffer = await sharp(subFile.ogPath)
+        .resize({ width: 1280, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+
+      await fs.promises.writeFile(previewPath, resizedBuffer);
+
+      const resizedMeta = await sharp(resizedBuffer).metadata();
+      const originalSize = fs.statSync(subFile.ogPath).size;
+      const previewScale = Math.round((resizedBuffer.length / originalSize) * 100);
+
+      return {
+        previewPath,
+        extension: 'webp',
+        previewScale,
+        previewSize: resizedMeta.size ?? metadata.size
+      }
+    }
+
+    // Most of logic moved to sub function due to complexity and size.
+    else if (subFile.type == 'video') {
+      const previewDir = path.join(process.cwd(), '/data/previews/video');
+      const { previewScale, assignedExt, previewSize } = await processVideoPreview(subFile.ogPath, Number(subFile.postId), previewDir);
+      const previewPath = path.join(previewDir, `${subFile.postId}.${assignedExt}`);
+      return {
+        previewPath,
+        extension: `${assignedExt ?? 'webm'}`,
+        previewScale,
+        previewSize
+      }
+    }
+
+
+    else if (subFile.type == 'animated') {
+      // if (process.env.DISABLE_ANIMATION_PREVIEWS == 'true') {
+      //   logger.debug('Skipping animation optimization.')
+      //   return { previewPath: null, extension: subFile.ogExt, previewScale: null, previewSize: originalSize };
+      // }
+      const previewPath = path.join(previewDir, `${subFile.postId}.webp`);
+      logger.debug(`Rendering animation with Sharp! (WebP)`);
+      await compressAnimatedWebp(subFile.buffer, previewPath);
+  
+      logger.debug(`Animation has been processed! Proceeding with compression math...`);
+      const originalSize = fs.statSync(subFile.ogPath).size;
+      const previewSize = fs.statSync(previewPath).size;
+      let previewScale = Math.round((previewSize / originalSize) * 100);
+
+      if (previewSize >= originalSize) {
+        logger.warn(`Deleting preview path for Post #${subFile.postId}. (${previewSize} >= ${originalSize})`);
+        fs.unlinkSync(previewPath); // no benefit
+        return { previewPath, extension: subFile.ogExt, previewScale: null, previewSize: originalSize }
+      }
+
+      return { previewPath, extension: 'webp', previewScale, previewSize }
+    }
+
+    // Isn't 'image', 'video', or 'animated'. Throw error to cancel.
+    throw new Error(`Type not recognized: ${subFile.type}`)
+  } catch (error) {
+    logger.error('Something went wrong while processing!', error);
+    return null; // signal upstream to cancel
+  }
+}

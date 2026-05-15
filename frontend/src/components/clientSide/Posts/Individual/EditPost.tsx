@@ -13,7 +13,6 @@ import { useDropzone } from "react-dropzone";
 import { Post, PostUserStatus } from "@/core/types/posts";
 import { formatCounts } from "@/core/formats";
 import { motion, AnimatePresence } from "framer-motion";
-import { getCategoryFromExt, resolveFileType } from "@/core/dictionary";
 import AutoTaggerModal from "./AutoTaggerModal";
 
 export default function EditPost({
@@ -54,8 +53,6 @@ export default function EditPost({
 
   const nextFakeId = useRef(-1);
   const allocFakeId = () => nextFakeId.current--;
-
-  const fileType = resolveFileType(`.${post.fileExt}`);
 
   useEffect(() => {
     if (post.tags) {
@@ -515,7 +512,7 @@ export default function EditPost({
 
           <div className="space-x-1">
             <AnimatePresence>
-              {autoTaggerUrl && getCategoryFromExt(post.fileExt) != 'video' && user.canAutoTag && (
+              {autoTaggerUrl && post.type != 'video' && user.canAutoTag && (
                 <motion.span
                   className="inline-flex items-center gap-1"
                   initial={{ opacity: 0 }}
@@ -672,7 +669,7 @@ export default function EditPost({
         </div>
       </div>
 
-      {fileType == 'video' && (
+      {post.type == 'video' && (
         <div className="w-full mt-4">
           <label className="text-white font-medium block mb-1">Replace Thumbnail</label>
           <div

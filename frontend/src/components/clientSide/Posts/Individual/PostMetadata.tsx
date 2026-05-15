@@ -9,7 +9,6 @@ import { formatCounts, formatStorageFromBytes } from "@/core/formats";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { useToast } from "../../Toast";
 import { Post, PostUserStatus } from "@/core/types/posts";
-import { getCategoryFromExt } from "@/core/dictionary";
 
 const AVATAR_URL = "/i/user.png";
 
@@ -18,7 +17,10 @@ export interface canEdit {
   otherPosts: boolean
 }
 
-export default function PostMetadata({ post, user, editPerms, userId }: { post: Post, user: PostUserStatus, editPerms: canEdit, userId: string | undefined }) {
+export default function PostMetadata(
+  { post, user, editPerms, userId, addons }:
+  { post: Post, user: PostUserStatus, editPerms: canEdit, userId: string | undefined, addons: { autoTagger: boolean, artistProfiles: boolean, jigsaw: boolean } }
+) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null);
   const [fileSize, setfileSize] = useState<number | null>(null);
   const [viewingFull, setViewingFullState] = useState<boolean>(false);
@@ -54,7 +56,6 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
 
   const displayName = post.uploadedBy?.username;
   const displayAvatar = post.anonymous ? AVATAR_URL : post.uploadedBy?.avatar || AVATAR_URL;
-  const fileType = getCategoryFromExt(post.fileExt) ?? post.fileExt;
 
   const isOwner = post.uploadedBy.id === userId;
   
@@ -116,7 +117,6 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
     const onViewingChange = (e: Event) => {
       const { state } = (e as CustomEvent).detail || {};
       setViewingFullState(state);
-      console.log(state)
     };
     
     const onSize = (e: Event) => {
@@ -133,6 +133,16 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
       window.removeEventListener("post:changeViewingState", onViewingChange as EventListener)
     };
   }, [post.id]);
+
+  // {viewingFull === true ? formatStorageFromBytes(post.fileSize ?? 0) : formatStorageFromBytes(fileSize ?? post.fileSize)}
+  let fileSizeText = '';
+  if (viewingFull) {
+    const _size = formatStorageFromBytes(post.fileSize ?? 0);
+    fileSizeText = `${_size} (Full)`
+  } else {
+    const _size = formatStorageFromBytes(post.previewSize ?? post.fileSize ?? 0);
+    fileSizeText = `${_size}${post.previewSize ? ' (Preview)' : ' (Full)'}`
+  }
 
   return (
     <div className="flex flex-col gap-4 text-sm text-subtle">
@@ -275,14 +285,14 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
             {post.fileExt && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Type</span>
-                {fileType.charAt(0).toUpperCase() + fileType.slice(1)} ({post.fileExt.toLocaleUpperCase()})
+                {post.type.charAt(0).toUpperCase() + post.type.slice(1)} ({post.fileExt.toLocaleUpperCase()})
               </p>
             )}
 
             {typeof post.fileSize === "number" && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Size</span>
-                {viewingFull === true ? formatStorageFromBytes(post.fileSize ?? 0) : formatStorageFromBytes(fileSize ?? post.fileSize)}
+                {fileSizeText}
               </p>
             )}
 
@@ -358,6 +368,19 @@ export default function PostMetadata({ post, user, editPerms, userId }: { post: 
                 Click to Copy
               </button>
             </p>
+
+            {/* If Jigsaw is enabled, show button to play with this image */}
+            {addons.jigsaw && !post.duration && (
+              <p className="flex items-start gap-1 text-xs text-subtle">
+                <span className="text-white font-medium w-[80px]">Jigsaw</span>
+                <button
+                  onClick={() => router.push(`/games/jigsaw?postId=${post.id}`)}
+                  className="text-accent hover:underline focus:outline-none"
+                >
+                  Click to Play
+                </button>
+              </p>
+            )}
           </div>
 
 

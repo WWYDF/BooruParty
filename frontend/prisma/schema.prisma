@@ -57,6 +57,14 @@ model SiteSettings {
   deletePosts   Boolean   @default(false)
 }
 
+model VerificationToken {
+  identifier   String
+  token         String    @unique
+  expires       DateTime
+
+  @@unique([identifier, token])
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -167,6 +175,8 @@ model Permission {
 model Posts {
   id            Int                 @id @default(autoincrement())
   fileExt       String
+  type          String?             // No idea why I never included this day 1
+  originalPath  String?             // No idea why I never included this day 1
   previewPath   String?
   aspectRatio   Float?
   uploadedBy    User                @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
@@ -190,9 +200,12 @@ model Posts {
   favoritedBy   UserFavorites[]
   specialPosts  SpecialPosts[]
   uploadedById  String
-  fileSize      Int?
+  fileSize      Int?                // File Size of "Full" upload
+  previewSize   Int?                // File Size of "Preview" sample
+  duration      Float?              // Duration in seconds, null if not video
+  hasAudio      Boolean?            // Not default to not autofill false positives
 
-  createdAt     DateTime     @default(now())
+  createdAt     DateTime            @default(now())
 
   @@index([uploadedById, createdAt])
   @@index([safety, createdAt])
@@ -385,6 +398,7 @@ model ImportLog {
   timestamp  DateTime     @default(now())
 }
 
+// Everything must have defaults or nullables
 model AddonsConfig {
   id                      Int                 @id @default(1) // singleton row
   artistProfiles          Boolean             @default(false)
@@ -392,6 +406,9 @@ model AddonsConfig {
   autoTagger              Boolean             @default(false)
   autoTaggerUrl           String?             @db.VarChar(512)
   autoTaggerMode          AutoTaggerMode[]    @default([PASSIVE])
+
+  jigsaw                  Boolean             @default(false)
+  vagueTagName            String[]
 
   updatedAt               DateTime            @updatedAt
 

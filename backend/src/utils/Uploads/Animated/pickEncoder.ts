@@ -1,0 +1,88 @@
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { ENCODER_PRIORITY_MAP, ENCODER_OPTIONS_MAP } from '../../../types/encoders';
+import { appLogger } from '../../../plugins/logger';
+
+const logger = appLogger('Encoder');
+
+const execAsync = promisify(exec);
+
+let encoderListCache: Set<string> | null = null;
+let hwaccelCache: Set<string> | null = null;
+const usableEncoderCache: Record<string, string> = {};
+
+async function loadEncoders(): Promise<Set<string>> {
+  if (encoderListCache) return encoderListCache;
+
+  const { stdout } = await execAsync('ffmpeg -hide_banner -encoders');
+  const matches = stdout.matchAll(/^\s*[A-Z\.]+\s+([a-zA-Z0-9_\-]+)\s/mg);
+  encoderListCache = new Set([...matches].map(m => m[1]));
+  return encoderListCache;
+}
+
+async function loadHwaccels(): Promise<Set<string>> {
+  if (hwaccelCache) return hwaccelCache;
+
+  const { stdout } = await execAsync('ffmpeg -hide_banner -hwaccels');
+  hwaccelCache = new Set(
+    stdout
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('Hardware'))
+  );
+  return hwaccelCache;
+}
+
+async function isUsableEncoder(encoder: string): Promise<boolean> {
+  try {
+    const testCmd = `ffmpeg -f lavfi -i testsrc -pix_fmt yuv420p -t 1 -c:v ${encoder} -f null - -y -loglevel error`;
+    await execAsync(testCmd);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function encoderMatchesHw(encoder: string, hwSet: Set<string>): boolean {
+  if (encoder.includes('nvenc')) return hwSet.has('cuda');
+  if (encoder.includes('qsv')) return hwSet.has('qsv');
+  if (encoder.includes('vaapi')) return hwSet.has('vaapi');
+  if (encoder.includes('amf')) return false; // block AMF on Linux
+  return true;
+}
+
+export async function getBestEncoder(codec: keyof typeof ENCODER_PRIORITY_MAP): Promise<string> {
+  const manualOverride = process.env.VIDEO_ENCODER_IMPL;
+  if (manualOverride) {
+    logger.debug(`Using manual override: ${manualOverride}`);
+    return manualOverride;
+  }
+
+  if (usableEncoderCache[codec]) return usableEncoderCache[codec];
+
+  const encoders = await loadEncoders();
+  const hwaccels = await loadHwaccels();
+  const priorityList = ENCODER_PRIORITY_MAP[codec];
+
+  for (const encoderKey of priorityList) {
+    const encoderConfig = ENCODER_OPTIONS_MAP[encoderKey];
+    if (!encoderConfig) continue;
+
+    const actualEncoderName = encoderConfig.encoder;
+    const hwOkay = encoderMatchesHw(actualEncoderName, hwaccels);
+    const listed = encoders.has(actualEncoderName);
+    if (hwOkay && listed) {
+      const usable = await isUsableEncoder(actualEncoderName);
+      if (usable) {
+        logger.info(`Selected encoder "${encoderKey}" (${actualEncoderName}) for codec "${codec}"`);
+        usableEncoderCache[codec] = encoderKey;
+        return encoderKey;
+      } else {
+        logger.warn(`Rejected unusable encoder: ${encoderKey} (${actualEncoderName})`);
+        continue;
+      }
+    }
+  }
+
+  throw new Error(`No usable encoder found for codec "${codec}"`);
+}

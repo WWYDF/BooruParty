@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials';
+import EmailProvider from "next-auth/providers/email";
 import { compare } from 'bcryptjs';
 import { JWT } from 'next-auth/jwt';
 import { AuthOptions, Session, User } from 'next-auth';
@@ -38,6 +39,17 @@ export const authOptions: AuthOptions = {
         };
       },
     }),
+    // EmailProvider({
+    //   server: {
+    //     host: process.env.SMTP_HOST,
+    //     port: Number(process.env.SMTP_PORT),
+    //     auth: {
+    //       user: process.env.SMTP_USER,
+    //       pass: process.env.SMTP_PASSWORD,
+    //     },
+    //   },
+    //   from: process.env.SMTP_FROM,
+    // }),
   ],
   session: {
     strategy: 'jwt',

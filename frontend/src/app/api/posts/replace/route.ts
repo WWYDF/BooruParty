@@ -1,10 +1,11 @@
-import { resolveFileType } from "@/core/dictionary";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/core/prisma';
 import { checkFile } from "@/components/serverSide/UploadProcessing/checkHash";
 import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { FastifyUpload } from "@/core/types/posts";
+import { fileTypeFromBuffer } from "file-type";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -46,22 +47,23 @@ export async function POST(req: NextRequest) {
   }
 
   const extension = file.name.split(".").pop()?.toLowerCase() || "";
-  const fileType = resolveFileType(`.${extension}`);
   let previewSrc;
 
-  const buffer = Buffer.from(await file.arrayBuffer());
   // run pHash duplicate detection
-  const hashResult = await checkFile(buffer, extension, fileType);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const incomingType = await fileTypeFromBuffer(buffer);
+  const hashResult = await checkFile(buffer, extension, incomingType);
 
   // Reject duplicates by comparing result IDs
   if (hashResult.status === true && hashResult.ogPost!.id != parseInt(postId) && currentPost.dupeBypass == false) {
-    return NextResponse.json({ error: `This image already exists in post #${hashResult.ogPost!.id}!`, duplicate: true, postId: hashResult.ogPost!.id }, { status: 409 });
+    return NextResponse.json({ error: `This post already exists in #${hashResult.ogPost!.id}!`, duplicate: true, postId: hashResult.ogPost!.id }, { status: 409 });
   }
 
   // Forward to Fastify
   const proxyForm = new FormData();
-  proxyForm.append("file", file, file.name);
   proxyForm.append("postId", postId);
+  proxyForm.append('convert', 'false'); // force false for now until Upload Page Revamp
+  proxyForm.append("file", file, file.name);
 
   const fastifyResponse = await fetch(`${process.env.NEXT_PUBLIC_FASTIFY}/api/replace`, {
     method: "POST",
@@ -73,18 +75,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fastify upload failed" }, { status: 500 });
   }
   
-  const result = await fastifyResponse.json();
-  if (result.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
-  else { previewSrc = `/data/previews/${fileType}/${postId}.${result.assignedExt}` }
+  const result = await fastifyResponse.json() as FastifyUpload;
   
   await prisma.posts.update({
     where: { id: Number(postId) },
     data: {
       pHash: hashResult.genHash ?? null,
-      fileExt: extension,
+      type: result.type,
       previewScale: result.previewScale,
-      previewPath: previewSrc,
+      previewPath: result.previewPath,
       aspectRatio: result.aspectRatio,
+      fileExt: result.finalExt,
+      fileSize: result.fileSize,
+      originalPath: result.originalPath,
+      previewSize: result.previewSize,
+      duration: result.duration,
+      hasAudio: result.hasAudio
     },
   });
 

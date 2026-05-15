@@ -3,7 +3,6 @@ import type { NextRequest } from 'next/server';
 import { Tag } from '@/core/types/tags';
 import { formatStorageFromBytes } from '@/core/formats';
 import { Post } from '@/core/types/posts';
-import { resolveFileType } from '@/core/dictionary';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -29,10 +28,6 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     );
     if (firstArtist) { artistText = ` by ${firstArtist.name}` }
     
-    let fileTypeText = '';
-    const fileType = resolveFileType(`.${post.fileExt}`);
-    if (fileType != 'other') { fileTypeText = ` ${fileType}` }
-
     let previewUrl = post.previewPath;
     if (process.env.GUEST_VIEWING !== 'true') {
       previewUrl = '/i/private.png'
@@ -40,7 +35,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   
     return NextResponse.json({
       title: `Post #${post.id}${artistText}`,
-      description: `View this ${formatStorageFromBytes(post.fileSize ?? 0)}${fileTypeText}`,
+      description: `View this ${formatStorageFromBytes(post.fileSize ?? 0)} ${post.type}`,
       safety: post.safety,
       previewUrl: previewUrl,
       url: `${process.env.NEXT_PUBLIC_SITE_URL}/post/${id}`,

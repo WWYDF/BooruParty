@@ -64,7 +64,7 @@ export default function SetupPage() {
     });
 
     if (res.ok) {
-      router.push("/login");
+      router.push("/auth/login");
     } else {
       const json = await res.json();
       toast(json.error || "Something went wrong", 'error');

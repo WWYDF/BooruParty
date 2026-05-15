@@ -247,8 +247,8 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                       <div className="mb-2 text-sm text-zinc-300">Favorite Tags (shows on profile)</div>
                       <TagSelector
                         onSelect={(tag) => {
-                          if (favoriteTags.length >= 20) {
-                            toast('You can only have up to 20 favorite tags.', 'error');
+                          if (favoriteTags.length >= 25) {
+                            toast('You can only have up to 25 favorite tags.', 'error');
                             return;
                           }
                           if (!favoriteTags.find((t) => t.id === tag.id)) {
@@ -256,7 +256,7 @@ export default function ContentPrefsModal({ user, open, onClose }: Props) {
                           }
                         }}
                         disabledTags={favoriteTags}
-                        placeholder={`Search tags... (${favoriteTags.length}/20)`}
+                        placeholder={`Search tags... (${favoriteTags.length}/25)`}
                       />
                       <div className="mt-2 flex flex-wrap gap-2">
                         {favoriteTags.map((tag) => (

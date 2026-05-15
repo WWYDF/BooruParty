@@ -1,9 +1,12 @@
+import { FileTypes } from "../dictionary";
 import { Tag, TagGroup } from "./tags";
 
 // Returned when searching an individual post
 export type Post = {
   id: number;
   fileExt: string;
+  type: FileTypes; // null isn't available because it should never be null
+  originalPath: string;
   previewPath: string;
   aspectRatio?: number;
   anonymous: boolean;
@@ -13,6 +16,9 @@ export type Post = {
   flags: string[];
   previewScale: number;
   fileSize?: number;
+  previewSize?: number;
+  duration: number | null;
+  hasAudio: boolean | null;
   pHash: string;
   score: number;
   uploadedById: string;
@@ -139,9 +145,18 @@ export type Posts = {
 export type FastifyUpload = {
   status: string,
   postId: number,
+  type: FileTypes,
   previewScale: number | null,
   aspectRatio: number,
   deletedPreview?: boolean,
   fileName?: string
   assignedExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif' | null,
+  transType?: FileTypes,
+  finalExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif',
+  fileSize: number,
+  previewSize?: number,
+  previewPath: string,
+  originalPath: string,
+  duration?: number,
+  hasAudio: boolean,
 }

@@ -1,9 +1,9 @@
-import { resolveFileType } from "@/core/dictionary";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/core/prisma';
 import { auth } from "@/core/authServer";
 import { reportAudit } from "@/components/serverSide/auditLog";
 import { checkPermissions } from "@/components/serverSide/permCheck";
+import { fileTypeFromBuffer } from "file-type";
 
 export async function PATCH(req: NextRequest) {
   const session = await auth();
@@ -40,11 +40,12 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  const uploadedExtension = file.name.split(".").pop()?.toLowerCase() || "";
-  const uploadedFileType = resolveFileType(`.${uploadedExtension}`);
-  const originalFileType = resolveFileType(`.${currentPost.fileExt}`);
-  if (originalFileType !== 'video') { return NextResponse.json({ error: "You can only edit the thumbnails of videos" }, { status: 400 }); };
-  if (uploadedFileType !== 'image') { return NextResponse.json({ error: "You can only replace thumbnails with images" }, { status: 400 }); };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const incomingType = await fileTypeFromBuffer(buffer);
+
+  if (currentPost.type != 'video') { return NextResponse.json({ error: "You can only edit the thumbnails of videos" }, { status: 400 }); };
+  if (!incomingType || !incomingType.mime.startsWith('image/')) { return NextResponse.json({ error: "You can only replace thumbnails with images" }, { status: 400 }); };
 
 
   // Forward to Fastify

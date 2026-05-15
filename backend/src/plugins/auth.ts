@@ -9,6 +9,8 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
 
   if (!sharedSecret) {
     logger.error('INTERNAL_SHARED_SECRET is not set. All internal API calls will be denied, and the site will not work properly.');
+  } else {
+    logger.info('[+] INTERNAL_SHARED_SECRET loaded.');
   }
 
   fastify.decorate(

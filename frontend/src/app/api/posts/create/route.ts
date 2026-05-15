@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/prisma';
 import { auth } from '@/core/authServer';
 import { checkFile } from '@/components/serverSide/UploadProcessing/checkHash';
-import { resolveFileType } from '@/core/dictionary';
 import { fetch, Agent, FormData } from 'undici';
 import { FastifyUpload } from '@/core/types/posts';
 import { checkPermissions } from '@/components/serverSide/permCheck';
 import { fetchAutoTags } from '@/components/serverSide/autotag';
 import { fetchTag } from '@/core/completeTags';
+import { ALLOWED_EXTENSIONS } from '@/core/dictionary';
+import { fileTypeFromBuffer } from 'file-type';
 
 const fastify = process.env.NEXT_PUBLIC_FASTIFY;
 
@@ -44,9 +45,7 @@ export async function POST(request: NextRequest) {
   }
 
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
-  const fileType = resolveFileType(`.${extension}`);
-
-  if (fileType === 'other') {
+  if (!ALLOWED_EXTENSIONS.includes(extension)) {
     return NextResponse.json(
       { error: `File type .${extension} is not supported.` },
       { status: 415 } // 415 Unsupported Media Type
@@ -55,7 +54,8 @@ export async function POST(request: NextRequest) {
 
   // Begin processing stuff
   const buffer = Buffer.from(await file.arrayBuffer());
-  const checkMatch = await checkFile(buffer, extension, fileType);
+  const incomingType = await fileTypeFromBuffer(buffer);
+  const checkMatch = await checkFile(buffer, extension, incomingType);
   if (checkMatch.status == true && skipDupes == false) {
     return Response.json({ duplicate: true, post: checkMatch.ogPost }, { status: 409 });
   }
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       flags: [],
       pHash: checkMatch.genHash || null,
       dupeBypass: skipDupes,
-      fileSize: buffer.length,
+      // fileSize: buffer.length,
     },
   });
 
@@ -135,6 +135,7 @@ export async function POST(request: NextRequest) {
 
   const fastifyFormData = new FormData();
   fastifyFormData.append('postId', postId.toString());
+  fastifyFormData.append('convert', false); // force false for now until Upload Page Revamp
   fastifyFormData.append('file', file);
 
   const fastifyResponse = await fetch(`${fastify}/api/upload`, {
@@ -157,8 +158,8 @@ export async function POST(request: NextRequest) {
   const fastifyResult = await fastifyResponse.json() as FastifyUpload;
   
   let previewSrc;
-  if (fastifyResult.deletedPreview == true) { previewSrc = `/data/uploads/${fileType}/${postId}.${extension}`; }
-  else { previewSrc = `/data/previews/${fileType}/${postId}.${fastifyResult.assignedExt}` }
+  if (fastifyResult.deletedPreview == true) { previewSrc = fastifyResult.originalPath; }
+  else { previewSrc = fastifyResult.previewPath }
 
   // Add Tags non-destructively
   let tags;
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
     });
   
     if (
-      fileType !== 'video' &&
+      !incomingType?.mime.startsWith('video/') &&
       autoTaggerConf &&
       (autoTaggerConf.autoTaggerMode.includes('AGGRESSIVE') ||
         (autoTaggerConf.autoTaggerMode.includes('SELECTIVE') &&
@@ -232,12 +233,19 @@ export async function POST(request: NextRequest) {
   await prisma.posts.update({
     where: { id: postId },
     data: {
+      type: fastifyResult.type,
       previewScale: fastifyResult.previewScale,
       previewPath: previewSrc,
+      originalPath: fastifyResult.originalPath,
       aspectRatio: fastifyResult.aspectRatio,
       tags: {
         connect: tags?.map((t) => ({ id: t.id })),
       },
+      fileExt: fastifyResult.finalExt,
+      fileSize: fastifyResult.fileSize,
+      previewSize: fastifyResult.previewSize, // will always be set, if preview was deleted, it will just be the same as fileSize.
+      duration: fastifyResult.duration,
+      hasAudio: fastifyResult.hasAudio
     },
   })
 

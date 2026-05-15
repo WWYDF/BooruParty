@@ -1,3 +1,5 @@
+// New version is in /auth/logout. This is kept just for compatibility.
+// It will be removed in a future update.
 "use client";
 
 import { useEffect } from "react";

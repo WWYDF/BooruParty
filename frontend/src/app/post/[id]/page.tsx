@@ -7,7 +7,6 @@ import { Comments } from "@/core/types/comments";
 import { cookies } from "next/headers";
 import { checkPermissions } from "@/components/serverSide/permCheck";
 import { Metadata } from "next";
-import { resolveFileType } from "@/core/dictionary";
 import { Post } from "@/core/types/posts";
 import { formatStorageFromBytes } from "@/core/formats";
 import { Tag } from "@/core/types/tags";
@@ -77,7 +76,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const data = await res.json();
 
   if (!data || !data.title || !data.description) {
-    console.log('3')
     return {
       title: `Post #${prams.id}`,
       description: `Guest viewing is disabled for this site, please login to view this post.`,
@@ -190,10 +188,7 @@ export default async function PostPage({
     artistText = ` by ${firstArtist.name}`;
   }
     
-  let fileTypeText = '';
-  const fileType = resolveFileType(`.${post.fileExt}`);
-  if (fileType != 'other') { fileTypeText = ` ${fileType}` }
-  const desc = `View this ${formatStorageFromBytes(post.fileSize ?? 0)}${fileTypeText}`
+  const desc = `View this ${formatStorageFromBytes(post.fileSize ?? 0)} ${post.type}`
 
   return (
     <main className="grid grid-cols-1 lg:grid-cols-[375px_1fr] gap-6 p-4">
@@ -203,7 +198,7 @@ export default async function PostPage({
 
       {/* LEFT COLUMN - Metadata */}
       <div className="order-3 lg:order-1 lg:col-span-1 mt-6 lg:mt-0 border-r border-zinc-900">
-        <PostMetadata post={postData.post} user={postData.user} editPerms={passPerms} userId={session?.user.id} />
+        <PostMetadata post={postData.post} user={postData.user} editPerms={passPerms} userId={session?.user.id} addons={postData.addons} />
       </div>
 
       {/* RIGHT COLUMN - Main content + Comments */}

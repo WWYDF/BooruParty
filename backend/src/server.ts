@@ -1,24 +1,31 @@
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import * as dotenv from 'dotenv';
+import ipFilter from './plugins/auth';
 import registerStatic from './plugins/static';
-import uploadRoutes from './routes/upload';
-import avatarUploadRoute from './routes/avatars';
-import statsRoute from './routes/stats';
-import postDeleteRoute from './routes/delete/posts';
-import avatarDeleteRoute from './routes/delete/avatars';
-import postReplaceRoute from './routes/replace';
 import cors from '@fastify/cors'
 import fs from 'fs';
 import path from 'path';
 import routeLogger, { appLogger, initAppLogFile } from './plugins/logger';
 import chalk from 'chalk';
-import integrityCheck from './routes/checks';
-import auth from './plugins/auth';
+import apiRoutes from './routes/api';
+import { LEGIBLE_VERSION } from './version';
 
 dotenv.config();
-
 const logger = appLogger('Server');
+
+const DIRECTORIES = [
+  "data/uploads",
+  "data/uploads/video",
+  "data/uploads/image",
+  "data/uploads/animated",
+  "data/thumbnails",
+  "data/previews/image",
+  "data/previews/animated",
+  "data/previews/video",
+  "data/temp",
+]
+
 
 async function buildServer() {
   console.clear();
@@ -33,6 +40,7 @@ async function buildServer() {
           },
         },
       },
+      trustProxy: true
     });
 
   await fastify.register(multipart, {
@@ -43,7 +51,7 @@ async function buildServer() {
 
   await fastify.register(cors, {
     origin: (origin, cb) => {
-      // Accept any origin and echo it back — as long as it's defined (browser request)
+      // Accept any origin and echo it back - as long as it's defined (browser request)
       if (origin) {
         cb(null, origin); // echo origin back = "fake *"
       } else {
@@ -57,17 +65,15 @@ async function buildServer() {
   initAppLogFile(); // rotate logs
   await fastify.register(routeLogger);
   logger.info('[+] Logger loaded successfully!');
-  await fastify.register(auth);
+  await fastify.register(ipFilter);
   logger.info('[+] Firewall loaded successfully!');
+
+  for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
+  logger.info('[+] Essential Directories loaded successfully!');
+
   await fastify.register(registerStatic);
   logger.info('[+] Asset Routes loaded successfully!');
-  await fastify.register(uploadRoutes, { prefix: '/api' });
-  await fastify.register(avatarUploadRoute, { prefix: '/api' });
-  await fastify.register(statsRoute, { prefix: '/api' });
-  await fastify.register(postDeleteRoute, { prefix: '/api' });
-  await fastify.register(avatarDeleteRoute, { prefix: '/api' });
-  await fastify.register(postReplaceRoute, { prefix: '/api' });
-  await fastify.register(integrityCheck, { prefix: '/api' });
+  await fastify.register(apiRoutes); // handles its own prefix /api/
   logger.info('[+] REST API Routes loaded successfully!');
 
   return fastify;
@@ -78,12 +84,16 @@ async function start() {
   fs.mkdirSync(filePath, { recursive: true });
   const server = await buildServer();
 
+  if (process.env.LOG_LEVEL && process.env.LOG_LEVEL.toUpperCase() == 'VERBOSE') {
+    logger.verbose(`[!] Logging is set to verbose! It's not recommended to run a production instance like this!`)
+  }
+
   try {
     // Activate Server
     const PORT = Number(process.env.PORT || 3005);
     await server.listen({ port: PORT, host: '0.0.0.0' });
     console.log('');
-    console.log(chalk.greenBright(`[>] Server Startup Completed.`));
+    console.log(chalk.greenBright(`[>] Server Startup Completed. (${LEGIBLE_VERSION})`));
     console.log('');
   } catch (err) {
     logger.error(err);
