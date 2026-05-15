@@ -1,5 +1,5 @@
 'use client'
-import { ThumbsUp, ThumbsDown, Star, Sparkle } from "@phosphor-icons/react";
+import { BookmarksSimpleIcon, ListHeartIcon, ListPlusIcon, PlaylistIcon, SparkleIcon, StarIcon, ThumbsDownIcon, ThumbsUpIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { PostUserStatus } from "@/core/types/posts";
 import { useToast } from "../../Toast";
@@ -37,6 +37,9 @@ export default function PostVoting({ post, user }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ postId, type: newVote }),
     });
+
+    if (favorited) { await toggleFavorite() };
+    if (boosted) { await boostPost() };
 
     setLoading(false);
     router.refresh();
@@ -80,6 +83,7 @@ export default function PostVoting({ post, user }: Props) {
     // a new boost was created
     if (data.boosted == true) {
       setBoosted(true);
+      if (vote == 'DOWNVOTE') { handleVote('DOWNVOTE') }; // remove downvote
     } else if (data.boostedToday == true) {
       toast("You have already boosted today!", "error");
       setBoosted(false);
@@ -101,7 +105,7 @@ export default function PostVoting({ post, user }: Props) {
         `}
         title={vote ? "Unlike This Post" : "Like This Post"}
       >
-        <ThumbsUp size={18} weight={vote === "UPVOTE" ? "fill" : "regular"} />
+        <ThumbsUpIcon size={18} weight={vote === "UPVOTE" ? "fill" : "regular"} />
         Upvote
       </button>
 
@@ -115,8 +119,21 @@ export default function PostVoting({ post, user }: Props) {
         `}
         title={favorited ? "Unfavorite This Post" : "Favorite This Post"}
       >
-        <Star size={18} weight={favorited ? "fill" : "regular"} />
+        <StarIcon size={18} weight={favorited ? "fill" : "regular"} />
         Favorite
+      </button>
+
+      <button
+        onClick={() => handleVote("DOWNVOTE")}
+        disabled={loading}
+        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition 
+          ${vote === "DOWNVOTE"
+            ? "bg-red-400/10 text-red-400 border-secondary-border hover:border-zinc-700"
+            : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
+        `}
+      >
+        <ThumbsDownIcon size={18} weight={vote === "DOWNVOTE" ? "fill" : "regular"} />
+        Downvote
       </button>
 
       <button
@@ -129,8 +146,17 @@ export default function PostVoting({ post, user }: Props) {
         `}
         title={boosted ? "Unboost This Post" : "Boost This Post"}
       >
-        <Sparkle size={18} weight={boosted ? "fill" : "regular"} />
+        <SparkleIcon size={18} weight={boosted ? "fill" : "regular"} />
         Boost
+      </button>
+
+      <button
+        // onClick={() => handleVote("DOWNVOTE")}
+        disabled={loading}
+        className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"
+      >
+        <BookmarksSimpleIcon size={18} weight={vote === "DOWNVOTE" ? "fill" : "regular"} />
+        Collection
       </button>
     </div>
   );
