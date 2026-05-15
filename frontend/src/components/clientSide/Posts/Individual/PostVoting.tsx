@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { PostUserStatus } from "@/core/types/posts";
 import { useToast } from "../../Toast";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 
 type VoteType = "UPVOTE" | "DOWNVOTE" | null;
 
@@ -25,17 +26,22 @@ export default function PostVoting({ post, user }: Props) {
   const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
   const [collectionSearch, setCollectionSearch] = useState("");
   const [checkedCollections, setCheckedCollections] = useState<Set<string>>(new Set(user.collections));
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState("");
   const collectionRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const toast = useToast();
   const postId = post.id;
 
-  useEffect(() => {
-    if (!collectionOpen) return;
+  const fetchCollections = () =>
     fetch("/api/users/self")
       .then((res) => res.json())
       .then((data) => setCollections(data.collections ?? []))
       .catch(() => {});
+
+  useEffect(() => {
+    if (!collectionOpen) return;
+    fetchCollections();
   }, [collectionOpen]);
 
   useEffect(() => {
@@ -114,6 +120,19 @@ export default function PostVoting({ post, user }: Props) {
     } else {
       setBoosted(false);
     }
+    router.refresh();
+  };
+
+  const createCollection = async () => {
+    if (!newCollectionName.trim()) return;
+    await fetch("/api/collections/self", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newCollectionName.trim() }),
+    });
+    setNewCollectionName("");
+    setCreateModalOpen(false);
+    await fetchCollections();
     router.refresh();
   };
 
@@ -214,6 +233,54 @@ export default function PostVoting({ post, user }: Props) {
             Collection
           </button>
 
+          <AnimatePresence>
+            {createModalOpen && (
+              <motion.div
+                className="fixed inset-0 z-[100] flex items-center justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                onMouseDown={(e) => { if (e.target === e.currentTarget) setCreateModalOpen(false); }}
+                style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
+              >
+                <motion.div
+                  className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl p-5 w-72 flex flex-col gap-3"
+                  initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <h3 className="text-sm font-semibold text-white">New Collection</h3>
+                  <input
+                    type="text"
+                    placeholder="Collection name"
+                    value={newCollectionName}
+                    onChange={(e) => setNewCollectionName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") createCollection(); }}
+                    className="w-full bg-zinc-800 text-sm text-white placeholder-zinc-500 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-zinc-600"
+                    autoFocus
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => { setCreateModalOpen(false); setNewCollectionName(""); }}
+                      className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={createCollection}
+                      disabled={!newCollectionName.trim()}
+                      className="px-3 py-1.5 text-sm font-medium bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition"
+                    >
+                      Create
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {collectionOpen && (
             <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
               <div className="p-2 border-b border-zinc-800 flex gap-2 overflow-hidden">
@@ -225,7 +292,10 @@ export default function PostVoting({ post, user }: Props) {
                   className="min-w-0 flex-1 bg-zinc-800 text-sm text-white placeholder-zinc-500 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-zinc-600"
                   autoFocus
                 />
-                <button className="shrink-0 p-1.5 bg-zinc-800 text-zinc-300 rounded-lg border border-zinc-700 hover:border-zinc-500 transition">
+                <button
+                  onClick={() => setCreateModalOpen(true)}
+                  className="shrink-0 p-1.5 bg-zinc-800 text-zinc-300 rounded-lg border border-zinc-700 hover:border-zinc-500 transition"
+                >
                   <PlusIcon size={16} weight="bold" />
                 </button>
               </div>
