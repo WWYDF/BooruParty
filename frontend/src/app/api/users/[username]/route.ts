@@ -81,7 +81,8 @@ export async function GET(
               user: { username },
               type: 'UPVOTE'
             }
-          }
+          },
+          collections: true,
         }
       },
       posts: {
@@ -96,10 +97,28 @@ export async function GET(
         }
       },
       favorites: {
+        take: 25,
         select: {
           postId: true,
         },
         orderBy: { createdAt: 'desc' }
+      },
+      collections: {
+        take: 25,
+        where: {
+          isPublic: true
+        },
+        include: {
+          items: {
+            orderBy: {
+              addedAt: 'desc'
+            }
+          },
+          _count: true
+        },
+        orderBy: {
+          name: 'desc'
+        }
       },
       comments: {
         take: 10,

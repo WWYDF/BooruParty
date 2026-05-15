@@ -442,48 +442,60 @@ export default function UserProfilePage() {
           </section>
         )}
 
-        {/* Recent Favorites */}
-        {user.favorites?.length > 0 && (
+        {/* Collections */}
+        {(user.favorites?.length > 0 || user.collections?.length > 0) && (
           <section>
             <h2 className="text-lg font-semibold mb-2">
-              Recent Favorites <a className="text-sm text-subtle">({user._count.favorites})</a>
+              Collections <a className="text-sm text-subtle">({user._count.collections + 1})</a>
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {user.favorites.slice(0, 10).map((fav: any) => (
-                <div
-                  key={fav.postId}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    viewPost("favorites", fav.postId);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      viewPost("favorites", fav.postId);
-                    }
-                  }}
-                  className="cursor-pointer block transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 rounded-lg border border-zinc-700 hover:border-darkerAccent"
-                >
+              {/* Fake Favorites collection */}
+              <a
+                href={`/posts?query=favorites%3A${encodeURIComponent(user.username)}`}
+                className="relative block rounded-lg overflow-hidden aspect-[4/3] border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30"
+              >
+                {user.favorites?.length > 0 ? (
                   <img
-                    src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${fav.postId}_small.webp`}
-                    alt={`Post #${fav.postId}`}
-                    className="w-full aspect-[4/3] object-cover rounded-lg"
+                    src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${user.favorites[0].postId}_small.webp`}
+                    alt="Favorites"
+                    className="w-full h-full object-cover brightness-[0.4]"
                   />
-                </div>
-              ))}
+                ) : (
+                  <div className="w-full h-full bg-zinc-800" />
+                )}
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="px-2 text-sm font-semibold text-white truncate max-w-full text-center">
+                    Favorites ({user._count.favorites})
+                  </span>
+                </span>
+              </a>
 
-              {user.favorites.length > 10 && (
-                <div className="mt-2">
-                  <div className="flex pr-1">
-                    <a
-                      href={`/posts?query=favorites%3A${encodeURIComponent(user.username)}`}
-                      className="px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
-                    >
-                      View all favorites →
-                    </a>
-                  </div>
-                </div>
-              )}
+              {/* Real collections */}
+              {user.collections?.map((col: any) => {
+                const firstPostId = col.items?.[0]?.postId;
+                return (
+                  <a
+                    key={col.name}
+                    href={`/posts?query=collection%3A${encodeURIComponent(col.id)}`}
+                    className="relative block rounded-lg overflow-hidden aspect-[4/3] border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30"
+                  >
+                    {firstPostId ? (
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${firstPostId}_small.webp`}
+                        alt={col.name}
+                        className="w-full h-full object-cover brightness-[0.4]"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-zinc-800" />
+                    )}
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="px-2 text-sm font-semibold text-white truncate max-w-full text-center">
+                        {col.name}
+                      </span>
+                    </span>
+                  </a>
+                );
+              })}
             </div>
           </section>
         )}

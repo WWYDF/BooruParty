@@ -20,3 +20,4 @@ backend/.env
 yarn.lock
 pnpm-lock.yaml
 frontend/next-env.d.ts
+tdl.md

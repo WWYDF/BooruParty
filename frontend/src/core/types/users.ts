@@ -55,7 +55,8 @@ export type UserPublic = {
     posts: number,
     comments: number,
     favorites: number,
-    votes: number
+    votes: number,
+    collections: number,
   },
   posts: [
     {
@@ -68,6 +69,20 @@ export type UserPublic = {
   favorites: [
     {
       postId: number
+    }
+  ],
+  collections: [
+    {
+      ownerId: string,
+      isPublic: boolean,
+      name: string,
+      items: {
+        collectionId: string,
+        postId: number,
+        addedAt: Date
+      },
+      updatedAt: Date,
+      createdAt: Date
     }
   ],
   comments: [

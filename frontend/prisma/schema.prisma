@@ -75,6 +75,7 @@ model User {
   description   String?
   preferences   UserPreferences?
   favorites     UserFavorites[]
+  collections   Collection[]
   votes         Votes[]
   boosts        Boosts[]
   posts         Posts[]
@@ -199,6 +200,7 @@ model Posts {
   comments      Comments[]          @relation("PostComments")
   favoritedBy   UserFavorites[]
   specialPosts  SpecialPosts[]
+  collections   CollectionItem[]
   uploadedById  String
   fileSize      Int?                // File Size of "Full" upload
   previewSize   Int?                // File Size of "Preview" sample
@@ -413,4 +415,29 @@ model AddonsConfig {
   updatedAt               DateTime            @updatedAt
 
   @@map("addons_config")
+}
+
+
+model Collection {
+  id                      String              @id @default(uuid())
+  ownerId                 String
+  owner                   User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isPublic                Boolean             @default(true)
+  name                    String
+  items                   CollectionItem[]
+
+  updatedAt               DateTime            @updatedAt
+  createdAt               DateTime            @default(now())
+}
+
+model CollectionItem {
+  collectionId            String
+  collection              Collection          @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  postId                  Int
+  post                    Posts               @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  addedAt                 DateTime            @default(now())
+
+  @@id([collectionId, postId])
 }
