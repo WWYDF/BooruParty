@@ -131,6 +131,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   let hasFavorited = false;
   let voteType = null;
   let boostedToday = false;
+  let userCollections: string[] = [];
 
   // If user is logged in, check their post statuses
   if (session?.user) {
@@ -151,6 +152,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
           select: { createdAt: true },
           take: 1,
         },
+        collections: {
+          where: { items: { some: { postId } } },
+          select: { id: true }
+        },
       }
     });
 
@@ -158,6 +163,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     voteType = userStatus?.votes?.[0]?.type ?? null;
     const latestBoost = userStatus?.boosts[0];
     boostedToday = latestBoost ? latestBoost.createdAt.toDateString() == new Date().toDateString() : false;
+    userCollections = userStatus?.collections?.map(c => c.id) ?? [];
   }
 
   // Sort Tags by Category
@@ -214,7 +220,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     favorited: hasFavorited,
     signedIn: !!session?.user,
     boostedToday,
-    canAutoTag
+    canAutoTag,
+    collections: userCollections,
   }
 
   const addonOptions = await prisma.addonsConfig.findFirst({

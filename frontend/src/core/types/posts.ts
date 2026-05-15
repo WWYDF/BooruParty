@@ -105,7 +105,8 @@ export type PostUserStatus = {
   favorited: boolean
   signedIn: boolean
   boostedToday: boolean,
-  canAutoTag: boolean
+  canAutoTag: boolean,
+  collections: string[], // what collections the post is in (ids)
 }
 
 export type PostNavigatorType = {

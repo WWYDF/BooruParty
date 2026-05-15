@@ -1,6 +1,6 @@
 'use client'
-import { BookmarksSimpleIcon, ListHeartIcon, ListPlusIcon, PlaylistIcon, SparkleIcon, StarIcon, ThumbsDownIcon, ThumbsUpIcon } from "@phosphor-icons/react";
-import { useState } from "react";
+import { BookmarksSimpleIcon, CheckIcon, SparkleIcon, StarIcon, ThumbsDownIcon, ThumbsUpIcon } from "@phosphor-icons/react";
+import { useState, useRef, useEffect } from "react";
 import { PostUserStatus } from "@/core/types/posts";
 import { useToast } from "../../Toast";
 import { useRouter } from "next/navigation";
@@ -21,9 +21,32 @@ export default function PostVoting({ post, user }: Props) {
   const [favorited, setFavorited] = useState(user.favorited);
   const [boosted, setBoosted] = useState(user.boostedToday);
   const [loading, setLoading] = useState(false);
+  const [collectionOpen, setCollectionOpen] = useState(false);
+  const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
+  const [collectionSearch, setCollectionSearch] = useState("");
+  const collectionRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const toast = useToast();
   const postId = post.id;
+
+  useEffect(() => {
+    if (!collectionOpen) return;
+    fetch("/api/users/self")
+      .then((res) => res.json())
+      .then((data) => setCollections(data.collections ?? []))
+      .catch(() => {});
+  }, [collectionOpen]);
+
+  useEffect(() => {
+    if (!collectionOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (collectionRef.current && !collectionRef.current.contains(e.target as Node)) {
+        setCollectionOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [collectionOpen]);
 
   const handleVote = async (type: VoteType) => {
     if (user.signedIn == false) return;
@@ -93,6 +116,14 @@ export default function PostVoting({ post, user }: Props) {
     router.refresh();
   };
 
+  const addToCollection = async (_collectionId: string) => {
+    // TODO
+  };
+
+  const filteredCollections = collections
+    .filter((c) => c.name.toLowerCase().includes(collectionSearch.toLowerCase()))
+    .slice(0, 10);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex gap-2 justify-center">
@@ -153,13 +184,53 @@ export default function PostVoting({ post, user }: Props) {
           Boost
         </button>
 
-        <button
-          disabled={loading}
-          className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"
-        >
-          <BookmarksSimpleIcon size={18} />
-          Collection
-        </button>
+        <div className="relative" ref={collectionRef}>
+          <button
+            disabled={loading}
+            onClick={() => setCollectionOpen((o) => !o)}
+            className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
+              ${collectionOpen
+                ? "bg-purple-400/10 text-purple-400 border-secondary-border md:hover:border-zinc-700"
+                : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
+            `}
+          >
+            <BookmarksSimpleIcon size={18} weight={collectionOpen ? "fill" : "regular"} />
+            Collection
+          </button>
+
+          {collectionOpen && (
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
+              <div className="p-2 border-b border-zinc-800">
+                <input
+                  type="text"
+                  placeholder="Search collections..."
+                  value={collectionSearch}
+                  onChange={(e) => setCollectionSearch(e.target.value)}
+                  className="w-full bg-zinc-800 text-sm text-white placeholder-zinc-500 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-zinc-600"
+                  autoFocus
+                />
+              </div>
+              <ul className="max-h-56 overflow-y-auto">
+                {filteredCollections.length === 0 && (
+                  <li className="px-3 py-2 text-sm text-zinc-500">No collections found.</li>
+                )}
+                {filteredCollections.map((col) => (
+                  <li key={col.id}>
+                    <button
+                      onClick={() => addToCollection(col.id)}
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-white hover:bg-zinc-800 transition"
+                    >
+                      <span className="truncate mr-2">{col.name}</span>
+                      <span className="shrink-0 w-4 h-4 rounded border border-zinc-600 bg-zinc-800 flex items-center justify-center pointer-events-none">
+                        {false && <CheckIcon size={10} weight="bold" className="text-purple-400" />}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

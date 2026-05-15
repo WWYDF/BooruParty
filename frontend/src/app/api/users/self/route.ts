@@ -59,11 +59,15 @@ export async function GET() {
           },
         }
       },
+      collections: {
+        include: { _count: true },
+        orderBy: { name: 'desc' }
+      },
       role: {
         include: {
           permissions: true
         }
-      },
+      }
     }
   });
 
