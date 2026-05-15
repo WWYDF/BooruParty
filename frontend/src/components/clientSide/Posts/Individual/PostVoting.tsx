@@ -1,5 +1,5 @@
 'use client'
-import { BookmarksSimpleIcon, CheckIcon, SparkleIcon, StarIcon, ThumbsDownIcon, ThumbsUpIcon } from "@phosphor-icons/react";
+import { BookmarksSimpleIcon, CheckIcon, PlusIcon, SparkleIcon, StarIcon, ThumbsDownIcon, ThumbsUpIcon } from "@phosphor-icons/react";
 import { useState, useRef, useEffect } from "react";
 import { PostUserStatus } from "@/core/types/posts";
 import { useToast } from "../../Toast";
@@ -24,6 +24,7 @@ export default function PostVoting({ post, user }: Props) {
   const [collectionOpen, setCollectionOpen] = useState(false);
   const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
   const [collectionSearch, setCollectionSearch] = useState("");
+  const [checkedCollections, setCheckedCollections] = useState<Set<string>>(new Set(user.collections));
   const collectionRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const toast = useToast();
@@ -116,8 +117,23 @@ export default function PostVoting({ post, user }: Props) {
     router.refresh();
   };
 
-  const addToCollection = async (_collectionId: string) => {
-    // TODO
+  const addToCollection = async (collectionId: string) => {
+    const isIn = checkedCollections.has(collectionId);
+    setCheckedCollections((prev) => {
+      const next = new Set(prev);
+      isIn ? next.delete(collectionId) : next.add(collectionId);
+      return next;
+    });
+
+    await fetch("/api/collections/self", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        isIn ? { id: collectionId, removePostId: postId } : { id: collectionId, addPostId: postId }
+      ),
+    });
+
+    router.refresh();
   };
 
   const filteredCollections = collections
@@ -189,26 +205,29 @@ export default function PostVoting({ post, user }: Props) {
             disabled={loading}
             onClick={() => setCollectionOpen((o) => !o)}
             className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
-              ${collectionOpen
+              ${checkedCollections.size > 0
                 ? "bg-purple-400/10 text-purple-400 border-secondary-border md:hover:border-zinc-700"
                 : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
             `}
           >
-            <BookmarksSimpleIcon size={18} weight={collectionOpen ? "fill" : "regular"} />
+            <BookmarksSimpleIcon size={18} weight={checkedCollections.size > 0 ? "fill" : "regular"} />
             Collection
           </button>
 
           {collectionOpen && (
             <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div className="p-2 border-b border-zinc-800">
+              <div className="p-2 border-b border-zinc-800 flex gap-2 overflow-hidden">
                 <input
                   type="text"
                   placeholder="Search collections..."
                   value={collectionSearch}
                   onChange={(e) => setCollectionSearch(e.target.value)}
-                  className="w-full bg-zinc-800 text-sm text-white placeholder-zinc-500 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-zinc-600"
+                  className="min-w-0 flex-1 bg-zinc-800 text-sm text-white placeholder-zinc-500 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-zinc-600"
                   autoFocus
                 />
+                <button className="shrink-0 p-1.5 bg-zinc-800 text-zinc-300 rounded-lg border border-zinc-700 hover:border-zinc-500 transition">
+                  <PlusIcon size={16} weight="bold" />
+                </button>
               </div>
               <ul className="max-h-56 overflow-y-auto">
                 {filteredCollections.length === 0 && (
@@ -221,8 +240,9 @@ export default function PostVoting({ post, user }: Props) {
                       className="w-full flex items-center justify-between px-3 py-2 text-sm text-white hover:bg-zinc-800 transition"
                     >
                       <span className="truncate mr-2">{col.name}</span>
-                      <span className="shrink-0 w-4 h-4 rounded border border-zinc-600 bg-zinc-800 flex items-center justify-center pointer-events-none">
-                        {false && <CheckIcon size={10} weight="bold" className="text-purple-400" />}
+                      <span className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center pointer-events-none transition
+                        ${checkedCollections.has(col.id) ? "bg-amber-600 border-amber-500" : "bg-zinc-800 border-zinc-600"}`}>
+                        {checkedCollections.has(col.id) && <CheckIcon size={10} weight="bold" className="text-white" />}
                       </span>
                     </button>
                   </li>
