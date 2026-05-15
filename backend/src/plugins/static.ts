@@ -1,13 +1,12 @@
 import { FastifyPluginAsync } from 'fastify';
 import staticPlugin from '@fastify/static';
 import path from 'path';
-import fs from 'fs/promises';
 
 const registerStatic: FastifyPluginAsync = async (fastify) => {
   fastify.register(staticPlugin, {
     root: path.resolve(process.cwd(), 'data/'),
     prefix: '/data/',
-    setHeaders: async (res, filePath) => {
+    setHeaders: (res, filePath) => {
       // Cache for 3 hours
       res.setHeader('Cache-Control', 'public, max-age=10800, immutable');
 
