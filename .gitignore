@@ -15,6 +15,7 @@
 core/prisma/.env
 frontend/.env
 backend/.env
-frontend/next-env.d.ts
-/.vscode
-/backend/test_data
+
+# Generated Files
+yarn.lock
+pnpm-lock.yaml
