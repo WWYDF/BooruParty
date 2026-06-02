@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
-import { motion } from "framer-motion";
-import { GearSix, SignOut, LockSimple } from "phosphor-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { DotsThreeVertical, GearSix, SignOut, LockSimple } from "phosphor-react";
 import { signOut, useSession } from "next-auth/react";
 import { formatRelativeTime } from "@/core/formats";
 import sanitizeHtml from "sanitize-html";
@@ -78,6 +78,11 @@ export default function UserProfilePage() {
   const { data: session } = useSession();
   const [canEdit, setCanEdit] = useState(false);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const [menuColId, setMenuColId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [editingCol, setEditingCol] = useState<{ id: string; name: string } | null>(null);
+  const [editName, setEditName] = useState("");
+  const menuRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
   const router = useRouter();
 
@@ -194,6 +199,15 @@ export default function UserProfilePage() {
     };
   }, [user?.preferences?.profileBackground]);
 
+  useEffect(() => {
+    if (!menuColId) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) closeMenu();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuColId]);
+
   // Loading
   if (loading) {
     return (
@@ -266,6 +280,30 @@ export default function UserProfilePage() {
       JSON.stringify({ tagName, sort: "" })
     );
     router.push(`/posts?query=${encodeURIComponent(tagName)}`);
+  }
+
+  function openMenu(e: React.MouseEvent, colId: string, colName: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuColId(colId);
+    setMenuPos({ x: e.clientX, y: e.clientY });
+    setEditName(colName);
+  }
+
+  function closeMenu() {
+    setMenuColId(null);
+    setMenuPos(null);
+  }
+
+  async function saveEdit() {
+    if (!editingCol || !editName.trim()) return;
+    await fetch("/api/collections/self", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editingCol.id, name: editName.trim() }),
+    });
+    setEditingCol(null);
+    router.refresh();
   }
 
   return (
@@ -474,10 +512,11 @@ export default function UserProfilePage() {
               {user.collections?.map((col: any) => {
                 const firstPostId = col.items?.[0]?.postId;
                 return (
-                  <a
-                    key={col.name}
-                    href={`/posts?query=collection%3A${encodeURIComponent(col.id)}`}
-                    className="relative block rounded-lg overflow-hidden aspect-[4/3] border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30"
+                  <div
+                    key={col.id}
+                    onContextMenu={(e) => isOwner && openMenu(e, col.id, col.name)}
+                    className="group relative rounded-lg overflow-hidden aspect-[4/3] border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 cursor-pointer"
+                    onClick={() => router.push(`/posts?query=collection%3A${encodeURIComponent(col.id)}`)}
                   >
                     {firstPostId ? (
                       <img
@@ -493,7 +532,15 @@ export default function UserProfilePage() {
                         {col.name}
                       </span>
                     </span>
-                  </a>
+                    {isOwner && (
+                      <button
+                        onClick={(e) => openMenu(e, col.id, col.name)}
+                        className="absolute top-1.5 right-1.5 p-0.5 rounded-md bg-black/40 text-white opacity-0 group-hover:opacity-100 transition hover:bg-black/60"
+                      >
+                        <DotsThreeVertical size={16} weight="bold" />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -549,6 +596,79 @@ export default function UserProfilePage() {
           </section>
         )}
       </motion.div>
+
+      {/* Collection context menu */}
+      <AnimatePresence>
+        {menuColId && menuPos && (
+          <motion.div
+            ref={menuRef}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.1 }}
+            className="fixed z-[200] bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl py-1 w-44 overflow-hidden"
+            style={{ top: menuPos.y, left: menuPos.x }}
+          >
+            <button
+              onClick={() => {
+                setEditingCol({ id: menuColId, name: editName });
+                closeMenu();
+              }}
+              className="w-full text-left px-3 py-2 text-sm text-white hover:bg-zinc-800 transition"
+            >
+              Rename
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Rename modal */}
+      <AnimatePresence>
+        {editingCol && (
+          <motion.div
+            className="fixed inset-0 z-[200] flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) setEditingCol(null); }}
+            style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
+          >
+            <motion.div
+              className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl p-5 w-72 flex flex-col gap-3"
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.15 }}
+            >
+              <h3 className="text-sm font-semibold text-white">Rename Collection</h3>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); }}
+                className="w-full bg-zinc-800 text-sm text-white placeholder-zinc-500 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-zinc-600"
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setEditingCol(null)}
+                  className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveEdit}
+                  disabled={!editName.trim()}
+                  className="px-3 py-1.5 text-sm font-medium bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
