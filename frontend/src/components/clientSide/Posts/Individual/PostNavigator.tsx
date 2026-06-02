@@ -17,7 +17,7 @@ export function useAdjacentPosts(postId: number, poolId?: number) {
       if (poolId) {
         res = await fetch(`/api/pools/${poolId}/navigate?current=${postId}`, { cache: "no-store" });
       } else {
-        const saved = JSON.parse(localStorage.getItem("lastSearchParams") ?? "{}");
+        const saved = JSON.parse(localStorage.getItem("sessionStorage") ?? "{}");
         const query = saved.query ?? "";
         const safety = saved.safety ?? "";
         const sort = saved.sort ?? "new";

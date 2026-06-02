@@ -52,7 +52,7 @@ export default function ClientPostsPage() {
     }
     router.replace(`?${params.toString()}`);
 
-    localStorage.setItem("lastSearchParams", JSON.stringify({
+    sessionStorage.setItem("lastSearchParams", JSON.stringify({
       query: query,
       safety: safeties.join("-"),
     }));

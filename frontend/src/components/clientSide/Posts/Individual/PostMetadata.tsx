@@ -29,7 +29,7 @@ export default function PostMetadata(
   const toast = useToast();
 
   function modifyQuery(action: "replace" | "add" | "exclude", tag: string) {
-    const saved = JSON.parse(localStorage.getItem("lastSearchParams") ?? "{}");
+    const saved = JSON.parse(sessionStorage.getItem("lastSearchParams") ?? "{}");
     const prevQuery = saved.query ?? "";
 
     let newQuery = "";
@@ -46,7 +46,7 @@ export default function PostMetadata(
       newQuery = parts.join(" ");
     }
 
-    localStorage.setItem("lastSearchParams", JSON.stringify({
+    sessionStorage.setItem("lastSearchParams", JSON.stringify({
       ...saved,
       query: newQuery
     }));

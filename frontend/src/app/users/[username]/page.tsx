@@ -263,7 +263,7 @@ export default function UserProfilePage() {
       query = `favorites:${user!.username}`;
     }
 
-    localStorage.setItem(
+    sessionStorage.setItem(
       "lastSearchParams",
       JSON.stringify({
         query,
@@ -275,7 +275,7 @@ export default function UserProfilePage() {
   }
 
   function viewTag(tagName: string) {
-    localStorage.setItem(
+    sessionStorage.setItem(
       "lastSearchParams",
       JSON.stringify({ tagName, sort: "" })
     );
