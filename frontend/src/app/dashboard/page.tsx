@@ -1,10 +1,11 @@
 import AnalyticsOverview from "@/components/clientSide/Dashboard/AnalyticsBox";
 import DatabaseBackup from "@/components/clientSide/Dashboard/Backup";
+import BoostCooldown from "@/components/clientSide/Dashboard/BoostCooldown";
 import IntegrityCheck from "@/components/clientSide/Dashboard/IntegrityCheck";
 import PermissionSync from "@/components/clientSide/Dashboard/UpdatePerms";
 import UpdaterBox from "@/components/clientSide/Dashboard/Updater";
 import { checkPermissions } from "@/components/serverSide/permCheck";
-import { motion } from 'framer-motion';
+import { prisma } from "@/core/prisma";
 
 export default async function AdminDashboard() {
 
@@ -13,14 +14,18 @@ export default async function AdminDashboard() {
     'dashboard_analytics',
     'dashboard_update',
     'dashboard_backups',
-    'dashboard_checks'
+    'dashboard_checks',
+    'administrator'
   ]);
+
+  const settings = await prisma.siteSettings.findFirst();
 
   const canViewDashboard = perms['dashboard_view'];
   const canViewAnalytics = perms['dashboard_analytics'];
   const canUpdateSite = perms['dashboard_update'];
   const canBackupDatabase = perms['dashboard_backups'];
   const canRunChecks = perms['dashboard_checks'];
+  const isAdmin = perms['administrator'];
 
   // Hide page if user lacks base perm or all widget perms.
   if (!canViewDashboard || !canViewAnalytics && !canUpdateSite && !canBackupDatabase && !canRunChecks) {
@@ -60,6 +65,11 @@ export default async function AdminDashboard() {
         {/* Integrity Component */}
         {canRunChecks && (
           <IntegrityCheck />
+        )}
+
+        {/* Boost Cooldown Component */}
+        {isAdmin && (
+          <BoostCooldown initialValue={settings?.boostCooldown ?? 86400} />
         )}
       </div>
     </div>

@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    const existing = await prisma.posts.findUnique({
+    await prisma.posts.findUnique({
         where: {
             id: postId
         },

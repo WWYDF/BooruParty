@@ -55,6 +55,7 @@ model SiteSettings {
   accent        String    @default("#FFBB3D")
   darkerAccent  String    @default("#BB8624")
   deletePosts   Boolean   @default(false)
+  boostCooldown Int       @default(86400) // seconds
 }
 
 model VerificationToken {

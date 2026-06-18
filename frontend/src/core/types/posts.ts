@@ -104,7 +104,7 @@ export type PostUserStatus = {
   vote: 'UPVOTE' | 'DOWNVOTE' | null,
   favorited: boolean
   signedIn: boolean
-  boostedToday: boolean,
+  boostOnCooldown: boolean,
   canAutoTag: boolean,
   collections: string[], // what collections the post is in (ids)
 }

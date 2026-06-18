@@ -20,7 +20,7 @@ type Props = {
 export default function PostVoting({ post, user }: Props) {
   const [vote, setVote] = useState<VoteType>(user.vote);
   const [favorited, setFavorited] = useState(user.favorited);
-  const [boosted, setBoosted] = useState(user.boostedToday);
+  const [boosted, setBoosted] = useState(user.boostOnCooldown);
   const [loading, setLoading] = useState(false);
   const [collectionOpen, setCollectionOpen] = useState(false);
   const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
@@ -104,7 +104,7 @@ export default function PostVoting({ post, user }: Props) {
     const data = await res.json();
   
     if (!res.ok) {
-      if (res.status == 409) { toast(`You have already boosted today! (Post #${data.lastBoostPost})`, "error"); return; };
+      if (res.status == 409) { toast(`You have already boosted #${data.lastBoostPost}! Try again in ${data.remaining}`, "error"); return; };
       
       console.error("Boost request failed", await res.text());
       return;
@@ -114,8 +114,8 @@ export default function PostVoting({ post, user }: Props) {
     if (data.boosted == true) {
       setBoosted(true);
       if (vote == 'DOWNVOTE') { handleVote('DOWNVOTE') }; // remove downvote
-    } else if (data.boostedToday == true) {
-      toast("You have already boosted today!", "error");
+    } else if (data.onCooldown == true) {
+      toast(`You have already boosted! Try again in ${data.remaining}`, "error");
       setBoosted(false);
     } else {
       setBoosted(false);

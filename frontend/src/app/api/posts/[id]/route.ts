@@ -130,7 +130,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 
   let hasFavorited = false;
   let voteType = null;
-  let boostedToday = false;
+  let onCooldown = false;
   let userCollections: string[] = [];
 
   // If user is logged in, check their post statuses
@@ -162,7 +162,9 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     hasFavorited = (userStatus?.favorites?.length ?? 0) > 0;
     voteType = userStatus?.votes?.[0]?.type ?? null;
     const latestBoost = userStatus?.boosts[0];
-    boostedToday = latestBoost ? latestBoost.createdAt.toDateString() == new Date().toDateString() : false;
+    const setting = await prisma.siteSettings.findFirst();
+    const cooldownMs = (setting?.boostCooldown ?? 86400) * 1000;
+    onCooldown = !!latestBoost && (Date.now() - latestBoost.createdAt.getTime()) < cooldownMs;
     userCollections = userStatus?.collections?.map(c => c.id) ?? [];
   }
 
@@ -219,7 +221,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     vote: voteType,
     favorited: hasFavorited,
     signedIn: !!session?.user,
-    boostedToday,
+    boostOnCooldown: onCooldown,
     canAutoTag,
     collections: userCollections,
   }
