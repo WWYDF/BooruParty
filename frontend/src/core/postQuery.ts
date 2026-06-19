@@ -1,6 +1,8 @@
 import { Prisma, SafetyType } from "@prisma/client";
 import { prisma } from "@/core/prisma";
 
+const ALL_SAFETIES: SafetyType[] = ["SAFE", "UNSAFE", "SKETCHY"];
+
 export function parseSearch(input: string) {
   const terms = input.split(/\s+/).filter(Boolean);
   const includeTags: string[] = [];
@@ -104,7 +106,7 @@ export function buildPostQuery({
   const safeties = [...new Set(
     safety
       .map(s => s.trim().toUpperCase())
-      .filter((s): s is SafetyType => safeties.includes(s as SafetyType))
+      .filter((s): s is SafetyType => ALL_SAFETIES.includes(s as SafetyType))
   )];
   if (safeties.length > 0) {
     conditions.push({ safety: { in: safeties } });
