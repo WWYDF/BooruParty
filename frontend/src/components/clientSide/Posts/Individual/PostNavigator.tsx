@@ -1,7 +1,7 @@
 "use client";
 
 import { PostNavigatorType } from "@/core/types/posts";
-import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -17,7 +17,8 @@ export function useAdjacentPosts(postId: number, poolId?: number) {
       if (poolId) {
         res = await fetch(`/api/pools/${poolId}/navigate?current=${postId}`, { cache: "no-store" });
       } else {
-        const saved = JSON.parse(localStorage.getItem("sessionStorage") ?? "{}");
+        const saved = JSON.parse(sessionStorage.getItem("lastSearchParams") ?? "{}");
+        console.log(saved.query);
         const query = saved.query ?? "";
         const safety = saved.safety ?? "";
         const sort = saved.sort ?? "new";
@@ -109,7 +110,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
         onClick={() => router.push(buildLink(previousPostId))}
         className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <CaretLeft size={28} weight="bold" />
+        <CaretLeftIcon size={28} weight="bold" />
         <span className="text-sm">Previous</span>
       </button>
     ) : (
@@ -118,7 +119,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
         onClick={() => router.push(buildLink(nextPostId))}
         className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <CaretLeft size={28} weight="bold" />
+        <CaretLeftIcon size={28} weight="bold" />
         <span className="text-sm">Next</span>
       </button>
     );
@@ -134,7 +135,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
         className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <span className="text-sm">Next</span>
-        <CaretRight size={28} weight="bold" />
+        <CaretRightIcon size={28} weight="bold" />
       </button>
     ) : (
       <button
@@ -143,7 +144,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
         className="flex items-center gap-1 text-subtle hover:text-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <span className="text-sm">Previous</span>
-        <CaretRight size={28} weight="bold" />
+        <CaretRightIcon size={28} weight="bold" />
       </button>
     );
   };
