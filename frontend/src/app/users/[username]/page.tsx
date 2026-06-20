@@ -87,6 +87,9 @@ export default function UserProfilePage() {
   const [editName, setEditName] = useState("");
   const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refreshUser = () => setRefreshKey((k) => k + 1);
   const menuRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
   const router = useRouter();
@@ -145,7 +148,7 @@ export default function UserProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, refreshKey]);
 
   useEffect(() => {
     if (!user || !session?.user) return;
@@ -308,14 +311,14 @@ export default function UserProfilePage() {
       body: JSON.stringify({ id: editingCol.id, name: editName.trim() }),
     });
     setEditingCol(null);
-    toast("Collection edited successfully.", "success");
-    setTimeout(() => window.location.reload(), 1000);
+    toast("Collection renamed.", "success");
+    refreshUser();
   }
 
   async function deleteCollection(id: string) {
     await fetch(`/api/collections/self?id=${id}`, { method: "DELETE" });
-    toast("Collection deleted!", "success");
-    setTimeout(() => window.location.reload(), 2000);
+    toast("Collection deleted.", "success");
+    refreshUser();
   }
 
   return (
@@ -590,6 +593,7 @@ export default function UserProfilePage() {
         <CreateCollectionModal
           open={createCollectionOpen}
           onClose={() => setCreateCollectionOpen(false)}
+          onCreated={() => { toast("Collection created!", "success"); refreshUser(); }}
         />
 
         <ConfirmModal
@@ -723,7 +727,7 @@ export default function UserProfilePage() {
                 <button
                   onClick={saveEdit}
                   disabled={!editName.trim()}
-                  className="px-3 py-1.5 text-sm font-medium bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition"
+                  className="px-3 py-1.5 text-sm font-medium bg-darkerAccent hover:bg-darkerAccent/80 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition"
                 >
                   Save
                 </button>
