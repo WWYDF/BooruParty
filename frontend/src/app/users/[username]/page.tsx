@@ -308,13 +308,14 @@ export default function UserProfilePage() {
       body: JSON.stringify({ id: editingCol.id, name: editName.trim() }),
     });
     setEditingCol(null);
-    router.refresh();
+    toast("Collection edited successfully.", "success");
+    setTimeout(() => window.location.reload(), 1000);
   }
 
   async function deleteCollection(id: string) {
     await fetch(`/api/collections/self?id=${id}`, { method: "DELETE" });
-    window.location.reload();
-    toast("Collection deleted.", "success");
+    toast("Collection deleted!", "success");
+    setTimeout(() => window.location.reload(), 2000);
   }
 
   return (

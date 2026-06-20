@@ -13,6 +13,7 @@ type Step = "type" | "standard";
 type Props = {
   open: boolean;
   onClose: () => void;
+  onCreated?: (collectionId: string) => void;
 };
 
 const stepVariants = {
@@ -21,7 +22,7 @@ const stepVariants = {
   exit: (dir: number) => ({ x: dir * -40, opacity: 0 }),
 };
 
-export function CreateCollectionModal({ open, onClose }: Props) {
+export function CreateCollectionModal({ open, onClose, onCreated }: Props) {
   const [step, setStep] = useState<Step>("type");
   const [direction, setDirection] = useState(1);
   const [name, setName] = useState("");
@@ -45,15 +46,20 @@ export function CreateCollectionModal({ open, onClose }: Props) {
   async function handleCreate(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
-    await fetch("/api/collections/self", {
+    const res = await fetch("/api/collections/self", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
+    const data = await res.json();
     setLoading(false);
     handleClose();
-    toast("Collection created!", "success");
-    setTimeout(() => window.location.reload(), 2000);
+    if (onCreated) {
+      onCreated(data.collection.id);
+    } else {
+      toast("Collection created!", "success");
+      setTimeout(() => window.location.reload(), 2000);
+    }
   }
 
   if (typeof window === "undefined") return null;
