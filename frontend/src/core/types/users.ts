@@ -1,4 +1,4 @@
-import { SafetyType } from "@prisma/client"
+import { SafetyType, User } from "@prisma/client"
 import { Tag } from "./tags"
 
 // Contains sensitive information, be careful!
@@ -86,20 +86,7 @@ export type UserPublic = {
       createdAt: Date
     },
   }[],
-  collections: [
-    {
-      ownerId: string,
-      isPublic: boolean,
-      name: string,
-      items: {
-        collectionId: string,
-        postId: number,
-        addedAt: Date
-      },
-      updatedAt: Date,
-      createdAt: Date
-    }
-  ],
+  collections: UserCollection[],
   comments: [
     {
       id: number,
@@ -118,6 +105,20 @@ export type UserPublic = {
       name: string
     }[]
   }
+}
+
+export type UserCollection = {
+  id: string,
+  ownerId: string,
+  isPublic: boolean,
+  name: string,
+  items: {
+    collectionId: string,
+    postId: number,
+    addedAt: Date
+  }[],
+  updatedAt: Date,
+  createdAt: Date
 }
 
 export type LocalUserPreferences = {

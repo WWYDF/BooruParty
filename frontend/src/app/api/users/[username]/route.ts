@@ -139,7 +139,7 @@ export async function GET(
           _count: true
         },
         orderBy: {
-          name: 'desc'
+          updatedAt: 'desc'
         }
       },
       comments: {

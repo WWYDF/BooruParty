@@ -12,7 +12,7 @@ import sanitizeHtml from "sanitize-html";
 import { checkPermissions } from "@/core/permissions";
 import { useToast } from "@/components/clientSide/Toast";
 import { hexToRgb } from "@/core/roles";
-import { UserPublic, UserSelf } from "@/core/types/users";
+import { UserCollection, UserPublic, UserSelf } from "@/core/types/users";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -528,7 +528,7 @@ export default function UserProfilePage() {
               </a>
 
               {/* Real collections */}
-              {user.collections?.map((col: any) => {
+              {user.collections?.map((col: UserCollection) => {
                 const firstPostId = col.items?.[0]?.postId;
                 return (
                   <div
@@ -546,10 +546,9 @@ export default function UserProfilePage() {
                     ) : (
                       <div className="w-full h-full bg-zinc-800" />
                     )}
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      <span className="px-2 text-sm font-semibold text-white truncate max-w-full text-center">
-                        {col.name}
-                      </span>
+                    <span className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="px-2 text-sm font-semibold text-white truncate max-w-full text-center">{col.name}</span>
+                      <span className="px-2 text-xs text-zinc-300 truncate max-w-full text-center">{col.items.length} Posts</span>
                     </span>
                     {isOwner && (
                       <button

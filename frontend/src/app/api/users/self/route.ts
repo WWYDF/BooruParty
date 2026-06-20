@@ -60,8 +60,11 @@ export async function GET() {
         }
       },
       collections: {
-        include: { _count: true },
-        orderBy: { name: 'desc' }
+        include: {
+          _count: true,
+          items: true
+        },
+        orderBy: { updatedAt: 'desc' }
       },
       role: {
         include: {
