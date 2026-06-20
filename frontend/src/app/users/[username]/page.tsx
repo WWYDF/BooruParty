@@ -7,6 +7,7 @@ import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { AnimatePresence, motion } from "framer-motion";
 import { DotsThreeVertical, GearSix, SignOut, LockSimple, Plus } from "phosphor-react";
 import { CreateCollectionModal } from "@/components/clientSide/Profile/CreateCollectionModal";
+import ConfirmModal from "@/components/clientSide/ConfirmModal";
 import { signOut, useSession } from "next-auth/react";
 import { formatRelativeTime } from "@/core/formats";
 import sanitizeHtml from "sanitize-html";
@@ -85,6 +86,7 @@ export default function UserProfilePage() {
   const [editingCol, setEditingCol] = useState<{ id: string; name: string } | null>(null);
   const [editName, setEditName] = useState("");
   const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
   const router = useRouter();
@@ -307,6 +309,12 @@ export default function UserProfilePage() {
     });
     setEditingCol(null);
     router.refresh();
+  }
+
+  async function deleteCollection(id: string) {
+    await fetch(`/api/collections/self?id=${id}`, { method: "DELETE" });
+    window.location.reload();
+    toast("Collection deleted.", "success");
   }
 
   return (
@@ -583,6 +591,15 @@ export default function UserProfilePage() {
           onClose={() => setCreateCollectionOpen(false)}
         />
 
+        <ConfirmModal
+          open={!!pendingDeleteId}
+          onClose={() => setPendingDeleteId(null)}
+          onConfirm={() => { deleteCollection(pendingDeleteId!); setPendingDeleteId(null); }}
+          title="Delete collection?"
+          description="This will permanently delete the collection. Posts inside it won't be affected."
+          confirmText="Delete"
+        />
+
         {/* Recent Comments */}
         {user.comments?.length > 0 && (
           <section>
@@ -653,6 +670,15 @@ export default function UserProfilePage() {
               className="w-full text-left px-3 py-2 text-sm text-white hover:bg-zinc-800 transition"
             >
               Rename
+            </button>
+            <button
+              onClick={() => {
+                setPendingDeleteId(menuColId);
+                closeMenu();
+              }}
+              className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-zinc-800 transition"
+            >
+              Delete
             </button>
           </motion.div>
         )}

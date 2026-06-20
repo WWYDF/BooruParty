@@ -91,3 +91,21 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json({ collection });
 }
+
+// Deleting a Collection
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) return new NextResponse('Unauthorized', { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+
+  const existing = await prisma.collection.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
+  if (existing.ownerId !== session.user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  await prisma.collection.delete({ where: { id } });
+
+  return new NextResponse(null, { status: 204 });
+}
