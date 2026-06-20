@@ -19,9 +19,13 @@ export async function GET(req: Request) {
   const yearMatch = rawQuery.match(/(?:^|\s)(\d{4})(?=\s|$)/);
   const year = yearMatch ? parseInt(yearMatch[1]) : null;
 
+  const likesMatch = rawQuery.match(/(?:^|\s)likes:(\S+)(?=\s|$)/);
+  const likesUser = likesMatch?.[1] ?? null;
+
   const queryText = rawQuery
     .replace(/(?:^|\s)order:\S+(?=\s|$)/, "")
     .replace(/(?:^|\s)\d{4}(?=\s|$)/, "")
+    .replace(/(?:^|\s)likes:\S+(?=\s|$)/, "")
     .trim()
     .toLowerCase();
 
@@ -37,6 +41,17 @@ export async function GET(req: Request) {
 
   if (year) {
     andConditions.push({ yearStart: year });
+  }
+
+  if (likesUser) {
+    andConditions.push({
+      votes: {
+        some: {
+          vote: { gt: 0 },
+          user: { username: { equals: likesUser, mode: Prisma.QueryMode.insensitive } }
+        }
+      }
+    });
   }
 
   const where = andConditions.length > 0 ? { AND: andConditions } : undefined;

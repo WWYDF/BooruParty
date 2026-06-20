@@ -501,10 +501,29 @@ export default function UserProfilePage() {
                 ) : (
                   <div className="w-full h-full bg-zinc-800" />
                 )}
-                <span className="absolute inset-0 flex items-center justify-center">
-                  <span className="px-2 text-sm font-semibold text-white truncate max-w-full text-center">
-                    Favorites ({user._count.favorites})
-                  </span>
+                <span className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="px-2 text-sm font-semibold text-white truncate max-w-full text-center">Favorites</span>
+                  <span className="px-2 text-xs text-zinc-300 truncate max-w-full text-center">{user._count.favorites} Posts</span>
+                </span>
+              </a>
+
+              {/* Fake Liked Pools collection */}
+              <a
+                href={`/pools?search=likes%3A${encodeURIComponent(user.username)}`}
+                className="relative block rounded-lg overflow-hidden aspect-[4/3] border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30"
+              >
+                {user.poolVotes?.length > 0 ? (
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${user.poolVotes[0].pool.items[0].postId}_small.webp`}
+                    alt="Liked Pools"
+                    className="w-full h-full object-cover brightness-[0.4]"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-zinc-800" />
+                )}
+                <span className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="px-2 text-sm font-semibold text-white truncate max-w-full text-center">Liked Pools</span>
+                  <span className="px-2 text-xs text-zinc-300 truncate max-w-full text-center">{user.poolVotes?.length} Pools</span>
                 </span>
               </a>
 

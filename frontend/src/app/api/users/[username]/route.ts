@@ -103,6 +103,28 @@ export async function GET(
         },
         orderBy: { createdAt: 'desc' }
       },
+      poolVotes: {
+        where: { vote: { gt: 0 } }, // only show positive votes, easier and more private lol
+        select: {
+          poolId: true,
+          pool: {
+            select: {
+              id: true,
+              name: true,
+              items: {
+                select: {
+                  index: true,
+                  postId: true,
+                }
+              },
+              artist: true,
+              safety: true,
+              lastEdited: true,
+              createdAt: true,
+            }
+          }
+        }
+      },
       collections: {
         take: 25,
         where: {

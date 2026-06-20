@@ -71,6 +71,21 @@ export type UserPublic = {
       postId: number
     }
   ],
+  poolVotes: { // only shows upvotes
+    poolId: number,
+    pool: {
+      id: number,
+      name: string,
+      items: {
+        index: number,
+        postId: number
+      }[],
+      artist: string | null,
+      safety: string,
+      lastEdited: Date,
+      createdAt: Date
+    },
+  }[],
   collections: [
     {
       ownerId: string,

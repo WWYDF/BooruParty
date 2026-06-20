@@ -13,17 +13,16 @@ export function ClientPoolGrid() {
   const [allPools, setAllPools] = useState<Pool[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    const pageParam = searchParams.get("page");
-    if (pageParam) setCurrentPage(parseInt(pageParam));
-  }, []);
+  const initialSearch = searchParams.get("search") ?? "";
+  const initialPage = parseInt(searchParams.get("page") ?? "1");
+
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialSearch);
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,8 +45,17 @@ export function ClientPoolGrid() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 250); // adjust debounce delay here
-  
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchQuery) {
+        params.set("search", searchQuery);
+      } else {
+        params.delete("search");
+      }
+      params.delete("page");
+      setCurrentPage(1);
+      router.replace(`?${params.toString()}`);
+    }, 250);
+
     return () => clearTimeout(timeout);
   }, [searchQuery]);
   
