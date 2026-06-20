@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
 import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { AnimatePresence, motion } from "framer-motion";
-import { DotsThreeVertical, GearSix, SignOut, LockSimple } from "phosphor-react";
+import { DotsThreeVertical, GearSix, SignOut, LockSimple, Plus } from "phosphor-react";
+import { CreateCollectionModal } from "@/components/clientSide/Profile/CreateCollectionModal";
 import { signOut, useSession } from "next-auth/react";
 import { formatRelativeTime } from "@/core/formats";
 import sanitizeHtml from "sanitize-html";
@@ -13,6 +14,7 @@ import { checkPermissions } from "@/core/permissions";
 import { useToast } from "@/components/clientSide/Toast";
 import { hexToRgb } from "@/core/roles";
 import { UserCollection, UserPublic, UserSelf } from "@/core/types/users";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 
 function extractEmbeds(content: string): { type: "url" | "post"; value: string }[] {
   const embeds: { type: "url" | "post"; value: string }[] = [];
@@ -82,6 +84,7 @@ export default function UserProfilePage() {
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [editingCol, setEditingCol] = useState<{ id: string; name: string } | null>(null);
   const [editName, setEditName] = useState("");
+  const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
   const router = useRouter();
@@ -466,14 +469,15 @@ export default function UserProfilePage() {
               ))}
               {user.posts.length > 10 && (
                 <div className="mt-2">
-                  <div className="flex pr-1">
-                    <a
-                      href={`/posts?query=posts%3A${encodeURIComponent(user.username)}`}
-                      className="px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
-                    >
-                      View all posts →
-                    </a>
-                  </div>
+                 <div className="flex pr-1">
+                  <a
+                    href={`/posts?query=posts%3A${encodeURIComponent(user.username)}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-accent rounded-md border border-zinc-800 hover:bg-zinc-950 hover:border-black transition"
+                  >
+                    View all posts
+                    <ArrowRightIcon size={16} />
+                  </a>
+                </div>
                 </div>
               )}
             </div>
@@ -483,8 +487,17 @@ export default function UserProfilePage() {
         {/* Collections */}
         {(user.favorites?.length > 0 || user.collections?.length > 0) && (
           <section>
-            <h2 className="text-lg font-semibold mb-2">
+            <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">
               Collections <a className="text-sm text-subtle">({user._count.collections + 1})</a>
+              {isOwner && (
+                <button
+                  onClick={() => setCreateCollectionOpen(true)}
+                  className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded px-1.5 py-0.5 transition"
+                >
+                  <Plus size={12} weight="bold" />
+                  Add New
+                </button>
+              )}
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {/* Fake Favorites collection */}
@@ -564,6 +577,11 @@ export default function UserProfilePage() {
             </div>
           </section>
         )}
+
+        <CreateCollectionModal
+          open={createCollectionOpen}
+          onClose={() => setCreateCollectionOpen(false)}
+        />
 
         {/* Recent Comments */}
         {user.comments?.length > 0 && (

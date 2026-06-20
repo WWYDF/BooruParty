@@ -49,6 +49,7 @@ export default function PostVoting({ post, user }: Props) {
     const handler = (e: MouseEvent) => {
       if (collectionRef.current && !collectionRef.current.contains(e.target as Node)) {
         setCollectionOpen(false);
+        setCollectionSearch("");
       }
     };
     document.addEventListener("mousedown", handler);
