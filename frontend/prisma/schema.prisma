@@ -59,11 +59,13 @@ model SiteSettings {
 }
 
 model VerificationToken {
-  identifier   String
-  token         String    @unique
+  identifier    String
+  code          String
   expires       DateTime
+  attempts      Int      @default(0)
+  createdAt     DateTime @default(now())
 
-  @@unique([identifier, token])
+  @@unique([identifier, code])
 }
 
 model User {

@@ -2,10 +2,10 @@ import { resetPassword } from '@/core/email';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const { token, password } = await request.json();
+  const { email, code, password } = await request.json();
 
-  if (!token || !password) {
-    return NextResponse.json({ error: 'Token and password are required' }, { status: 400 });
+  if (!email || !code || !password) {
+    return NextResponse.json({ error: 'Email, code, and password are required' }, { status: 400 });
   }
 
   if (password.length < 8) {
@@ -13,10 +13,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    await resetPassword(token, password);
+    await resetPassword(email, code, password);
     return NextResponse.json({ message: 'Password has been reset' });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 });
+    return NextResponse.json({ error: (error as Error).message || 'Invalid or expired code' }, { status: 400 });
   }
 }

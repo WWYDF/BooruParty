@@ -89,7 +89,7 @@ export default function LoginPage() {
             Register
           </a>
           {" | "}
-          <a href="/auth/forgot-password" className="text-accent hover:underline">
+          <a href="/auth/reset-password" className="text-accent hover:underline">
             Forgot password?
           </a>
         </p>

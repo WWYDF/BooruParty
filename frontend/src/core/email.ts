@@ -1,4 +1,4 @@
-import { hash, randomBytes } from 'crypto';
+import { randomInt } from 'crypto';
 import { prisma } from '@/core/prisma';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
@@ -63,54 +63,84 @@ export async function requestPasswordReset(email: string) {
     return { success: true };
   }
 
-  const token = randomBytes(32).toString('hex');
-  const expires = new Date(Date.now() + 900000); // 15 minutes
+  const identifier = email.toLowerCase();
 
+  const existing = await prisma.verificationToken.findFirst({ where: { identifier } });
+  if (existing && existing.createdAt.getTime() > Date.now() - 60_000) {
+    // Don't spam another code out within the cooldown window
+    return { success: true };
+  }
+
+  const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+  const expires = new Date(Date.now() + 600_000);
+
+  await prisma.verificationToken.deleteMany({ where: { identifier } });
   await prisma.verificationToken.create({
     data: {
-      identifier: email.toLocaleLowerCase(),
-      token,
+      identifier,
+      code,
       expires,
     },
   });
-
-  const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
 
   await sendEmail({
     to: email,
     subject: `${process.env.NEXT_PUBLIC_SITE_NAME} Password Reset Request`,
     html: `
       <h2>Reset Your Password</h2>
-      <p>You are receiving this email because you submitted a password reset request on <a href="${process.env.NEXTAUTH_URL}">${process.env.NEXT_PUBLIC_SITE_NAME}</a>.</p>
-      <p>If this was you, click the link below to reset your password:</p>
-      <a href="${resetUrl}">${resetUrl}</a>
-      <p>If this was not you, you can ignore this email. The link expires in 15 minutes.</p>
+      <p>You are receiving this email because you submitted a password reset request on <b>${process.env.NEXT_PUBLIC_SITE_NAME}</b>.</p>
+      <p>Enter this code to reset your password:</p>
+      <p style="font-size: 1.5em; font-weight: bold; letter-spacing: 0.2em; font-family: monospace;">${code}</p>
+      <p>If this was not you, you can ignore this email. The code expires in 10 minutes.</p>
     `,
   });
 
   return { success: true };
 }
 
-export async function resetPassword(token: string, newPassword: string) {
-  const resetToken = await prisma.verificationToken.findUnique({
-    where: { token },
-  });
+async function validateResetCode(identifier: string, code: string) {
+  const resetToken = await prisma.verificationToken.findFirst({ where: { identifier } });
 
   if (!resetToken || resetToken.expires < new Date()) {
-    throw new Error('Invalid or expired token');
+    throw new Error('Invalid or expired code');
   }
+
+  if (resetToken.attempts >= 5) {
+    await prisma.verificationToken.deleteMany({ where: { identifier } });
+    throw new Error('Too many attempts. Request a new code.');
+  }
+
+  if (resetToken.code !== code) {
+    await prisma.verificationToken.update({
+      where: { identifier_code: { identifier, code: resetToken.code } },
+      data: { attempts: { increment: 1 } },
+    });
+    throw new Error('Invalid or expired code');
+  }
+
+  return resetToken;
+}
+
+export async function verifyResetCode(email: string, code: string) {
+  await validateResetCode(email.toLowerCase(), code);
+  return { valid: true };
+}
+
+export async function resetPassword(email: string, code: string, newPassword: string) {
+  const identifier = email.toLowerCase();
+  await validateResetCode(identifier, code);
 
   const user = await prisma.user.findFirst({
     where: {
       email: {
-        equals: resetToken.identifier,
+        equals: identifier,
         mode: 'insensitive',
       },
     },
   });
 
   if (!user) {
-    await prisma.verificationToken.delete({ where: { token } });
+    await prisma.verificationToken.deleteMany({ where: { identifier } });
     throw new Error('User not found');
   }
 
@@ -121,9 +151,7 @@ export async function resetPassword(token: string, newPassword: string) {
     data: { password: hashedPassword },
   });
 
-  await prisma.verificationToken.delete({
-    where: { token },
-  });
+  await prisma.verificationToken.deleteMany({ where: { identifier } });
 
   return { success: true };
 }
