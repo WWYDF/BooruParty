@@ -2,16 +2,26 @@ import { hash, randomBytes } from 'crypto';
 import { prisma } from '@/core/prisma';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
+import FormData from 'form-data';
+import Mailgun from 'mailgun.js';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_PORT === '465',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+const useMailgun = !!(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN);
+
+const mailgunClient = useMailgun
+  ? new Mailgun(FormData).client({ username: 'api', key: process.env.MAILGUN_API_KEY! })
+  : null;
+
+const transporter = useMailgun
+  ? null
+  : nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_PORT === '465',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
 
 export async function sendEmail({
   to,
@@ -24,15 +34,25 @@ export async function sendEmail({
   text?: string;
   html?: string;
 }) {
-  const mailOptions = {
+  if (mailgunClient) {
+    // mailgun.js's types require statically knowing text/html/template is present;
+    // both are optional here since callers may pass either.
+    return await mailgunClient.messages.create(process.env.MAILGUN_DOMAIN!, {
+      from: process.env.MAILGUN_FROM,
+      to,
+      subject,
+      text,
+      html,
+    } as Parameters<typeof mailgunClient.messages.create>[1]);
+  }
+
+  return await transporter!.sendMail({
     from: process.env.SMTP_FROM,
     to,
     subject,
     text,
     html,
-  };
-
-  return await transporter.sendMail(mailOptions);
+  });
 }
 
 export async function requestPasswordReset(email: string) {
