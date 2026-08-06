@@ -30,7 +30,6 @@ function NumberDisplay({ number, size = 'w-16' }: { number: number, size?: strin
 export default function HomePage() {
   const [post, setPost] = useState<Post | null>(null);
   const [postCount, setPostCount] = useState<number>(0);
-  const [randomPostId, setRandomPostId] = useState<number | null>(null);
   const [input, setInput] = useState('');
   const [user, setUser] = useState<UserInfo | null>(null);
   const router = useRouter();
@@ -96,15 +95,6 @@ export default function HomePage() {
     fetchPostCount();
   }, []);
 
-  useEffect(() => {
-    const fetchPostCount = async () => {
-      const res = await fetch('/api/posts/random');
-      const resJson = await res.json();
-      setRandomPostId(Number(resJson?.post?.id) ?? null);
-    };
-    fetchPostCount();
-  }, []);
-
   const hasPerm = (perm: string) =>
     user?.role?.permissions?.some((p) => p.name === perm);
 
@@ -131,7 +121,7 @@ export default function HomePage() {
       </section>
 
       {/* Post Numbers */}
-      {hasPerm('post_view') && randomPostId && (
+      {hasPerm('post_view') && postCount > 0 && (
         <section>
           <motion.div
             initial={{ opacity: 0 }}
@@ -141,7 +131,7 @@ export default function HomePage() {
           >
             <Suspense>
               <div className='w-full max-w-1/2 flex justify-center'>
-                <NumberDisplay number={randomPostId} size='w-24 md:w-48'/>
+                <NumberDisplay number={postCount} size='w-24 md:w-48'/>
               </div>
             </Suspense>
           </motion.div>
