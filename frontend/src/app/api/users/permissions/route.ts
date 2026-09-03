@@ -2,6 +2,8 @@ import { auth } from "@/core/authServer";
 import { prisma } from "@/core/prisma";
 import { NextResponse } from "next/server";
 
+// may be unused, can probably remove safely later
+
 export async function GET() {
   const session = await auth();
 

@@ -1,3 +1,7 @@
+'use client';
+
+import { getSession } from 'next-auth/react';
+
 // Client Side Component/Page -> This
 export async function checkPermissions(
   perms: string | string[]
@@ -5,14 +9,8 @@ export async function checkPermissions(
   const permissions = Array.isArray(perms) ? perms : [perms];
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/users/permissions`, { cache: "no-store" });
-    if (!res.ok) {
-      return Object.fromEntries(permissions.map((p) => [p, false]));
-    }
-
-    const data = await res.json();
-    const userPerms: string[] = Array.isArray(data.permissions) ? data.permissions : [];
-
+    const session = await getSession();
+    const userPerms = session?.user?.permissions ?? [];
     const hasAdmin = userPerms.includes("administrator");
 
     return Object.fromEntries(
