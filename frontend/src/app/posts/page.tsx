@@ -33,7 +33,7 @@ export default async function PostsPage() {
           <h1 className="text-3xl font-bold mb-2">Unauthorized</h1>
           <p className="text-base text-subtle max-w-md">Guests do not have permission to view posts.</p>
           <p className="text-base text-subtle max-w-md">
-            Please click <a className="text-accent hover:underline" href="/login">here</a> to login.
+            Please click <a className="text-accent hover:underline" href="/auth/login">here</a> to login.
           </p>
         </main>
       );
