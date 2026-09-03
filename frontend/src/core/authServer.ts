@@ -7,20 +7,53 @@ import { prisma } from "@/core/prisma";
 import { updateLastSeen } from '@/components/serverSide/lastSeen';
 import { cache } from 'react';
 
-// How long a JWT can carry stale role/permissions before we re-check the DB.
+// How long a cached role/permissions snapshot is trusted before we re-check the DB.
 // Bounds how long a role change, promotion, or ban takes to actually apply.
 const refreshMs = 60 * 1000;
 
-async function loadAuthSnapshot(userId: string) {
-  return prisma.user.findUnique({
+type AuthSnapshot = {
+  username: string;
+  roleId: number | null;
+  roleIndex: number | null;
+  permissions: string[];
+};
+
+// getServerSession() is called with no req/res from Server Components and Route
+// Handlers ("RSC mode"), where next-auth stubs out cookie writing entirely.
+// So anything the jwt() callback mutates on the token never makes it back into the browser's cookie.
+// That rules out caching freshness inside the JWT itself: every request would just re-decode the original, never-updated cookie.
+// Caching the DB lookup in server memory instead sidesteps that limitation.
+const authSnapshotCache = new Map<string, { data: AuthSnapshot | null; expiresAt: number }>();
+
+async function getAuthSnapshot(userId: string): Promise<AuthSnapshot | null> {
+  const cached = authSnapshotCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+  // console.debug(`Refreshing auth snapshot for ${userId}`);
+
+  const dbUser = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      id: true,
       username: true,
       roleId: true,
       role: { select: { index: true, permissions: { select: { name: true } } } },
     },
   });
+
+  const data: AuthSnapshot | null = dbUser
+    ? {
+        username: dbUser.username,
+        roleId: dbUser.roleId ?? null,
+        roleIndex: dbUser.role?.index ?? null,
+        permissions: dbUser.role?.permissions.map((p) => p.name) ?? [],
+      }
+    : null;
+
+  authSnapshotCache.set(userId, { data, expiresAt: Date.now() + refreshMs });
+
+  if (data) await updateLastSeen(userId).catch(() => {});
+
+  return data;
 }
 
 // cache() dedupes repeated auth() calls within a single request (e.g. several
@@ -78,38 +111,20 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.username = user.name ?? '';
-        token.permsFetchedAt = undefined; // force an immediate DB load below
       }
-
-      const isStale = !token.permsFetchedAt || Date.now() - token.permsFetchedAt > refreshMs;
-      if (!token.id || !isStale) return token;
-
-      const dbUser = await loadAuthSnapshot(token.id);
-      if (!dbUser) {
-        // User was deleted/banned since the last refresh; session callback will drop it.
-        token.invalid = true;
-        return token;
-      }
-
-      token.invalid = false;
-      token.username = dbUser.username;
-      token.roleId = dbUser.roleId ?? null;
-      token.roleIndex = dbUser.role?.index ?? null;
-      token.permissions = dbUser.role?.permissions.map((p) => p.name) ?? [];
-      token.permsFetchedAt = Date.now();
-
-      await updateLastSeen(dbUser.id).catch(() => {});
-
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
-      if (!token?.id || token.invalid) return null as unknown as Session;
+      if (!token?.id) return null as unknown as Session;
+
+      const snapshot = await getAuthSnapshot(token.id);
+      if (!snapshot) return null as unknown as Session; // user was deleted/banned
 
       session.user.id = token.id;
-      session.user.username = token.username;
-      session.user.roleId = token.roleId ?? null;
-      session.user.roleIndex = token.roleIndex ?? null;
-      session.user.permissions = token.permissions ?? [];
+      session.user.username = snapshot.username;
+      session.user.roleId = snapshot.roleId;
+      session.user.roleIndex = snapshot.roleIndex;
+      session.user.permissions = snapshot.permissions;
 
       return session;
     },
