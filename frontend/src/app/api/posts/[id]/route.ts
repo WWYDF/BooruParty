@@ -35,69 +35,74 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
 
-  const post = await prisma.posts.findUnique({
-    where: { id: postId },
-    include: {
-      tags: {
-        orderBy: { name: 'asc' },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          category: true,
-          aliases: {
-            select: {
-              id: true,
-              alias: true
-            }
-          },
-          _count: {
-            select: {
-              posts: true
-            }
-          }
-        }
-      },
-      specialPosts: true,
-      relatedFrom: {
-        include: {
-          to: {
-            select: {
-              id: true,
-              previewPath: true
+
+  const post = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SET LOCAL max_parallel_workers_per_gather = 0`;
+
+    return tx.posts.findUnique({
+      where: { id: postId },
+      include: {
+        tags: {
+          orderBy: { name: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            category: true,
+            aliases: {
+              select: {
+                id: true,
+                alias: true
+              }
+            },
+            _count: {
+              select: {
+                posts: true
+              }
             }
           }
-        }
-      },
-      relatedTo: {
-        include: {
-          from: {
-            select: {
-              id: true,
-              previewPath: true
+        },
+        specialPosts: true,
+        relatedFrom: {
+          include: {
+            to: {
+              select: {
+                id: true,
+                previewPath: true
+              }
             }
           }
-        }
-      },
-      pools: {
-        select: {
-          poolId: true,
-          pool: {
-            select: {
-              id: true,
-              name: true,
-              safety: true,
-              _count: {
-                select: { items: true }
-              },
-              items: {
-                orderBy: { index: "asc" },
-                select: {
-                  index: true,
-                  post: {
-                    select: {
-                      id: true,
-                      previewPath: true,
+        },
+        relatedTo: {
+          include: {
+            from: {
+              select: {
+                id: true,
+                previewPath: true
+              }
+            }
+          }
+        },
+        pools: {
+          select: {
+            poolId: true,
+            pool: {
+              select: {
+                id: true,
+                name: true,
+                safety: true,
+                _count: {
+                  select: { items: true }
+                },
+                items: {
+                  orderBy: { index: "asc" },
+                  select: {
+                    index: true,
+                    post: {
+                      select: {
+                        id: true,
+                        previewPath: true,
+                      },
                     },
                   },
                 },
@@ -105,23 +110,23 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
             },
           },
         },
-      },
-      uploadedBy: {
-        select: {
-          id: true,
-          username: true,
-          role: true,
-          avatar: true
-        }
-      },
-      _count: {
-        select: {
-          favoritedBy: true,
-          tags: true,
-          boosts: true
+        uploadedBy: {
+          select: {
+            id: true,
+            username: true,
+            role: true,
+            avatar: true
+          }
+        },
+        _count: {
+          select: {
+            favoritedBy: true,
+            tags: true,
+            boosts: true
+          }
         }
       }
-    }
+    });
   });
 
   if (!post) {
