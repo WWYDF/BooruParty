@@ -89,6 +89,10 @@ export async function PATCH(req: Request, context: { params: Promise<{ name: str
 
     const tagId = tag.id;
 
+    if (implications.includes(tagId)) {
+      return NextResponse.json({ error: "A tag cannot imply itself." }, { status: 400 });
+    }
+
     // 1. Update the tag itself
     await prisma.tags.update({
       where: { id: tagId },

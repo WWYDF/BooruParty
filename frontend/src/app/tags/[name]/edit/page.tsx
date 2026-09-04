@@ -123,22 +123,27 @@ export default function TagEditPage() {
     }
   };
 
-  const handleTagSelect = (tag: Tag, type: "implication" | "suggestion") => {
+  const handleTagSelect = (selected: Tag, type: "implication" | "suggestion") => {
+    if (type === "implication" && tag && selected.id === tag.id) {
+      toast("A tag cannot imply itself.", "error");
+      return;
+    }
+
     const [list, setList, pendingNames, setPending] =
       type === "implication"
         ? [implications, setImplications, pendingImplicationNames, setPendingImplicationNames]
         : [suggestions, setSuggestions, pendingSuggestionNames, setPendingSuggestionNames];
-  
-    const lowerName = tag.name.toLowerCase();
-  
+
+    const lowerName = selected.name.toLowerCase();
+
     const alreadyInList = list.some(
-      (t) => t.id === tag.id || t.name.toLowerCase() === lowerName
+      (t) => t.id === selected.id || t.name.toLowerCase() === lowerName
     );
     if (alreadyInList) return;
-  
-    setList((prev) => [tag, ...prev]);
-  
-    if (tag.id < 0 && !pendingNames.includes(lowerName)) {
+
+    setList((prev) => [selected, ...prev]);
+
+    if (selected.id < 0 && !pendingNames.includes(lowerName)) {
       setPending([...pendingNames, lowerName]);
     }
   };
@@ -204,7 +209,17 @@ export default function TagEditPage() {
           <label className="text-zinc-600 text-sm">Implications</label>
           <TagSelector
             onSelect={(tag) => handleTagSelect(tag, "implication")}
-            disabledTags={implications}
+            disabledTags={
+              tag
+                ? [
+                    ...implications,
+                    {
+                      ...tag,
+                      aliases: names.slice(1).map((alias, i) => ({ id: -1 - i, alias })),
+                    },
+                  ]
+                : implications
+            }
             addPendingTagName={(name) => {
               const normalized = name.toLowerCase();
               if (pendingImplicationNames.includes(normalized)) return;
