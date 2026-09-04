@@ -48,6 +48,13 @@ enum AutoTaggerMode {
   SELECTIVE
 }
 
+// One-off records marking preflight checks (see checks.ts) as already resolved,
+// so we don't need to re-scan the database for them on every boot.
+model SystemFlags {
+  key         String   @id
+  resolvedAt  DateTime @default(now())
+}
+
 model SiteSettings {
   id            Int       @id @default(1)
   setupComplete Boolean   @default(false)

@@ -111,6 +111,25 @@ export async function systemCheckup(prisma?: PrismaClient): Promise<TestStatus[]
       })
     };
 
+    // Once resolved (or confirmed clean), skip re-scanning tags on every boot
+    const selfImplyingFlag = await prisma.systemFlags.findUnique({
+      where: { key: 'selfImplyingTags' },
+    });
+
+    if (!selfImplyingFlag) {
+      const selfImplying = await findSelfImplyingTags(prisma);
+
+      if (selfImplying.length > 0) {
+        returnedTests.push({
+          test: 'selfImplyingTags',
+          passed: false,
+          route: 'POST /api/system/checks/database?test=selfImplyingTags'
+        });
+      } else {
+        await prisma.systemFlags.create({ data: { key: 'selfImplyingTags' } });
+      }
+    }
+
     return returnedTests;
   } catch (error) {
     return null;
@@ -152,6 +171,10 @@ async function main() {
 
   if (checks.some(c => c.test === "missingTypes")) {
     await fixMissingTypes(prisma);
+  }
+
+  if (checks.some(c => c.test === "selfImplyingTags")) {
+    await fixSelfImplyingTags(prisma);
   }
 
   console.log("[Checks] Checks finished with no errors. Starting Next Server...");
@@ -492,6 +515,50 @@ async function fixMissingTypes(prisma: PrismaClient) {
 
   } catch (error) {
     console.error(`[Checks] Something went wrong while fixing post types!`, error);
+  }
+}
+
+
+////////////////////////////////////////////////////////////////////
+//                                                                //
+// TEST: Fix "Self-Implying Tags"!                                //
+// Removes tags that were (incorrectly) set to imply themselves   //
+//                                                                //
+////////////////////////////////////////////////////////////////////
+
+async function findSelfImplyingTags(prisma: PrismaClient) {
+  const tagsWithImplications = await prisma.tags.findMany({
+    where: { implications: { some: {} } },
+    select: { id: true, implications: { select: { id: true } } },
+  });
+
+  return tagsWithImplications.filter((t) => t.implications.some((i) => i.id === t.id));
+}
+
+async function fixSelfImplyingTags(prisma: PrismaClient) {
+  const before = performance.now();
+  try {
+    const offenders = await findSelfImplyingTags(prisma);
+
+    for (const tag of offenders) {
+      await prisma.tags.update({
+        where: { id: tag.id },
+        data: { implications: { disconnect: { id: tag.id } } },
+      });
+    }
+
+    // Remember this is resolved so future boots can skip the scan entirely
+    await prisma.systemFlags.upsert({
+      where: { key: 'selfImplyingTags' },
+      update: {},
+      create: { key: 'selfImplyingTags' },
+    });
+
+    const after = performance.now();
+    console.log(`[Checks] Removed self-implication from ${offenders.length} tag(s). (${(after - before).toFixed(2)}ms)`);
+
+  } catch (error) {
+    console.error(`[Checks] Something went wrong while fixing self-implying tags!`, error);
   }
 }
 
