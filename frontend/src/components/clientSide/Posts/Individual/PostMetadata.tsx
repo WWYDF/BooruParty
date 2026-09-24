@@ -282,10 +282,10 @@ export default function PostMetadata(
               </span>
             </p>
 
-            {post.fileExt && (
+            {post.fileExt && post.type && (
               <p className="flex items-center gap-1 text-xs text-subtle">
                 <span className="text-white font-medium w-[80px]">File Type</span>
-                {post.type.charAt(0).toUpperCase() + post.type.slice(1)} ({post.fileExt.toLocaleUpperCase()})
+                {post.type?.charAt(0).toUpperCase() + post.type?.slice(1)} ({post.fileExt.toLocaleUpperCase()})
               </p>
             )}
 
