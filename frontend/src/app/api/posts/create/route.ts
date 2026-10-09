@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const canCreateDupes = perms['post_create_dupes'];
   const canAutoTag = perms['post_autotag'];
 
-  if (!session || !canCreatePosts) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
+  if (!session || !canCreatePosts || !session?.user?.id) { return NextResponse.json({ error: "You are unauthorized to use this endpoint." }, { status: 403 }); }
 
   const formData = await request.formData();
   const file = formData.get('file') as File;
@@ -63,9 +63,14 @@ export async function POST(request: NextRequest) {
   let addedTagsArray: string[] = [];
 
   const anonymous = formData.get('anonymous') === 'true';
-  const safety = formData.get('safety') as 'SAFE' | 'SKETCHY' | 'UNSAFE';
   const rawTags = formData.get('tags') as string | null;
   const rawSource = formData.get("source") as string | string[] | null;
+
+  const rawSafety = formData.get('safety');
+  if (rawSafety !== 'SAFE' && rawSafety !== 'SKETCHY' && rawSafety !== 'UNSAFE') {
+    return NextResponse.json({ error: "Invalid or missing safety rating" }, { status: 400 });
+  }
+  const safety = rawSafety;
 
   const sources: string[] = Array.isArray(rawSource)
     ? rawSource
@@ -230,7 +235,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Update post with received stuff from Fastify / Tags
-  await prisma.posts.update({
+  const newPost = await prisma.posts.update({
     where: { id: postId },
     data: {
       type: fastifyResult.type,
@@ -249,5 +254,9 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  return NextResponse.json({ success: true, postId, fileName: fastifyResult.fileName });
+  return NextResponse.json({ success: true, postId, fileName: fastifyResult.fileName, post: {
+    ...newPost,
+    previewPath: `${process.env.NEXT_PUBLIC_FASTIFY}${newPost.previewPath}`,
+    originalPath: `${process.env.NEXT_PUBLIC_FASTIFY}${newPost.originalPath}`
+  }});
 }
