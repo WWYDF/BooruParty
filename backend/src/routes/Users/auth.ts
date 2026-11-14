@@ -42,10 +42,6 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
 
     const passHash = await bcrypt.hash(body.password, 12);
 
-    // Check if a username with different casing exists first
-    const exists = await prisma.user.findFirst({ where: { username: { equals: username, mode: 'insensitive' } } });
-    if (exists) { return reply.status(409).send({ error: 'Username is already taken' }) };
-
     try {
       const user = await prisma.user.create({
         data: {
@@ -96,7 +92,7 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
     const valid = await bcrypt.compare(body.password, user?.passHash ?? DUMMY_HASH);
 
     if (!user || !valid) {
-      return reply.status(401).send({ error: 'Invalid username or password' });
+      return reply.status(401).send({ error: 'Invalid email or password' });
     }
 
     // User info is valid

@@ -69,13 +69,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
 
     // Build the update from only the fields that were sent
     const data: Prisma.UserUpdateInput = {};
-    if (body.username !== undefined) {
-      // Check if a username with different casing exists first
-      const username = body.username.trim();
-      const exists = await prisma.user.findFirst({ where: { username: { equals: username, mode: 'insensitive' } } });
-      if (exists) { return reply.status(409).send({ error: 'Username is already taken' }) };
-      data.username = username;
-    };
+    if (body.username !== undefined) data.username = body.username.trim();
     if (body.email !== undefined) data.email = body.email.trim().toLowerCase();
     if (body.private !== undefined) data.private = body.private;
     if (body.password !== undefined) {
