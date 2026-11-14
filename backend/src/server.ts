@@ -97,12 +97,11 @@ async function buildServer() {
   await fastify.register(routes, { prefix: '/api' });
   await fastify.register(cronPlugin);
 
+  // Autorun on Startup
   await checkSetup(); // make sure server has been setup
   await loadRolePermissions(); // load role permissions into memory
-
-  // Autorun on Startup
+  
   console.log(' ');
-
   return fastify;
 }
 
