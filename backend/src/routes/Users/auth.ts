@@ -6,8 +6,10 @@ import { appLogger } from '@/core/plugins/logger';
 import { Prisma } from '../../../prisma/client';
 
 const logger = appLogger('Auth');
+const DUMMY_HASH = '$2b$12$ekdKhFYGe/WzS9ICFt7imOGAHL56bdhKH8jAVySfiU.20YrrUBgWa';
 
 const authUsers: FastifyPluginAsync = async (fastify) => {
+  // User Registration
   fastify.post('/register', { schema: {
     body: {
       type: 'object',
@@ -35,7 +37,7 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
     if (!defaultRole) { return reply.status(500).send({ error: "No default role configured" }) };
 
     const passHash = await bcrypt.hash(body.password, 12);
-    
+
     try {
       const user = await prisma.user.create({
         data: {
@@ -58,6 +60,43 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
       logger.error('Something went wrong while creating a new user!', e);
       return reply.status(500).send({ error: `Something went fatally wrong, contact server administrator` });
     }
+  });
+
+  // User Login
+  fastify.post('/login', { schema: {
+    body: {
+      type: 'object',
+      required: ['email', 'password'],
+      additionalProperties: false,
+      properties: {
+        email: { type: 'string', maxLength: 254 },
+        password: { type: 'string', maxLength: 1024 },
+      },
+    },
+  }}, async (req, reply) => {
+
+    const body = req.body as {
+      email: string,
+      password: string,
+    }
+
+    const email = body.email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email }, include: { role: true } });
+    const valid = await bcrypt.compare(body.password, user?.passHash ?? DUMMY_HASH);
+
+    if (!user || !valid) {
+      return reply.status(401).send({ error: 'Invalid username or password' });
+    }
+
+    // User info is valid
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
+
+    const { passHash, ...safeUser } = user;
+    await createSession(req, reply, { sub: user.id, username: user.username, roleId: user.roleId });
+    return reply.status(200).send(safeUser);
   });
 };
 
