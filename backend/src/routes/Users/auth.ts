@@ -4,6 +4,7 @@ import { clearSessionCookies, createSession, hashToken } from '@/core/utilities/
 import bcrypt from 'bcrypt';
 import { appLogger } from '@/core/plugins/logger';
 import { Prisma } from '../../../prisma/client';
+import { emailSchema, passwordSchema, usernameSchema } from '@/core/objects/fastifySchemas';
 
 const logger = appLogger('Auth');
 const DUMMY_HASH = '$2b$12$ekdKhFYGe/WzS9ICFt7imOGAHL56bdhKH8jAVySfiU.20YrrUBgWa';
@@ -17,9 +18,9 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
         required: ['username', 'email', 'password'],
         additionalProperties: false,
         properties: {
-          username: { type: 'string', minLength: 3, maxLength: 32, pattern: '^[a-zA-Z0-9_.-]+$' },
-          email: { type: 'string', format: 'email', maxLength: 254 },
-          password: { type: 'string', minLength: 8, maxLength: 72 },
+          username: usernameSchema,
+          email: emailSchema,
+          password: passwordSchema,
         },
       },
     },
@@ -32,7 +33,7 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
       password: string,
     }
 
-    const username = body.username.toLowerCase();
+    const username = body.username.trim();
     const email = body.email.trim().toLowerCase();
     if (Buffer.byteLength(body.password) > 72) { return reply.status(400).send({ error: 'Password is too long' }); };
 
@@ -40,6 +41,10 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
     if (!defaultRole) { return reply.status(500).send({ error: "No default role configured" }) };
 
     const passHash = await bcrypt.hash(body.password, 12);
+
+    // Check if a username with different casing exists first
+    const exists = await prisma.user.findFirst({ where: { username: { equals: username, mode: 'insensitive' } } });
+    if (exists) { return reply.status(409).send({ error: 'Username is already taken' }) };
 
     try {
       const user = await prisma.user.create({
