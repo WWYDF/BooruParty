@@ -4,6 +4,7 @@ import { requirePermission } from "@/core/utilities/permissionCache";
 import { getImpliedTags, normalizeTagName } from "@/core/utilities/tags";
 import { FastifyPluginAsync } from "fastify";
 import { Prisma } from "../../../prisma/client";
+import { HttpError } from '@/core/utilities/errors';
 
 const logger = appLogger('Tags');
 
@@ -204,6 +205,123 @@ const tags: FastifyPluginAsync = async (fastify) => {
         if (e.code === 'P2003') return reply.status(400).send({ error: 'Incorrect body', hint: 'Category does not exist' });
       }
       logger.error('Failed to create tag', e);
+      return reply.status(500).send({ error: 'Something went wrong' });
+    }
+  });
+
+  
+  // Edit an existing tag. Array fields replace the whole list.
+  fastify.patch('/:name', {
+    onRequest: [fastify.authenticate, requirePermission('tags.edit')],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['name'],
+        properties: { name: tagNameInputSchema },
+      },
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        minProperties: 1,
+        properties: {
+          name: tagNameInputSchema,
+          categoryId: { type: 'integer', minimum: 1 },
+          description: { type: ['string', 'null'], maxLength: 4096 },
+          aliases: { type: 'array', maxItems: 50, items: tagNameInputSchema },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { name: input } = req.params as { name: string };
+    const body = req.body as {
+      name?: string,
+      categoryId?: number,
+      description?: string | null,
+      aliases?: string[],
+    };
+
+    const current = normalizeTagName(input);
+    if (!current.ok) return reply.status(404).send({ error: 'Tag not found' });
+
+    // Validate every incoming name before touching the dtabase
+    let newName: string | undefined;
+    if (body.name !== undefined) {
+      const n = normalizeTagName(body.name);
+      if (!n.ok) return reply.status(400).send({ error: 'Invalid tag name', hint: n.reason });
+      newName = n.name;
+    }
+
+    let aliases: string[] | undefined;
+    if (body.aliases !== undefined) {
+      const invalid: string[] = [];
+      aliases = [];
+      for (const a of body.aliases) {
+        const n = normalizeTagName(a);
+        if (n.ok) aliases.push(n.name);
+        else invalid.push(`"${a}": ${n.reason}`);
+      }
+      if (invalid.length) return reply.status(400).send({ error: 'Invalid aliases', hint: invalid.join(" ") });
+    }
+
+    // Apply changes to database table
+    try {
+      const tagId = await prisma.$transaction(async (tx) => {
+        const row = await tx.tagName.findUnique({
+          where: { name: current.name },
+          select: { tag: { select: { id: true, name: true, names: { select: { name: true } } } } },
+        });
+        if (!row) throw new HttpError(404, { error: 'Tag not found' });
+        const tag = row.tag;
+
+        // Names: sync TagName rows to exactly { primary, ...aliases }
+        if (newName !== undefined || aliases !== undefined) {
+          const primary = newName ?? tag.name;
+          const existing = new Set(tag.names.map((n) => n.name));
+          const keptAliases = aliases ?? [...existing].filter((n) => n !== tag.name);
+          const desired = new Set([primary, ...keptAliases]);
+
+          const toDelete = [...existing].filter((n) => !desired.has(n));
+          const toCreate = [...desired].filter((n) => !existing.has(n));
+
+          if (toCreate.length) {
+            const taken = await tx.tagName.findMany({
+              where: { name: { in: toCreate } },
+              select: { name: true, tag: { select: { name: true } } },
+            });
+            if (taken.length) {
+              throw new HttpError(409, {
+                error: 'Name already in use',
+                hint: taken.map((t) => `"${t.name}" belongs to "${t.tag.name}"`).join(', '),
+              });
+            }
+          }
+
+          await tx.tagName.deleteMany({ where: { tagId: tag.id, name: { in: toDelete } } });
+          await tx.tagName.createMany({ data: toCreate.map((name) => ({ name, tagId: tag.id })) });
+        }
+
+        // Scalar fields
+        const data: Prisma.TagUncheckedUpdateInput = {};
+        if (newName !== undefined) data.name = newName;
+        if (body.categoryId !== undefined) data.categoryId = body.categoryId;
+        if (body.description !== undefined) data.description = body.description?.trim() || null;
+        if (Object.keys(data).length) await tx.tag.update({ where: { id: tag.id }, data });
+
+        return tag.id;
+      });
+
+      const updated = await prisma.tag.findUnique({ where: { id: tagId }, include: tagDetailInclude });
+      return reply.status(200).send({
+        ...shapeTagDetail(updated!),
+        allImplications: await getImpliedTags([tagId]),
+      });
+    } catch (e) {
+      if (e instanceof HttpError) return reply.status(e.status).send(e.body);
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        if (e.code === 'P2002') return reply.status(409).send({ error: 'Name already in use' });
+        if (e.code === 'P2003') return reply.status(400).send({ error: 'Incorrect body', hint: 'Category does not exist' });
+      }
+      logger.error('Failed to update tag', e);
       return reply.status(500).send({ error: 'Something went wrong' });
     }
   });
