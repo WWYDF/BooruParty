@@ -1,7 +1,7 @@
 // This is a small setup script that runs on first launch on new versions
 
 import { prisma } from '../core/plugins/prisma'
-import { PERMISSIONS } from './objects/permissions';
+import { PermissionName, PERMISSIONS } from './objects/permissions';
 import { appLogger } from './plugins/logger';
 import { CURRENT_VERSION } from './version';
 
@@ -21,16 +21,16 @@ async function runSetup() {
   logger.warn('[!] Running through setup.. Please do not cancel this process.');
 
   // Create default roles
-  await prisma.role.createMany({
-    data: [
-      { name: 'Default', index: 4, color: '#ffffff', isDefault: true },
-      { name: 'BOT', index: 3, color: '#f1cb07' },
-      { name: 'VIP', index: 2, color: '#07f2ee' },
-      { name: 'Moderator', index: 1, color: '#6d9ffd' },
-      { name: 'Admin', index: 0, color: '#fa5043' },
-    ],
-    skipDuplicates: true,
-  })
+  for (const { perms, ...role } of default_roles) {
+    await prisma.role.upsert({
+      where: { name: role.name },
+      update: {},
+      create: {
+        ...role,
+        permissions: { connect: perms.map((name) => ({ name })) },
+      },
+    });
+  }
 
   // Assign administrator permission to ADMIN role.
   await prisma.role.update({
@@ -57,3 +57,61 @@ async function syncPermissions() {
     skipDuplicates: true,
   });
 }
+
+
+const default_perms: PermissionName[] = [
+  "posts.view",
+  "posts.create",
+  "posts.edit.own",
+  "posts.delete.own",
+  "posts.vote",
+  "posts.favorite",
+  "comment.create",
+  "comment.embed.post",
+  "comment.edit.own",
+  "comment.delete.own",
+  "comment.vote",
+  "pool.vote",
+  "profile.create",
+  "profile.view",
+  "profile.edit.avatar",
+  "upload.type.image",
+  "upload.type.animated",
+]
+
+const vip_perms: PermissionName[] = [
+  ...default_perms,
+  "posts.create.dupes",
+  "posts.edit.others",
+  "posts.autotag",
+  "comment.embed.url",
+  "upload.type.video",
+  "tags.create",
+  "tags.edit",
+  "profile.edit.background"
+];
+
+const mod_perms: PermissionName[] = [
+  ...vip_perms,
+  "posts.delete.others",
+  "posts.feature",
+  "comment.edit.others",
+  "comment.delete.others",
+  "pool.create",
+  "pool.manage",
+  "pool.delete",
+  "profile.archive.others",
+  "limit.upload.ignore",
+  "tags.delete",
+  "dashboard.view",
+  "dashboard.analytics",
+  "dashboard.audit.log"
+];
+
+const default_roles = [
+  { name: 'Default',   index: 4, color: '#ffffff', isDefault: true, perms: default_perms },
+  { name: 'BOT',       index: 3, color: '#f1cb07', perms: [...default_perms, 'posts.autotag'] as PermissionName[] },
+  { name: 'VIP',       index: 2, color: '#07f2ee', perms: vip_perms },
+  { name: 'Moderator', index: 1, color: '#6d9ffd', perms: mod_perms },
+  { name: 'Admin',     index: 0, color: '#fa5043', perms: ['administrator'] as PermissionName[] },
+];
