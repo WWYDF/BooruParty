@@ -115,3 +115,42 @@ model Post {
   updatedAt               DateTime                  @default(now()) // editing a post manually updates this
   createdAt               DateTime                  @default(now())
 }
+
+
+// -------------------------------------------------------------------------------------------------------
+//                                          TAGS
+// -------------------------------------------------------------------------------------------------------
+
+model TagCategory {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @unique @db.Citext
+  color                   String                    // hex, e.g. "#ffffff"
+  index                   Int                       @default(0)
+  isDefault               Boolean                   @default(false)
+  tags                    Tag[]
+
+  updatedAt               DateTime                  @updatedAt
+  createdAt               DateTime                  @default(now())
+}
+
+model Tag {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @unique @db.Citext
+  names                   TagName[]
+  description             String?
+  categoryId              Int
+  category                TagCategory               @relation(fields: [categoryId], references: [id]) // category deletion handles tag migration
+
+  postCount               Int                       @default(0)
+
+  updatedAt               DateTime                  @updatedAt
+  createdAt               DateTime                  @default(now())
+}
+
+model TagName {
+  name                    String                    @id @db.Citext
+  tagId                   Int
+  tag                     Tag                       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@index([tagId])
+}
