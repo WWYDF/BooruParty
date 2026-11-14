@@ -41,11 +41,11 @@ model User {
   passHash                String
   sessions                Session[]
   preferences             Preferences?
-
+  private                 Boolean                   @default(false)
   roleId                  String
   role                    Role                      @relation(fields: [roleId], references: [id])
 
-  private                 Boolean                   @default(false)
+  posts                   Post[]
 
   lastSeen                String?                   // pair with updatedAt
   updatedAt               DateTime                  @updatedAt
@@ -69,8 +69,6 @@ model Permission {
   createdAt               DateTime                  @default(now())
 }
 
-// -------------------------------------------------------------------------------------------------------
-
 model Preferences {
   userId                  String                    @id
   user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -80,4 +78,39 @@ model Preferences {
   // blacklistedTags
   // favoriteTags
   profileBackground       Int?                      // Post ID
+}
+
+// -------------------------------------------------------------------------------------------------------
+//                                          POSTS
+// -------------------------------------------------------------------------------------------------------
+
+model Post {
+  id                      Int                       @id @default(autoincrement())
+  uploaderId              String
+  uploader                User                      @relation(fields: [uploaderId], references: [id]) // Account deletion handles this itself
+  type                    FileType
+  originalPath            String
+  previewPath             String?                   // If null, preview was deemed larger than original
+  safety                  Safety
+  sources                 String[]
+  notes                   String?
+
+  aspectRatio             Float
+  fileSize                Int                       // File Size of originalPath's file in bytes
+  previewSize             Int?                      // File Size of previewPath's file in bytes
+  duration                Float?                    // Duration in seconds, null if TYPE is not VIDEO
+  hasAudio                Boolean?                  @default(false) // Only true if TYPE is VIDEO and has an audio track
+
+  pHash                   String
+  dupeBypass              Boolean                   @default(false)
+
+  // Relationals
+  score                   Int                       @default(0) // Votes API calculates this on change
+  // votes
+  // comments
+  // boosts
+  // etc.
+
+  updatedAt               DateTime                  @default(now()) // editing a post manually updates this
+  createdAt               DateTime                  @default(now())
 }

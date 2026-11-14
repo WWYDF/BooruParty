@@ -5,3 +5,9 @@ enum Safety {
   QUESTIONABLE
   EXPLICIT
 }
+
+enum FileType {
+  IMAGE      // png, jpg, webp, etc.
+  ANIMATED   // gif, animated png, animated webp, etc.
+  VIDEO      // mp4, mkv, webm, mov, etc.
+}
