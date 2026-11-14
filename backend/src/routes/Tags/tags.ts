@@ -1,7 +1,7 @@
 import { appLogger } from "@/core/plugins/logger";
 import { prisma } from "@/core/plugins/prisma";
 import { requirePermission } from "@/core/utilities/permissionCache";
-import { normalizeTagName } from "@/core/utilities/tags";
+import { getImpliedTags, normalizeTagName } from "@/core/utilities/tags";
 import { FastifyPluginAsync } from "fastify";
 import { Prisma } from "../../../prisma/client";
 
@@ -11,7 +11,50 @@ const logger = appLogger('Tags');
 const tagNameInputSchema = { type: 'string', minLength: 1, maxLength: 128 } as const;
 const tagDescriptionSchema = { type: 'string', maxLength: 4096 } as const;
 
+const relatedTagSelect = { id: true, name: true, categoryId: true } as const;
+
+const tagDetailInclude = {
+  category: true,
+  names: { select: { name: true } },
+  implications: { select: { implied: { select: relatedTagSelect } } },
+  suggestions: { select: { suggested: { select: relatedTagSelect } } },
+} satisfies Prisma.TagInclude;
+
 const tags: FastifyPluginAsync = async (fastify) => {
+
+  // Get a specific tag's info
+  fastify.get('/:name', {
+    schema: {
+      params: {
+        type: 'object',
+        required: ['name'],
+        properties: { name: tagNameInputSchema },
+      },
+    },
+  }, async (req, reply) => {
+    const { name: input } = req.params as { name: string };
+
+    const normalized = normalizeTagName(input);
+    if (!normalized.ok) return reply.status(404).send({ error: 'Tag not found' });
+
+    const row = await prisma.tagName.findUnique({
+      where: { name: normalized.name },
+      select: { tag: { include: tagDetailInclude } },
+    });
+    if (!row) return reply.status(404).send({ error: 'Tag not found' });
+
+    const { implications, suggestions, names, ...tag } = row.tag;
+
+    return reply.status(200).send({
+      ...tag,
+      aliases: names.map((n) => n.name).filter((n) => n !== tag.name),
+      implications: implications.map((i) => i.implied),
+      suggestions: suggestions.map((s) => s.suggested),
+      allImplications: await getImpliedTags([tag.id]),
+      matchedAlias: normalized.name !== tag.name ? normalized.name : null,
+    });
+  });
+
 
   // Create a tag
   fastify.post('/', {

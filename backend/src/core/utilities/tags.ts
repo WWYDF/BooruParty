@@ -94,10 +94,12 @@ export async function resolveTagNames(inputs: string[], db: Db = prisma): Promis
 // ----------------------------------------------
 // Everything the given tags imply, following chains (pikachu -> pokemon -> nintendo).
 // The input tags themselves are excluded from the result.
-export async function getImpliedTags(tagIds: number[], db: Db = prisma): Promise<ResolvedTag[]> {
+export type ImpliedTag = ResolvedTag & { categoryId: number };
+
+export async function getImpliedTags(tagIds: number[], db: Db = prisma): Promise<ImpliedTag[]> {
   if (tagIds.length === 0) return [];
 
-  return db.$queryRaw<ResolvedTag[]>`
+  return db.$queryRaw<ImpliedTag[]>`
     WITH RECURSIVE implied AS (
       SELECT ti."impliedId" AS id
       FROM "TagImplication" ti
@@ -109,7 +111,7 @@ export async function getImpliedTags(tagIds: number[], db: Db = prisma): Promise
       FROM "TagImplication" ti
       JOIN implied i ON ti."tagId" = i.id
     )
-    SELECT t.id, t.name
+    SELECT t.id, t.name, t."categoryId"
     FROM implied
     JOIN "Tag" t ON t.id = implied.id
     WHERE NOT (t.id = ANY(${tagIds}::int[]))
