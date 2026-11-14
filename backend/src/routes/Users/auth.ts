@@ -10,18 +10,21 @@ const DUMMY_HASH = '$2b$12$ekdKhFYGe/WzS9ICFt7imOGAHL56bdhKH8jAVySfiU.20YrrUBgWa
 
 const authUsers: FastifyPluginAsync = async (fastify) => {
   // User Registration
-  fastify.post('/register', { schema: {
-    body: {
-      type: 'object',
-      required: ['username', 'email', 'password'],
-      additionalProperties: false,
-      properties: {
-        username: { type: 'string', minLength: 3, maxLength: 32, pattern: '^[a-zA-Z0-9_.-]+$' },
-        email: { type: 'string', format: 'email', maxLength: 254 },
-        password: { type: 'string', minLength: 8, maxLength: 72 },
+  fastify.post('/register', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['username', 'email', 'password'],
+        additionalProperties: false,
+        properties: {
+          username: { type: 'string', minLength: 3, maxLength: 32, pattern: '^[a-zA-Z0-9_.-]+$' },
+          email: { type: 'string', format: 'email', maxLength: 254 },
+          password: { type: 'string', minLength: 8, maxLength: 72 },
+        },
       },
     },
-  }}, async (req, reply) => {
+    config: { rateLimit: { max: 3, timeWindow: '1 hour' } },
+  }, async (req, reply) => {
 
     const body = req.body as {
       username: string,
@@ -63,17 +66,20 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
   });
 
   // User Login
-  fastify.post('/login', { schema: {
-    body: {
-      type: 'object',
-      required: ['email', 'password'],
-      additionalProperties: false,
-      properties: {
-        email: { type: 'string', maxLength: 254 },
-        password: { type: 'string', maxLength: 1024 },
+  fastify.post('/login', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['email', 'password'],
+        additionalProperties: false,
+        properties: {
+          email: { type: 'string', maxLength: 254 },
+          password: { type: 'string', maxLength: 1024 },
+        },
       },
     },
-  }}, async (req, reply) => {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
 
     const body = req.body as {
       email: string,
@@ -101,7 +107,7 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
 
 
   // Refresh Token
-  fastify.post('/refresh', async (req, reply) => {
+  fastify.post('/refresh', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } }}, async (req, reply) => {
     const token = req.cookies.bpRFT;
     if (!token) { return reply.status(401).send({ error: 'Unauthorized', hint: 'You must log in first' }) };
 

@@ -7,12 +7,14 @@ import path from 'path';
 import routeLogger, { appLogger } from './core/plugins/logger';
 import chalk from 'chalk';
 import { LEGIBLE_VERSION } from './core/version';
+import rateLimit from '@fastify/rate-limit';
 import cronPlugin from './core/plugins/cron';
 import routes from './routes';
 import auth from './core/plugins/auth';
 import prismaPlugin from './core/plugins/prisma';
 import { checkSetup } from './core/setup';
 import { loadRolePermissions } from './core/utilities/permissionCache';
+
 
 const logger = appLogger('Server');
 
@@ -32,6 +34,16 @@ const DIRECTORIES = [
 async function buildServer() {
   console.clear();
   const PORT = Number(process.env.API_PORT || 3070);
+
+  const trustedProxies = [
+    'loopback',
+    ...(process.env.TRUSTED_PROXIES ?? '')
+      .split(',')
+      .map((ip) => ip.trim())
+      .filter(Boolean),
+  ];
+
+
   const fastify = Fastify({
       logger: {
         level: 'warn', // Only logs 'warn', 'error', 'fatal'
@@ -43,7 +55,7 @@ async function buildServer() {
           },
         },
       },
-      trustProxy: true
+      trustProxy: trustedProxies,
     });
 
   await fastify.register(multipart, {
@@ -51,6 +63,9 @@ async function buildServer() {
       fileSize: 5 * 1024 * 1024, // 5 MB
     },
   });
+
+  await fastify.register(rateLimit, { global: false });
+  logger.info('[+] Rate Limiter loaded successfully!');
 
   await fastify.register(routeLogger);
   logger.info('[+] Logger loaded successfully!');
