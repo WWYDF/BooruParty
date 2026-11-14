@@ -8,6 +8,7 @@ import { pipeline } from 'node:stream/promises';
 import fs from "fs";
 import { PermissionName } from "@/core/objects/permissions";
 import { computePHash, findDuplicate } from "@/components/uploads/dedupe";
+import { generateThumbnails } from "@/components/uploads/thumbnails";
 
 const logger = appLogger('Posts/Create');
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
@@ -51,16 +52,20 @@ const createPost: FastifyPluginAsync = async (fastify) => {
         }
       }
 
-      // 5. Extract remaining parameters
-      
+      // 5. Thumbnails
+      await generateThumbnails(tempPath, detected.type, fileKey);
+
+
+      // ??. Extract remaining parameters
 
       return reply.status(200).send({ fileKey, ...detected, size: (await fs.promises.stat(tempPath)).size, pHash });
     } catch (e) {
       logger.error('Upload failed', e);
       return reply.status(500).send({ error: 'Upload failed' });
-    } finally {
-      await cleanupTemp(fileKey);
     }
+    // finally {
+    //   await cleanupTemp(fileKey);
+    // }
   }
 )}
 
