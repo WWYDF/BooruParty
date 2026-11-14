@@ -20,3 +20,48 @@ datasource db {
 model ServerSetting {
   id                      String                    @id @unique // "e.g. SITE_TITLE"
 }
+
+model Session {
+  id                      String                    @id @default(uuid())
+  userId                  String
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash               String                    @unique // sha256
+  userAgent               String?
+  ip                      String?
+
+  expiresAt               DateTime
+  createdAt               DateTime                  @default(now())
+}
+
+model User {
+  id                      String                    @id @default(cuid())
+  email                   String                    @unique
+  username                String                    @unique
+  passHash                String
+  sessions                Session[]
+
+  roleId                  Int                       @default(0)
+  role                    Role                      @relation(fields: [roleId], references: [id])
+
+  lastLogin               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  createdAt               DateTime                  @default(now())
+}
+
+model Role {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @unique
+  index                   Int
+  users                   User[]
+  permissions             Permission[]              @relation("RolePermissions")
+  color                   String
+  isDefault               Boolean                   @default(false)
+}
+
+model Permission {
+  name                    String                    @id @unique
+  description             String?
+
+  roles                   Role[]                    @relation("RolePermissions")
+  createdAt               DateTime                  @default(now())
+}
