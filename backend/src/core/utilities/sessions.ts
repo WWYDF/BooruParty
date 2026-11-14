@@ -3,7 +3,7 @@ import { AccessTokenPayload } from "../plugins/auth";
 import { prisma } from '../plugins/prisma'
 import crypto from "crypto";
 
-const isProduction = process.env.MODE === 'PRODUCTION';
+const devMode = process.env.MODE?.toUpperCase() === 'DEVELOPMENT';
 
 export async function createSession(req: FastifyRequest, reply: FastifyReply, user: AccessTokenPayload) {
   const token = crypto.randomBytes(32).toString('base64url');
@@ -19,8 +19,8 @@ export async function createSession(req: FastifyRequest, reply: FastifyReply, us
     }
   });
   const access = await reply.jwtSign(user);
-  reply.setCookie('bpJWT', access, { httpOnly: true, sameSite: 'lax', secure: isProduction, path: '/', maxAge: 15*60 });
-  reply.setCookie('bpRFT', token, { httpOnly: true, sameSite: 'lax', secure: isProduction, path: '/api/auth', maxAge: 30*24*60*60 });
+  reply.setCookie('bpJWT', access, { httpOnly: true, sameSite: 'lax', secure: !devMode, path: '/', maxAge: 15*60 });
+  reply.setCookie('bpRFT', token, { httpOnly: true, sameSite: 'lax', secure: !devMode, path: '/api/auth', maxAge: 30*24*60*60 });
 }
 
 export function clearSessionCookies(reply: FastifyReply) {
