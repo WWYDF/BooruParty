@@ -441,6 +441,125 @@ const tags: FastifyPluginAsync = async (fastify) => {
     return reply.status(200).send({ deleted: row.tag.name, removedFromPosts: row.tag._count.posts });
   });
 
+
+  // Merge one tag into another. Source is deleted; its posts, links and (optionally) names move to the target.
+  fastify.post('/:name/merge', {
+    onRequest: [fastify.authenticate, requirePermission('tags.delete')],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['name'],
+        properties: { name: tagNameInputSchema },
+      },
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['into'],
+        properties: {
+          into: tagNameInputSchema,
+          keepNames: { type: 'boolean', default: true }, // source's name + aliases become aliases of target
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { name: input } = req.params as { name: string };
+    const body = req.body as { into: string, keepNames: boolean };
+
+    const sourceName = normalizeTagName(input);
+    const targetName = normalizeTagName(body.into);
+    if (!sourceName.ok) return reply.status(404).send({ error: 'Tag not found' });
+    if (!targetName.ok) return reply.status(400).send({ error: 'Invalid target', hint: targetName.reason });
+
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const [sourceRow, targetRow] = await Promise.all([
+          tx.tagName.findUnique({ where: { name: sourceName.name }, select: { tag: { select: { id: true, name: true } } } }),
+          tx.tagName.findUnique({ where: { name: targetName.name }, select: { tag: { select: { id: true, name: true } } } }),
+        ]);
+        if (!sourceRow) throw new HttpError(404, { error: 'Tag not found' });
+        if (!targetRow) throw new HttpError(404, { error: 'Target tag not found' });
+
+        const source = sourceRow.tag;
+        const target = targetRow.tag;
+
+        if (source.name !== sourceName.name) {
+          throw new HttpError(400, { error: 'Cannot merge an alias', hint: `"${sourceName.name}" is an alias of "${source.name}"` });
+        }
+        if (source.id === target.id) {
+          throw new HttpError(400, { error: 'Cannot merge a tag into itself' });
+        }
+
+        // 1. Posts: give every source post the target tag (skip posts that already have it)
+        const movedPosts = await tx.$executeRaw`
+          INSERT INTO "PostTag" ("postId", "tagId")
+          SELECT "postId", ${target.id} FROM "PostTag" WHERE "tagId" = ${source.id}
+          ON CONFLICT DO NOTHING
+        `;
+
+        // 2. Implications, both directions (never target -> target)
+        await tx.$executeRaw`
+          INSERT INTO "TagImplication" ("tagId", "impliedId")
+          SELECT ${target.id}, "impliedId" FROM "TagImplication"
+          WHERE "tagId" = ${source.id} AND "impliedId" <> ${target.id}
+          ON CONFLICT DO NOTHING
+        `;
+        await tx.$executeRaw`
+          INSERT INTO "TagImplication" ("tagId", "impliedId")
+          SELECT "tagId", ${target.id} FROM "TagImplication"
+          WHERE "impliedId" = ${source.id} AND "tagId" <> ${target.id}
+          ON CONFLICT DO NOTHING
+        `;
+
+        // 3. Suggestions, both directions
+        await tx.$executeRaw`
+          INSERT INTO "TagSuggestion" ("tagId", "suggestedId")
+          SELECT ${target.id}, "suggestedId" FROM "TagSuggestion"
+          WHERE "tagId" = ${source.id} AND "suggestedId" <> ${target.id}
+          ON CONFLICT DO NOTHING
+        `;
+        await tx.$executeRaw`
+          INSERT INTO "TagSuggestion" ("tagId", "suggestedId")
+          SELECT "tagId", ${target.id} FROM "TagSuggestion"
+          WHERE "suggestedId" = ${source.id} AND "tagId" <> ${target.id}
+          ON CONFLICT DO NOTHING
+        `;
+
+        // 4. Names: hand them to the target before the cascade would delete them
+        if (body.keepNames) {
+          await tx.tagName.updateMany({ where: { tagId: source.id }, data: { tagId: target.id } });
+        }
+
+        // 5. Delete source. Cascades clean up its remaining PostTag / link / name rows.
+        await tx.tag.delete({ where: { id: source.id } });
+
+        // 6. Merging can close a loop (e.g. source -> X and X -> target). Any new loop must pass through target.
+        const direct = await tx.tagImplication.findMany({ where: { tagId: target.id }, select: { impliedId: true } });
+        const reachable = await getImpliedTags(direct.map((d) => d.impliedId), tx);
+        if (reachable.some((t) => t.id === target.id)) {
+          throw new HttpError(409, { error: 'Implication loop', hint: `Merging would make "${target.name}" imply itself. Fix the implications first.` });
+        }
+
+        // 7. Recount target
+        await tx.$executeRaw`
+          UPDATE "Tag" SET "postCount" = (SELECT COUNT(*) FROM "PostTag" WHERE "tagId" = ${target.id})
+          WHERE "id" = ${target.id}
+        `;
+
+        return { targetId: target.id, merged: source.name, movedPosts };
+      });
+
+      const updated = await prisma.tag.findUnique({ where: { id: result.targetId }, include: tagDetailInclude });
+      return reply.status(200).send({
+        merged: result.merged,
+        movedPosts: result.movedPosts,
+        tag: { ...shapeTagDetail(updated!), allImplications: await getImpliedTags([result.targetId]) },
+      });
+    } catch (e) {
+      if (e instanceof HttpError) return reply.status(e.status).send(e.body);
+      logger.error('Failed to merge tags', e);
+      return reply.status(500).send({ error: 'Something went wrong' });
+    }
+  });
 }
 
 export default tags;
