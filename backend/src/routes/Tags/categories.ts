@@ -74,13 +74,74 @@ const tagCategories: FastifyPluginAsync = async (fastify) => {
           }
         });
       })
-      
+
       return reply.status(201).send(category);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         return reply.status(409).send({ error: 'A category with that name already exists' });
       }
       logger.error('Failed to create category', e);
+      return reply.status(500).send({ error: 'Something went wrong' });
+    }
+  })
+
+  fastify.patch('/:id', {
+    onRequest: canManage,
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer', minimum: 1 } },
+      },
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        minProperties: 1,
+        properties: {
+          name: categoryNameSchema,
+          color: hexColorSchema,
+          index: { type: 'integer', minimum: 0 },
+          isDefault: { type: 'boolean', const: true }, // you can only BECOME default (i.e. cannot PATCH it to false)
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+    const body = req.body as {
+      name?: string,
+      color?: string,
+      index?: number,
+      isDefault?: true,
+    }
+
+    // Build the update from only the fields that were sent
+    const data: Prisma.TagCategoryUpdateInput = {};
+    if (body.name !== undefined) {
+      data.name = body.name.trim();
+      if (!data.name) return reply.status(400).send({ error: 'Incorrect body', hint: 'Category name is empty' });
+    }
+    if (body.color !== undefined) data.color = body.color.toLowerCase();
+    if (body.index !== undefined) data.index = body.index;
+    if (body.isDefault) data.isDefault = true;
+
+    try {
+      const category = await prisma.$transaction(async (tx) => {
+        if (body.isDefault) {
+          await tx.tagCategory.updateMany({
+            where: { isDefault: true, NOT: { id } },
+            data: { isDefault: false }
+          });
+        }
+        return tx.tagCategory.update({ where: { id }, data });
+      });
+
+      return reply.status(200).send(category);
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError) {
+        if (e.code === 'P2002') return reply.status(409).send({ error: 'A category with that name already exists' });
+        if (e.code === 'P2025') return reply.status(404).send({ error: 'Category not found' });
+      }
+      logger.error('Failed to update category', e);
       return reply.status(500).send({ error: 'Something went wrong' });
     }
   })
