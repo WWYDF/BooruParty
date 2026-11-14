@@ -14,8 +14,9 @@ import auth from './core/plugins/auth';
 import prismaPlugin from './core/plugins/prisma';
 import { checkSetup } from './core/setup';
 import { loadRolePermissions } from './core/utilities/permissionCache';
+import sharp from 'sharp';
 
-
+sharp.cache(false);
 const logger = appLogger('Server');
 
 const DIRECTORIES = [

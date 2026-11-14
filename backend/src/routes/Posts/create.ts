@@ -3,10 +3,11 @@ import { appLogger } from "@/core/plugins/logger";
 import { requirePermission, rolePermissionCheck } from "@/core/utilities/permissionCache";
 import crypto from 'node:crypto';
 import path from "node:path";
-import { cleanupTemp, detectFileType, tempDir } from "@/components/uploads/receive";
+import { cleanupTemp, detectFileType, getField, tempDir } from "@/components/uploads/receive";
 import { pipeline } from 'node:stream/promises';
 import fs from "fs";
 import { PermissionName } from "@/core/objects/permissions";
+import { computePHash, findDuplicate } from "@/components/uploads/dedupe";
 
 const logger = appLogger('Posts/Create');
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
@@ -38,10 +39,27 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       const typePerm = `upload.type.${detected.type.toLowerCase()}` as PermissionName;
       if (!rolePermissionCheck(req.user.roleId, typePerm)) { return reply.status(403).send({ error: 'Forbidden', hint: `Missing permission: ${typePerm}` }) };
 
-      return reply.status(200).send({ fileKey, ...detected, size: (await fs.promises.stat(tempPath)).size });
+      // 4. Duplicate check
+      const skipDupes = getField(upload, 'skipDupes') === 'true';
+      const pHash = await computePHash(tempPath, detected.type);
+      const dupeBypass = skipDupes && rolePermissionCheck(req.user.roleId, 'posts.create.dupes');
+
+      if (!dupeBypass) {
+        const duplicateOf = await findDuplicate(pHash);
+        if (duplicateOf !== null) {
+          return reply.status(409).send({ error: 'Duplicate', hint: "This file already exists", duplicateOf });
+        }
+      }
+
+      // 5. Extract remaining parameters
+      
+
+      return reply.status(200).send({ fileKey, ...detected, size: (await fs.promises.stat(tempPath)).size, pHash });
     } catch (e) {
       logger.error('Upload failed', e);
       return reply.status(500).send({ error: 'Upload failed' });
+    } finally {
+      await cleanupTemp(fileKey);
     }
   }
 )}

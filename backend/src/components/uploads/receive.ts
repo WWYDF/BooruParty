@@ -3,7 +3,10 @@ import { FileType } from "../../../prisma/client";
 import { fileTypeFromFile } from 'file-type';
 import sharp from "sharp";
 import fs from "fs";
+import { MultipartFile } from "@fastify/multipart";
+import { appLogger } from "@/core/plugins/logger";
 
+const logger = appLogger('Posts/Receive');
 export const tempDir = path.join(process.cwd(), 'data', 'temp');
 
 // Supported formats for each category (type)
@@ -40,10 +43,20 @@ export async function detectFileType(filePath: string): Promise<DetectedFile | n
 
 // Deletes every temp file for this upload. Safe to call even if some don't exist.
 export async function cleanupTemp(fileKey: string) {
-  const entries = await fs.promises.readdir(tempDir);
-  await Promise.all(
-    entries
-      .filter((name) => name.startsWith(fileKey))
-      .map((name) => fs.promises.rm(path.join(tempDir, name), { force: true } ))
-  );
+  try {
+    const entries = await fs.promises.readdir(tempDir);
+    await Promise.all(
+      entries
+        .filter((name) => name.startsWith(fileKey))
+        .map((name) => fs.promises.rm(path.join(tempDir, name), { force: true } ))
+    );
+  } catch (e) {
+    logger.error(`Failed to clean up temp files for ${fileKey}`, e);
+  }
+}
+
+export function getField(upload: MultipartFile, name: string): string | undefined {
+  const field = upload.fields[name];
+  const part = Array.isArray(field) ? field[0] : field;
+  return part && part.type === 'field' ? String(part.value) : undefined;
 }
