@@ -1,1 +1,7 @@
 // For all the custon enums to go, for organization sake lol
+
+enum Safety {
+  SAFE
+  QUESTIONABLE
+  EXPLICIT
+}

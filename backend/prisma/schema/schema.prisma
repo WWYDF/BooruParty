@@ -38,10 +38,12 @@ model User {
   username                String                    @unique
   passHash                String
   sessions                Session[]
+  preferences             Preferences?
 
   roleId                  String
   role                    Role                      @relation(fields: [roleId], references: [id])
 
+  private                 Boolean                   @default(false)
   lastLogin               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
   createdAt               DateTime                  @default(now())
@@ -61,4 +63,17 @@ model Permission {
   name                    String                    @id @unique
   roles                   Role[]                    @relation("RolePermissions")
   createdAt               DateTime                  @default(now())
+}
+
+// -------------------------------------------------------------------------------------------------------
+
+model Preferences {
+  userId                  String                    @id
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  blurUnsafeEmbeds        Boolean                   @default(true)
+  defaultSafety           Safety                    @default(SAFE)
+  // blacklistedTags
+  // favoriteTags
+  profileBackground       Int?                      // Post ID
 }
