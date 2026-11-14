@@ -1,18 +1,14 @@
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import * as dotenv from 'dotenv';
-import ipFilter from './plugins/auth';
-import registerStatic from './plugins/static';
-import cronPlugin from './plugins/cron';
 import cors from '@fastify/cors'
 import fs from 'fs';
 import path from 'path';
-import routeLogger, { appLogger, initAppLogFile } from './plugins/logger';
+import routeLogger, { appLogger } from './core/plugins/logger';
 import chalk from 'chalk';
-import apiRoutes from './routes/api';
-import { LEGIBLE_VERSION } from './version';
-import { LapisData, lapisDbExists, writeLapisDb } from './utils/lapisDb';
-import { updateSpaceUsed } from './cronjobs/serverSize';
+import { LEGIBLE_VERSION } from './core/version';
+import cronPlugin from './core/plugins/cron';
+import routes from './routes';
 
 dotenv.config();
 const logger = appLogger('Server');
@@ -52,47 +48,39 @@ async function buildServer() {
     },
   });
 
+  await fastify.register(routeLogger);
+  logger.info('[+] Logger loaded successfully!');
+
+  // Comma-separated list of frontend origins allowed to make credentialed (cookie) requests.
+  // e.g. ALLOWED_ORIGINS=http://localhost:3000,https://booru.example.com
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, '')) // origins never have a trailing slash
+    .filter(Boolean);
+
+  if (allowedOrigins.length === 0) {
+    logger.warn('[!] ALLOWED_ORIGINS is not set! Browsers will be blocked from using the API.');
+  }
+
   await fastify.register(cors, {
-    origin: (origin, cb) => {
-      // Accept any origin and echo it back - as long as it's defined (browser request)
-      if (origin) {
-        cb(null, origin); // echo origin back = "fake *"
-      } else {
-        cb(null, true); // SSR, curl, etc.
-      }
-    },
+    // Requests without an Origin header (curl, SSR) aren't subject to CORS and still work.
+    // Unlisted origins get no CORS headers, so the browser won't let their JS read responses.
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
-  initAppLogFile(); // rotate logs
-  await fastify.register(routeLogger);
-  logger.info('[+] Logger loaded successfully!');
-  await fastify.register(ipFilter);
-  logger.info('[+] Firewall loaded successfully!');
-
   for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
   logger.info('[+] Essential Directories loaded successfully!');
 
-  await fastify.register(registerStatic);
-  logger.info('[+] Asset Routes loaded successfully!');
-  await fastify.register(apiRoutes); // handles its own prefix /api/
-  logger.info('[+] REST API Routes loaded successfully!');
-
-  // Create LapisDB if not exist
-  const lapisExists = await lapisDbExists();
-  if (!lapisExists) {
-    await writeLapisDb<LapisData>({
-      megaBytesUsed: 0
-    })
-  }
+  // logger.info('[+] Asset Routes loaded successfully!');
+  await fastify.register(routes, { prefix: '/api' });
   
   await fastify.register(cronPlugin);
   logger.info('[+] Cronjobs loaded successfully!');
 
   // Autorun on Startup
   console.log(' ');
-  await updateSpaceUsed();
 
   return fastify;
 }

@@ -1,22 +1,22 @@
 {
   "compilerOptions": {
-    "target": "es2016",
-    "module": "CommonJS",
+    "target": "es2022",
+    "module": "nodenext",
     "lib": ["ES2021"],
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
+    "strictNullChecks": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "nodenext",
     "resolveJsonModule": true,
-    "types": ["node"],
     "typeRoots": ["./src/types", "./node_modules/@types"],
     "paths": {
-      "@prisma": ["../core/prisma/client"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
