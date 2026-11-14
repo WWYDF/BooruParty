@@ -1,6 +1,7 @@
 // This is a small setup script that runs on first launch on new versions
 
 import { prisma } from '../core/plugins/prisma'
+import { PERMISSIONS } from './objects/permissions';
 import { appLogger } from './plugins/logger';
 import { CURRENT_VERSION } from './version';
 
@@ -52,56 +53,7 @@ async function runSetup() {
 
 async function syncPermissions() {
   await prisma.permission.createMany({
-    data: [
-      { name: "posts.view" },
-      { name: "posts.create" },
-      { name: "posts.create.dupes" },
-      { name: "posts.edit.own" },
-      { name: "posts.edit.others" },
-      { name: "posts.autotag" },
-      { name: "posts.delete.own" },
-      { name: "posts.delete.others" },
-      { name: "posts.feature" },
-      { name: "posts.vote" },
-      { name: "posts.favorite" },
-      { name: "comment.create" },
-      { name: "comment.embed.url" },
-      { name: "comment.embed.post" },
-      { name: "comment.edit.own" },
-      { name: "comment.edit.others" },
-      { name: "comment.delete.own" },
-      { name: "comment.delete.others" },
-      { name: "comment.vote" },
-      { name: "pool.create" },
-      { name: "pool.manage" },
-      { name: "pool.delete" },
-      { name: "pool.vote" },
-      { name: "profile.create" },
-      { name: "profile.view" },
-      { name: "profile.edit.avatar" },
-      { name: "profile.edit.background" },
-      { name: "profile.edit.others" },
-      { name: "profile.edit.roles" },
-      { name: "profile.archive.others" }, // Delete user but not posts
-      { name: "profile.delete.others" },  // Delete user and posts
-      { name: "upload.type.image" },
-      { name: "upload.type.animated" },
-      { name: "upload.type.video" },
-      { name: "limit.upload.ignore" },
-      { name: "tags.create" },
-      { name: "tags.edit" },
-      { name: "tags.delete" },
-      { name: "tags.categories.manage" },
-      { name: "dashboard.view" },
-      { name: "dashboard.analytics" },
-      { name: "dashboard.update" },
-      { name: "dashboard.backups" },
-      { name: "dashboard.roles" },
-      { name: "dashboard.audit.log" },
-      { name: "dashboard.addons" },
-      { name: "dashboard.checks" },
-      { name: "administrator" },
-    ],
+    data: PERMISSIONS.map((name) => ({ name })),
     skipDuplicates: true,
-  })
+  });
 }
