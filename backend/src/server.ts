@@ -9,6 +9,7 @@ import chalk from 'chalk';
 import { LEGIBLE_VERSION } from './core/version';
 import cronPlugin from './core/plugins/cron';
 import routes from './routes';
+import auth from './core/plugins/auth';
 
 dotenv.config();
 const logger = appLogger('Server');
@@ -73,11 +74,11 @@ async function buildServer() {
   for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
   logger.info('[+] Essential Directories loaded successfully!');
 
-  // logger.info('[+] Asset Routes loaded successfully!');
-  await fastify.register(routes, { prefix: '/api' });
+  await fastify.register(auth);
+  logger.info('[+] Auth loaded successfully!');
   
+  await fastify.register(routes, { prefix: '/api' });
   await fastify.register(cronPlugin);
-  logger.info('[+] Cronjobs loaded successfully!');
 
   // Autorun on Startup
   console.log(' ');

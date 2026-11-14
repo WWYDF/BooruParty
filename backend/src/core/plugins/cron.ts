@@ -7,7 +7,7 @@ const logger = appLogger('Cron');
 
 const cronPlugin: FastifyPluginAsync = async (fastify) => {
 
-  logger.info('[+] Cronjobs Initialized!');
+  logger.info('[+] Cronjobs loaded successfully!');
 };
 
 export default fp(cronPlugin);
