@@ -16,6 +16,7 @@ import { checkSetup } from './core/setup';
 import { loadRolePermissions } from './core/utilities/permissionCache';
 import sharp from 'sharp';
 import { initializeEncoder } from './components/uploads/encoders';
+import uploadsHost from './core/plugins/uploads';
 
 sharp.cache(false);
 const logger = appLogger('Server');
@@ -97,6 +98,9 @@ async function buildServer() {
   logger.info('[+] Auth loaded successfully!');
 
   await fastify.register(routes, { prefix: '/api' });
+  await fastify.register(uploadsHost);
+  logger.info('[+] Uploads Host loaded successfully!');
+
   await fastify.register(cronPlugin);
 
   // Autorun on Startup
