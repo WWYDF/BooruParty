@@ -12,6 +12,7 @@ import routes from './routes';
 import auth from './core/plugins/auth';
 import prismaPlugin from './core/plugins/prisma';
 import { checkSetup } from './core/setup';
+import { loadRolePermissions } from './core/utilities/permissionCache';
 
 const logger = appLogger('Server');
 
@@ -81,7 +82,8 @@ async function buildServer() {
   await fastify.register(routes, { prefix: '/api' });
   await fastify.register(cronPlugin);
 
-  await checkSetup();
+  await checkSetup(); // make sure server has been setup
+  await loadRolePermissions(); // load role permissions into memory
 
   // Autorun on Startup
   console.log(' ');
