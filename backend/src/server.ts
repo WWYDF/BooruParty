@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import cors from '@fastify/cors'
@@ -11,7 +12,6 @@ import routes from './routes';
 import auth from './core/plugins/auth';
 import prismaPlugin from './core/plugins/prisma';
 import { checkSetup } from './core/setup';
-import 'dotenv/config';
 
 const logger = appLogger('Server');
 

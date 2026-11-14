@@ -1,9 +1,10 @@
 import { prisma } from '@/core/plugins/prisma';
 import { FastifyPluginAsync } from 'fastify';
-import { createSession } from '@/core/utilities/sessions';
+import { clearSessionCookies, createSession, hashToken } from '@/core/utilities/sessions';
 import bcrypt from 'bcrypt';
 import { appLogger } from '@/core/plugins/logger';
 import { Prisma } from '../../../prisma/client';
+import crypto from "crypto";
 
 const logger = appLogger('Auth');
 const DUMMY_HASH = '$2b$12$ekdKhFYGe/WzS9ICFt7imOGAHL56bdhKH8jAVySfiU.20YrrUBgWa';
@@ -97,6 +98,40 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
     const { passHash, ...safeUser } = user;
     await createSession(req, reply, { sub: user.id, username: user.username, roleId: user.roleId });
     return reply.status(200).send(safeUser);
+  });
+
+
+  // Refresh Token
+  fastify.post('/refresh', async (req, reply) => {
+    const token = req.cookies.bpRFT;
+    if (!token) { return reply.status(401).send({ error: 'Unauthorized', hint: 'You must log in first' }) };
+
+    // Hash token & get current session match
+    const tokenHash = hashToken(token);
+    const session = await prisma.session.findUnique({
+      where: { tokenHash },
+      include: { user: { include: { role: true }, omit: { passHash: true } } },
+    });
+
+    // If no matching session OR session is expired
+    if (!session || session.expiresAt < new Date()) {
+      if (session) await prisma.session.deleteMany({ where: { id: session.id }});
+      clearSessionCookies(reply);
+      return reply.status(401).send({ error: 'Session expired', hint: 'You must log in again' });
+    };
+    
+    // Rotate out old session (if none were deleted, do not grant a new session)
+    const { count } = await prisma.session.deleteMany({ where: { id: session.id } });
+    if (count === 0) {
+      // Another request used this refresh token a moment ago
+      clearSessionCookies(reply);
+      return reply.status(401).send({ error: 'Session expired' });
+    }
+
+    // Send back new (refreshed) session
+    const { user } = session;
+    await createSession(req, reply, { sub: user.id, username: user.username, roleId: user.roleId });
+    return reply.status(200).send(user);
   });
 };
 
