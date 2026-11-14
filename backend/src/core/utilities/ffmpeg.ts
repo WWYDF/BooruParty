@@ -5,9 +5,10 @@ const execFileAsync = promisify(execFile);
 
 // Runs ffmpeg with the given args. Throws (with ffmpeg's error output) on failure or timeout.
 export async function ffmpeg(args: string[], timeoutMs = 10*60*1000): Promise<void> {
+  const isDevelopment = process.env.MODE === 'DEVELOPMENT';
   await execFileAsync('ffmpeg', [
     '-hide_banner',
-    '-loglevel', 'error',
+    '-loglevel', isDevelopment ? 'info' : 'error',
     '-y',
     ...args
   ], {

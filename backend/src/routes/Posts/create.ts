@@ -10,6 +10,7 @@ import { PermissionName } from "@/core/objects/permissions";
 import { computePHash, findDuplicate } from "@/components/uploads/dedupe";
 import { generateThumbnails } from "@/components/uploads/thumbnails";
 import { generatePreview } from "@/components/uploads/previews";
+import { probeVideo } from "@/components/uploads/video";
 
 const logger = appLogger('Posts/Create');
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
@@ -57,8 +58,8 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       await generateThumbnails(tempPath, detected.type, fileKey);
 
       // 6. Preview
-      const preview = await generatePreview(tempPath, detected, fileKey);
-
+      const videoInfo = detected.type === 'VIDEO' ? await probeVideo(tempPath) : null;
+      const preview = await generatePreview(tempPath, detected, fileKey, videoInfo);
 
       // ??. Extract remaining parameters
 
