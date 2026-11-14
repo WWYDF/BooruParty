@@ -55,6 +55,77 @@ const tags: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // List / Search tags. Also serves auto-complete
+  fastify.get('/', {
+    schema: {
+      querystring: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          page: { type: 'integer', minimum: 1, default: 1 },
+          limit: { type: 'integer', minimum: 1, maximum: 100, default: 25 },
+          search: { type: 'string', maxLength: 128 },
+          match: { type: 'string', enum: ['contains', 'prefix'], default: 'contains' },
+          categoryId: { type: 'integer', minimum: 1 },
+          sort: { type: 'string', enum: ['popular', 'name', 'newest', 'oldest'], default: 'popular' },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { page, limit, search, match, categoryId, sort } = req.query as {
+      page: number,
+      limit: number,
+      search?: string,
+      match: 'contains' | 'prefix',
+      categoryId?: number,
+      sort: 'popular' | 'name' | 'newest' | 'oldest',
+    };
+
+    // Same cleanup as normalizeTagName(), but never rejects. Partial input like "blue " is fine here.
+    const term = search?.normalize('NFC').trim().toLowerCase().replace(/\s+/g, '_') || undefined;
+    const nameFilter: Prisma.StringFilter | undefined = term
+      ? (match === 'prefix' ? { startsWith: term } : { contains: term })
+      : undefined;
+
+    const where: Prisma.TagWhereInput = {
+      ...(categoryId !== undefined && { categoryId }),
+      ...(nameFilter && { names: { some: { name: nameFilter } } })
+    };
+
+    const orderBy: Prisma.TagOrderByWithRelationInput[] =
+      sort == 'name' ? [{ name: 'asc' }]
+      : sort === 'newest' ? [{ createdAt: 'desc' }, { id: 'desc' }]
+      : sort === 'oldest' ? [{ createdAt: 'asc' }, { id: 'asc' }]
+      : [{ postCount: 'desc' }, { name: 'asc' }];
+    
+      const [tags, total] = await prisma.$transaction([
+        prisma.tag.findMany({
+          where,
+          orderBy,
+          skip: (page - 1) * limit,
+          take: limit,
+          select: {
+            ...relatedTagSelect,
+            postCount: true,
+            category: true,
+            // Only the names that matched, so the UI can show "pkmn -> pokemon"
+            ...(nameFilter && { names: { where: { name: nameFilter }, select: { name: true } } }),
+          },
+        }),
+        prisma.tag.count({ where }),
+      ]);
+
+      return reply.status(200).send({
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+        tags,
+      });
+  });
+
 
   // Create a tag
   fastify.post('/', {
