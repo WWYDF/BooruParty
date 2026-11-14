@@ -15,6 +15,9 @@ import { getField, parseUploadFields } from "@/components/uploads/fields";
 import { discardFiles, getAspectRatio, moveIntoPlace } from "@/components/uploads/finalize";
 import { prisma } from "@/core/plugins/prisma";
 import { withAssetUrls } from "@/core/utilities/reformatters";
+import { resolveTagNames } from "@/core/utilities/tags";
+import { HttpError } from "@/core/utilities/errors";
+import { Prisma } from "../../../prisma/client";
 
 const logger = appLogger('Posts/Create');
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
@@ -43,7 +46,24 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       // 2. Validate the post's fields before doing any heavy work
       const parsed = parseUploadFields(upload);
       if (!parsed.ok) { return reply.status(400).send({ error: `Invalid fields`, hint: parsed.error }) };
-      const { safety, sources, notes } = parsed.fields;
+      const { safety, sources, notes, tags } = parsed.fields;
+
+      // 2.5 Validate tags
+      const resolvedTags = await resolveTagNames(tags);
+      if (resolvedTags.invalid.length) {
+        return reply.status(400).send({
+          error: 'Invalid tags',
+          hint: resolvedTags.invalid.map((i) => `"${i.input}": ${i.reason}`).join(' '),
+        });
+      }
+      const canCreateTags = rolePermissionCheck(req.user.roleId, 'tags.create');
+      if (resolvedTags.missing.length && !canCreateTags) {
+        return reply.status(400).send({
+          error: 'Unknown tags',
+          hint: `These tags don't exist: ${resolvedTags.missing.join(', ')}`,
+          missing: resolvedTags.missing,
+        });
+      }
 
       // 3. Work out what it really is
       const detected = await detectFileType(tempPath);
@@ -79,32 +99,72 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       // 9. Move everything into place
       const { originalPath, previewPath } = await moveIntoPlace(fileKey, tempPath, detected, preview, moved);
 
-      // 10. Save the post
-      const post = await prisma.post.create({
-        data: {
-          uploaderId: req.user.sub,
-          type: detected.type,
-          fileKey,
-          originalPath,
-          previewPath,
-          safety,
-          sources,
-          notes,
-          aspectRatio,
-          fileSize: BigInt(fileSize),
-          previewSize: preview ? BigInt(preview.size) : null,
-          duration: videoInfo?.duration ?? null,
-          hasAudio: videoInfo?.hasAudio ?? false,
-          pHash,
-          dupeBypass,
-        },
-        // select: postSummarySelect
-        omit: { fileSize: true, previewSize: true } // JSON can't seriallize BigInt
+      // 10. Save the post and its tags together
+      const post = await prisma.$transaction(async (tx) => {
+        // Resolve again: tags may have been created, deleted, or merged while we were processing
+        const { tags: found, missing } = await resolveTagNames(tags, tx);
+
+        let created: { id: number }[] = [];
+        if (missing.length) {
+          if (!canCreateTags) {
+            throw new HttpError(400, { error: 'Unknown tags', hint: `These tags don't exist: ${missing.join(', ')}`, missing });
+          }
+
+          const fallback = await tx.tagCategory.findFirst({ where: { isDefault: true }, select: { id: true } });
+          if (!fallback) throw new Error('No default tag category exists');
+
+          created = await tx.tag.createManyAndReturn({
+            data: missing.map((name) => ({ name, categoryId: fallback.id })),
+            select: { id: true, name: true },
+          });
+          await tx.tagName.createMany({
+            data: (created as { id: number, name: string }[]).map((t) => ({ name: t.name, tagId: t.id })),
+          });
+        }
+
+        const tagIds = [...found, ...created].map((t) => t.id);
+
+        const post = await tx.post.create({
+          data: {
+            uploaderId: req.user.sub,
+            type: detected.type,
+            fileKey,
+            originalPath,
+            previewPath,
+            safety,
+            sources,
+            notes,
+            aspectRatio,
+            fileSize: BigInt(fileSize),
+            previewSize: preview ? BigInt(preview.size) : null,
+            duration: videoInfo?.duration ?? null,
+            hasAudio: videoInfo?.hasAudio ?? false,
+            pHash,
+            dupeBypass,
+            tags: { create: tagIds.map((tagId) => ({ tagId })) },
+          },
+          include: { tags: { select: { tag: { select: { id: true, name: true, categoryId: true } } } } },
+          omit: { fileSize: true, previewSize: true }, // JSON can't serialize BigInt
+        });
+
+        if (tagIds.length) {
+          await tx.tag.updateMany({ where: { id: { in: tagIds } }, data: { postCount: { increment: 1 } } });
+        }
+
+        return post;
       });
 
       keepFiles = true; // tell finally() to keep the post's files. we're done :)
-      return reply.status(201).send(withAssetUrls(post, ['originalPath', 'previewPath']));
+      const { tags: postTags, ...rest } = post;
+      return reply.status(201).send({
+        ...withAssetUrls(rest, ['originalPath', 'previewPath']),
+        tags: postTags.map((t) => t.tag),
+      });
     } catch (e) {
+      if (e instanceof HttpError) return reply.status(e.status).send(e.body);
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return reply.status(409).send({ error: 'Conflict', hint: 'A tag was created by someone else at the same moment. Please retry.' });
+      }
       logger.error('Upload failed', e);
       return reply.status(500).send({ error: 'Upload failed' });
     } finally {

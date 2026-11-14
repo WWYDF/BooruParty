@@ -5,13 +5,16 @@ export type UploadFields = {
   safety: Safety,
   sources: string[],
   notes: string | null,
+  tags: string[],
 }
 
 type ParseResult = { ok: true, fields: UploadFields } | { ok: false, error: string };
 
+// Just to prevent abuse on creation
 const MAX_SOURCES = 10;
 const MAX_SOURCE_LENGTH = 512;
 const MAX_NOTES_LENGTH = 2048;
+const MAX_TAGS = 300;
 
 export function getField(upload: MultipartFile, name: string): string | undefined {
   const field = upload.fields[name];
@@ -64,5 +67,21 @@ export function parseUploadFields(upload: MultipartFile): ParseResult {
     return { ok: false, error: `notes must be at most ${MAX_NOTES_LENGTH} characters` };
   }
 
-  return { ok: true, fields: { safety: safety as Safety, sources, notes } };
+  // Tags (optional JSON array of names; normalized + resolved later in the route)
+  let tags: string[] = [];
+  const rawTags = getField(upload, 'tags');
+  if (rawTags) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawTags);
+    } catch {
+      return { ok: false, error: `tags must be a JSON array of tag names` };
+    }
+    if (!Array.isArray(parsed) || parsed.length > MAX_TAGS || !parsed.every((t) => typeof t === 'string')) {
+      return { ok: false, error: `tags must be an array of at most ${MAX_TAGS} tag names` };
+    }
+    tags = parsed;
+  }
+
+  return { ok: true, fields: { safety: safety as Safety, sources, notes, tags } };
 }
