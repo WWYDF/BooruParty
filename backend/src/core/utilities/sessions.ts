@@ -31,3 +31,12 @@ export function clearSessionCookies(reply: FastifyReply) {
 export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
+
+// Cleans up any expired sessions from the table (used in Cronjob)
+export async function deleteExpiredSessions(): Promise<number> {
+  const { count } = await prisma.session.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
+
+  return count;
+}
