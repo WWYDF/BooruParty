@@ -54,9 +54,3 @@ export async function cleanupTemp(fileKey: string) {
     logger.error(`Failed to clean up temp files for ${fileKey}`, e);
   }
 }
-
-export function getField(upload: MultipartFile, name: string): string | undefined {
-  const field = upload.fields[name];
-  const part = Array.isArray(field) ? field[0] : field;
-  return part && part.type === 'field' ? String(part.value) : undefined;
-}

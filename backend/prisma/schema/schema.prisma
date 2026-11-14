@@ -91,13 +91,13 @@ model Post {
   type                    FileType
   originalPath            String
   previewPath             String?                   // If null, preview was deemed larger than original
-  fileKey                 String                    // The random UUID for saving filenames with
+  fileKey                 String                    @unique // The random UUID for saving filenames with
   safety                  Safety
   sources                 String[]
   notes                   String?
 
   aspectRatio             Float
-  fileSize                Int                       // File Size of originalPath's file in bytes
+  fileSize                BigInt                    // File Size of originalPath's file in bytes
   previewSize             Int?                      // File Size of previewPath's file in bytes
   duration                Float?                    // Duration in seconds, null if TYPE is not VIDEO
   hasAudio                Boolean?                  @default(false) // Only true if TYPE is VIDEO and has an audio track
