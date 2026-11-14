@@ -146,7 +146,9 @@ const tagCategories: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Delete a category; its tags move to the default category
+  // Delete a category; its tags move to the default category.
+  // Later I might make an option to outright delete the child tags,
+  // or let you pick which category they get moved to.
   fastify.delete('/:id', {
     onRequest: canManage,
     schema: {
