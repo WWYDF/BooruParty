@@ -91,6 +91,7 @@ model Post {
   type                    FileType
   originalPath            String
   previewPath             String?                   // If null, preview was deemed larger than original
+  fileKey                 String                    // The random UUID for saving filenames with
   safety                  Safety
   sources                 String[]
   notes                   String?
