@@ -98,7 +98,7 @@ model Post {
 
   aspectRatio             Float
   fileSize                BigInt                    // File Size of originalPath's file in bytes
-  previewSize             Int?                      // File Size of previewPath's file in bytes
+  previewSize             BigInt?                   // File Size of previewPath's file in bytes
   duration                Float?                    // Duration in seconds, null if TYPE is not VIDEO
   hasAudio                Boolean?                  @default(false) // Only true if TYPE is VIDEO and has an audio track
 

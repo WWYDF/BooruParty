@@ -12,6 +12,8 @@ import { generateThumbnails } from "@/components/uploads/thumbnails";
 import { generatePreview } from "@/components/uploads/previews";
 import { probeVideo } from "@/components/uploads/video";
 import { getField, parseUploadFields } from "@/components/uploads/fields";
+import { discardFiles, getAspectRatio, moveIntoPlace } from "@/components/uploads/finalize";
+import { prisma } from "@/core/plugins/prisma";
 
 const logger = appLogger('Posts/Create');
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
@@ -23,6 +25,8 @@ const createPost: FastifyPluginAsync = async (fastify) => {
     const fileKey = crypto.randomUUID();
     const tempPath = path.join(tempDir, fileKey);
     const ignoreLimit = rolePermissionCheck(req.user.roleId, 'limit.upload.ignore');
+    const moved: string[] = [];
+    let keepFiles = false; // tell finally() to remove any generated/placed files if this try() is aborted.
 
     try {
       // 1. Stream the upload to disk.
@@ -67,16 +71,45 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       const videoInfo = detected.type === 'VIDEO' ? await probeVideo(tempPath) : null;
       const preview = await generatePreview(tempPath, detected, fileKey, videoInfo);
 
-      // 8. Save the post
+      // 8. Final measurements
+      const aspectRatio = await getAspectRatio(tempPath, videoInfo);
+      const { size: fileSize } = await fs.promises.stat(tempPath);
 
-      return reply.status(200).send({ fileKey, ...detected, size: (await fs.promises.stat(tempPath)).size, pHash });
+      // 9. Move everything into place
+      const { originalPath, previewPath } = await moveIntoPlace(fileKey, tempPath, detected, preview, moved);
+
+      // 10. Save the post
+      const post = await prisma.post.create({
+        data: {
+          uploaderId: req.user.sub,
+          type: detected.type,
+          fileKey,
+          originalPath,
+          previewPath,
+          safety,
+          sources,
+          notes,
+          aspectRatio,
+          fileSize: BigInt(fileSize),
+          previewSize: preview ? BigInt(preview.size) : null,
+          duration: videoInfo?.duration ?? null,
+          hasAudio: videoInfo?.hasAudio ?? false,
+          pHash,
+          dupeBypass,
+        },
+        // select: postSummarySelect
+        omit: { fileSize: true, previewSize: true } // JSON can't seriallize BigInt
+      });
+
+      keepFiles = true; // tell finally() to keep the post's files. we're done :)
+      return reply.status(201).send(post);
     } catch (e) {
       logger.error('Upload failed', e);
       return reply.status(500).send({ error: 'Upload failed' });
+    } finally {
+      await cleanupTemp(fileKey); // deletes any stale cache files like video frames
+      if (!keepFiles) await discardFiles(moved); // undo any moves if the post wasn't created
     }
-    // finally {
-    //   await cleanupTemp(fileKey);
-    // }
   }
 )}
 
