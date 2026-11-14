@@ -13,7 +13,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(publicUsers, { prefix: '/users' });
   fastify.register(createPost, { prefix: '/posts' });
 
-  logger.info('[+] API Routes Initialized!');
+  logger.success('[+] API Routes Initialized!');
 };
 
 export default routes;

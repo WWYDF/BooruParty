@@ -13,7 +13,7 @@ const cronPlugin: FastifyPluginAsync = async (fastify) => {
     logger.info(`Deleted ${count} expired sessions.`)
   });
 
-  logger.info('[+] Cronjobs loaded successfully!');
+  logger.success('[+] Cronjobs loaded successfully!');
 };
 
 export default fp(cronPlugin);

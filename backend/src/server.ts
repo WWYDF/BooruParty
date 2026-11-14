@@ -36,6 +36,7 @@ const DIRECTORIES = [
 
 async function buildServer() {
   console.clear();
+  console.log(' ');
   const PORT = Number(process.env.API_PORT || 3070);
 
   const trustedProxies = [
@@ -67,11 +68,11 @@ async function buildServer() {
     },
   });
 
-  await fastify.register(rateLimit, { global: false });
-  logger.info('[+] Rate Limiter loaded successfully!');
-
   await fastify.register(routeLogger);
-  logger.info('[+] Logger loaded successfully!');
+  logger.success('[+] Logger loaded successfully!');
+
+  await fastify.register(rateLimit, { global: false });
+  logger.success('[+] Rate Limiter loaded successfully!');
 
   const allowedOrigins = [process.env.FRONTEND_URL, `http://localhost:${PORT}`, 'http://localhost:3069']
     .filter((o): o is string => Boolean(o))
@@ -90,16 +91,16 @@ async function buildServer() {
   });
 
   for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
-  logger.info('[+] Essential Directories loaded successfully!');
+  logger.success('[+] Essential Directories loaded successfully!');
 
   await fastify.register(prismaPlugin);
-  logger.info('[+] Prisma successfully!');
+  logger.success('[+] Prisma loaded successfully!');
   await fastify.register(auth);
-  logger.info('[+] Auth loaded successfully!');
+  logger.success('[+] Auth loaded successfully!');
 
   await fastify.register(routes, { prefix: '/api' });
   await fastify.register(uploadsHost);
-  logger.info('[+] Uploads Host loaded successfully!');
+  logger.success('[+] Uploads Host loaded successfully!');
 
   await fastify.register(cronPlugin);
 

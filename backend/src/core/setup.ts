@@ -14,7 +14,7 @@ export async function checkSetup() {
   else if (settings.lastSetupVersion == '0.14.2') {  }
   // add new lines for new versions i guess
 
-  else { logger.info('[+] App passed setup checks!') };
+  else { logger.success('[+] App passed setup checks!') };
 }
 
 async function runSetup() {
