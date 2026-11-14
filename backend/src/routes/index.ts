@@ -4,6 +4,7 @@ import authUsers from './Users/auth';
 import privateUsers from './Users/private';
 import publicUsers from './Users/public';
 import createPost from './Posts/create';
+import tagCategories from './Tags/categories';
 
 const logger = appLogger('Routes');
 
@@ -12,6 +13,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(privateUsers, { prefix: '/me' });
   fastify.register(publicUsers, { prefix: '/users' });
   fastify.register(createPost, { prefix: '/posts' });
+  fastify.register(tagCategories, { prefix: '/tag-categories' });
 
   logger.success('[+] API Routes Initialized!');
 };

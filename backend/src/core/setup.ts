@@ -38,6 +38,15 @@ async function runSetup() {
     data: { permissions: { connect: [{ name: 'administrator' }] } }
   });
 
+
+  // Create default tag category
+  await prisma.tagCategory.upsert({
+    where: { name: 'Generic' },
+    update: {},
+    create: { name: 'Generic', color: '#3c9aff', index: 0, isDefault: true }
+  });
+
+
   // Finally, log setup in Settings for future checks
   await prisma.serverSettings.upsert({
     where: { id: 1 },
