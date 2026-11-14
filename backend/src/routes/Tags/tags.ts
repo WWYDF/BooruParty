@@ -1,7 +1,7 @@
 import { appLogger } from "@/core/plugins/logger";
 import { prisma } from "@/core/plugins/prisma";
 import { requirePermission } from "@/core/utilities/permissionCache";
-import { getImpliedTags, normalizeTagName } from "@/core/utilities/tags";
+import { Db, getImpliedTags, normalizeTagName, resolveTagNames, wouldCreateCycle } from "@/core/utilities/tags";
 import { FastifyPluginAsync } from "fastify";
 import { Prisma } from "../../../prisma/client";
 import { HttpError } from '@/core/utilities/errors';
@@ -33,6 +33,24 @@ function shapeTagDetail({ implications, suggestions, names, ...tag }: TagDetailR
     suggestions: suggestions.map((s) => s.suggested),
   };
 }
+
+// Resolve names to existing tags, or throw a 400 listing what's wrong
+async function resolveExistingTags(names: string[], field: string, db: Db) {
+  const { tags, missing, invalid } = await resolveTagNames(names, db);
+
+  if (invalid.length) {
+    throw new HttpError(400, {
+      error: `Invalid ${field}`,
+      hint: invalid.map((i) => `"${i.input}": ${i.reason}`).join(' '),
+    });
+  }
+  if (missing.length) {
+    throw new HttpError(400, { error: `Unknown tags in ${field}`, hint: missing.join(', '), missing });
+  }
+
+  return tags;
+}
+
 
 
 const tags: FastifyPluginAsync = async (fastify) => {
@@ -228,6 +246,8 @@ const tags: FastifyPluginAsync = async (fastify) => {
           categoryId: { type: 'integer', minimum: 1 },
           description: { type: ['string', 'null'], maxLength: 4096 },
           aliases: { type: 'array', maxItems: 50, items: tagNameInputSchema },
+          implications: { type: 'array', maxItems: 50, items: tagNameInputSchema },
+          suggestions: { type: 'array', maxItems: 50, items: tagNameInputSchema },
         },
       },
     },
@@ -238,6 +258,8 @@ const tags: FastifyPluginAsync = async (fastify) => {
       categoryId?: number,
       description?: string | null,
       aliases?: string[],
+      implications?: string[],
+      suggestions?: string[],
     };
 
     const current = normalizeTagName(input);
@@ -306,6 +328,55 @@ const tags: FastifyPluginAsync = async (fastify) => {
         if (body.categoryId !== undefined) data.categoryId = body.categoryId;
         if (body.description !== undefined) data.description = body.description?.trim() || null;
         if (Object.keys(data).length) await tx.tag.update({ where: { id: tag.id }, data });
+
+        
+        // Implications: diff against current, remove first, cycle-check additions
+        if (body.implications !== undefined) {
+          const targets = await resolveExistingTags(body.implications, 'implications', tx);
+          const nameById = new Map(targets.map((t) => [t.id, t.name]));
+
+          const current = await tx.tagImplication.findMany({ where: { tagId: tag.id }, select: { impliedId: true } });
+          const currentIds = new Set(current.map((c) => c.impliedId));
+          const desiredIds = new Set(targets.map((t) => t.id));
+
+          const toRemove = [...currentIds].filter((id) => !desiredIds.has(id));
+          const toAdd = [...desiredIds].filter((id) => !currentIds.has(id));
+
+          await tx.tagImplication.deleteMany({ where: { tagId: tag.id, impliedId: { in: toRemove } } });
+
+          for (const impliedId of toAdd) {
+            if (await wouldCreateCycle(tag.id, impliedId, tx)) {
+              throw new HttpError(400, {
+                error: 'Implication loop',
+                hint: impliedId === tag.id
+                  ? 'A tag cannot imply itself'
+                  : `"${nameById.get(impliedId)}" already implies this tag (directly or through a chain)`,
+              });
+            }
+          }
+
+          await tx.tagImplication.createMany({ data: toAdd.map((impliedId) => ({ tagId: tag.id, impliedId })) });
+        }
+
+        // Suggestions: same diff, no chains, so no cycle check needed
+        if (body.suggestions !== undefined) {
+          const targets = await resolveExistingTags(body.suggestions, 'suggestions', tx);
+          if (targets.some((t) => t.id === tag.id)) {
+            throw new HttpError(400, { error: 'Invalid suggestions', hint: 'A tag cannot suggest itself' });
+          }
+
+          const current = await tx.tagSuggestion.findMany({ where: { tagId: tag.id }, select: { suggestedId: true } });
+          const currentIds = new Set(current.map((c) => c.suggestedId));
+          const desiredIds = new Set(targets.map((t) => t.id));
+
+          await tx.tagSuggestion.deleteMany({
+            where: { tagId: tag.id, suggestedId: { in: [...currentIds].filter((id) => !desiredIds.has(id)) } },
+          });
+          await tx.tagSuggestion.createMany({
+            data: [...desiredIds].filter((id) => !currentIds.has(id)).map((suggestedId) => ({ tagId: tag.id, suggestedId })),
+          });
+        }
+
 
         return tag.id;
       });
