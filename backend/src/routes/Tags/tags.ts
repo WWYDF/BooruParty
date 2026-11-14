@@ -20,6 +20,20 @@ const tagDetailInclude = {
   suggestions: { select: { suggested: { select: relatedTagSelect } } },
 } satisfies Prisma.TagInclude;
 
+
+type TagDetailRow = Prisma.TagGetPayload<{ include: typeof tagDetailInclude }>;
+
+// Ensure tags return with the same details across endpoints
+function shapeTagDetail({ implications, suggestions, names, ...tag }: TagDetailRow) {
+  return {
+    ...tag,
+    aliases: names.map((n) => n.name).filter((n) => n !== tag.name),
+    implications: implications.map((i) => i.implied),
+    suggestions: suggestions.map((s) => s.suggested),
+  };
+}
+
+
 const tags: FastifyPluginAsync = async (fastify) => {
 
   // Get a specific tag's info
@@ -46,10 +60,7 @@ const tags: FastifyPluginAsync = async (fastify) => {
     const { implications, suggestions, names, ...tag } = row.tag;
 
     return reply.status(200).send({
-      ...tag,
-      aliases: names.map((n) => n.name).filter((n) => n !== tag.name),
-      implications: implications.map((i) => i.implied),
-      suggestions: suggestions.map((s) => s.suggested),
+      ...shapeTagDetail(row.tag),
       allImplications: await getImpliedTags([tag.id]),
       matchedAlias: normalized.name !== tag.name ? normalized.name : null,
     });
