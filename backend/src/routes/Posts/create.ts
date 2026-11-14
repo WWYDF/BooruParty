@@ -9,6 +9,7 @@ import fs from "fs";
 import { PermissionName } from "@/core/objects/permissions";
 import { computePHash, findDuplicate } from "@/components/uploads/dedupe";
 import { generateThumbnails } from "@/components/uploads/thumbnails";
+import { generatePreview } from "@/components/uploads/previews";
 
 const logger = appLogger('Posts/Create');
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
@@ -54,6 +55,9 @@ const createPost: FastifyPluginAsync = async (fastify) => {
 
       // 5. Thumbnails
       await generateThumbnails(tempPath, detected.type, fileKey);
+
+      // 6. Preview
+      const preview = await generatePreview(tempPath, detected, fileKey);
 
 
       // ??. Extract remaining parameters
