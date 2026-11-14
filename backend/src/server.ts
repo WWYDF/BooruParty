@@ -1,6 +1,5 @@
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
-import * as dotenv from 'dotenv';
 import cors from '@fastify/cors'
 import fs from 'fs';
 import path from 'path';
@@ -12,8 +11,8 @@ import routes from './routes';
 import auth from './core/plugins/auth';
 import prismaPlugin from './core/plugins/prisma';
 import { checkSetup } from './core/setup';
+import 'dotenv/config';
 
-dotenv.config();
 const logger = appLogger('Server');
 
 const DIRECTORIES = [

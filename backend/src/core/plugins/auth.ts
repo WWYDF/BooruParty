@@ -8,7 +8,7 @@ import { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 export type AccessTokenPayload = {
   sub: string;      // User.id (never the username, since usernames can change)
   username: string;
-  roleId: number;
+  roleId: string;
 };
 
 export const TTL = '15m';
@@ -28,7 +28,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     secret,
     // Make req.jwtVerify() read the token from this cookie instead of the Authorization header.
     // signed: false because the JWT already carries its own signature.
-    cookie: { cookieName: 'bpauth', signed: false },
+    cookie: { cookieName: 'bpJWT', signed: false },
     sign: { expiresIn: TTL },
   });
 
