@@ -3,8 +3,9 @@ import { FastifyPluginAsync } from 'fastify';
 import { clearSessionCookies, createSession } from '@/core/utilities/sessions';
 import { appLogger } from '@/core/plugins/logger';
 import { emailSchema, passwordSchema, usernameSchema } from '@/core/objects/fastifySchemas';
-import { Prisma } from '../../../prisma/client';
+import { Prisma, Safety } from '../../../prisma/client';
 import bcrypt from 'bcrypt';
+import { rolePermissionCheck } from '@/core/utilities/permissionCache';
 
 const logger = appLogger('Users/Private');
 
@@ -101,6 +102,41 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
       return reply.status(500).send({ error: 'Something went wrong' });
     }
   });
-};
+
+  // Edit Preferences
+  fastify.patch('/preferences', {
+    schema: {
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        minProperties: 1,
+        properties: {
+          blurUnsafeEmbeds: { type: 'boolean' },
+          defaultSafety: { type: 'string', enum: Object.values(Safety) },
+          profileBackground: { type: ['integer', 'null'], minimum: 1 },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const data = req.body as {
+      blurUnsafeEmbeds?: boolean,
+      defaultSafety?: Safety,
+      profileBackground?: number | null,
+    };
+
+    // Changing the background needs its own permission
+    if (data.profileBackground !== undefined && !rolePermissionCheck(req.user.roleId, 'profile.edit.background')) {
+      return reply.status(403).send({ error: 'Forbidden', hint: "Missing permission: profile.edit.background" });
+    }
+
+    const prefs = await prisma.preferences.upsert({
+      where: { userId: req.user.sub },
+      update: data,
+      create: { userId: req.user.sub, ...data }
+    });
+
+    return reply.status(200).send(prefs);
+  }
+)};
 
 export default privateUsers;

@@ -49,6 +49,7 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
           username,
           passHash,
           roleId: defaultRole.id,
+          preferences: { create: {} }
         },
         include: { role: true },
         omit: { passHash: true } // don't return their passHash lol
