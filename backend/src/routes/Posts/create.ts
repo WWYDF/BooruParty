@@ -56,8 +56,7 @@ const createPost: FastifyPluginAsync = async (fastify) => {
           hint: resolvedTags.invalid.map((i) => `"${i.input}": ${i.reason}`).join(' '),
         });
       }
-      const canCreateTags = rolePermissionCheck(req.user.roleId, 'tags.create');
-      if (resolvedTags.missing.length && !canCreateTags) {
+      if (resolvedTags.missing.length) {
         return reply.status(400).send({
           error: 'Unknown tags',
           hint: `These tags don't exist: ${resolvedTags.missing.join(', ')}`,
@@ -101,28 +100,13 @@ const createPost: FastifyPluginAsync = async (fastify) => {
 
       // 10. Save the post and its tags together
       const post = await prisma.$transaction(async (tx) => {
-        // Resolve again: tags may have been created, deleted, or merged while we were processing
+        // Resolve again: tags may have been deleted or merged while we were processing
         const { tags: found, missing } = await resolveTagNames(tags, tx);
-
-        let created: { id: number }[] = [];
         if (missing.length) {
-          if (!canCreateTags) {
-            throw new HttpError(400, { error: 'Unknown tags', hint: `These tags don't exist: ${missing.join(', ')}`, missing });
-          }
-
-          const fallback = await tx.tagCategory.findFirst({ where: { isDefault: true }, select: { id: true } });
-          if (!fallback) throw new Error('No default tag category exists');
-
-          created = await tx.tag.createManyAndReturn({
-            data: missing.map((name) => ({ name, categoryId: fallback.id })),
-            select: { id: true, name: true },
-          });
-          await tx.tagName.createMany({
-            data: (created as { id: number, name: string }[]).map((t) => ({ name: t.name, tagId: t.id })),
-          });
+          throw new HttpError(400, { error: 'Unknown tags', hint: `These tags don't exist: ${missing.join(', ')}`, missing });
         }
 
-        const tagIds = [...found, ...created].map((t) => t.id);
+        const tagIds = found.map((t) => t.id);
 
         const post = await tx.post.create({
           data: {
