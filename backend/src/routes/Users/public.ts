@@ -1,7 +1,8 @@
 import { FastifyPluginAsync } from 'fastify';
 import { appLogger } from '@/core/plugins/logger';
 import { prisma } from '@/core/plugins/prisma';
-import { publicUserSelect } from '@/core/objects/userSelects';
+import { userProfileSelect, userSummarySelect } from '@/core/objects/userSelects';
+import { Prisma } from '../../../prisma/client';
 
 const logger = appLogger('Users/Public');
 
@@ -21,12 +22,62 @@ const publicUsers: FastifyPluginAsync = async (fastify) => {
 
     const user = await prisma.user.findUnique({
       where: { username },
-      select: publicUserSelect
+      select: userProfileSelect
     });
 
     if (!user) { return reply.status(404).send({ error: 'Not Found', hint: "No user with that username" }) };
 
     return reply.status(200).send(user);
+  });
+
+  // View a page of users
+  fastify.get('/', {
+    schema: {
+      querystring: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          page: { type: 'integer', minimum: 1, default: 1 },
+          limit: { type: 'integer', minimum: 1, maximum: 100, default: 25 },
+          search: { type: 'string', maxLength: 32 },
+          sort: { type: 'string', enum: ['newest', 'oldest', 'username'], default: 'newest' },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { page, limit, search, sort } = req.query as {
+      page: number,
+      limit: number,
+      search?: string,
+      sort: 'newest' | 'oldest' | 'username',
+    };
+
+    const where: Prisma.UserWhereInput = search ? { username: { contains: search } } : {};
+    const orderBy: Prisma.UserOrderByWithRelationInput[] = 
+      sort === 'username' ? [{ username: 'asc' }]
+      : sort === 'oldest' ? [{ updatedAt: 'asc' }, { id: 'asc' }]
+      : [{ updatedAt: 'desc' }, { id: 'desc' }]
+    
+    const [users, total] = await prisma.$transaction([
+      prisma.user.findMany({
+        where,
+        orderBy,
+        select: userSummarySelect,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return reply.status(200).send({
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+      users,
+    })
   });
 };
 

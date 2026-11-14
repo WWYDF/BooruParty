@@ -46,8 +46,10 @@ model User {
   role                    Role                      @relation(fields: [roleId], references: [id])
 
   private                 Boolean                   @default(false)
-  lastLogin               DateTime                  @default(now())
+
+  lastSeen                String?                   // pair with updatedAt
   updatedAt               DateTime                  @updatedAt
+  lastLogin               DateTime                  @default(now())
   createdAt               DateTime                  @default(now())
 }
 
