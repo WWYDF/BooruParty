@@ -1,0 +1,22 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// This replaces the old version of using environment variables for system settings
+// Each line has its own unique ID for the setting rather than each setting being a column of 1 line
+// IDs should be all UPPERCASE with UNDERSCORES instead of spaces
+model ServerSetting {
+  id                      String                    @id @unique // "e.g. SITE_TITLE"
+}

@@ -1,14 +1,13 @@
 import fp from 'fastify-plugin';
 import cron from 'node-cron';
 import { FastifyPluginAsync } from 'fastify';
-import { updateSpaceUsed } from '../cronjobs/serverSize';
+import { appLogger } from './logger';
+
+const logger = appLogger('Cron');
 
 const cronPlugin: FastifyPluginAsync = async (fastify) => {
-  
-  // [ServerSize] Every 3 hours
-  cron.schedule('0 */3 * * *', async () => {
-    await updateSpaceUsed();
-  });
+
+  logger.info('[+] Cronjobs Initialized!');
 };
 
 export default fp(cronPlugin);
