@@ -133,6 +133,16 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
     await createSession(req, reply, { sub: user.id, username: user.username, roleId: user.roleId });
     return reply.status(200).send(user);
   });
+
+
+  // Logging out
+  fastify.post('/logout', async (req, reply) => {
+    const token = req.cookies.bpRFT;
+    if (token) { await prisma.session.deleteMany({ where: { tokenHash: hashToken(token) } }) };
+
+    clearSessionCookies(reply);
+    return reply.status(204).send();
+  });
 };
 
 export default authUsers;
