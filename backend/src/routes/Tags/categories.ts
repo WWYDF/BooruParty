@@ -144,7 +144,50 @@ const tagCategories: FastifyPluginAsync = async (fastify) => {
       logger.error('Failed to update category', e);
       return reply.status(500).send({ error: 'Something went wrong' });
     }
-  })
+  });
+
+  // Delete a category; its tags move to the default category
+  fastify.delete('/:id', {
+    onRequest: canManage,
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer', minimum: 1 } },
+      },
+    },
+  }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const category = await tx.tagCategory.findUnique({ where: { id } });
+        if (!category) return { status: 404 as const };
+        if (category.isDefault) return { status: 409 as const }; // cannot delete default category
+
+        const fallback = await tx.tagCategory.findFirst({ where: { isDefault: true } });
+        if (!fallback) throw new Error('No default tag category exists');
+
+        // Move category's tags to default category
+        const moved = await tx.tag.updateMany({
+          where: { categoryId: id },
+          data: { categoryId: fallback.id },
+        });
+
+        await tx.tagCategory.delete({ where: { id } });
+
+        return { status: 200 as const, movedTags: moved.count, movedTo: fallback.id };
+      });
+
+      if (result.status === 404) return reply.status(404).send({ error: 'Category not found' });
+      if (result.status === 409) return reply.status(409).send({ error: 'Conflict', hint: 'Cannot delete the default category. Make another category the default first.' });
+
+      return reply.status(200).send({ movedTags: result.movedTags, movedTo: result.movedTo });
+    } catch (e) {
+      logger.error('Failed to delete category', e);
+      return reply.status(500).send({ error: 'Something went wrong' });
+    }
+  });
 }
 
 export default tagCategories;
