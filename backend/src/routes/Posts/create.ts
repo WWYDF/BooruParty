@@ -14,6 +14,7 @@ import { probeVideo } from "@/components/uploads/video";
 import { getField, parseUploadFields } from "@/components/uploads/fields";
 import { discardFiles, getAspectRatio, moveIntoPlace } from "@/components/uploads/finalize";
 import { prisma } from "@/core/plugins/prisma";
+import { withAssetUrls } from "@/core/utilities/reformatters";
 
 const logger = appLogger('Posts/Create');
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
@@ -102,7 +103,7 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       });
 
       keepFiles = true; // tell finally() to keep the post's files. we're done :)
-      return reply.status(201).send(post);
+      return reply.status(201).send(withAssetUrls(post, ['originalPath', 'previewPath']));
     } catch (e) {
       logger.error('Upload failed', e);
       return reply.status(500).send({ error: 'Upload failed' });
