@@ -10,6 +10,8 @@ import { LEGIBLE_VERSION } from './core/version';
 import cronPlugin from './core/plugins/cron';
 import routes from './routes';
 import auth from './core/plugins/auth';
+import prismaPlugin from './core/plugins/prisma';
+import { checkSetup } from './core/setup';
 
 dotenv.config();
 const logger = appLogger('Server');
@@ -29,6 +31,7 @@ const DIRECTORIES = [
 
 async function buildServer() {
   console.clear();
+  const PORT = Number(process.env.API_PORT || 3070);
   const fastify = Fastify({
       logger: {
         level: 'warn', // Only logs 'warn', 'error', 'fatal'
@@ -52,12 +55,9 @@ async function buildServer() {
   await fastify.register(routeLogger);
   logger.info('[+] Logger loaded successfully!');
 
-  // Comma-separated list of frontend origins allowed to make credentialed (cookie) requests.
-  // e.g. ALLOWED_ORIGINS=http://localhost:3000,https://booru.example.com
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
-    .split(',')
-    .map((o) => o.trim().replace(/\/+$/, '')) // origins never have a trailing slash
-    .filter(Boolean);
+  const allowedOrigins = [process.env.FRONTEND_URL, `http://localhost:${PORT}`, 'http://localhost:3069']
+    .filter((o): o is string => Boolean(o))
+    .map((o) => o.trim().replace(/\/+$/, '')); // origins never have a trailing slash
 
   if (allowedOrigins.length === 0) {
     logger.warn('[!] ALLOWED_ORIGINS is not set! Browsers will be blocked from using the API.');
@@ -74,11 +74,15 @@ async function buildServer() {
   for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
   logger.info('[+] Essential Directories loaded successfully!');
 
+  await fastify.register(prismaPlugin);
+  logger.info('[+] Auth loaded successfully!');
   await fastify.register(auth);
   logger.info('[+] Auth loaded successfully!');
-  
+
   await fastify.register(routes, { prefix: '/api' });
   await fastify.register(cronPlugin);
+
+  await checkSetup();
 
   // Autorun on Startup
   console.log(' ');
@@ -97,7 +101,7 @@ async function start() {
 
   try {
     // Activate Server
-    const PORT = Number(process.env.PORT || 3005);
+    const PORT = Number(process.env.API_PORT || 3070);
     await server.listen({ port: PORT, host: '0.0.0.0' });
     console.log('');
     console.log(chalk.greenBright(`[>] Server Startup Completed. (${LEGIBLE_VERSION})`));

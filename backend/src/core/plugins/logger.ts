@@ -44,27 +44,28 @@ const routeLogger: FastifyPluginAsync = async (fastify) => {
 export default fp(routeLogger);
 
 
-export type LogLevel = 'verbose' | 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = 'verbose' | 'debug' | 'info' | 'success' | 'warn' | 'error';
 
 
 export function appLogger(
   name: string,
   minLevel: LogLevel = (process.env.LOG_LEVEL?.toLowerCase() as LogLevel) || 'debug'
 ) {
-  const levels: LogLevel[] = ['verbose', 'debug', 'info', 'warn', 'error']
+  const levels: LogLevel[] = ['verbose', 'debug', 'info', 'success', 'warn', 'error']
   const levelColor: Record<LogLevel, (txt: string) => string> = {
     verbose: chalk.magenta,
     debug: chalk.gray,
     info: chalk.cyan,
     warn: chalk.yellow,
     error: chalk.red,
+    success: chalk.green,
   }
 
   const minIndex = levels.indexOf(minLevel)
 
-  const paddedPrefix = `[${name}]`.padEnd(20)
+  const paddedPrefix = `[${name}]`.padEnd(16)
   const formatLevel = (level: LogLevel) => {
-    const raw = `[${level.toUpperCase()}]`.padEnd(8)
+    const raw = `[${level.toUpperCase()}]`.padEnd(12)
     return levelColor[level](raw)
   }
 
@@ -89,6 +90,7 @@ export function appLogger(
     verbose: (msg: any, ...a: any[]) => log('verbose', msg, ...a),
     debug:   (msg: any, ...a: any[]) => log('debug',   msg, ...a),
     info:    (msg: any, ...a: any[]) => log('info',    msg, ...a),
+    success: (msg: any, ...a: any[]) => log('success', msg, ...a),
     warn:    (msg: any, ...a: any[]) => log('warn',    msg, ...a),
     error:   (msg: any, ...a: any[]) => log('error',   msg, ...a),
   }

@@ -15,10 +15,9 @@ datasource db {
 }
 
 // This replaces the old version of using environment variables for system settings
-// Each line has its own unique ID for the setting rather than each setting being a column of 1 line
-// IDs should be all UPPERCASE with UNDERSCORES instead of spaces
-model ServerSetting {
-  id                      String                    @id @unique // "e.g. SITE_TITLE"
+model ServerSettings {
+  id                      Int                       @id @default(1)
+  lastSetupVersion        String?
 }
 
 model Session {
@@ -40,7 +39,7 @@ model User {
   passHash                String
   sessions                Session[]
 
-  roleId                  Int
+  roleId                  String
   role                    Role                      @relation(fields: [roleId], references: [id])
 
   lastLogin               DateTime                  @default(now())
@@ -49,7 +48,7 @@ model User {
 }
 
 model Role {
-  id                      Int                       @id @default(autoincrement())
+  id                      String                    @id @default(uuid())
   name                    String                    @unique
   index                   Int
   users                   User[]
@@ -60,8 +59,6 @@ model Role {
 
 model Permission {
   name                    String                    @id @unique
-  description             String?
-
   roles                   Role[]                    @relation("RolePermissions")
   createdAt               DateTime                  @default(now())
 }
