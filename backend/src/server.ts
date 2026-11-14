@@ -74,7 +74,7 @@ async function buildServer() {
   logger.info('[+] Essential Directories loaded successfully!');
 
   await fastify.register(prismaPlugin);
-  logger.info('[+] Auth loaded successfully!');
+  logger.info('[+] Prisma successfully!');
   await fastify.register(auth);
   logger.info('[+] Auth loaded successfully!');
 

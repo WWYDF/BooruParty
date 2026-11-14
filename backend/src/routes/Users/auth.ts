@@ -4,7 +4,6 @@ import { clearSessionCookies, createSession, hashToken } from '@/core/utilities/
 import bcrypt from 'bcrypt';
 import { appLogger } from '@/core/plugins/logger';
 import { Prisma } from '../../../prisma/client';
-import crypto from "crypto";
 
 const logger = appLogger('Auth');
 const DUMMY_HASH = '$2b$12$ekdKhFYGe/WzS9ICFt7imOGAHL56bdhKH8jAVySfiU.20YrrUBgWa';
