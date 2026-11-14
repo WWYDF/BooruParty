@@ -15,6 +15,7 @@ import prismaPlugin from './core/plugins/prisma';
 import { checkSetup } from './core/setup';
 import { loadRolePermissions } from './core/utilities/permissionCache';
 import sharp from 'sharp';
+import { initializeEncoder } from './components/uploads/encoders';
 
 sharp.cache(false);
 const logger = appLogger('Server');
@@ -101,6 +102,7 @@ async function buildServer() {
   // Autorun on Startup
   await checkSetup(); // make sure server has been setup
   await loadRolePermissions(); // load role permissions into memory
+  await initializeEncoder(); // Pick and validate an encoder for video previews
   
   console.log(' ');
   return fastify;

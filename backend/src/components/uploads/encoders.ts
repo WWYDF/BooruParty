@@ -68,6 +68,8 @@ export async function initializeEncoder() {
     return;
   }
 
+  logger.warn('[~] Picking a valid encoder for video previews. Please wait...');
+
   // Exact encoder requested? Use it if it works.
   const override = process.env.ENCODER_OVERRIDE?.trim();
   if (override) {
