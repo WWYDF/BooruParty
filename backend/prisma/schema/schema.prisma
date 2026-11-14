@@ -106,6 +106,7 @@ model Post {
   dupeBypass              Boolean                   @default(false)
 
   // Relationals
+  tags                    PostTag[]
   score                   Int                       @default(0) // Votes API calculates this on change
   // votes
   // comments
@@ -141,6 +142,12 @@ model Tag {
   categoryId              Int
   category                TagCategory               @relation(fields: [categoryId], references: [id]) // category deletion handles tag migration
 
+  posts                   PostTag[]
+  implications            TagImplication[]          @relation("TagImplies")     // tags this tag implies
+  impliedBy               TagImplication[]          @relation("TagImpliedBy")   // tags that imply this tag
+  suggestions             TagSuggestion[]           @relation("TagSuggests")
+  suggestedBy             TagSuggestion[]           @relation("TagSuggestedBy")
+
   postCount               Int                       @default(0)
 
   updatedAt               DateTime                  @updatedAt
@@ -153,4 +160,34 @@ model TagName {
   tag                     Tag                       @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@index([tagId])
+}
+
+model PostTag {
+  postId                  Int
+  post                    Post                      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tagId                   Int
+  tag                     Tag                       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+model TagImplication {
+  tagId                   Int                       // this tag...
+  tag                     Tag                       @relation("TagImplies", fields: [tagId], references: [id], onDelete: Cascade)
+  impliedId               Int                       // ...implies this one
+  implied                 Tag                       @relation("TagImpliedBy", fields: [impliedId], references: [id], onDelete: Cascade)
+
+  @@id([tagId, impliedId])
+  @@index([impliedId])
+}
+
+model TagSuggestion {
+  tagId                   Int
+  tag                     Tag                       @relation("TagSuggests", fields: [tagId], references: [id], onDelete: Cascade)
+  suggestedId             Int
+  suggested               Tag                       @relation("TagSuggestedBy", fields: [suggestedId], references: [id], onDelete: Cascade)
+
+  @@id([tagId, suggestedId])
+  @@index([suggestedId])
 }
