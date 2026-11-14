@@ -396,6 +396,51 @@ const tags: FastifyPluginAsync = async (fastify) => {
       return reply.status(500).send({ error: 'Something went wrong' });
     }
   });
+
+  // Delete a tag. Must be addressed by its primary name, not an alias.
+  fastify.delete('/:name', {
+    onRequest: [fastify.authenticate, requirePermission('tags.delete')],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['name'],
+        properties: { name: tagNameInputSchema },
+      },
+    },
+  }, async (req, reply) => {
+    const { name: input } = req.params as { name: string };
+
+    const normalized = normalizeTagName(input);
+    if (!normalized.ok) return reply.status(404).send({ error: 'Tag not found' });
+
+    const row = await prisma.tagName.findUnique({
+      where: { name: normalized.name },
+      select: { tag: { select: { id: true, name: true, _count: { select: { posts: true } } } } },
+    });
+    if (!row) return reply.status(404).send({ error: 'Tag not found' });
+
+    // DELETE /tags/pkmn must not silently delete "pokemon"
+    if (row.tag.name !== normalized.name) {
+      return reply.status(400).send({
+        error: 'Cannot delete an alias',
+        hint: `"${normalized.name}" is an alias of "${row.tag.name}". Edit "${row.tag.name}" to remove the alias.`,
+      });
+    }
+
+    try {
+      await prisma.tag.delete({ where: { id: row.tag.id } });
+    } catch (e) {
+      // Someone else deleted (or merged) it between our lookup and now
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+        return reply.status(404).send({ error: 'Tag not found' });
+      }
+      logger.error('Failed to delete tag', e);
+      return reply.status(500).send({ error: 'Something went wrong' });
+    }
+
+    return reply.status(200).send({ deleted: row.tag.name, removedFromPosts: row.tag._count.posts });
+  });
+
 }
 
 export default tags;
