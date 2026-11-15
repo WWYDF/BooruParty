@@ -12,15 +12,8 @@ interface PostCardProps {
   toggleSelect?: (postId: number, e: React.MouseEvent) => void;
 }
 
-const fastify = process.env.NEXT_PUBLIC_FASTIFY;
-
 export default function PostCard({ post, viewMode, selectionMode, isSelected, toggleSelect }: PostCardProps) {
-  const thumbnailUrl = `${fastify}/data/thumbnails/${post.id}`;
-  // Assume post.fileExt tells us if it's a gif or video
-  const isAnimated = post.fileExt === "gif" || post.fileExt === "mp4" || post.fileExt === "webm";
-
-  const liked = post.votes?.some(v => v.type === 'UPVOTE');
-  const faved = post.favoritedBy?.length > 0;
+  const isAnimated = post.type !== 'IMAGE';
 
   return (
     <Link
@@ -53,10 +46,10 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
         {viewMode === 'GRID' ? (
           <div className="aspect-square">
             <picture>
-              {/* <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1920px)" /> */}
-              <source srcSet={`${thumbnailUrl}_med.webp`} media="(min-width: 1024px)" />
+              <source srcSet={post.thumbnails.large} media="(min-width: 1280px)" />
+              <source srcSet={post.thumbnails.med} media="(min-width: 768px)" />
               <img
-                srcSet={`${thumbnailUrl}_small.webp`}
+                srcSet={post.thumbnails.small}
                 alt={post.id.toString()}
                 className="w-full h-full object-cover"
               />
@@ -64,10 +57,10 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
           </div>
         ) : (
           <picture>
-            {/* <source srcSet={`${thumbnailUrl}_large.webp`} media="(min-width: 1920px)" /> */}
-            <source srcSet={`${thumbnailUrl}_med.webp`} media="(min-width: 1024px)" />
+            <source srcSet={post.thumbnails.large} media="(min-width: 1280px)" />
+            <source srcSet={post.thumbnails.med} media="(min-width: 768px)" />
             <img
-              srcSet={`${thumbnailUrl}_small.webp`}
+              srcSet={post.thumbnails.small}
               alt={post.id.toString()}
               className="w-full object-cover"
             />
@@ -83,7 +76,7 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
           )}
         </div>
 
-        <div className="absolute bottom-2 right-2 flex items-center gap-2">
+        {/* <div className="absolute bottom-2 right-2 flex items-center gap-2">
           {post.comments?.length > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
               <ChatsIcon size={16} className="text-yellow-500" weight="bold" />
@@ -111,7 +104,7 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
               <span>{post._count?.boosts}</span>
             </div>
           )}
-        </div>
+        </div> */}
       </div>
     </Link>
   );

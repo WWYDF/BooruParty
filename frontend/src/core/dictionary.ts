@@ -5,7 +5,7 @@ export const ALLOWED_EXTENSIONS = [
   'mp4', 'webm', 'mov', 'avi', 'mkv', 'quicktime'
 ];
 
-export type FileTypes = 'image' | 'animated' | 'video';
+export type FileType = 'IMAGE' | 'ANIMATED' | 'VIDEO';
 
 export const DISALLOWED_USERNAMES = [
   "admin",

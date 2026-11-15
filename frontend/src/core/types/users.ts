@@ -1,4 +1,4 @@
-import { SafetyType, User } from "@prisma/client"
+import { Safety } from "./posts"
 import { Tag } from "./tags"
 
 // Contains sensitive information, be careful!
@@ -15,7 +15,7 @@ export type UserSelf = {
     theme: 'DARK' | 'LIGHT',
     postsPerPage: number,
     blurUnsafeEmbeds: boolean,
-    defaultSafety: SafetyType[],
+    defaultSafety: Safety[],
     blacklistedTags: Tag[],
     flipNavigators: boolean,
     profileBackground: number,
@@ -45,7 +45,7 @@ export type UserPublic = {
     theme: 'DARK' | 'LIGHT',
     postsPerPage: number,
     blurUnsafeEmbeds: boolean,
-    defaultSafety: SafetyType[],
+    defaultSafety: Safety[],
     blacklistedTags: Tag[],
     favoriteTags: Tag[],
     profileBackground: number,
@@ -126,4 +126,19 @@ export type LocalUserPreferences = {
   theme: 'DARK' | 'LIGHT',
   postsPerPage: number,
   flipNavigators: boolean,
+}
+
+// Public Stuff
+export type UserSimpleSummary = {
+  id: string,
+  username: string,
+  private: boolean,
+  lastSeen: string | null, // like last activity (e.g. "viewing post #33")
+  updatedAt: Date,
+  createdAt: Date,
+  role: {
+    name: string,
+    color: string,
+    index: number,
+  }
 }
