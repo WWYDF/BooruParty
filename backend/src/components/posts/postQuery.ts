@@ -1,4 +1,4 @@
-import { NumberFilter, ParsedQuery, Wildcard } from '@/core/utilities/search';
+import { NumberFilter, ParsedQuery, SortOrder, Wildcard } from '@/core/utilities/search';
 import { Prisma } from '../../../prisma/client';
 import { resolveTagNames } from '@/core/utilities/tags';
 import { effectiveSafety, Viewer } from '@/core/utilities/viewer';
@@ -23,6 +23,27 @@ function wildcardCondition(wc: Wildcard): Prisma.PostTagWhereInput {
   return { tag: { name: { [wc.kind]: wc.value } } };
 }
 
+// Cursor = the last post's sort values: "500" for id orders, "15_500" (score_id) for score order
+export function encodeCursor(order: SortOrder, post: { id: number, score: number }): string {
+  return order === 'score' ? `${post.score}_${post.id}` : String(post.id);
+}
+
+// Condition for "rows after this cursor" in the given order, or null if the cursor is malformed
+export function cursorCondition(order: SortOrder, cursor: string): Prisma.PostWhereInput | null {
+  if (order === 'score') {
+    const m = /^(-?\d+)_(\d+)$/.exec(cursor);
+    if (!m) return null;
+    const score = Number(m[1]);
+    const id = Number(m[2]);
+    return { OR: [{ score: { lt: score } }, { score, id: { lt: id } }] };
+  }
+
+  if (!/^\d+$/.test(cursor)) return null;
+  const id = Number(cursor);
+  return order === 'oldest' ? { id: { gt: id } } : { id: { lt: id } };
+}
+
+// Build List Posts Query
 export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<PostQuery> {
   // Resolve all three tag lists in parallel (aliases -> real tags)
   const [inc, exc, any] = await Promise.all([
