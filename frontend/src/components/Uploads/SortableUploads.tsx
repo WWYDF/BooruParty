@@ -1,5 +1,6 @@
 'use client'
 
+import { Safety } from '@/core/types/posts'
 import { XCircle } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 
@@ -9,8 +10,8 @@ type Props = {
   preview: string
   name: string
   isUploading?: boolean
-  safety: 'SAFE' | 'SKETCHY' | 'UNSAFE'
-  onSafetyChange: (safety: 'SAFE' | 'SKETCHY' | 'UNSAFE') => void
+  safety: Safety
+  onSafetyChange: (safety: Safety) => void
   onMove: (index: number, direction: 'up' | 'down') => void
   isFirst: boolean
   isLast: boolean
@@ -20,12 +21,12 @@ type Props = {
 
 const safetyOptions: {
   label: string
-  value: 'SAFE' | 'SKETCHY' | 'UNSAFE'
+  value: Safety
   color: string
 }[] = [
   { label: 'Safe', value: 'SAFE', color: 'bg-green-800' },
-  { label: 'Sketchy', value: 'SKETCHY', color: 'bg-yellow-800' },
-  { label: 'Unsafe', value: 'UNSAFE', color: 'bg-red-600' },
+  { label: 'Question', value: 'QUESTIONABLE', color: 'bg-yellow-800' }, // shortened to fit the 200px toggle
+  { label: 'Explicit', value: 'EXPLICIT', color: 'bg-red-600' },
 ]
 
 export default function SortableUploads({
