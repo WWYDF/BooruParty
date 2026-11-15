@@ -20,6 +20,9 @@ datasource db {
 model ServerSettings {
   id                      Int                       @id @default(1)
   lastSetupVersion        String?
+  
+  guestAccess             Boolean                   @default(false)
+  guestSafety             Safety[]                  @default([SAFE])
 }
 
 model Session {

@@ -1,0 +1,36 @@
+import { Prisma } from "../../../../prisma/client";
+
+// Fields anyone can see about a user: comments, post uploaders, lists
+export const userSummarySelect = {
+  id: true,
+  username: true,
+  private: true,
+  lastSeen: true,
+  updatedAt: true,
+  createdAt: true,
+  role: { select: { name: true, color: true, index: true } },
+} satisfies Prisma.UserSelect;
+
+// A tag as it appears on a post or in a list: enough to render a colored chip
+export const tagSummarySelect = {
+  id: true,
+  name: true,
+  categoryId: true,
+} satisfies Prisma.TagSelect;
+
+// A post as it appears in a feed grid: enough to render a thumbnail card
+export const postSummarySelect = {
+  id: true,
+  type: true,
+  safety: true,
+  fileKey: true,      // thumbnail URLs are derived from this
+  aspectRatio: true,
+  duration: true,
+  hasAudio: true,
+  score: true,
+  createdAt: true,
+} satisfies Prisma.PostSelect;
+
+export type UserSummary = Prisma.UserGetPayload<{ select: typeof userSummarySelect }>;
+export type TagSummary  = Prisma.TagGetPayload<{ select: typeof tagSummarySelect }>;
+export type PostSummary = Prisma.PostGetPayload<{ select: typeof postSummarySelect }>;

@@ -1,8 +1,9 @@
 import { FastifyPluginAsync } from 'fastify';
 import { appLogger } from '@/core/plugins/logger';
 import { prisma } from '@/core/plugins/prisma';
-import { userProfileSelect, userSummarySelect } from '@/core/objects/userSelects';
+import { userProfileSelect } from '@/core/objects/selects/users';
 import { Prisma } from '../../../prisma/client';
+import { userSummarySelect } from '@/core/objects/selects/summaries';
 
 const logger = appLogger('Users/Public');
 
