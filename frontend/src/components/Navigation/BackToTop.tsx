@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CaretUp } from "phosphor-react"; // ✅ phosphor-react!
+import { CaretUpIcon } from "@phosphor-icons/react";
 
 export default function BackToTop() {
   const [show, setShow] = useState(false);
@@ -28,7 +28,7 @@ export default function BackToTop() {
                      w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16"
           aria-label="Back to top"
         >
-          <CaretUp
+          <CaretUpIcon
             weight="bold"
             className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7"
           />

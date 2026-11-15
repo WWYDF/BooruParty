@@ -4,6 +4,7 @@ import { formatStorageFromMB } from '@/core/formats';
 import { LEGIBLE_VERSION } from '@/core/constants/version';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { API } from '@/core/api';
 
 export default function Footer() {
   const [storage, setStorage] = useState<string | null>(null);
@@ -14,10 +15,10 @@ export default function Footer() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/system/stats');
+        const res = await API('/api/system/stats', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
         const data = await res.json();
-        setStorage(formatStorageFromMB(data.totalMB));
-        setPostCount(data.totalPosts);
+        setStorage(formatStorageFromMB(data.megaBytesUsed));
+        setPostCount(data.postCount);
       } catch (err) {
         console.error('Failed to fetch system stats:', err);
       }
