@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import { URL } from 'url';
 
-const fastifyUrl = process.env.NEXT_PUBLIC_FASTIFY || 'http://localhost:3005';
+const fastifyUrl = process.env.NEXT_PUBLIC_FASTIFY || 'http://localhost:3070';
 const { hostname, port, protocol } = new URL(fastifyUrl);
 const nextjs = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3069');
 const parsedProtocol = protocol.replace(':', '') as 'http' | 'https';
@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '3005',
+        port: '3070',
         pathname: '/data/**',
       },
     ],
