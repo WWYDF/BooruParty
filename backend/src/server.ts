@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import Fastify from 'fastify';
+import Fastify, { FastifyError } from 'fastify';
 import multipart from '@fastify/multipart';
 import cors from '@fastify/cors'
 import fs from 'fs';
@@ -17,6 +17,7 @@ import { loadRolePermissions } from './core/utilities/permissionCache';
 import sharp from 'sharp';
 import { initializeEncoder } from './components/uploads/encoders';
 import uploadsHost from './core/plugins/uploads';
+import { STATUS_CODES } from 'http';
 
 sharp.cache(false);
 const logger = appLogger('Server');
@@ -88,6 +89,17 @@ async function buildServer() {
     origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
+
+  fastify.setErrorHandler<FastifyError>((err, req, reply) => {
+    const status = err.statusCode ?? 500;
+
+    if (status >= 500) {
+      logger.error(err);
+      return reply.status(500).send({ error: 'Internal Server Error', hint: 'Contact the server administrator' });
+    }
+
+    return reply.status(status).send({ error: STATUS_CODES[status] ?? 'Error', hint: err.message });
   });
 
   for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
