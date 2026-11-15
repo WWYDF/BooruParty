@@ -28,8 +28,12 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
 
     const post = await prisma.post.findUnique({ where: { id }, select: postDetailSelect });
 
+    // Hidden posts look the same as missing ones
+    const hiddenBySafety  = post && viewer.safetyIsCap && !viewer.safety.includes(post.safety);
+    const hiddenByPrivacy = post && post.uploader.private && !viewer.canSeePrivate && post.uploader.id !== viewer.userId;
+
     // Guests are capped by guestSafety. A hidden post looks the same as a missing one.
-    if (!post || (viewer.safetyIsCap && !viewer.safety.includes(post.safety))) {
+    if (!post || hiddenBySafety || hiddenByPrivacy) {
       return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
     }
 

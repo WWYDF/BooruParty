@@ -110,6 +110,7 @@ model Post {
 
   // Relationals
   tags                    PostTag[]
+  tagCount                Int                       @default(0) // Posts API calculates this on change
   score                   Int                       @default(0) // Votes API calculates this on change
   // votes
   // comments

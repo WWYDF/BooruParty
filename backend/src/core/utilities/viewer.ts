@@ -11,6 +11,7 @@ export type Viewer = {
   canView: boolean, // may this viewer see posts at all?
   safety: Safety[], // ratings shown when the search doesn't specify any
   safetyIsCap: boolean, // guests: search may arrow this, but never expand it
+  canSeePrivate: boolean, // only admins have this for moderation purposes
 }
 
 // Must run after fastify.identify
@@ -28,6 +29,7 @@ export async function getViewer(req: FastifyRequest): Promise<Viewer> {
       canView: settings?.guestAccess ?? false,
       safety: settings?.guestSafety ?? [Safety.SAFE],
       safetyIsCap: true,
+      canSeePrivate: false,
     };
   };
 
@@ -42,6 +44,7 @@ export async function getViewer(req: FastifyRequest): Promise<Viewer> {
     canView: rolePermissionCheck(req.user.roleId, 'posts.view'),
     safety: prefs?.defaultSafety ?? [Safety.SAFE],
     safetyIsCap: false,
+    canSeePrivate: rolePermissionCheck(req.user.roleId, 'administrator'),
   };
 }
 

@@ -125,6 +125,7 @@ const createPost: FastifyPluginAsync = async (fastify) => {
             hasAudio: videoInfo?.hasAudio ?? false,
             pHash,
             dupeBypass,
+            tagCount: tagIds.length,
             tags: { create: tagIds.map((tagId) => ({ tagId })) },
           },
           include: { tags: { select: { tag: { select: { id: true, name: true, categoryId: true } } } } },
