@@ -1,7 +1,7 @@
 'use client'
 
 import { Safety } from '@/core/types/posts'
-import { XCircle } from '@phosphor-icons/react'
+import { XCircleIcon } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 
 type Props = {
@@ -134,7 +134,7 @@ export default function SortableUploads({
           className="absolute -top-2 -right-2 bg-secondary border border-secondary-border text-red-900 hover:text-red-800 rounded-full p-1 shadow transition hover:scale-105"
           title="Remove"
         >
-          <XCircle size={20} weight="fill" className='' />
+          <XCircleIcon size={20} weight="fill" className='' />
         </button>
       </li>
     </>

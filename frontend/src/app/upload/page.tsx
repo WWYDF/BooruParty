@@ -1,221 +1,212 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, DragEndEvent } from '@dnd-kit/core'
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import SortableUploads from '@/components/Uploads/SortableUploads'
+import { UploadSimpleIcon } from '@phosphor-icons/react'
+import UploadCard from '@/components/Uploads/UploadCard'
+import UploadEditor from '@/components/Uploads/UploadEditor'
+import TagInput from '@/components/Uploads/TagInput'
 import DuplicateModal from '@/components/Uploads/DuplicateModal'
-// import MassTagger from '@/components/Tags/MassTagger'
+import { TagChip, UploadItem, UploadStatus, isEditable, parseSources } from '@/core/types/uploads'
 import { useToast } from '@/components/UI/Toast'
 import { useUser } from '@/components/UserProvider'
-import { API, errorText } from '@/core/api'
-import { Tag } from '@/core/types/tags'
-import { PostDetail, Safety } from '@/core/types/posts'
-
-type UploadFile = {
-  id: string
-  file: File
-  preview: string
-  safety: Safety
-  duplicatePostId?: number
-}
-
-type UploadResult =
-  | { status: 'ok' }
-  | { status: 'duplicate'; postId: number }
-  | { status: 'error'; message: string }
-
-const SAFETY_LEVELS: Safety[] = ['SAFE', 'QUESTIONABLE', 'EXPLICIT']
-const SAFETY_COLORS: Record<Safety, string> = {
-  SAFE: 'bg-green-600 text-white',
-  QUESTIONABLE: 'bg-yellow-400 text-black',
-  EXPLICIT: 'bg-red-600 text-white',
-}
-const MAX_PREVIEW_BYTES = 30 * 1024 * 1024 // don't make object URLs for huge files
+import { API, APIUpload, errorText } from '@/core/api'
+import { makeLocalThumbnail } from '@/core/thumbnails'
+import { PostDetail } from '@/core/types/posts'
 
 export default function UploadPage() {
   const { user } = useUser()
   const toast = useToast()
 
-  const [queue, setQueue] = useState<UploadFile[]>([])
-  const queueRef = useRef<UploadFile[]>([]) // latest queue for async loops (state in closures goes stale)
+  const [items, setItems] = useState<UploadItem[]>([])
+  const itemsRef = useRef<UploadItem[]>([]) // latest items for async loops (state in closures goes stale)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const lastClicked = useRef<string | null>(null) // anchor for shift-click ranges
+  const [globalTags, setGlobalTags] = useState<TagChip[]>([])
   const [uploading, setUploading] = useState(false)
-  const [uploadingId, setUploadingId] = useState<string | null>(null)
+  const [dupe, setDupe] = useState<{ item: UploadItem; original: PostDetail } | null>(null)
   const idCounter = useRef(0)
-  const [bulkSafety, setBulkSafety] = useState<Safety>('SAFE')
-  const [globalTags, setGlobalTags] = useState<Tag[]>([])
 
-  // Duplicate handling
-  const [dupeModalOpen, setDupeModalOpen] = useState(false)
-  const [dupeItem, setDupeItem] = useState<UploadFile | null>(null)
-  const [dupeOriginalPost, setDupeOriginalPost] = useState<PostDetail | null>(null)
+  useEffect(() => { itemsRef.current = items }, [items])
 
-  useEffect(() => { queueRef.current = queue }, [queue])
-
-  // Free object URLs for previews when the page unmounts
+  // Free thumbnail object URLs when leaving the page
   useEffect(() => () => {
-    queueRef.current.forEach((item) => item.preview.startsWith('blob:') && URL.revokeObjectURL(item.preview))
+    itemsRef.current.forEach((i) => i.thumbnail && URL.revokeObjectURL(i.thumbnail))
   }, [])
+
+  // Closing the tab mid-upload would silently drop the rest of the queue
+  useEffect(() => {
+    if (!uploading) return
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [uploading])
 
   const hasPerm = (perm: string) => user?.permissions.includes(perm) ?? false
   const canDupe = hasPerm('posts.create.dupes')
 
-  const removeFromQueue = (id: string) => {
-    setQueue((prev) => {
-      const item = prev.find((f) => f.id === id)
-      if (item?.preview.startsWith('blob:')) URL.revokeObjectURL(item.preview)
-      return prev.filter((f) => f.id !== id)
-    })
+  // ---- Item helpers ----
+
+  const patchItems = (ids: Iterable<string>, patch: (item: UploadItem) => Partial<UploadItem>) => {
+    const set = new Set(ids)
+    setItems((prev) => prev.map((i) => (set.has(i.id) ? { ...i, ...patch(i) } : i)))
   }
 
-  const moveItem = (index: number, direction: 'up' | 'down') => {
-    setQueue((prev) => {
-      const target = direction === 'up' ? index - 1 : index + 1
-      if (target < 0 || target >= prev.length) return prev
-      return arrayMove(prev, index, target)
-    })
+  const setStatus = (id: string, status: UploadStatus) => patchItems([id], () => ({ status }))
+
+  const removeItems = (ids: Iterable<string>) => {
+    const set = new Set(ids)
+    itemsRef.current.forEach((i) => set.has(i.id) && i.thumbnail && URL.revokeObjectURL(i.thumbnail))
+    setItems((prev) => prev.filter((i) => !set.has(i.id)))
+    setSelected((prev) => new Set([...prev].filter((id) => !set.has(id))))
   }
 
-  const onDrop = (acceptedFiles: File[]) => {
-    const newItems: UploadFile[] = acceptedFiles
-      .filter((file) => file.type.startsWith('image/') || file.type.startsWith('video/'))
+  // ---- Adding files ----
+
+  const onDrop = async (files: File[]) => {
+    // Some formats (e.g. .mkv on Windows) have no MIME type; let the server decide those
+    const newItems: UploadItem[] = files
+      .filter((f) => f.type === '' || f.type.startsWith('image/') || f.type.startsWith('video/'))
       .map((file) => ({
-        id: `${idCounter.current++}`,
+        id: String(idCounter.current++),
         file,
-        preview: file.type.startsWith('image/') && file.size <= MAX_PREVIEW_BYTES
-          ? URL.createObjectURL(file)
-          : '/i/speed.png', // fallback image in /public/i
-        safety: bulkSafety,
+        thumbnail: null,
+        thumbnailFailed: false,
+        safety: 'SAFE',
+        tags: [],
+        sourcesText: '',
+        notes: '',
+        status: { state: 'queued' },
       }))
 
-    setQueue((prev) => [...prev, ...newItems])
+    if (newItems.length < files.length) toast(`Skipped ${files.length - newItems.length} non-media file(s)`, 'info')
+    setItems((prev) => [...prev, ...newItems])
+
+    // One at a time, so dropping 100 files doesn't decode 100 images at once
+    for (const item of newItems) {
+      const thumbnail = await makeLocalThumbnail(item.file)
+      patchItems([item.id], () => ({ thumbnail, thumbnailFailed: !thumbnail }))
+    }
   }
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    multiple: true,
-    accept: { 'image/*': [], 'video/*': [] },
-  })
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, multiple: true })
 
-  const sensors = useSensors(useSensor(PointerSensor))
+  // ---- Selection ----
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return
-    setQueue((prev) => {
-      const oldIndex = prev.findIndex((item) => item.id === active.id)
-      const newIndex = prev.findIndex((item) => item.id === over.id)
-      return arrayMove(prev, oldIndex, newIndex)
+  const handleCardClick = (id: string, e: React.MouseEvent) => {
+    if (e.shiftKey && lastClicked.current) {
+      const ids = items.map((i) => i.id)
+      const [a, b] = [ids.indexOf(lastClicked.current), ids.indexOf(id)].sort((x, y) => x - y)
+      setSelected((prev) => new Set([...prev, ...ids.slice(a, b + 1)]))
+    } else if (e.ctrlKey || e.metaKey) {
+      toggleOne(id)
+    } else {
+      // Plain click: select just this one (or deselect it if it was the only one)
+      setSelected((prev) => (prev.size === 1 && prev.has(id) ? new Set() : new Set([id])))
+    }
+    lastClicked.current = id
+  }
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
     })
+    lastClicked.current = id
   }
+
+  // ---- Uploading ----
 
   // One POST /api/posts/create. The backend only reads fields sent BEFORE the file, so the file goes last.
-  const uploadOne = async (item: UploadFile, opts: { skipDupes?: boolean; tags: string[] }): Promise<UploadResult> => {
-    const formData = new FormData()
-    formData.append('safety', item.safety)
-    formData.append('tags', JSON.stringify(opts.tags))
-    if (opts.skipDupes) formData.append('skipDupes', 'true')
-    formData.append('file', item.file) // must be last
-
-    try {
-      // No Content-Type header: the browser sets multipart/form-data with the right boundary itself
-      const res = await API('/api/posts/create', { method: 'POST', body: formData })
-      if (res.ok) return { status: 'ok' }
-
-      const data = await res.json().catch(() => ({ error: res.statusText }))
-      if (res.status === 409 && typeof data.duplicateOf === 'number') {
-        return { status: 'duplicate', postId: data.duplicateOf }
-      }
-      return { status: 'error', message: errorText(data) }
-    } catch {
-      return { status: 'error', message: 'Could not reach the server' }
-    }
-  }
-
-  // Uploads the queue top to bottom. Stops on an error, pauses on a duplicate.
-  const runQueue = async (opts: { skipDupes?: boolean } = {}) => {
-    if (uploading) return
-    setUploading(true)
-    const tags = globalTags.map((t) => t.name)
-
-    for (const item of [...queueRef.current]) {
-      setUploadingId(item.id)
-      const result = await uploadOne(item, { skipDupes: opts.skipDupes, tags })
-
-      if (result.status === 'ok') {
-        removeFromQueue(item.id)
-        continue
-      }
-
-      if (result.status === 'duplicate') {
-        setQueue((prev) => prev.map((f) => (f.id === item.id ? { ...f, duplicatePostId: result.postId } : f)))
-        await openDuplicateModal(item, result.postId)
-        break // resumes after the user decides in the modal
-      }
-
-      toast(`${item.file.name}: ${result.message}`, 'error')
-      break
-    }
-
-    setUploading(false)
-    setUploadingId(null)
-  }
-
-  const openDuplicateModal = async (item: UploadFile, postId: number) => {
-    try {
-      const res = await API(`/api/posts/${postId}`)
-      if (!res.ok) throw new Error()
-      setDupeOriginalPost(await res.json())
-      setDupeItem(item)
-      setDupeModalOpen(true)
-    } catch {
-      // Can't show the comparison (e.g. the original is hidden from us), but the banner still links it
-      toast(`${item.file.name} is a duplicate of post #${postId}`, 'error')
-    }
-  }
-
-  const closeDuplicateModal = () => {
-    setDupeModalOpen(false)
-    setDupeItem(null)
-    setDupeOriginalPost(null)
-  }
-
-  const handleCancelUpload = () => {
-    if (dupeItem) removeFromQueue(dupeItem.id)
-    closeDuplicateModal()
-    // queueRef updates after the next render, so resume on the next tick
-    setTimeout(() => { if (queueRef.current.length) runQueue() }, 0)
-  }
-
-  const handleProceedAnyway = async (copyTags: boolean) => {
-    if (!dupeItem || !dupeOriginalPost) return
-    const item = dupeItem
-    const tags = new Set(globalTags.map((t) => t.name))
-    if (copyTags) dupeOriginalPost.tags.forEach((t) => tags.add(t.name))
-    closeDuplicateModal()
-
-    setUploading(true)
-    setUploadingId(item.id)
-    const result = await uploadOne(item, { skipDupes: true, tags: [...tags] })
-    setUploading(false)
-    setUploadingId(null)
-
-    if (result.status !== 'ok') {
-      toast(`${item.file.name}: ${result.status === 'error' ? result.message : 'Still flagged as a duplicate'}`, 'error')
+  const uploadItem = async (item: UploadItem, skipDupes: boolean) => {
+    const tags = [...new Set([...globalTags, ...item.tags].map((t) => t.name))]
+    const { valid: sources, invalid } = parseSources(item.sourcesText)
+    if (invalid.length) {
+      setStatus(item.id, { state: 'error', message: `Invalid source URL: ${invalid[0]}` })
       return
     }
 
-    removeFromQueue(item.id)
-    setTimeout(() => { if (queueRef.current.length) runQueue() }, 0)
+    const form = new FormData()
+    form.append('safety', item.safety)
+    form.append('tags', JSON.stringify(tags))
+    if (sources.length) form.append('sources', JSON.stringify(sources))
+    if (item.notes.trim()) form.append('notes', item.notes.trim())
+    if (skipDupes) form.append('skipDupes', 'true')
+    form.append('file', item.file) // must be last
+
+    setStatus(item.id, { state: 'uploading', progress: 0 })
+    try {
+      const res = await APIUpload('/api/posts/create', form, (fraction) =>
+        setStatus(item.id, fraction < 1 ? { state: 'uploading', progress: fraction } : { state: 'processing' }),
+      )
+
+      if (res.status === 201) setStatus(item.id, { state: 'done', postId: res.data.id })
+      else if (res.status === 409 && typeof res.data.duplicateOf === 'number') setStatus(item.id, { state: 'duplicate', postId: res.data.duplicateOf })
+      else setStatus(item.id, { state: 'error', message: errorText(res.data) })
+    } catch {
+      setStatus(item.id, { state: 'error', message: 'Could not reach the server' })
+    }
   }
 
-  const handleBulkSafetyChange = (newSafety: Safety) => {
-    setBulkSafety(newSafety)
-    setQueue((prev) => prev.map((item) => ({ ...item, safety: newSafety })))
+  // Uploads one file at a time (processing is CPU heavy on the server). Duplicates and errors don't stop the queue.
+  const runQueue = async (skipDupes = false) => {
+    if (uploading) return
+    setUploading(true)
+
+    const targetIds = itemsRef.current
+      .filter((i) => i.status.state === 'queued' || i.status.state === 'error' || (skipDupes && i.status.state === 'duplicate'))
+      .map((i) => i.id)
+
+    for (const id of targetIds) {
+      const current = itemsRef.current.find((i) => i.id === id) // picks up edits made while earlier files uploaded
+      if (current && isEditable(current)) await uploadItem(current, skipDupes)
+    }
+
+    setUploading(false)
   }
 
-  // Permission gates
+  // ---- Duplicates ----
+
+  const reviewDuplicate = async (item: UploadItem) => {
+    if (item.status.state !== 'duplicate') return
+    try {
+      const res = await API(`/api/posts/${item.status.postId}`)
+      if (!res.ok) throw new Error()
+      setDupe({ item, original: await res.json() })
+    } catch {
+      // The original might be hidden from us (e.g. safety settings); the card still links to it
+      toast(`Couldn't load post #${item.status.postId} for comparison`, 'error')
+    }
+  }
+
+  const proceedWithDuplicate = async (copyTags: boolean) => {
+    if (!dupe) return
+    const { item, original } = dupe
+    setDupe(null)
+
+    const tags = copyTags
+      ? [...item.tags, ...original.tags.filter((t) => !item.tags.some((x) => x.name === t.name)).map((t) => ({ name: t.name }))]
+      : item.tags
+
+    setUploading(true)
+    await uploadItem({ ...item, tags }, true)
+    setUploading(false)
+  }
+
+  // ---- Derived state ----
+
+  const selectedItems = items.filter((i) => selected.has(i.id))
+  const editableSelected = selectedItems.filter(isEditable)
+  const count = (state: UploadStatus['state']) => items.filter((i) => i.status.state === state).length
+  const pending = count('queued') + count('error')
+  const done = count('done')
+  const duplicates = count('duplicate')
+  const failed = count('error')
+
+  // ---- Permission gates ----
+
   if (user === undefined) return null // still loading /api/me
 
   if (!user || !hasPerm('posts.create')) {
@@ -232,99 +223,113 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="w-full max-w-3xl mx-auto p-4">
-        <div
-          {...getRootProps()}
-          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
-            isDragActive ? 'border-accent bg-secondary' : 'border-secondary-border bg-secondary'
-          }`}
-        >
-          <input {...getInputProps()} />
-          <p className="text-subtle">Drag and drop your images, videos or gifs here</p>
-        </div>
+    <div className="mx-auto space-y-4 p-4 md:p-8">
+      {/* Drop zone: big when empty, compact once files are added */}
+      <div
+        {...getRootProps()}
+        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-center transition ${
+          items.length ? 'p-4' : 'p-16'
+        } ${isDragActive ? 'border-accent bg-secondary' : 'border-secondary-border bg-secondary hover:border-zinc-600'}`}
+      >
+        <input {...getInputProps()} />
+        {!items.length && <UploadSimpleIcon size={36} className="text-subtle" />}
+        <p className="text-subtle">
+          {isDragActive ? 'Drop to add' : 'Drag and drop images, videos or GIFs here, or click to browse'}
+        </p>
+      </div>
 
-        <div className="mt-2 mb-2 flex items-start justify-between gap-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 items-center gap-4">
-            <div className="flex gap-1">
-              {SAFETY_LEVELS.map((level) => (
-                <motion.button
-                  key={level}
-                  onClick={() => handleBulkSafetyChange(level)}
-                  className={`px-2 py-1 rounded text-xs transition-all duration-150 ${
-                    bulkSafety === level ? SAFETY_COLORS[level] : 'bg-secondary-border text-subtle'
-                  }`}
-                  layout
-                >
-                  {level.charAt(0) + level.slice(1).toLowerCase()}
-                </motion.button>
+      {items.length > 0 && (
+        <>
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => runQueue()}
+              disabled={uploading || pending === 0}
+              className="rounded-lg border-2 border-green-800 px-4 py-1.5 text-sm text-zinc-200 transition hover:bg-green-800/30 disabled:opacity-50"
+            >
+              {uploading ? 'Uploading...' : `Upload ${pending} file${pending === 1 ? '' : 's'}`}
+            </button>
+
+            {canDupe && duplicates > 0 && (
+              <button
+                onClick={() => runQueue(true)}
+                disabled={uploading}
+                className="rounded-lg border-2 border-red-800 px-4 py-1.5 text-sm text-zinc-200 transition hover:bg-red-800/30 disabled:opacity-50"
+              >
+                Force {duplicates} duplicate{duplicates === 1 ? '' : 's'}
+              </button>
+            )}
+
+            <span className="mx-1 h-5 w-px bg-secondary-border" />
+
+            <button onClick={() => setSelected(new Set(items.map((i) => i.id)))} className="text-sm text-subtle hover:text-white">
+              Select all
+            </button>
+            <button onClick={() => setSelected(new Set())} className="text-sm text-subtle hover:text-white">
+              Select none
+            </button>
+            {done > 0 && (
+              <button
+                onClick={() => removeItems(items.filter((i) => i.status.state === 'done').map((i) => i.id))}
+                className="text-sm text-subtle hover:text-white"
+              >
+                Clear finished
+              </button>
+            )}
+
+            <span className="ml-auto text-xs text-subtle">
+              {items.length} file{items.length === 1 ? '' : 's'}
+              {done > 0 && <> · <span className="text-green-400">{done} done</span></>}
+              {duplicates > 0 && <> · <span className="text-yellow-300">{duplicates} duplicate{duplicates === 1 ? '' : 's'}</span></>}
+              {failed > 0 && <> · <span className="text-red-400">{failed} failed</span></>}
+            </span>
+          </div>
+
+          {/* Tags for every file */}
+          <div>
+            <label className="mb-1.5 block text-xs text-subtle">Tags for every file</label>
+            <TagInput value={globalTags} onChange={setGlobalTags} placeholder="Added to all files on upload..." />
+          </div>
+
+          <div className="grid items-start gap-6 lg:grid-cols-[1fr_320px]">
+            {/* Grid */}
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
+              {items.map((item) => (
+                <UploadCard
+                  key={item.id}
+                  item={item}
+                  selected={selected.has(item.id)}
+                  onClick={(e) => handleCardClick(item.id, e)}
+                  onToggle={() => toggleOne(item.id)}
+                  onReview={() => reviewDuplicate(item)}
+                />
               ))}
             </div>
 
-            {/* <MassTagger value={globalTags} onChange={setGlobalTags} compactBelow /> */}
+            {/* Editor panel */}
+            <aside className="lg:sticky lg:top-24">
+              <UploadEditor
+                items={editableSelected}
+                lockedCount={selectedItems.length - editableSelected.length}
+                onPatch={(patch) => patchItems(editableSelected.map((i) => i.id), patch)}
+                onRemove={() => removeItems(editableSelected.map((i) => i.id))}
+              />
+            </aside>
           </div>
-        </div>
+        </>
+      )}
 
-        {queue.length > 0 && (
-          <button
-            onClick={() => runQueue()}
-            disabled={uploading}
-            className="mt-6 px-4 py-2 rounded-xl border-2 border-green-800 text-zinc-200 hover:bg-green-800/30 transition disabled:opacity-50"
-          >
-            {uploading ? 'Uploading...' : 'Upload'}
-          </button>
-        )}
-
-        {canDupe && queue.length > 0 && (
-          <button
-            onClick={() => runQueue({ skipDupes: true })}
-            disabled={uploading}
-            className="mt-4 ml-4 px-4 py-2 rounded-xl border-2 border-red-800 text-zinc-200 hover:bg-red-800/30 transition disabled:opacity-50"
-          >
-            Force Duplicates
-          </button>
-        )}
-
-        {queue.length > 0 && (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={queue.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-              <motion.ul layout className="mt-6 space-y-3">
-                {queue.map((item, i) => (
-                  <SortableUploads
-                    key={item.id}
-                    index={i}
-                    id={item.id}
-                    name={item.file.name}
-                    preview={item.preview}
-                    isUploading={uploadingId === item.id}
-                    safety={item.safety}
-                    onSafetyChange={(newSafety) =>
-                      setQueue((prev) => prev.map((f) => (f.id === item.id ? { ...f, safety: newSafety } : f)))
-                    }
-                    onMove={moveItem}
-                    isFirst={i === 0}
-                    isLast={i === queue.length - 1}
-                    duplicatePostId={item.duplicatePostId}
-                    onRemove={removeFromQueue}
-                  />
-                ))}
-              </motion.ul>
-            </SortableContext>
-          </DndContext>
-        )}
-
-        {dupeOriginalPost && (
-          <DuplicateModal
-            isOpen={dupeModalOpen}
-            onClose={closeDuplicateModal}
-            currentPreview={dupeItem?.preview || ''}
-            originalPost={dupeOriginalPost}
-            onCancelUpload={handleCancelUpload}
-            onProceedAnyway={handleProceedAnyway}
-            canDupe={canDupe}
-          />
-        )}
-      </div>
+      {dupe && (
+        <DuplicateModal
+          isOpen
+          onClose={() => setDupe(null)}
+          currentPreview={dupe.item.thumbnail ?? ''}
+          originalPost={dupe.original}
+          onCancelUpload={() => { removeItems([dupe.item.id]); setDupe(null) }}
+          onProceedAnyway={proceedWithDuplicate}
+          canDupe={canDupe}
+        />
+      )}
     </div>
   )
 }
