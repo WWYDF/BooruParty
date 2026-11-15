@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   return {
     title: `Post #${post.id}${by}`,
-    description: `View this ${formatStorageFromBytes(post.fileSize)} ${post.type.toLowerCase()}${by}.`,
+    description: post.notes,
     openGraph: { images: [{ url: post.thumbnails.large }] },
   };
 }

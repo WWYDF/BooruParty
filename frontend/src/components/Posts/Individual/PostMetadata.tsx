@@ -7,7 +7,7 @@ import { PencilSimpleIcon, MinusIcon, PlusIcon, TagIcon, StarIcon, SparkleIcon, 
 import { formatCounts, formatStorageFromBytes } from "@/core/formats";
 import { RoleBadge } from "@/components/RoleBadge";
 import { useToast } from "@/components/UI/Toast";
-import { PostDetail } from "@/core/types/posts";
+import { PostDetail, Safety } from "@/core/types/posts";
 import { CategoryInfo } from "./PostView";
 import { defaultAvatar } from "@/core/constants/defaults";
 
@@ -23,7 +23,7 @@ type RelatedPost = { id: number; thumbnail: string };
 type PostPool = {
   id: number;
   name: string;
-  safety: PostDetail["safety"];
+  safety: Safety;
   cover: string | null; // thumbnail URL
   page: number;         // this post's position in the pool
   total: number;
