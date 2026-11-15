@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
+import { RoleBadge } from "@/components/clientSide/RoleBadge";
 import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { AnimatePresence, motion } from "framer-motion";
 import { DotsThreeVertical, GearSix, SignOut, LockSimple, Plus } from "phosphor-react";

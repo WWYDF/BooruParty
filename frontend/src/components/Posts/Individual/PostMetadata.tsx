@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PencilSimple, Minus, Plus, Tag, Star, Heart, Sparkle, ThumbsUp } from "phosphor-react";
 import { formatCounts, formatStorageFromBytes } from "@/core/formats";
-import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
+import { RoleBadge } from "@/components/clientSide/RoleBadge";
 import { useToast } from "../../Toast";
 import { Post, PostUserStatus } from "@/core/types/posts";
 

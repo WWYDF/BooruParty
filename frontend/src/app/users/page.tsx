@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatRelativeTime } from "@/core/formats";
-import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
+import { RoleBadge } from "@/components/clientSide/RoleBadge";
 import { cookies } from "next/headers";import { Metadata } from "next";
 
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'

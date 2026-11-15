@@ -1,6 +1,6 @@
 "use client";
 
-import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
+import { RoleBadge } from "@/components/clientSide/RoleBadge";
 import { auditLogColors } from "@/core/dictionary";
 import { CaretDown, CaretUp, Trash } from "phosphor-react";
 import { useEffect, useState } from "react";

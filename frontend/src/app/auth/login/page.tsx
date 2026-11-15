@@ -1,7 +1,6 @@
 'use client';
 
 import { useToast } from '@/components/clientSide/Toast';
-import { getSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 

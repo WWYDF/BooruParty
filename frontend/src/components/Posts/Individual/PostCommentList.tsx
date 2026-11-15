@@ -1,6 +1,6 @@
 "use client";
 
-import { RoleBadge } from "@/components/serverSide/Users/RoleBadge";
+import { RoleBadge } from "@/components/clientSide/RoleBadge";
 import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
 import { Comments } from "@/core/types/comments";
 import { motion, AnimatePresence } from "framer-motion";
