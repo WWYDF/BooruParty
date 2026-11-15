@@ -4,9 +4,8 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { FolderSimple, MagicWand, X } from "phosphor-react";
 import { useToast } from "@/components/clientSide/Toast";
-import { ArrowLeftIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, FolderSimpleIcon, MagicWandIcon, XIcon } from "@phosphor-icons/react";
 
 type Step = "type" | "standard";
 
@@ -92,7 +91,7 @@ export function CreateCollectionModal({ open, onClose, onCreated }: Props) {
                   {step === "type" ? "New Collection" : "New Standard Collection"}
                 </h2>
                 <button onClick={handleClose} className="text-zinc-500 hover:text-white transition">
-                  <X size={18} />
+                  <XIcon size={18} />
                 </button>
               </div>
 
@@ -112,7 +111,7 @@ export function CreateCollectionModal({ open, onClose, onCreated }: Props) {
                         onClick={() => goTo("standard", 1)}
                         className="flex-1 flex flex-col items-center justify-center gap-2 aspect-square rounded-lg border border-zinc-800 hover:border-accent hover:bg-accent/5 transition p-4"
                       >
-                        <FolderSimple size={36} weight="duotone" className="text-accent" />
+                        <FolderSimpleIcon size={36} weight="duotone" className="text-accent" />
                         <span className="text-sm font-medium">Standard</span>
                         <span className="text-xs text-zinc-500 text-center leading-tight">Add posts manually</span>
                       </button>
@@ -120,7 +119,7 @@ export function CreateCollectionModal({ open, onClose, onCreated }: Props) {
                         disabled
                         className="flex-1 flex flex-col items-center justify-center gap-2 aspect-square rounded-lg border border-zinc-800 opacity-40 cursor-not-allowed p-4"
                       >
-                        <MagicWand size={36} weight="duotone" className="text-zinc-400" />
+                        <MagicWandIcon size={36} weight="duotone" className="text-zinc-400" />
                         <span className="text-sm font-medium">Smart</span>
                         <span className="text-xs text-zinc-500 text-center leading-tight">Auto-populated from tag combinations</span>
                       </button>

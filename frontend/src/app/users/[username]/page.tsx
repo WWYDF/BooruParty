@@ -13,7 +13,7 @@ import { formatRelativeTime } from "@/core/formats";
 import sanitizeHtml from "sanitize-html";
 import { checkPermissions } from "@/core/permissions";
 import { useToast } from "@/components/clientSide/Toast";
-import { hexToRgb } from "@/core/roles";
+import { hexToRgb } from "@/core/styles/roles";
 import { UserCollection, UserPublic, UserSelf } from "@/core/types/users";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 

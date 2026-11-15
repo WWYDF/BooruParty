@@ -1,4 +1,4 @@
-import { hexToRgba } from "@/core/roles";
+import { hexToRgba } from "@/core/styles/roles";
 
 type Props = {
   role: {

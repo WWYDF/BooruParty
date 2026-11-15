@@ -1,7 +1,6 @@
 import { randomInt } from 'crypto';
 import { prisma } from '@/core/prisma';
 import nodemailer from 'nodemailer';
-import bcrypt from 'bcryptjs';
 import FormData from 'form-data';
 import Mailgun from 'mailgun.js';
 
@@ -124,34 +123,4 @@ async function validateResetCode(identifier: string, code: string) {
 export async function verifyResetCode(email: string, code: string) {
   await validateResetCode(email.toLowerCase(), code);
   return { valid: true };
-}
-
-export async function resetPassword(email: string, code: string, newPassword: string) {
-  const identifier = email.toLowerCase();
-  await validateResetCode(identifier, code);
-
-  const user = await prisma.user.findFirst({
-    where: {
-      email: {
-        equals: identifier,
-        mode: 'insensitive',
-      },
-    },
-  });
-
-  if (!user) {
-    await prisma.verificationToken.deleteMany({ where: { identifier } });
-    throw new Error('User not found');
-  }
-
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { password: hashedPassword },
-  });
-
-  await prisma.verificationToken.deleteMany({ where: { identifier } });
-
-  return { success: true };
 }
