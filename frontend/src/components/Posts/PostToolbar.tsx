@@ -1,5 +1,5 @@
-import SearchBar from "@/components/clientSide/Posts/SearchBar";
-import Filters from "@/components/clientSide/Posts/Filters";
+import SearchBar from "@/components/Posts/SearchBar";
+import Filters from "@/components/Posts/Filters";
 import MassSelectionBar from "./MassSelectBar";
 import { motion } from "framer-motion";
 

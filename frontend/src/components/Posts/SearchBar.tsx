@@ -3,9 +3,9 @@
 import { MagnifyingGlass, Trash, HashStraight, Question } from "@phosphor-icons/react";
 import { useState } from "react";
 import { motion } from 'framer-motion';
-import { useToast } from "../Toast";
-import InfoModal from "../InfoModal";
-import { useSearchBarLogic } from "../../../core/searchBarLogic";
+import { useToast } from "../UI/Toast";
+import { useSearchBarLogic } from "@/core/searchBarLogic";
+import InfoModal from "../UI/Modals/InfoModal";
 
 type PostSearchBarProps = {
   input: string;

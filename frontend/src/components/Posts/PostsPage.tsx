@@ -1,188 +1,226 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
-import PostGrid from "@/components/clientSide/Posts/PostGrid";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import MassEditor from "./MassEditor";
+import PostGrid from "@/components/Posts/PostGrid";
 import PostToolbar from "./PostToolbar";
-import { loadPreferences } from "@/core/authClient";
-import { defaultLayout, defaultPostsPerPage } from "../Profile/Preferences";
 import LoadingOverlay from "../LoadingOverlay";
+import { API, errorText } from "@/core/api";
+
+type Layout = "GRID" | "COLLAGE";
+type FeedError = { status: number; text: string };
+type FeedSnapshot = { key: string; posts: any[]; cursor: string | null };
+
+const DEFAULT_LAYOUT: Layout = "GRID";
+const DEFAULT_PER_PAGE = 30;
+const FEED_CACHE_KEY = "bp:feed";
+
+// Browser-specific prefs saved by the Preferences page
+function readBrowserPrefs(): { layout: Layout; postsPerPage: number } {
+  try {
+    const saved = JSON.parse(localStorage.getItem("browserPreferences") ?? "{}");
+    const perPage = Number(saved.postsPerPage);
+    return {
+      layout: saved.layout === "COLLAGE" ? "COLLAGE" : "GRID",
+      postsPerPage: Number.isInteger(perPage) ? Math.min(Math.max(perPage, 1), 150) : DEFAULT_PER_PAGE, // API caps at 150
+    };
+  } catch {
+    return { layout: DEFAULT_LAYOUT, postsPerPage: DEFAULT_PER_PAGE };
+  }
+}
+
+function readSnapshot(): FeedSnapshot | null {
+  try {
+    return JSON.parse(sessionStorage.getItem(FEED_CACHE_KEY) ?? "null");
+  } catch {
+    return null;
+  }
+}
+
+// Safety buttons become a `safety:` term in the search, unless the user already typed one
+function buildQuery(text: string, safeties: string[]) {
+  const q = text.trim();
+  if (safeties.length === 0 || /(^|\s)-?safety:/i.test(q)) return q;
+  return `${q} safety:${safeties.join(",").toLowerCase()}`.trim();
+}
+
+// Wait for enough posts to render before jumping back to where the user was
+function restoreScroll(y: number, attempt = 0) {
+  if (attempt > 30) return; // ~500ms
+  if (document.body.scrollHeight < y + window.innerHeight) {
+    requestAnimationFrame(() => restoreScroll(y, attempt + 1));
+  } else {
+    window.scrollTo({ top: y, behavior: "instant" });
+    sessionStorage.removeItem("scrollY");
+  }
+}
 
 export default function ClientPostsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const initialQuery = searchParams.get("query") ?? "";
+  const initialText = searchParams.get("query") ?? "";
   const initialSafeties = searchParams.get("safety")?.split("-").filter(Boolean) ?? [];
 
-  const [posts, setPosts] = useState<any[]>([]);
-  const [viewMode, setViewMode] = useState<"GRID" | "COLLAGE">("GRID");
-  const [loadingViewMode, setLoadingViewMode] = useState(true);
+  // Search: `searchText` is what's in the bar, `activeQuery` is what the feed is showing
+  const [searchText, setSearchText] = useState(initialText);
   const [selectedSafeties, setSelectedSafeties] = useState<string[]>(initialSafeties);
-  const [searchText, setSearchText] = useState(initialQuery);
+  const [activeQuery, setActiveQuery] = useState(() => buildQuery(initialText, initialSafeties));
 
-  const [page, setPage] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  // Feed
+  const [posts, setPosts] = useState<any[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<FeedError | null>(null);
+  const requestId = useRef(0);
+  const perPage = useRef(DEFAULT_PER_PAGE);
+  const sentinel = useRef<HTMLDivElement>(null);
 
+  // null until localStorage has been read (it only exists in the browser)
+  const [layout, setLayout] = useState<Layout | null>(null);
+
+  // Selection
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPostIds, setSelectedPostIds] = useState<number[]>([]);
   const lastSelectedIndex = useRef<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const isFirstLoad = useRef(true);
 
-  const prefs = loadPreferences();
-
-  useEffect(() => {
-    setViewMode(prefs?.layout ?? defaultLayout)
-    setLoadingViewMode(false);
-
-    // Clear local storage for individual posts
-    Object.keys(sessionStorage)
-    .filter(k => k.startsWith('bp:dims:') || k.startsWith('bp:size:'))
-    .forEach(k => sessionStorage.removeItem(k));
-  }, []);
-
-  const updateUrl = (query: string, safeties: string[]) => {
-    const params = new URLSearchParams();
-    if (query) params.set("query", query);
-    if (safeties.length > 0) {
-      params.set("safety", safeties.join("-"));
-    }
-    router.replace(`?${params.toString()}`);
-
-    sessionStorage.setItem("lastSearchParams", JSON.stringify({
-      query: query,
-      safety: safeties.join("-"),
-    }));
-  };
-
-  const toggleSafety = (safety: string) => {
-    const nextSafeties = selectedSafeties.includes(safety)
-      ? selectedSafeties.filter((s) => s !== safety)
-      : [...selectedSafeties, safety];
-
-    setSelectedSafeties(nextSafeties);
-    searchPosts(searchText, nextSafeties);
-  };
-
-  const searchPosts: (
-    queryOverride?: string,
-    safetyOverride?: string[],
-    pageOverride?: number,
-    append?: boolean
-  ) => Promise<void> = async (
-    queryOverride = searchText,
-    safetyOverride = selectedSafeties,
-    pageOverride = 1,
-    append = false
-  ) => {
-    const params = new URLSearchParams();
-    params.set("query", queryOverride);
-    params.set("page", pageOverride.toString());
-    params.set("perPage", (prefs?.postsPerPage.toString() ?? `${defaultPostsPerPage}`));
-    if (safetyOverride.length > 0) {
-      params.set("safety", safetyOverride.join("-"));
-    }
+  // `after = null` starts a new search, `after = cursor` loads the next batch
+  const loadPosts = async (q: string, after: string | null) => {
+    const id = ++requestId.current;
+    const params = new URLSearchParams({ q, limit: String(perPage.current) });
+    if (after) params.set("cursor", after);
+    setLoading(true);
 
     try {
-      const res = await fetch(`/api/posts?${params.toString()}`);
+      const res = await API(`/api/posts?${params}`);
       const data = await res.json();
-      sessionStorage.setItem("postCount", data.totalPosts);
+      if (id !== requestId.current) return; // a newer search replaced this one
 
-      if (append) {
-        setPosts((prev) => {
-          const existing = new Set(prev.map(p => p.id));
-          const filtered = (data.posts || []).filter((p: any) => !existing.has(p.id));
-          return [...prev, ...filtered];
-        });        
-      } else {
-        setPosts(data.posts || []);
-        updateUrl(queryOverride, safetyOverride); // ONLY update URL on new search, not scroll
+      if (!res.ok) {
+        setError({ status: res.status, text: errorText(data) });
+        setHasMore(false);
+        if (!after) setPosts([]);
+        return;
       }
 
-      setHasMore((data.posts || []).length > 0);
-    } catch (err) {
-      console.error("Search failed", err);
+      setError(null);
+      setPosts((prev) => (after ? [...prev, ...data.posts] : data.posts));
+      setCursor(data.nextCursor);
+      setHasMore(data.nextCursor !== null);
+      if (!after) sessionStorage.setItem("postCount", String(data.total)); // read by SearchBar
+    } catch {
+      if (id === requestId.current) setError({ status: 0, text: "Could not reach the server" });
+    } finally {
+      if (id === requestId.current) setLoading(false);
     }
   };
 
-  // Run initial search on first mount if URL had params
+  // First mount: read prefs, then either restore the feed we came back to or load fresh
   useEffect(() => {
-    if (isFirstLoad.current) {
-      const restorePage = parseInt(sessionStorage.getItem("lastPage") || "1");
-      const y = parseInt(sessionStorage.getItem("scrollY") || "0");
-      const safeties = selectedSafeties.length > 0 ? selectedSafeties : initialSafeties;
-      isFirstLoad.current = false;
-  
-      const preload = async () => {
-        for (let p = 1; p <= restorePage; p++) {
-          await searchPosts(initialQuery, safeties, p, p > 1);
-        }
+    const prefs = readBrowserPrefs();
+    perPage.current = prefs.postsPerPage;
+    setLayout(prefs.layout);
 
-        function waitForScrollableHeight(y: number, attempt = 0) {
-          if (attempt > 30) return; // stop after ~30 frames (~500ms)
-        
-          if (document.body.scrollHeight < y + window.innerHeight) {
-            requestAnimationFrame(() => waitForScrollableHeight(y, attempt + 1));
-          } else {
-            window.scrollTo({ top: y, behavior: "instant" });
-            sessionStorage.removeItem("scrollY");
-          }
-        }
+    // Clear per-post caches left by the individual post page
+    Object.keys(sessionStorage)
+      .filter((k) => k.startsWith("bp:dims:") || k.startsWith("bp:size:"))
+      .forEach((k) => sessionStorage.removeItem(k));
 
-        if (y > 0) {
-          waitForScrollableHeight(y);
-        }
+    // PostCard saves scrollY when a post is clicked, so this means "came back from a post"
+    const y = Number(sessionStorage.getItem("scrollY") ?? 0);
+    const snapshot = readSnapshot();
 
-        setPage(restorePage);
-      };
-  
-      preload();
+    if (y > 0 && snapshot?.key === activeQuery) {
+      setPosts(snapshot.posts);
+      setCursor(snapshot.cursor);
+      setHasMore(snapshot.cursor !== null);
+      setLoading(false);
+      restoreScroll(y);
+    } else {
+      loadPosts(activeQuery, null);
     }
   }, []);
 
-  // 🌀 Infinite scroll
+  // Remember the loaded feed so coming back from a post doesn't refetch everything
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const windowHeight = window.innerHeight;
-      const fullHeight = document.body.scrollHeight;
+    if (posts.length === 0) return;
+    try {
+      sessionStorage.setItem(FEED_CACHE_KEY, JSON.stringify({ key: activeQuery, posts, cursor }));
+    } catch {
+      // sessionStorage full: scroll restore just won't happen
+    }
+  }, [posts, cursor]);
 
-      const scrolled = (scrollY + windowHeight) / fullHeight;
-
-      // Percentage of the way through the screen:
-      if (scrolled > 0.75 && !isLoadingMore && hasMore) {
-        setIsLoadingMore(true);
-        const nextPage = page + 1;
-        setPage(nextPage);
-        sessionStorage.setItem("lastPage", nextPage.toString());
-
-        searchPosts(searchText, selectedSafeties, nextPage, true).then(() => {
-          setIsLoadingMore(false);
-        });
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [page, searchText, selectedSafeties, isLoadingMore, hasMore]);
-
+  // Infinite scroll: load the next batch when the sentinel below the grid gets near the viewport
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      sessionStorage.removeItem("lastPage");
-      sessionStorage.removeItem("scrollY");
-    };
-  
+    const el = sentinel.current;
+    if (!el || !hasMore || loading || error) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) loadPosts(activeQuery, cursor); },
+      { rootMargin: "800px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [cursor, hasMore, loading, error, activeQuery]);
+
+  // A fresh page load (not coming back from a post) shouldn't restore an old scroll position
+  useEffect(() => {
+    const handleBeforeUnload = () => sessionStorage.removeItem("scrollY");
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
+  const updateUrl = (text: string, safeties: string[]) => {
+    const params = new URLSearchParams();
+    if (text) params.set("query", text);
+    if (safeties.length > 0) params.set("safety", safeties.join("-"));
+    router.replace(`?${params.toString()}`);
+
+    // Read by the individual post page (PostMetadata / PostNavigator)
+    sessionStorage.setItem("lastSearchParams", JSON.stringify({ query: text, safety: safeties.join("-") }));
+  };
+
+  const search = (text: string = searchText, safeties: string[] = selectedSafeties) => {
+    const q = buildQuery(text, safeties);
+    setActiveQuery(q);
+    setHasMore(false); // stop infinite scroll from loading more of the old search
+    window.scrollTo({ top: 0 });
+    updateUrl(text, safeties);
+    loadPosts(q, null);
+  };
+
+  const toggleSafety = (safety: string) => {
+    const next = selectedSafeties.includes(safety)
+      ? selectedSafeties.filter((s) => s !== safety)
+      : [...selectedSafeties, safety];
+
+    setSelectedSafeties(next);
+    search(searchText, next);
+  };
+
   function setSelectMode(toggle: boolean) {
     setSelectionMode(toggle);
-    if (toggle == false) { lastSelectedIndex.current = null }
+    if (!toggle) lastSelectedIndex.current = null;
   }
+
+  const toggleSelect = (id: number, e: React.MouseEvent) => {
+    const clickedIndex = posts.findIndex((p) => p.id === id);
+
+    setSelectedPostIds((prev) => {
+      if (e.shiftKey) {
+        const anchor = lastSelectedIndex.current ?? 0; // fallback to top
+        return anchor <= clickedIndex
+          ? posts.slice(anchor, clickedIndex + 1).map((p) => p.id)
+          : posts.slice(clickedIndex, anchor + 1).map((p) => p.id).reverse();
+      }
+
+      lastSelectedIndex.current = clickedIndex;
+      return prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
+    });
+  };
 
   return (
     <>
@@ -191,7 +229,7 @@ export default function ClientPostsPage() {
         setSearchText={setSearchText}
         selectedSafeties={selectedSafeties}
         toggleSafety={toggleSafety}
-        searchPosts={searchPosts}
+        searchPosts={search}
         selectionMode={selectionMode}
         selectedPostIds={selectedPostIds}
         setSelectionMode={setSelectMode}
@@ -199,52 +237,54 @@ export default function ClientPostsPage() {
         setModalOpen={setModalOpen}
       />
 
-      <Suspense fallback={<LoadingOverlay show label="Loading Posts..." />}>
-        {!loadingViewMode ? (
-          <PostGrid
-            externalPosts={posts}
-            viewMode={viewMode}
-            page={page}
-            postsPerPage={prefs?.postsPerPage ?? defaultPostsPerPage}
-            selectionMode={selectionMode}
-            selectedPostIds={selectedPostIds}
-            toggleSelect={(id, e) => {
-              const clickedIndex = posts.findIndex((p) => p.id === id);
-            
-              setSelectedPostIds((prev) => {
-                if (e.shiftKey) {
-                  const anchor = lastSelectedIndex.current ?? 0; // ← fallback to top
-                  let range: number[];
+      {error ? (
+        <FeedMessage error={error} />
+      ) : !layout ? (
+        <LoadingOverlay show label="Loading Layout..." />
+      ) : (
+        <PostGrid
+          externalPosts={posts}
+          viewMode={layout}
+          page={1} // only animates the first batch
+          postsPerPage={perPage.current}
+          selectionMode={selectionMode}
+          selectedPostIds={selectedPostIds}
+          toggleSelect={toggleSelect}
+        />
+      )}
 
-                  if (anchor <= clickedIndex) {
-                    range = posts.slice(anchor, clickedIndex + 1).map(p => p.id);
-                  } else {
-                    range = posts.slice(clickedIndex, anchor + 1).map(p => p.id).reverse();
-                  }
-                  return range;
-                }
-            
-                const alreadySelected = prev.includes(id);
-                const next = alreadySelected
-                  ? prev.filter((i) => i !== id)
-                  : [...prev, id];
-            
-                lastSelectedIndex.current = clickedIndex;
-                return next;
-              });
-            }}
-          />
-        ) : (
-          <LoadingOverlay show={loadingViewMode} label="Loading Layout..." />
-        )}
-      </Suspense>
-      <MassEditor
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        selectedPosts={selectedPostIds.map(id => posts.find(p => p.id === id)!).filter(Boolean)}
-        setSelectedPostIds={setSelectedPostIds}
-        setSelectionMode={setSelectionMode}
-      />
+      {!error && !loading && posts.length === 0 && (
+        <p className="text-center text-subtle py-12">No posts found.</p>
+      )}
+      {loading && posts.length > 0 && (
+        <p className="text-center text-subtle py-6">Loading more...</p>
+      )}
+
+      <div ref={sentinel} />
     </>
   );
+}
+
+function FeedMessage({ error }: { error: FeedError }) {
+  if (error.status === 401) {
+    return (
+      <div className="flex flex-col items-center text-center px-4 py-16 text-red-400">
+        <h1 className="text-3xl font-bold mb-2">Unauthorized</h1>
+        <p className="text-base text-subtle max-w-md">
+          Guests can't view posts here. Please <a className="text-accent hover:underline" href="/auth/login">log in</a>.
+        </p>
+      </div>
+    );
+  }
+
+  if (error.status === 403) {
+    return (
+      <div className="flex flex-col items-center text-center px-4 py-16 text-red-400">
+        <h1 className="text-3xl font-bold mb-2">Forbidden</h1>
+        <p className="text-base text-subtle max-w-md">Your account doesn't have permission to view posts.</p>
+      </div>
+    );
+  }
+
+  return <p className="text-center text-red-400 px-4 py-12">{error.text}</p>;
 }
