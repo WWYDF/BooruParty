@@ -1,9 +1,10 @@
 import '@/core/styles/globals.css';
 import { Inter } from 'next/font/google';
 import { Metadata } from 'next';
-import Navbar from '@/components/clientSide/Navbar';
-import { ToastProvider } from '@/components/clientSide/Toast';
-import Footer from '@/components/clientSide/Footer';
+import { ToastProvider } from '@/components/UI/Toast';
+import { UserProvider } from '@/components/UserProvider';
+import Navbar from '@/components/Navigation/Navbar';
+import Footer from '@/components/Navigation/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
@@ -32,13 +33,15 @@ export default function RootLayout({
     <html lang="en">
       <head />
       <body className={`${inter.className} min-h-screen flex flex-col`}>
-        <Navbar />
-        <ToastProvider>
-          <main className="flex-grow">
-            {children}
-          </main>
-        </ToastProvider>
-        <Footer />
+        <UserProvider>
+          <Navbar />
+          <ToastProvider>
+            <main className="flex-grow">
+              {children}
+            </main>
+          </ToastProvider>
+          <Footer />
+        </UserProvider>
       </body>
     </html>
   )
