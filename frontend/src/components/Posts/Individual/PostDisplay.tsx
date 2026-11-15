@@ -1,23 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import PostVoting from "./PostVoting";
-import { PostDetail, PostUserStatus } from "@/core/types/posts";
+import { PostDetail } from "@/core/types/posts";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/UI/Toast";
 
 type Props = {
   post: PostDetail;
-  user?: PostUserStatus;
   showVoting?: boolean;
-  skeletonAspectRatio?: number;
   disableFullscreen?: boolean;
 };
 
-export default function PostDisplay({ post, user, showVoting = true, disableFullscreen = false }: Props) {
-  const previewScale = Math.round(((post.previewSize ?? post.fileSize) / post.fileSize) * 100);
-  const [showFull, setShowFull] = useState(previewScale || previewScale == null);
+const VOTING_ENABLED = false; // no votes API yet; bring back <PostVoting /> when it exists
+
+export default function PostDisplay({ post, showVoting = true, disableFullscreen = false }: Props) {
+  // No preview means the original was already the smallest version, so show it directly
+  const [showFull, setShowFull] = useState(post.previewPath === null);
   const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,30 +24,26 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
   const toast = useToast();
 
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const src = showFull || !post.previewPath ? post.originalPath : post.previewPath;
 
   function handleFullscreen(toggle: boolean) {
-    if (disableFullscreen == false) { setIsAnimating(toggle); }
-  }
-  
-  function saveDims(w: number, h: number) {
-    // persist per-post so it survives refresh
-    try {
-      sessionStorage.setItem(`bp:dims:${post.id}`, JSON.stringify({ w, h, at: Date.now(), src: showFull ? post.originalPath : post.previewPath }));
-    } catch {}
-  }
-  
-  function publishDims(w: number, h: number) {
-    saveDims(w, h);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("post:image-dimensions", { detail: { postId: post.id, w, h } }));
-    }
-  }
-  
-  function handleImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    const { naturalWidth, naturalHeight, currentSrc } = e.currentTarget;
-    publishDims(naturalWidth, naturalHeight);
+    if (!disableFullscreen) setIsAnimating(toggle);
   }
 
+  function viewOriginal() {
+    setShowFull(true);
+    window.dispatchEvent(new CustomEvent("post:changeViewingState", { detail: { state: true } }));
+  }
+
+  function publishDims(w: number, h: number) {
+    // persist per-post so it survives refresh
+    try {
+      sessionStorage.setItem(`bp:dims:${post.id}`, JSON.stringify({ w, h, at: Date.now(), src }));
+    } catch {}
+    window.dispatchEvent(new CustomEvent("post:image-dimensions", { detail: { postId: post.id, w, h } }));
+  }
+
+  // A cached image can finish loading before React attaches onLoad, so check once after render too
   useEffect(() => {
     const el = imgRef.current;
     if (el && el.complete && el.naturalWidth && el.naturalHeight) {
@@ -56,12 +51,19 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
     }
   }, [showFull, post.id]);
 
+  // If the preview file is missing or broken, fall back to the original instead of a broken image
+  function handleError() {
+    if (!showFull && post.previewPath) viewOriginal();
+  }
+
+  // Short silent clips behave like GIFs. Browsers only allow autoplay when the video is muted.
+  const autoPlay = post.type === "VIDEO" && post.duration !== null && post.duration < 5 && !post.hasAudio;
 
   return (
     <div className="flex flex-col items-center gap-4">
       <AnimatePresence>
         <motion.div
-          className="flex justify-center"
+          className="flex justify-center max-w-full"
           initial={{ opacity: 0.95, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
@@ -69,46 +71,45 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
         >
           {post.type === "VIDEO" ? (
             <video
-              src={showFull ? post.originalPath : post.previewPath!}
+              key={src} // remount when switching to the original so it actually reloads
+              src={src}
               controls
               playsInline
               loop
-              autoPlay={(post.duration && post.duration < 5 && !post.hasAudio) ? true : false}
-              // muted
+              autoPlay={autoPlay}
+              muted={autoPlay}
               preload="auto"
+              poster={post.thumbnails.large}
               onLoadedMetadata={(e) => publishDims(e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
-              className="min-w-[50vw] w-auto max-w-auto max-h-[70vh] object-contain"
+              onError={handleError}
+              className="min-w-[50vw] w-auto max-w-full max-h-[70vh] object-contain"
             />
           ) : (
             <img
               ref={imgRef}
-              loading="lazy"
-              src={showFull ? post.originalPath : post.previewPath!}
-              alt={`Error accessing ${post.originalPath}`}
+              src={src}
+              alt={`Post #${post.id}`}
               title="Click to enter fullscreen mode"
-              onClick={() => { handleFullscreen(true); }}
-              onLoad={handleImageLoad}
-              className="lg:max-h-[80vh] lg:h-[80vh] w-auto object-contain rounded-xl cursor-pointer"
+              onClick={() => handleFullscreen(true)}
+              onLoad={(e) => publishDims(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
+              onError={handleError}
+              // Reserves the right amount of space before the image loads, so the page doesn't jump
+              style={{ aspectRatio: post.aspectRatio }}
+              className="lg:max-h-[80vh] lg:h-[80vh] w-auto max-w-full object-contain rounded-xl cursor-pointer"
             />
           )}
         </motion.div>
       </AnimatePresence>
 
-      {!showFull && previewScale !== 100 && showVoting ? (
-        <button
-          onClick={() => {
-            setShowFull(true);
-            window.dispatchEvent(new CustomEvent("post:changeViewingState", { detail: { state: true } }));
-          }}
-          className="text-subtle text-sm italic"
-        >
-          Viewing sample resized to {previewScale}% of original (
+      {!showFull && post.previewSize !== null && (
+        <button onClick={viewOriginal} className="text-subtle text-sm italic">
+          Viewing sample encoded to {Math.round((post.previewSize / post.fileSize) * 100)}% of original (
           <span className="underline text-accent">view original</span>
           )
         </button>
-      ) : null}
+      )}
 
-      {showVoting && user && user.signedIn == true && <PostVoting post={post} user={user} />}
+      {showVoting && VOTING_ENABLED && null /* <PostVoting post={post} /> */}
 
       {isAnimating && (
         <motion.div
@@ -119,9 +120,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
           transition={{ duration: 0.25, ease: "easeInOut" }}
           onAnimationComplete={() => {
             router.push(`/post/${post.id}/fullscreen${poolId ? `?pool=${poolId}` : ""}`);
-            if (window.innerWidth >= 1280) {
-              toast('Press ESC to exit', 'info');
-            };
+            if (window.innerWidth >= 1280) toast("Press ESC to exit", "info");
           }}
         />
       )}
