@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import { appLogger } from '@/core/plugins/logger';
 import { Prisma } from '../../../prisma/client';
 import { emailSchema, passwordSchema, usernameSchema } from '@/core/objects/fastifySchemas';
+import { rolePermissionList } from '@/core/utilities/permissionCache';
 
 const logger = appLogger('Auth');
 const DUMMY_HASH = '$2b$12$ekdKhFYGe/WzS9ICFt7imOGAHL56bdhKH8jAVySfiU.20YrrUBgWa';
@@ -56,7 +57,7 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
       });
 
       await createSession(req, reply, { sub: user.id, username: user.username, roleId: defaultRole.id });
-      return reply.status(201).send(user);
+      return reply.status(201).send({ ...user, permissions: rolePermissionList(defaultRole.id) });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         const field = (e.meta?.target as string[])?.includes('email') ? 'Email' : 'Username';
@@ -104,7 +105,7 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
 
     const { passHash, ...safeUser } = user;
     await createSession(req, reply, { sub: user.id, username: user.username, roleId: user.roleId });
-    return reply.status(200).send(safeUser);
+    return reply.status(201).send({ ...safeUser, permissions: rolePermissionList(user.roleId) });
   });
 
 
@@ -138,7 +139,7 @@ const authUsers: FastifyPluginAsync = async (fastify) => {
     // Send back new (refreshed) session
     const { user } = session;
     await createSession(req, reply, { sub: user.id, username: user.username, roleId: user.roleId });
-    return reply.status(200).send(user);
+    return reply.status(200).send({ ...user, permissions: rolePermissionList(user.roleId) });
   });
 
 

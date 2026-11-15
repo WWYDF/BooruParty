@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { PermissionName } from "../objects/permissions";
+import { PermissionName, PERMISSIONS } from "../objects/permissions";
 import { appLogger } from "../plugins/logger";
 import { prisma } from "../plugins/prisma";
 
@@ -30,6 +30,13 @@ export function rolePermissionCheck(roleId: string, permission: PermissionName):
   const perms = rolePermissions.get(roleId);
   if (!perms) return false; // unknown role (deleted?) gets nothing
   return perms.has('administrator') || perms.has(permission); // 'administrator' force grants everything.
+}
+
+// Get permission list from a specific role
+export function rolePermissionList(roleId: string): PermissionName[] {
+  const perms = rolePermissions.get(roleId);
+  if (!perms) return [];
+  return perms.has('administrator') ? [...PERMISSIONS] : [...perms];
 }
 
 // Route hook. Must run AFTER fastify.authenticate (which sets req.user).

@@ -2,18 +2,18 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { API } from '@/core/api';
-import { UserSelf } from '@/core/types/users';
+import { UserPrivateSummary } from '@/core/types/users';
 
 type UserContextValue = {
-  user: UserSelf | null | undefined; // undefined = still loading, null = logged out
-  setUser: (user: UserSelf | null) => void;
+  user: UserPrivateSummary | null | undefined; // undefined = still loading, null = logged out
+  setUser: (user: UserPrivateSummary | null) => void;
   logout: () => Promise<void>;
 };
 
 const UserContext = createContext<UserContextValue | null>(null);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserSelf | null | undefined>(undefined);
+  const [user, setUser] = useState<UserPrivateSummary | null | undefined>(undefined);
 
   useEffect(() => {
     API('/api/me')

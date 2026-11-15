@@ -6,22 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChartPieIcon, FolderOpenIcon, HouseIcon, ImagesIcon, ListIcon, SignInIcon, TagIcon, UploadSimpleIcon, UserCircleCheckIcon, UserCircleIcon, UserCirclePlusIcon, UsersIcon, XIcon } from '@phosphor-icons/react';
 import { NavItem } from './NavItem';
 import { usePathname, useRouter } from "next/navigation";
-import { AddonState } from '@/core/types/dashboard';
+import { useUser } from '@/components/UserProvider';
 
-
-export type UserInfo = {
-  id: string;
-  username?: string;
-  avatar?: string;
-  role: {
-    name: string;
-    permissions: { name: string }[];
-  };
-};
 
 export default function Navbar() {
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [addonsConfig, setAddons] = useState<AddonState | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -30,25 +18,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const isFullscreen = pathname?.includes("/fullscreen");
   const router = useRouter();
+  const { user } = useUser();
 
-  useEffect(() => {
-    fetch('/api/users/self')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.username) setUser(data);
-        else if (data?.role?.name === 'GUEST') setUser(data);
-        else setUser(null);
-      });
-  }, []);
-
-  useEffect(() => {
-    const fetchAddons = async () => {
-      const res = await fetch('/api/addons');
-      const resJson = await res.json() as AddonState;
-      setAddons(resJson);
-    };
-    fetchAddons();
-  }, []);
+  const hasPerm = (perm: string) => user?.permissions?.includes(perm) ?? false;
+  const canBrowse = user ? hasPerm('posts.view') : true; // guests see the links; pages show 401 if guest access is off
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -86,9 +59,6 @@ export default function Navbar() {
     };
   }, []);
 
-  const hasPerm = (perm: string) =>
-    user?.role?.permissions?.some((p) => p.name === perm);
-
   if (isFullscreen) return null;
 
   return (
@@ -103,7 +73,7 @@ export default function Navbar() {
         <>
           {/* Mobile logo */}
           <Link
-            href={hasPerm('post_view') ? '/posts' : '/'}
+            href={hasPerm('posts.view') ? '/posts' : '/'}
             className="text-xl font-semibold text-white md:hidden"
           >
             {process.env.NEXT_PUBLIC_SITE_NAME ?? "Imageboard"}
@@ -121,22 +91,19 @@ export default function Navbar() {
         {/* Desktop Links */}
         <div className="hidden md:flex gap-4 items-center text-sm text-subtle">
           <NavItem href="/posts">Posts</NavItem>
-          {hasPerm('post_view') && (
+          {hasPerm('posts.view') && (
             <NavItem href="/pools">Pools</NavItem>
           )}
-          {hasPerm('post_create') && (
+          {hasPerm('posts.create') && (
             <NavItem href="/upload">Upload</NavItem>
           )}
-          {hasPerm('post_view') && (
+          {hasPerm('posts.view') && (
             <NavItem href="/tags">Tags</NavItem>
           )}
-          {addonsConfig?.jigsaw.enabled == true && (
-            <NavItem href="/games/jigsaw">Games</NavItem>
-          )}
-          {hasPerm('dashboard_view') && (
+          {hasPerm('dashboard.view') && (
             <NavItem href="/dashboard">Dashboard</NavItem>
           )}
-          {hasPerm('post_view') && (
+          {hasPerm('posts.view') && (
             <NavItem href="/users">Users</NavItem>
           )}
           {user?.username ? (
@@ -237,17 +204,17 @@ export default function Navbar() {
                 >
                   Posts
                 </NavItem>
-                {hasPerm('post_view') && (
+                {hasPerm('posts.view') && (
                   <NavItem href="/pools" icon={<FolderOpenIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     Pools
                   </NavItem>
                 )}
-                {hasPerm('post_view') && (
+                {hasPerm('posts.view') && (
                   <NavItem href="/tags" icon={<TagIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     Tags
                   </NavItem>
                 )}
-                {hasPerm('post_create') && (
+                {hasPerm('posts.create') && (
                   <NavItem href="/upload" icon={<UploadSimpleIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     Upload
                   </NavItem>
@@ -257,7 +224,7 @@ export default function Navbar() {
                     Dashboard
                   </NavItem>
                 )}
-                {hasPerm('post_view') && (
+                {hasPerm('posts.view') && (
                   <NavItem href="/users" icon={<UsersIcon size={18} />} onClick={() => setSidebarOpen(false)}>
                     Users
                   </NavItem>

@@ -128,10 +128,11 @@ export type LocalUserPreferences = {
   flipNavigators: boolean,
 }
 
-// Public Stuff
+// Basic Public Stuff
 export type UserSimpleSummary = {
   id: string,
   username: string,
+  avatar: string | null,
   private: boolean,
   lastSeen: string | null, // like last activity (e.g. "viewing post #33")
   updatedAt: Date,
@@ -141,4 +142,11 @@ export type UserSimpleSummary = {
     color: string,
     index: number,
   }
+}
+
+// Private Stuff
+export type UserPrivateSummary = UserSimpleSummary & {
+  email: string,
+  lastLogin: Date,
+  permissions: string[],
 }
