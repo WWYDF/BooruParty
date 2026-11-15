@@ -1,0 +1,157 @@
+import { FileType, Safety } from "../../../prisma/client";
+import { normalizeTagName } from "./tags";
+
+
+const MAX_TERMS = 40; // every tag term becomes a subquery; keep searches bounded
+
+export type NumberOp = 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
+export type NumberFilter = { op: NumberOp, value: number, };
+export type Wildcard = { kind: 'startsWith' | 'endsWith' | 'contains', value: string };
+export type SortOrder = 'newest' | 'oldest' | 'score' | 'random';
+
+export type ParsedQuery = {
+  include: string[],              // must have all of these tags
+  exclude: string[],              // must have none of these
+  anyOf: string[],                // must have at least one (from ~terms)
+  includeWildcards: Wildcard[],
+  excludeWildcards: Wildcard[],
+  safety?: Safety[],              // undefined = search didn't say; viewer default applies
+  type?: FileType[],
+  from: string[],                 // uploader usernames (must be one of)
+  notFrom: string[],
+  score: NumberFilter[],
+  tagcount: NumberFilter[],
+  id: NumberFilter[],
+  order: SortOrder,
+  errors: string[],
+};
+
+// "safe,explicit" -> [SAFE, EXPLICIT], or null if any value is unknown
+function parseEnumList<T extends string>(value: string, allowed: readonly T[]): T[] | null {
+  const out: T[] = [];
+  for (const part of value.split(',').filter(Boolean)) {
+    const match = allowed.find((a) => a.toLowerCase() === part);
+    if (!match) return null;
+    out.push(match);
+  }
+  return out.length ? out : null;
+}
+
+// ">10" | ">=10" | "<10" | "<=10" | "10"
+function parseNumberFilter(value: string): NumberFilter | null {
+  const m = /^(>=|<=|>|<)?(-?\d{1,9})$/.exec(value);
+  if (!m) return null;
+  const op = ({ '>': 'gt', '>=': 'gte', '<': 'lt', '<=': 'lte' } as const)[m[1] as '>'] ?? 'eq';
+  return { op, value: Number(m[2]) };
+}
+
+// "blue_*" | "*_sky" | "*blue*"; a * in the middle isn't supported
+function parseWildcard(token: string): Wildcard | null {
+  const start = token.startsWith('*');
+  const end = token.endsWith('*');
+  const value = token.replace(/^\*|\*$/g, '');
+  if (!value || value.includes('*')) return null;
+  return { kind: start && end ? 'contains' : start ? 'endsWith' : 'startsWith', value };
+}
+
+// Applies a positive or negated enum term on top of earlier ones (multiple terms narrow the result)
+function narrow<T extends string>(current: T[] | undefined, values: T[], negate: boolean, all: readonly T[]): T[] {
+  const next = negate ? all.filter((v) => !values.includes(v)) : values;
+  return current ? current.filter((v) => next.includes(v)) : next;
+}
+
+export function parseSearch(input: string): ParsedQuery {
+  const q: ParsedQuery = {
+    include: [],
+    exclude: [],
+    anyOf: [],
+    includeWildcards: [],
+    excludeWildcards: [],
+    from: [],
+    notFrom: [],
+    score: [],
+    tagcount: [],
+    id: [],
+    order: 'newest',
+    errors: [],
+  };
+
+  const tokens = input.normalize('NFC').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length > MAX_TERMS) {
+    q.errors.push(`Too many search terms (max ${MAX_TERMS})`);
+    return q;
+  }
+
+  for (const raw of tokens) {
+    let token = raw;
+    const negate = token.startsWith('-');
+    const or = token.startsWith('~');
+    if (negate || or) token = token.slice(1);
+    if (!token) continue;
+
+    // System terms: key:value pair
+    const colon = token.indexOf(':');
+    const key = colon > 0 ? token.slice(0, colon) : '';
+    const value = colon > 0 ? token.slice(colon + 1) : '';
+
+    if (key && or && ['safety', 'type', 'from', 'score', 'tagcount', 'id', 'order', 'sort'].includes(key)) {
+      q.errors.push(`"~" can't be used with ${key}:`);
+      continue;
+    }
+
+    switch (key) {
+      case 'safety': {
+        const values = parseEnumList(value, Object.values(Safety));
+        if (!values) { q.errors.push(`safety: must be ${Object.values(Safety).join(', ').toLowerCase()}`); continue; }
+        q.safety = narrow(q.safety, values, negate, Object.values(Safety));
+        continue;
+      }
+      case 'type': {
+        const values = parseEnumList(value, Object.values(FileType));
+        if (!values) { q.errors.push(`type: must be ${Object.values(FileType).join(', ').toLowerCase()}`); continue; }
+        q.type = narrow(q.type, values, negate, Object.values(FileType));
+        continue;
+      }
+      case 'from': {
+        if (!value) { q.errors.push('from: needs a username'); continue; }
+        (negate ? q.notFrom : q.from).push(value);
+        continue;
+      }
+      case 'score':
+      case 'tagcount':
+      case 'id': {
+        if (negate) { q.errors.push(`-${key}: isn't supported; use the opposite comparison`); continue; }
+        const filter = parseNumberFilter(value);
+        if (!filter) { q.errors.push(`${key}: must look like 10, >10, >=10, <10 or <=10`); continue; }
+        q[key].push(filter);
+        continue;
+      }
+      case 'order': // same as sort, just fall through
+      case 'sort': {
+        if (negate) { q.errors.push(`-${key}: isn't supported`); continue; }
+        if (!['newest', 'oldest', 'score', 'random'].includes(value)) {
+          q.errors.push(`${key}: must be newest, oldest, score or random`);
+          continue;
+        }
+        q.order = value as SortOrder;
+        continue;
+      }
+    }
+
+    // Wildcard tags
+    if (token.includes('*')) {
+      if (or) { q.errors.push(`"~" can't be used with wildcards`); continue; }
+      const wc = parseWildcard(token);
+      if (!wc) { q.errors.push(`"${raw}": wildcards only work at the start or end`); continue; }
+      (negate ? q.excludeWildcards : q.includeWildcards).push(wc);
+      continue;
+    }
+
+    // Plain tags (anything with an unknown "key:" is a tag name, e.g. re:zero)
+    const n = normalizeTagName(token);
+    if (!n.ok) { q.errors.push(`"${raw}": ${n.reason}`); continue; }
+    (negate ? q.exclude : or ? q.anyOf : q.include).push(n.name);
+  }
+
+  return q;
+}
