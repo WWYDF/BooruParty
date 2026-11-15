@@ -22,9 +22,6 @@
         "name": "next"
       }
     ],
-    "types": [
-      "next-auth"
-    ],
     "paths": {
       "@/*": [
         "./src/*"
