@@ -20,7 +20,7 @@ datasource db {
 model ServerSettings {
   id                      Int                       @id @default(1)
   lastSetupVersion        String?
-  
+
   guestAccess             Boolean                   @default(false)
   guestSafety             Safety[]                  @default([SAFE])
 }
@@ -77,7 +77,7 @@ model Preferences {
   user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   blurUnsafeEmbeds        Boolean                   @default(true)
-  defaultSafety           Safety                    @default(SAFE)
+  defaultSafety           Safety[]                  @default([SAFE])
   // blacklistedTags
   // favoriteTags
   profileBackground       Int?                      // Post ID

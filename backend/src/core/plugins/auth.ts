@@ -42,6 +42,19 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
       return reply.code(401).send({ error: 'Unauthorized' });
     }
   });
+
+  // Use on public routes: { onRequest: [fastify.identify] }
+  // No token -> guest (req.user stays empty). Valid token -> req.user is set.
+  // Token present but expired/invalid -> 401, so the frontend refreshes instead of silently browsing as a guest.
+  fastify.decorate('identify', async (req: FastifyRequest, reply: FastifyReply) => {
+    if (!req.cookies.bpJWT) return;
+
+    try {
+      await req.jwtVerify();
+    } catch {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+  });
 };
 
 // fp() breaks Fastify's plugin encapsulation so `authenticate` (and the cookie/jwt
@@ -58,5 +71,6 @@ declare module '@fastify/jwt' {
 declare module 'fastify' {
   interface FastifyInstance {
     authenticate: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    identify: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }

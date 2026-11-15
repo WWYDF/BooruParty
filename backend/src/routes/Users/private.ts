@@ -112,7 +112,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
         minProperties: 1,
         properties: {
           blurUnsafeEmbeds: { type: 'boolean' },
-          defaultSafety: { type: 'string', enum: Object.values(Safety) },
+          defaultSafety: { type: 'array', minItems: 1, uniqueItems: true, items: { type: 'string', enum: Object.values(Safety) } },
           profileBackground: { type: ['integer', 'null'], minimum: 1 },
         },
       },
@@ -120,7 +120,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
   }, async (req, reply) => {
     const data = req.body as {
       blurUnsafeEmbeds?: boolean,
-      defaultSafety?: Safety,
+      defaultSafety?: Safety[],
       profileBackground?: number | null,
     };
 
