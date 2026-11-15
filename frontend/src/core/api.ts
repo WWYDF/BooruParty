@@ -1,4 +1,4 @@
-const API_Endpoint = process.env.NEXT_PUBLIC_FASTIFY;
+export const API_Endpoint = process.env.NEXT_PUBLIC_FASTIFY;
 
 let refreshing: Promise<boolean> | null = null;
 

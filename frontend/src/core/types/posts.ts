@@ -5,6 +5,7 @@ import { UserSimpleSummary } from "./users";
 export type Safety = 'SAFE' | 'QUESTIONABLE' | 'EXPLICIT';
 
 // Returned when searching an individual post
+// Has new sturcture, but will be phased out over time in favor of PostDetail
 export type Post = {
   id: number,
   type: FileType,
@@ -56,6 +57,43 @@ export type Posts = {
     large: string,
   }
 }
+
+// Matches formatPostDetail from API
+export type PostDetail = {
+  id: number,
+  type: FileType,
+  safety: Safety,
+  fileKey: string,
+  aspectRatio: number,
+  sources: string[],
+  notes: string | null,
+  
+  fileSize: number, // bytes
+  previewSize: number | null, // bytes
+  duration: number | null,
+  hasAudio: boolean | null,
+
+  score: number,
+  tags: {
+    id: number,
+    name: string,
+    categoryId: number,
+  }[],
+
+  createdAt: Date,
+  updatedAt: Date,
+  uploader: UserSimpleSummary,
+
+  originalPath: string,
+  previewPath: string | null, // generated preview was larger than original
+  thumbnails: {
+    small: string,
+    med: string,
+    large: string,
+  }
+}
+
+
 
 export type PostUserStatus = {
   vote: 'UPVOTE' | 'DOWNVOTE' | null,
