@@ -1,8 +1,8 @@
 'use client';
 
 import { Post } from "@/core/types/posts";
+import { ChatsIcon, FilmStripIcon, HeartIcon, SparkleIcon, ThumbsUpIcon } from "@phosphor-icons/react";
 import Link from "next/link";
-import { ThumbsUp, Heart, FilmStrip, Chats, Sparkle } from "phosphor-react";
 
 interface PostCardProps {
   post: Post;
@@ -78,7 +78,7 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
         <div className="absolute bottom-2 left-2 flex items-center gap-2">
           {isAnimated && (
             <div className="bg-secondary-border px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <FilmStrip size={16} />
+              <FilmStripIcon size={16} />
             </div>
           )}
         </div>
@@ -86,28 +86,28 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
         <div className="absolute bottom-2 right-2 flex items-center gap-2">
           {post.comments?.length > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Chats size={16} className="text-yellow-500" weight="bold" />
+              <ChatsIcon size={16} className="text-yellow-500" weight="bold" />
               <span>{post.comments.length}</span>
             </div>
           )}
 
           {post.score > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <ThumbsUp size={16} className="text-green-500" weight={liked ? 'fill' : 'bold'} />
+              <ThumbsUpIcon size={16} className="text-green-500" weight={liked ? 'fill' : 'bold'} />
               <span>{post.score}</span>
             </div>
           )}
 
           {post._count?.favoritedBy > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Heart size={16} className="text-red-500" weight={faved ? 'fill' : 'bold'} />
+              <HeartIcon size={16} className="text-red-500" weight={faved ? 'fill' : 'bold'} />
               <span>{post._count?.favoritedBy}</span>
             </div>
           )}
 
           {post._count?.boosts > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <Sparkle size={16} className="text-cyan-500" weight="bold" />
+              <SparkleIcon size={16} className="text-cyan-500" weight="bold" />
               <span>{post._count?.boosts}</span>
             </div>
           )}

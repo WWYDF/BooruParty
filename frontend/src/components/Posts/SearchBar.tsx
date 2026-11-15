@@ -1,6 +1,6 @@
 "use client";
 
-import { MagnifyingGlass, Trash, HashStraight, Question } from "@phosphor-icons/react";
+import { HashStraightIcon, MagnifyingGlassIcon, TrashIcon, QuestionIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { motion } from 'framer-motion';
 import { useToast } from "../UI/Toast";
@@ -20,11 +20,13 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
   const {
     suggestions,
     highlightedIndex,
+    setHighlightedIndex,
     isFocused,
     inputRef,
+    applySuggestion,
     handleKeyDown,
     handleChange,
-    handleSuggestionClick,
+    handleSelect,
     handleSubmit,
     handleClear,
     handleFocus,
@@ -32,8 +34,8 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
   } = useSearchBarLogic({ input, setInput, onSubmit });
 
   const showPostCount = () => {
-    const postCount = sessionStorage.getItem("postCount")
-    toast(`There are ${postCount} posts matching this search.`);
+    const postCount = Number(sessionStorage.getItem("postCount") ?? 0); // written by PostsPage
+    toast(`There are ${postCount.toLocaleString()} posts matching this search.`);
   };
 
   return (
@@ -45,19 +47,22 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
           type="text"
           value={input}
           onChange={handleChange}
+          onSelect={handleSelect}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           onBlur={handleBlur}
           placeholder="Search by tags (example: cat -dog)"
+          autoComplete="off"
+          spellCheck={false}
           className="w-full bg-secondary text-white py-2 text-base focus:outline-none"
         />
 
         <button
           onClick={showPostCount}
           className="ml-2 w-8 h-8 flex items-center transition-colors justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300 shrink-0"
-          title="Search"
+          title="Post count"
         >
-          <HashStraight size={18} weight="duotone" />
+          <HashStraightIcon size={18} weight="duotone" />
         </button>
 
         <button
@@ -65,7 +70,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
           className="ml-2 w-8 h-8 flex items-center transition-colors justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300 shrink-0"
           title="Search"
         >
-          <MagnifyingGlass size={16} weight="duotone" />
+          <MagnifyingGlassIcon size={16} weight="duotone" />
         </button>
 
         {/* Autocomplete dropdown */}
@@ -77,30 +82,30 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
             transition={{ duration: 0.15 }}
             className="absolute top-full left-0 mt-1 w-full bg-secondary border border-secondary-border rounded shadow-md z-50 max-h-60 overflow-y-auto"
           >
-            {suggestions.map((tag, idx) => (
+            {suggestions.map((s, idx) => (
               <div
-                key={tag.id}
-                onClick={() => handleSuggestionClick(tag.name)}
-                className={`flex items-center px-3 py-2 text-sm cursor-pointer ${
-                  highlightedIndex === idx
-                    ? "bg-zinc-700 text-white"
-                    : "hover:bg-secondary-border"
+                key={s.key}
+                // mousedown + preventDefault keeps focus in the input, so blur doesn't close the list first
+                onMouseDown={(e) => { e.preventDefault(); applySuggestion(s); }}
+                onMouseEnter={() => setHighlightedIndex(idx)}
+                className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer ${
+                  highlightedIndex === idx ? "bg-zinc-700 text-white" : "hover:bg-secondary-border"
                 }`}
               >
-                <div
-                  className="mr-2"
-                  style={{
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "50%",
-                    backgroundColor: tag.category.color,
-                  }}
-                />
-                <span>
-                  {input.trim().split(/\s+/).pop()?.startsWith("-")
-                    ? `-${tag.name}`
-                    : tag.name}
+                {s.color ? (
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                ) : (
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-zinc-500" /> // system term
+                )}
+
+                <span className="truncate">
+                  {s.alias && <span className="text-subtle">{s.alias} → </span>}
+                  {s.label}
                 </span>
+
+                {s.count !== undefined && (
+                  <span className="ml-auto text-xs text-subtle shrink-0">{s.count.toLocaleString()}</span>
+                )}
               </div>
             ))}
           </motion.div>
@@ -113,16 +118,16 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
         className="w-8 h-8 md:w-10 md:h-10 hidden md:flex items-center justify-center rounded-md bg-zinc-800 hover:bg-red-600 text-white transition-colors border border-secondary-border"
         title="Clear search"
       >
-        <Trash size={18} weight="duotone" />
+        <TrashIcon size={18} weight="duotone" />
       </button>
-      
+
       {/* Help button */}
       <button
         onClick={() => setHelpOpen(true)}
         className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 text-white transition-colors border border-secondary-border"
-        title="Clear search"
+        title="Search help"
       >
-        <Question size={18} weight="duotone" />
+        <QuestionIcon size={18} weight="duotone" />
       </button>
 
       <InfoModal
@@ -134,30 +139,31 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
         closeText="Thanks"
       >
         <p className="mb-2">
-          You can use the search bar to search for curated tags or system tags.
-          You can use the <code>-</code> <a className="text-subtle">(hyphen)</a> to negate any tag.<br />
-          Below is a list some examples of both:
+          Separate terms with spaces. Put <code>-</code> <a className="text-subtle">(hyphen)</a> in front of a term to exclude it.
+          Press <code>Tab</code> to accept a suggestion.
         </p>
+
         <div className="mb-3">
-          <label>Curated Tags</label>
+          <label>Tags</label>
           <ul className="list-disc pl-5 text-zinc-300">
-            <li><code>cat</code> <a className="text-subtle">· Posts containing the "cat" tag.</a></li>
-            <li><code>cat dog</code><a className="text-subtle">· Posts containing both the "cat" and "dog" tags.</a></li>
-            <li><code>cat -dog</code> <a className="text-subtle">· Posts containing the "cat" tag, but not the "dog" tag.</a></li>
+            <li><code>cat</code> <a className="text-subtle">· Posts tagged "cat".</a></li>
+            <li><code>cat dog</code> <a className="text-subtle">· Posts tagged both "cat" and "dog".</a></li>
+            <li><code>cat -dog</code> <a className="text-subtle">· Posts tagged "cat", but not "dog".</a></li>
+            <li><code>~cat ~dog</code> <a className="text-subtle">· Posts tagged "cat" or "dog" (at least one).</a></li>
+            <li><code>blue_*</code> <code>*_sky</code> <code>*blue*</code> <a className="text-subtle">· Tags starting with, ending with, or containing a word.</a></li>
           </ul>
         </div>
-        
+
         <div className="mb-2">
-          <label>System Tags</label>
-          <p className="text-subtle text-xs">All of these allow inverse sorting by appending with <code>_asc</code>.</p>
+          <label>System Terms</label>
           <ul className="list-disc pl-5 text-zinc-300">
-            <li><code>posts:{'<username>'}</code> <a className="text-subtle">· Posts uploaded by a specific user.</a></li>
-            <li><code>likes:{'<username>'}</code> <a className="text-subtle">· Posts liked by a specific user.</a></li>
-            <li><code>favorites:{'<username>'}</code> <a className="text-subtle">· Posts favorited by a specific user.</a></li>
-            <li><code>pool:{'<id>'}</code> <a className="text-subtle">· Posts that are part of a specific pool.</a></li>
-            <li><code>order:tags/score/favorites/boosts/date</code> <a className="text-subtle">· Changes the order from default (date).</a></li>
-            <li><code>filter:tumbleweeds</code> <a className="text-subtle">· Posts with no tags.</a></li>
-            <li><code>type:image/video/gif</code> <a className="text-subtle">· Posts of only the select format.</a></li>
+            <li><code>safety:safe,questionable</code> <a className="text-subtle">· Only these safeties (safe, questionable, explicit).</a></li>
+            <li><code>type:image</code> <a className="text-subtle">· Only these file types (image, animated, video).</a></li>
+            <li><code>from:{'<username>'}</code> <a className="text-subtle">· Posts uploaded by a user.</a></li>
+            <li><code>score:{'>'}10</code> <a className="text-subtle">· Score filter. Also works with <code>{'>='}</code>, <code>{'<'}</code>, <code>{'<='}</code>, or an exact number.</a></li>
+            <li><code>tagcount:{'<'}5</code> <a className="text-subtle">· Posts with fewer than 5 tags (same comparisons as score).</a></li>
+            <li><code>id:{'>'}1000</code> <a className="text-subtle">· Filter by post id (same comparisons as score).</a></li>
+            <li><code>order:newest/oldest/score/random</code> <a className="text-subtle">· Changes the order (default: newest).</a></li>
           </ul>
         </div>
       </InfoModal>

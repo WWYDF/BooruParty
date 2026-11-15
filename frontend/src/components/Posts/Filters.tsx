@@ -7,7 +7,7 @@ type FiltersProps = {
 };
 
 export default function Filters({ selectedSafeties, toggleSafety }: FiltersProps) {
-  const safetyOptions = ["SAFE", "SKETCHY", "UNSAFE"];
+  const safetyOptions = ["SAFE", "QUESTIONABLE", "EXPLICIT"];
 
   return (
     <div className="flex gap-2">
