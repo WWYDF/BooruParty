@@ -2,9 +2,9 @@
 import { BookmarksSimpleIcon, CheckIcon, PlusIcon, SparkleIcon, StarIcon, ThumbsDownIcon, ThumbsUpIcon } from "@phosphor-icons/react";
 import { useState, useRef, useEffect } from "react";
 import { PostUserStatus } from "@/core/types/posts";
-import { useToast } from "../../Toast";
 import { useRouter } from "next/navigation";
-import { CreateCollectionModal } from "@/components/clientSide/Profile/CreateCollectionModal";
+import { useToast } from "@/components/UI/Toast";
+import { CreateCollectionModal } from "@/components/Users/CreateCollectionModal";
 
 type VoteType = "UPVOTE" | "DOWNVOTE" | null;
 

@@ -5,7 +5,7 @@ import PostVoting from "./PostVoting";
 import { Post, PostUserStatus } from "@/core/types/posts";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useToast } from "../../Toast";
+import { useToast } from "@/components/UI/Toast";
 
 type Props = {
   post: Post;

@@ -1,25 +1,21 @@
 'use client';
 
-import { useToast } from '@/components/clientSide/Toast';
+import { useToast } from '@/components/UI/Toast';
+import { useUser } from '@/components/UserProvider';
+import { API, errorText } from '@/core/api';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const { user, setUser } = useUser();
   const router = useRouter();
   const toast = useToast();
 
   useEffect(() => {
-    const checkSession = async () => {
-      const session = await getSession();
-      if (session) {
-        router.replace('/posts');
-        toast('You have been logged in.', 'success');
-      }
-    };
-  
-    checkSession();
-  }, []);
+    if (user) router.replace('/posts');
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -27,19 +23,27 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await signIn('credentials', {
-      redirect: false,
-      email: form.email.toLocaleLowerCase(),
-      password: form.password,
-    });
+    setLoading(true);
 
-    if (res?.error) {
-      toast('Unable to sign in.', 'error');
-    } else {
-      router.push('/posts');
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+    try {
+      const res = await API('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast(errorText(data), 'error');
+        return;
+      }
+
+      toast('Logged in!', 'success');
+      setUser(data);
+    } catch {
+      toast('Could not reach the server', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 

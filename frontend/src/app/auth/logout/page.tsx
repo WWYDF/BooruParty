@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/components/UserProvider';
 
 export default function LogoutPage() {
-  const { status } = useSession();
+  const { logout } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
-    if (status === "authenticated" || status === "unauthenticated") {
-      signOut({ callbackUrl: "/" });
-    }
-  }, [status]);
+    logout().then(() => router.replace('/'));
+  }, []);
 
   return (
     <main className="min-h-screen flex items-center justify-center text-subtle">

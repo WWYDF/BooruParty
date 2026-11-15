@@ -4,8 +4,8 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/components/clientSide/Toast";
 import { ArrowLeftIcon, FolderSimpleIcon, MagicWandIcon, XIcon } from "@phosphor-icons/react";
+import { useToast } from "../UI/Toast";
 
 type Step = "type" | "standard";
 

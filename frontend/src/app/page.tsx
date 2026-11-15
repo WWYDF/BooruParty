@@ -1,14 +1,14 @@
 'use client';
 
-import PostDisplay from '@/components/clientSide/Posts/Individual/PostDisplay';
+import Link from 'next/link';
+import PostDisplay from '@/components/Posts/Individual/PostDisplay';
 import { Post } from '@/core/types/posts';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useSearchBarLogic } from '@/core/searchBarLogic';
 import { useRouter } from 'next/navigation';
-import { UserInfo } from '@/components/clientSide/Navbar';
+import { UserInfo } from '@/components/Navigation/Navbar';
 
 function NumberDisplay({ number, size = 'w-16' }: { number: number, size?: string }) {
   const digits = String(number).split('');

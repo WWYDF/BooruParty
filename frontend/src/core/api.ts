@@ -22,3 +22,6 @@ export async function API(path: string, init: RequestInit = {}): Promise<Respons
   }
   return res;
 }
+
+export const errorText = (data: { error?: string; hint?: string }) =>
+  data.hint ? `${data.error}: ${data.hint}` : data.error ?? 'Something went wrong';

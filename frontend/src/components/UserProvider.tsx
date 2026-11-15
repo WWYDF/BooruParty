@@ -7,6 +7,7 @@ import { UserSelf } from '@/core/types/users';
 type UserContextValue = {
   user: UserSelf | null | undefined; // undefined = still loading, null = logged out
   setUser: (user: UserSelf | null) => void;
+  logout: () => Promise<void>;
 };
 
 const UserContext = createContext<UserContextValue | null>(null);
@@ -21,7 +22,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       .catch(() => setUser(null));
   }, []);
 
-  return <UserContext.Provider value={{ user, setUser }}>{children}</UserContext.Provider>;
+  const logout = async () => {
+    await API('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    setUser(null);
+  };
+
+  return <UserContext.Provider value={{ user, setUser, logout }}>{children}</UserContext.Provider>;
 }
 
 export function useUser() {

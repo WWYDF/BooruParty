@@ -4,7 +4,7 @@ import { useToast } from '@/components/UI/Toast';
 import { useUser } from '@/components/UserProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { API } from '@/core/api';
+import { API, errorText } from '@/core/api';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -39,7 +39,7 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast(data.hint ? `${data.error}: ${data.hint}` : data.error, 'error');
+        toast(errorText(data), 'error');
         return;
       }
 
