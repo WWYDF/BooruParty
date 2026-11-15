@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import PostVoting from "./PostVoting";
-import { Post, PostUserStatus } from "@/core/types/posts";
+import { PostDetail, PostUserStatus } from "@/core/types/posts";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/UI/Toast";
 
 type Props = {
-  post: Post;
+  post: PostDetail;
   user?: PostUserStatus;
   showVoting?: boolean;
   skeletonAspectRatio?: number;
@@ -16,7 +16,8 @@ type Props = {
 };
 
 export default function PostDisplay({ post, user, showVoting = true, disableFullscreen = false }: Props) {
-  const [showFull, setShowFull] = useState(post.previewScale === 100 || post.previewScale == null);
+  const previewScale = Math.round(((post.previewSize ?? post.fileSize) / post.fileSize) * 100);
+  const [showFull, setShowFull] = useState(previewScale || previewScale == null);
   const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,6 +56,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
     }
   }, [showFull, post.id]);
 
+
   return (
     <div className="flex flex-col items-center gap-4">
       <AnimatePresence>
@@ -65,9 +67,9 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
-          {post.type === "video" ? (
+          {post.type === "VIDEO" ? (
             <video
-              src={showFull ? post.originalPath : post.previewPath}
+              src={showFull ? post.originalPath : post.previewPath!}
               controls
               playsInline
               loop
@@ -81,7 +83,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
             <img
               ref={imgRef}
               loading="lazy"
-              src={showFull ? post.originalPath : post.previewPath}
+              src={showFull ? post.originalPath : post.previewPath!}
               alt={`Error accessing ${post.originalPath}`}
               title="Click to enter fullscreen mode"
               onClick={() => { handleFullscreen(true); }}
@@ -92,7 +94,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
         </motion.div>
       </AnimatePresence>
 
-      {!showFull && post.previewScale !== 100 && showVoting ? (
+      {!showFull && previewScale !== 100 && showVoting ? (
         <button
           onClick={() => {
             setShowFull(true);
@@ -100,7 +102,7 @@ export default function PostDisplay({ post, user, showVoting = true, disableFull
           }}
           className="text-subtle text-sm italic"
         >
-          Viewing sample resized to {post.previewScale}% of original (
+          Viewing sample resized to {previewScale}% of original (
           <span className="underline text-accent">view original</span>
           )
         </button>
