@@ -1,9 +1,10 @@
 'use client';
 
-import { useToast } from '@/components/clientSide/Toast';
-import { getSession, signIn } from 'next-auth/react';
+import { useToast } from '@/components/UI/Toast';
+import { useUser } from '@/components/UserProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { API } from '@/core/api';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -15,17 +16,11 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
   const router = useRouter();
+  const { user, setUser } = useUser();
 
   useEffect(() => {
-    const checkSession = async () => {
-      const session = await getSession();
-      if (session) {
-        router.replace('/posts');
-      }
-    };
-  
-    checkSession();
-  }, []);
+    if (user) router.replace('/posts');
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -35,38 +30,28 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
+    try {
+      const res = await API('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
 
-    const data = await res.json();
-    setLoading(false);
+      if (!res.ok) {
+        toast(data.hint ? `${data.error}: ${data.hint}` : data.error, 'error');
+        return;
+      }
 
-    if (!res.ok) {
-      toast(data.error || 'Something went wrong', 'error');
-    } else {
-      toast('Successfully registered! Redirecting...', 'success');
-      setTimeout(() => {
-        (async () => {
-          const res = await signIn('credentials', {
-            redirect: false,
-            email: form.email,
-            password: form.password,
-          });
-      
-          if (res?.error) {
-            toast('Unable to sign in automatically.', 'error');
-            router.push('/auth/login');
-          } else {
-            await new Promise((r) => setTimeout(r, 100));
-            window.location.reload();
-          }
-        })();
-      }, 1250);
+      toast('Account created!', 'success');
+      setUser(data); // triggers the redirect effect above
+    } catch {
+      toast('Could not reach the server', 'error');
+    } finally {
+      setLoading(false);
     }
   };
+
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-background text-foreground">
