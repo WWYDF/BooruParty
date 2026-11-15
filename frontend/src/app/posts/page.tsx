@@ -1,10 +1,8 @@
-import { prisma } from "@/core/prisma";
-import ClientPostsPage from "@/components/clientSide/Posts/PostsPage";
-import BackToTop from "@/components/clientSide/BackToTop";
-import { checkPermissions } from "@/components/serverSide/permCheck";
+import ClientPostsPage from "@/components/Posts/PostsPage";
+import BackToTop from "@/components/Navigation/BackToTop";
 import { Metadata } from "next";
 import { Suspense } from "react";
-import LoadingOverlay from "@/components/clientSide/LoadingOverlay";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
 const totalPosts = await prisma.posts.count();

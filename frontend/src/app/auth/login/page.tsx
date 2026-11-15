@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
-  const [loading, setLoading] = useState(false);
   const { user, setUser } = useUser();
   const router = useRouter();
   const toast = useToast();
@@ -23,7 +22,6 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
       const res = await API('/api/auth/login', {
@@ -42,8 +40,6 @@ export default function LoginPage() {
       setUser(data);
     } catch {
       toast('Could not reach the server', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
