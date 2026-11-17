@@ -11,10 +11,10 @@ export type UploadFields = {
 type ParseResult = { ok: true, fields: UploadFields } | { ok: false, error: string };
 
 // Just to prevent abuse on creation
-const MAX_SOURCES = 10;
-const MAX_SOURCE_LENGTH = 512;
-const MAX_NOTES_LENGTH = 2048;
-const MAX_TAGS = 300;
+export const MAX_SOURCES = 10;
+export const MAX_SOURCE_LENGTH = 512;
+export const MAX_NOTES_LENGTH = 2048;
+export const MAX_TAGS = 300;
 
 export function getField(upload: MultipartFile, name: string): string | undefined {
   const field = upload.fields[name];
@@ -22,7 +22,7 @@ export function getField(upload: MultipartFile, name: string): string | undefine
   return part && part.type === 'field' ? String(part.value) : undefined;
 }
 
-function isHttpUrl(value: string): boolean {
+export function isHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';
