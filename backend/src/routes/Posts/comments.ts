@@ -7,6 +7,7 @@ import { requirePermission } from "@/core/utilities/permissionCache";
 import { assertPostVisible, getBrowsingViewer } from "@/core/utilities/viewer";
 import { FastifyPluginAsync } from "fastify";
 import { Prisma } from "../../../prisma/client";
+import { formatUserSummary } from "@/core/utilities/reformatters";
 
 const postComments: FastifyPluginAsync = async (fastify) => {
 
@@ -49,7 +50,7 @@ const postComments: FastifyPluginAsync = async (fastify) => {
     const page = hasMore ? rows.slice(0, limit) : rows;
 
     // Each comment carries its own parsed embeds, so the UI never needs the media allowlist
-    const comments = page.map((c) => ({ ...c, embeds: parseEmbeds(c.content) }));
+    const comments = page.map((c) => ({ ...c, embeds: parseEmbeds(c.content), author: formatUserSummary(c.author) }));
 
     const embeddedPosts = await resolveEmbeddedPosts(comments.flatMap((c) => c.embeds.postIds), viewer);
     

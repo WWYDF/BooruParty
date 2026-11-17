@@ -190,7 +190,7 @@ export default function PostMetadata({
       {/* Header with user info */}
       <div className="flex items-center gap-3">
         <img
-          src={defaultAvatar}
+          src={uploader.avatar ?? defaultAvatar}
           alt="Uploader avatar"
           width={48}
           height={48}
@@ -199,16 +199,14 @@ export default function PostMetadata({
 
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-base font-semibold text-white">
-            {PLACEHOLDER.anonymous ? (
-              <span className="text-zinc-500">Anonymous</span>
-            ) : (
+            {
               <>
                 <Link href={`/users/${encodeURIComponent(uploader.username)}`} className="truncate text-accent hover:underline">
                   {uploader.username}
                 </Link>
                 <RoleBadge role={uploader.role} />
               </>
-            )}
+            }
           </p>
 
           <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>

@@ -44,6 +44,7 @@ export type Posts = {
   aspectRatio: number,
   sources: string[],
   notes: string | null,
+  previewPath: string | null,
   
   duration: number | null,
   hasAudio: boolean,

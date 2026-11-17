@@ -31,7 +31,7 @@ export function thumbnailUrls(post: { fileKey: string, thumbKey: string | null }
 
 // Feed card
 export function formatPostSummary(post: PostSummary) {
-  return { ...post, thumbnails: thumbnailUrls(post) };
+  return { ...withAssetUrls(post, ['previewPath']), thumbnails: thumbnailUrls(post) };
 }
 
 // Single post page

@@ -154,7 +154,7 @@ export default function PostCommentList({ comments, embeddedPosts, parentSafety,
               transition={{ duration: 0.2 }}
               className="flex gap-3 rounded-2xl bg-secondary p-4"
             >
-              <img src={defaultAvatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+              <img src={comment.author.avatar ?? defaultAvatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
 
               <div className="min-w-0 flex-1">
                 {/* Header */}
@@ -228,7 +228,7 @@ export default function PostCommentList({ comments, embeddedPosts, parentSafety,
                               className="group block h-32 w-32 overflow-hidden rounded-lg border border-secondary-border transition hover:border-darkerAccent"
                             >
                               <img
-                                src={embedded.thumbnails.med}
+                                src={embedded.previewPath ?? embedded.thumbnails.med}
                                 alt={`Post #${id}`}
                                 loading="lazy"
                                 className={`h-full w-full object-cover transition duration-300 ${blur ? "blur-md group-hover:blur-none" : ""}`}

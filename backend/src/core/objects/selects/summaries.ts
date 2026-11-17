@@ -40,6 +40,7 @@ export const postSummarySelect = {
   safety: true,
   fileKey: true,      // automatic thumbnail URLs are derived from this
   thumbKey: true,     // custom thumbnail URLs are derived from this
+  previewPath: true,
   aspectRatio: true,
   duration: true,
   hasAudio: true,
