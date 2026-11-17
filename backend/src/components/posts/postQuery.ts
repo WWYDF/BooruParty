@@ -28,20 +28,35 @@ export function encodeCursor(order: SortOrder, post: { id: number, score: number
   return order === 'score' ? `${post.score}_${post.id}` : String(post.id);
 }
 
-// Condition for "rows after this cursor" in the given order, or null if the cursor is malformed
-export function cursorCondition(order: SortOrder, cursor: string): Prisma.PostWhereInput | null {
+// Condition for "rows after (or before) this cursor" in the given order, or null if the cursor is malformed.
+// "after" = further down the list (what the feed's pages use); "before" = further up it (navigation).
+export function cursorCondition(order: SortOrder, cursor: string, direction: 'after' | 'before' = 'after'): Prisma.PostWhereInput | null {
+  const before = direction === 'before';
+
   if (order === 'score') {
     const m = /^(-?\d+)_(\d+)$/.exec(cursor);
     if (!m) return null;
     const score = Number(m[1]);
     const id = Number(m[2]);
-    return { OR: [{ score: { lt: score } }, { score, id: { lt: id } }] };
+    return before
+      ? { OR: [{ score: { gt: score } }, { score, id: { gt: id } }] }
+      : { OR: [{ score: { lt: score } }, { score, id: { lt: id } }] };
   }
 
   if (!/^\d+$/.test(cursor)) return null;
   const id = Number(cursor);
-  return order === 'oldest' ? { id: { gt: id } } : { id: { lt: id } };
+  // In an ascending list (oldest) "after" means bigger ids; "before" flips whichever way it is
+  const ascending = order === 'oldest';
+  return ascending !== before ? { id: { gt: id } } : { id: { lt: id } };
 }
+
+// The same order, backwards. Used to find the closest row BEFORE a cursor (take 1 from the reversed list).
+export function reverseOrder(orderBy: Prisma.PostOrderByWithRelationInput[]): Prisma.PostOrderByWithRelationInput[] {
+  return orderBy.map((o) =>
+    Object.fromEntries(Object.entries(o).map(([field, dir]) => [field, dir === 'asc' ? 'desc' : 'asc'])),
+  );
+}
+
 
 // Conditions for "posts this viewer may see" (safety + private accounts)
 // Safety defaults to the viewer's default/cap
