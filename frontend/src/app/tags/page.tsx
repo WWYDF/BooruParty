@@ -1,339 +1,283 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CreateTagModal } from "@/components/clientSide/Tags/CreateModal";
-import { checkPermissions } from "@/core/permissions";
-import { CaretUpDown } from "@phosphor-icons/react";
-import { CaretDown, CaretUp } from "phosphor-react";
-import { formatRelativeTime } from "@/core/formats";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CaretLeftIcon, CaretRightIcon, MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
+import Button from "@/components/UI/Button";
+import Dropdown from "@/components/UI/Dropdown";
+import { useUser } from "@/components/UserProvider";
+import { CreateTagModal } from "@/components/Tags/CreateModal";
+import { CategoryInfo } from "@/components/Posts/Individual/PostView";
+import { API, errorText } from "@/core/api";
+import { formatCounts } from "@/core/formats";
 
-type TagListType = {
+type Sort = "popular" | "name" | "newest" | "oldest";
+
+// GET /api/tags item
+type TagRow = {
   id: number;
   name: string;
-  category: {
-    id: number;
-    name: string;
-    color: string;
-  };
-  aliases: { alias: string }[];
-  implications: { name: string }[];
-  suggestions: { name: string }[];
-  _count: { posts: number };
-  createdAt: string;
+  categoryId: number;
+  postCount: number;
+  category: CategoryInfo;
+  names?: { name: string }[]; // only while searching: the names that matched
 };
 
+type Pagination = { page: number; limit: number; total: number; totalPages: number };
+
+const PER_PAGE = 50;
+const SORT_OPTIONS: { value: Sort; label: string }[] = [
+  { value: "popular", label: "Most used" },
+  { value: "name", label: "Name (A–Z)" },
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+];
+
+// Page numbers to show: 1 … (p-1) p (p+1) … last
+function pageList(page: number, total: number): (number | "…")[] {
+  const pages = new Set([1, total, page - 1, page, page + 1].filter((p) => p >= 1 && p <= total));
+  const sorted = [...pages].sort((a, b) => a - b);
+  const out: (number | "…")[] = [];
+  sorted.forEach((p, i) => {
+    if (i > 0 && p - sorted[i - 1] > 1) out.push("…");
+    out.push(p);
+  });
+  return out;
+}
+
 export default function TagListPage() {
-  const [tags, setTags] = useState<TagListType[]>([]);
-  const [page, setPage] = useState(1);
-  const [totalTags, setTotalTags] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+  const router = useRouter();
+  const { user } = useUser();
+  const canCreate = user?.permissions.includes("tags.create") ?? false;
+
+  // Filters (read from the URL once on mount, so back/forward and shared links restore them)
+  const [ready, setReady] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [canCreateTag, setCanCreateTag] = useState(false);
-  const [sortField, setSortField] = useState<"name" | "category" | "usages" | "createdAt">("name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const perPage = 50;
+  const [categoryId, setCategoryId] = useState(0); // 0 = all
+  const [sort, setSort] = useState<Sort>("popular");
+  const [page, setPage] = useState(1);
 
-  // Check if they can make tags
+  const [categories, setCategories] = useState<(CategoryInfo & { isDefault?: boolean })[]>([]);
+  const [tags, setTags] = useState<TagRow[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const requestId = useRef(0);
+
   useEffect(() => {
-    const check = async () => {
-      const res = (await checkPermissions(['tags_create']))['tags_create'];
-      setCanCreateTag(res);
-    };
-    check();
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get("search") ?? "";
+    setSearch(s);
+    setDebouncedSearch(s);
+    setCategoryId(Number(params.get("category")) || 0);
+    const sortParam = params.get("sort") as Sort | null;
+    if (sortParam && SORT_OPTIONS.some((o) => o.value === sortParam)) setSort(sortParam);
+    setPage(Math.max(1, Number(params.get("page")) || 1));
+    setReady(true);
+
+    API("/api/tag-categories")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((cats: CategoryInfo[]) => setCategories([...cats].sort((a, b) => a.index - b.index)))
+      .catch(() => {});
   }, []);
 
-  // Debounce search input by 500ms
+  // Typing waits a moment before searching, and always goes back to page 1
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-
-    return () => clearTimeout(handler);
+    const timer = setTimeout(() => {
+      if (search !== debouncedSearch) {
+        setDebouncedSearch(search);
+        setPage(1);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch tags from API
-  const fetchTags = async (pageNumber = 1, searchTerm = "") => {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/tags?page=${pageNumber}&perPage=${perPage}&search=${encodeURIComponent(searchTerm)}&sort=${sortField}&order=${sortOrder}`,
-        { cache: "no-store" }
-      );
-      const data = await res.json();
-      setTags(data.tags);
-      setTotalPages(data.totalPages);
-      setTotalTags(data.totalTags);
-    } catch (err) {
-      console.error("Failed to load tags", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleSort = (field: typeof sortField) => {
-    if (field === sortField) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortOrder("asc");
-    }
-  };
-  
-
-  // Refetch when page or debounced search changes
   useEffect(() => {
-    fetchTags(page, debouncedSearch);
-  }, [page, debouncedSearch, sortField, sortOrder]);
+    if (!ready) return;
+    const id = ++requestId.current;
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    setPage(1); // Reset to first page when typing
+    // Mirror the filters into the URL without adding history entries
+    const urlParams = new URLSearchParams();
+    if (debouncedSearch) urlParams.set("search", debouncedSearch);
+    if (categoryId) urlParams.set("category", String(categoryId));
+    if (sort !== "popular") urlParams.set("sort", sort);
+    if (page > 1) urlParams.set("page", String(page));
+    window.history.replaceState(null, "", `?${urlParams}`);
+
+    const params = new URLSearchParams({ page: String(page), limit: String(PER_PAGE), sort });
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (categoryId) params.set("categoryId", String(categoryId));
+
+    setLoading(true);
+    API(`/api/tags?${params}`)
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (id !== requestId.current) return; // a newer request replaced this one
+        if (!res.ok) {
+          setError(errorText(data));
+          return;
+        }
+        setError(null);
+        setTags(data.tags);
+        setPagination(data.pagination);
+      })
+      .catch(() => { if (id === requestId.current) setError("The server could not be reached."); })
+      .finally(() => { if (id === requestId.current) setLoading(false); });
+  }, [ready, debouncedSearch, categoryId, sort, page]);
+
+  const goToPage = (p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const categoryOptions = [
+    { value: 0, label: "All categories" },
+    ...categories.map((c) => ({ value: c.id, label: c.name, color: c.color })),
+  ];
 
   return (
-    <div className="space-y-6 px-4 md:px-8 mt-8">
-      <h1 className="text-3xl font-bold text-accent">Tags</h1>
-  
-      {/* Top bar: Search + Create */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <input
-          type="text"
-          value={search}
-          onChange={handleSearch}
-          placeholder={`Search ${totalTags ? `${totalTags} ` : ''}tags...`}
-          className="bg-secondary p-2 rounded border border-secondary-border w-full max-w-sm focus:outline-none focus:ring-2 focus:ring-zinc-700"
-        />
-        {canCreateTag && (
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors whitespace-nowrap"
-          >
-            + New Tag
-          </button>
-        )}
-      </div>
-  
-      {!loading && (
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="text-center py-8 text-zinc-600">Loading...</div>
-          ) : (
-            <table className="w-full text-sm text-zinc-100 border-collapse">
-              <thead className="border-b border-secondary-border">
-              <tr>
-                <th
-                  className="w-[10vh] text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
-                  onClick={() => toggleSort("name")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Name
-                    {sortField === "name" ? (
-                      sortOrder === "asc" ? <CaretUp size={14} /> : <CaretDown size={14} />
-                    ) : (
-                      <CaretUpDown size={14} className="opacity-50" />
-                    )}
-                  </span>
-                </th>
-
-                <th
-                  className="w-[5vh] text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
-                  onClick={() => toggleSort("category")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Category
-                    {sortField === "category" ? (
-                      sortOrder === "asc" ? <CaretUp size={14} /> : <CaretDown size={14} />
-                    ) : (
-                      <CaretUpDown size={14} className="opacity-50" />
-                    )}
-                  </span>
-                </th>
-
-                <th className="w-[15vh] text-left py-2 px-2">Aliases</th>
-                <th className="w-[40vh] text-left py-2 px-2">Implications</th>
-                <th className="w-[10vh] text-left py-2 px-2">Suggestions</th>
-
-                <th
-                  className="w-[5vh] text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
-                  onClick={() => toggleSort("usages")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Usages
-                    {sortField === "usages" ? (
-                      sortOrder === "asc" ? <CaretUp size={14} /> : <CaretDown size={14} />
-                    ) : (
-                      <CaretUpDown size={14} className="opacity-50" />
-                    )}
-                  </span>
-                </th>
-
-                <th
-                  className="w-[5vh] text-left py-2 px-2 cursor-pointer select-none hover:text-accent font-medium"
-                  onClick={() => toggleSort("createdAt")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Created
-                    {sortField === "createdAt" ? (
-                      sortOrder === "asc" ? <CaretUp size={14} /> : <CaretDown size={14} />
-                    ) : (
-                      <CaretUpDown size={14} className="opacity-50" />
-                    )}
-                  </span>
-                </th>
-              </tr>
-
-              </thead>
-              <tbody>
-                {Array.isArray(tags) && tags.length > 0 ? (
-                  tags.map((tag) => (
-                    <tr key={tag.id} className="border-b border-secondary-border">
-                      {/* Name */}
-                      <td className="py-2 px-2">
-                        <Link
-                          href={`/tags/${encodeURIComponent(tag.name)}`}
-                          className="hover:underline text-accent"
-                        >
-                          {tag.name}
-                        </Link>
-                      </td>
-
-                      {/* Category */}
-                      <td className="py-2 px-2">
-                        {tag.category ? (
-                          <span style={{ color: tag.category.color }}>
-                            {tag.category.name}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-600">(none)</span>
-                        )}
-                      </td>
-
-                      {/* Aliases */}
-                      <td className="py-2 px-2">
-                        {tag.aliases.length > 0
-                          ? tag.aliases.map((a) => a.alias).join(", ")
-                          : <span className="text-zinc-600">(none)</span>}
-                      </td>
-
-                      {/* Implications */}
-                      <td className="py-2 px-2">
-                        {tag.implications.length > 0
-                          ? tag.implications.map((i) => i.name).join(", ")
-                          : <span className="text-zinc-600">(none)</span>}
-                      </td>
-
-                      {/* Suggestions */}
-                      <td className="py-2 px-2">
-                        {tag.suggestions.length > 0
-                          ? tag.suggestions.map((s) => s.name).join(", ")
-                          : <span className="text-zinc-600">(none)</span>}
-                      </td>
-
-                      {/* Usage */}
-                      <td className="py-2 px-2">
-                        {tag._count.posts}
-                      </td>
-
-                      {/* Created */}
-                      <td className="py-2 px-2">
-                        {formatRelativeTime(tag.createdAt)}
-                      </td>
-                    </tr>
-                  ))
-                ) : !loading ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-6 text-zinc-600">
-                      No tags found.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-
-            </table>
+    <main className="mx-auto max-w-5xl space-y-6 px-4 py-8 md:px-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-accent">Tags</h1>
+          {pagination && (
+            <p className="mt-1 text-sm text-subtle">
+              {formatCounts(pagination.total)} {pagination.total === 1 ? "tag" : "tags"}
+              {debouncedSearch || categoryId ? " match" : " in total"}
+            </p>
           )}
         </div>
-      )}
-  
+        {canCreate && (
+          <Button size="md" variant="success" icon={<PlusIcon size={16} />} onClick={() => setCreateOpen(true)}>
+            New Tag
+          </Button>
+        )}
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-1 items-center gap-2 rounded-lg border border-secondary-border bg-zinc-900 px-3 focus-within:ring-1 focus-within:ring-zinc-600">
+          <MagnifyingGlassIcon size={16} className="shrink-0 text-subtle" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tags and aliases..."
+            spellCheck={false}
+            className="w-full bg-transparent py-2 text-sm text-white focus:outline-hidden"
+          />
+        </div>
+        <Dropdown
+          className="sm:w-52"
+          value={categoryId}
+          options={categoryOptions}
+          onChange={(v) => { setCategoryId(v); setPage(1); }}
+        />
+        <Dropdown
+          className="sm:w-40"
+          value={sort}
+          options={SORT_OPTIONS}
+          onChange={(v) => { setSort(v); setPage(1); }}
+        />
+      </div>
+
+      {/* List */}
+      <div className="overflow-hidden rounded-xl border border-secondary-border bg-secondary">
+        <div className="grid grid-cols-[1fr_auto_auto] gap-4 border-b border-secondary-border px-4 py-2 text-xs font-medium uppercase tracking-wider text-subtle">
+          <span>Name</span>
+          <span className="w-40">Category</span>
+          <span className="w-16 text-right">Posts</span>
+        </div>
+
+        {error ? (
+          <p className="px-4 py-8 text-center text-sm text-red-400">{error}</p>
+        ) : !loading && tags.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-subtle">
+            {debouncedSearch ? <>No tags match &quot;{debouncedSearch}&quot;.</> : "No tags yet."}
+          </p>
+        ) : (
+          <ul className={`divide-y divide-secondary-border transition-opacity ${loading ? "opacity-50" : ""}`}>
+            {tags.map((tag) => {
+              // While searching, show which alias matched ("pkmn → pokemon")
+              const alias = tag.names?.find((n) => n.name !== tag.name)?.name;
+              const matchedMain = tag.names?.some((n) => n.name === tag.name);
+              return (
+                <li key={tag.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-4 py-2.5 text-sm transition-colors hover:bg-zinc-900/60">
+                  <span className="min-w-0 truncate">
+                    {alias && !matchedMain && <span className="text-subtle">{alias} → </span>}
+                    <Link href={`/tags/${encodeURIComponent(tag.name)}`} className="hover:underline" style={{ color: tag.category.color }}>
+                      {tag.name}
+                    </Link>
+                  </span>
+
+                  <span className="flex w-40 items-center gap-2 truncate text-xs text-zinc-400">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: tag.category.color }} />
+                    {tag.category.name}
+                  </span>
+
+                  <Link
+                    href={`/posts?query=${encodeURIComponent(tag.name)}`}
+                    className="w-16 text-right text-xs text-zinc-400 tabular-nums hover:text-accent"
+                    title={`View ${tag.postCount} posts`}
+                  >
+                    {formatCounts(tag.postCount)}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-1 mt-6 text-sm pb-6">
-          {/* Prev Arrow */}
+      {pagination && pagination.totalPages > 1 && (
+        <nav className="flex items-center justify-center gap-1 pb-6 text-sm">
           <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => goToPage(page - 1)}
             disabled={page === 1}
-            className="px-2 py-1 rounded bg-secondary-border hover:bg-secondary disabled:opacity-50"
+            className="cursor-pointer rounded-lg p-2 text-subtle transition-colors hover:bg-secondary hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            aria-label="Previous page"
           >
-            &lt;
+            <CaretLeftIcon size={16} />
           </button>
 
-          {/* First Page */}
-          <button
-            onClick={() => setPage(1)}
-            className={`px-3 py-1 rounded ${
-              page === 1 ? "bg-accent text-white" : "bg-secondary-border hover:bg-secondary"
-            }`}
-          >
-            1
-          </button>
-
-          {/* Left Ellipsis */}
-          {page > 3 && <span className="px-2 text-zinc-500">...</span>}
-
-          {/* Dynamic middle buttons */}
-          {Array.from({ length: 3 }, (_, i) => page - 1 + i)
-            .filter((p) => p > 1 && p < totalPages)
-            .map((p) => (
+          {pageList(page, pagination.totalPages).map((p, i) =>
+            p === "…" ? (
+              <span key={`gap-${i}`} className="px-2 text-zinc-600">…</span>
+            ) : (
               <button
                 key={p}
-                onClick={() => setPage(p)}
-                className={`px-3 py-1 rounded ${
-                  p === page ? "bg-accent text-white" : "bg-secondary-border hover:bg-secondary"
+                onClick={() => goToPage(p)}
+                className={`min-w-9 cursor-pointer rounded-lg px-2 py-1.5 tabular-nums transition-colors ${
+                  p === page ? "bg-accent font-semibold text-black" : "text-zinc-300 hover:bg-secondary"
                 }`}
               >
                 {p}
               </button>
-            ))}
-
-          {/* Right Ellipsis */}
-          {page < totalPages - 2 && <span className="px-2 text-zinc-500">...</span>}
-
-          {/* Last Page */}
-          {totalPages > 1 && (
-            <button
-              onClick={() => setPage(totalPages)}
-              className={`px-3 py-1 rounded ${
-                page === totalPages ? "bg-accent text-white" : "bg-secondary-border hover:bg-secondary"
-              }`}
-            >
-              {totalPages}
-            </button>
+            ),
           )}
 
-          {/* Next Arrow */}
           <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-2 py-1 rounded bg-secondary-border hover:bg-secondary disabled:opacity-50"
+            onClick={() => goToPage(page + 1)}
+            disabled={page === pagination.totalPages}
+            className="cursor-pointer rounded-lg p-2 text-subtle transition-colors hover:bg-secondary hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            aria-label="Next page"
           >
-            &gt;
+            <CaretRightIcon size={16} />
           </button>
-        </div>
+        </nav>
       )}
 
       <CreateTagModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onCreated={() => {
-          setTimeout(() => {
-            window.location.reload();
-          }, 200);
-        }}
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        categories={categories}
+        onCreated={(tag) => router.push(`/tags/${encodeURIComponent(tag.name)}`)}
       />
-    </div>
+    </main>
   );
 }

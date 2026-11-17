@@ -122,7 +122,7 @@ export default function Dropdown<T extends string | number>({ value, options, on
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
         className={clsx(
-          'flex w-full items-center justify-between gap-2 rounded-lg border border-secondary-border bg-zinc-900 px-3 py-2 text-left text-sm',
+          'flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-secondary-border bg-zinc-900 px-3 py-2 text-left text-sm',
           'transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-600',
           open && 'ring-1 ring-zinc-600',
           disabled ? 'cursor-not-allowed opacity-50' : 'hover:border-zinc-600',

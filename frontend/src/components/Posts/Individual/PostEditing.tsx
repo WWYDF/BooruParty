@@ -369,7 +369,7 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
               key={level}
               type="button"
               onClick={() => setSafety(level)}
-              className={`rounded px-2 py-1.5 text-xs transition ${
+              className={`cursor-pointer rounded px-2 py-1.5 text-xs transition ${
                 safety === level ? SAFETY_STYLES[level].active : 'bg-secondary-border text-subtle hover:text-white'
               }`}
             >
@@ -429,11 +429,11 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
               Suggested Tags
             </button>
             <span className="text-zinc-600">•</span>
-            <button type="button" onClick={handlePasteTags} className="text-accent hover:underline">
+            <button type="button" onClick={handlePasteTags} className="cursor-pointer text-accent hover:underline">
               Paste Tags
             </button>
             <span className="text-zinc-600">•</span>
-            <button type="button" onClick={handleCopyTags} className="text-accent hover:underline">
+            <button type="button" onClick={handleCopyTags} className="cursor-pointer text-accent hover:underline">
               Copy Tags
             </button>
           </div>
@@ -479,7 +479,7 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
                     type="button"
                     onClick={() => removeTag(tag.name)}
                     disabled={busy}
-                    className="hover:opacity-80 disabled:opacity-50"
+                    className="cursor-pointer hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                     title={`Remove ${tag.name}`}
                   >
                     <XIcon size={16} />
@@ -526,7 +526,7 @@ function Staged({ label, value, onClear, disabled }: { label: string; value: str
         type="button"
         onClick={onClear}
         disabled={disabled}
-        className="ml-auto shrink-0 text-subtle hover:text-red-400 disabled:opacity-50"
+        className="ml-auto shrink-0 cursor-pointer text-subtle hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
         title="Undo"
       >
         <XIcon size={12} weight="bold" />

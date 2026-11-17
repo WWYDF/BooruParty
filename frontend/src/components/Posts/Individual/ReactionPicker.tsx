@@ -106,7 +106,7 @@ export default function ReactionPicker({ open, onClose, onPick }: Props) {
                 type="button"
                 onClick={() => pick(post.id)}
                 title={`Post #${post.id}`}
-                className="aspect-square overflow-hidden rounded-lg border border-secondary-border bg-zinc-950 transition hover:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="aspect-square cursor-pointer overflow-hidden rounded-lg border border-secondary-border bg-zinc-950 transition-colors hover:border-accent focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <img src={post.thumbnails.small} alt={`Post #${post.id}`} loading="lazy" className="h-full w-full object-cover" />
               </button>

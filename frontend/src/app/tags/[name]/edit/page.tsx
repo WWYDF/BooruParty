@@ -51,7 +51,7 @@ function NameListInput({ value, onChange, placeholder }: { value: string[]; onCh
       {value.map((name) => (
         <span key={name} className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-sm text-zinc-300">
           {name}
-          <button type="button" onClick={() => onChange(value.filter((n) => n !== name))} className="text-subtle hover:text-red-400" title={`Remove ${name}`}>
+          <button type="button" onClick={() => onChange(value.filter((n) => n !== name))} className="cursor-pointer text-subtle hover:text-red-400" title={`Remove ${name}`}>
             <XIcon size={12} weight="bold" />
           </button>
         </span>
@@ -208,7 +208,7 @@ export default function TagEditPage() {
       </div>
 
       <div>
-        <label className={labelClass}>Suggests</label>
+        <label className={labelClass}>Suggest</label>
         <TagInput
           value={suggestions}
           onChange={(next) => withoutSelf(next, setSuggestions)}

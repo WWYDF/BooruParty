@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import { XIcon } from '@phosphor-icons/react';
 
 type InfoModalProps = {
   open: boolean;
@@ -32,6 +33,10 @@ type InfoModalProps = {
 
   /** Optional aria label when omitting visible title */
   ariaLabel?: string;
+
+  /** Short forms with popovers (e.g. a Dropdown): no scroll region, so menus can extend past the card.
+      Leave off for long content that needs to scroll. */
+  allowOverflow?: boolean;
 };
 
 export default function InfoModal({
@@ -48,6 +53,7 @@ export default function InfoModal({
   closeButtonClassName,
   showCloseX = true,
   ariaLabel,
+  allowOverflow = false,
 }: InfoModalProps) {
   const initialFocusRef = useRef<HTMLButtonElement | null>(null);
   const titleId = 'info-modal-title';
@@ -108,9 +114,10 @@ export default function InfoModal({
               // Card: flex column, responsive width cap, internal padding, safe rounded edges
               className={clsx(
                 'relative flex w-full max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl flex-col',
-                'rounded-2xl overflow-hidden bg-zinc-900 text-zinc-100 shadow-2xl ring-1 ring-zinc-800 p-6',
-                // keep at least some vertical headroom and let body scroll if tall
-                'max-h-[min(90vh,48rem)]',
+                // Same surface as the rest of the site, so zinc-900 inputs stand out against it
+                'rounded-2xl border border-secondary-border bg-secondary text-zinc-100 shadow-2xl p-6',
+                // Scrolling modals clip (and cap their height); overflow ones let menus hang outside
+                allowOverflow ? 'overflow-visible' : 'overflow-hidden max-h-[min(90vh,48rem)]',
                 className
               )}
               initial={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -124,11 +131,9 @@ export default function InfoModal({
                 <button
                   onClick={onClose}
                   aria-label="Close"
-                  className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-600"
+                  className="absolute cursor-pointer right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-zinc-600"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
+                  <XIcon size={20} />
                 </button>
               )}
 
@@ -152,7 +157,8 @@ export default function InfoModal({
               )}
 
               {/* Body (scroll region if content grows) */}
-              <div className={clsx('mt-4 flex-1 overflow-y-auto', bodyClassName)}>
+              {/* The 4px padding (cancelled by the negative margin) keeps focus rings inside the scroll clip */}
+              <div className={clsx('mt-3 flex-1 -mx-1 p-1', !allowOverflow && 'overflow-y-auto', bodyClassName)}>
                 {children}
               </div>
 

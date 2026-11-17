@@ -245,12 +245,12 @@ export default function PostCommentList({ comments, embeddedPosts, parentSafety,
                 {!editing && (can("edit", comment) || can("delete", comment)) && (
                   <div className="mt-2 flex gap-3 text-xs text-zinc-500">
                     {can("edit", comment) && (
-                      <button onClick={() => startEdit(comment)} className="inline-flex items-center gap-1 hover:text-white">
+                      <button onClick={() => startEdit(comment)} className="inline-flex cursor-pointer items-center gap-1 hover:text-white">
                         <PencilSimpleIcon size={12} /> Edit
                       </button>
                     )}
                     {can("delete", comment) && (
-                      <button onClick={() => setDeleteId(comment.id)} className="inline-flex items-center gap-1 hover:text-red-400">
+                      <button onClick={() => setDeleteId(comment.id)} className="inline-flex cursor-pointer items-center gap-1 hover:text-red-400">
                         <TrashIcon size={12} /> Delete
                       </button>
                     )}

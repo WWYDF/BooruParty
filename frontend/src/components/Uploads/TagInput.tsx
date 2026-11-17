@@ -170,7 +170,7 @@ export default function TagInput({
               <button
                 type="button"
                 onClick={() => remove(tag.name)}
-                className="text-subtle hover:text-red-400"
+                className="cursor-pointer text-subtle hover:text-red-400"
                 title={`Remove ${tag.name}`}
               >
                 <XIcon size={12} weight="bold" />

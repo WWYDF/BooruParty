@@ -176,7 +176,7 @@ export default function HomePage() {
               />
               <button
                 type="submit"
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-white transition-colors"
+                className="absolute right-6 top-1/2 -translate-y-1/2 cursor-pointer text-zinc-300 hover:text-white transition-colors"
                 title="Search"
               >
                 <MagnifyingGlassIcon size={20} />
@@ -225,7 +225,7 @@ export default function HomePage() {
             <div className="flex items-center justify-center gap-4">
               <button
                 type="submit"
-                className="px-6 py-3 bg-zinc-900 text-zinc-200 rounded-md hover:bg-zinc-800 transition-all font-medium"
+                className="px-6 py-3 cursor-pointer bg-zinc-900 text-zinc-200 rounded-md hover:bg-zinc-800 transition-colors font-medium"
               >
                 Search Posts
               </button>
@@ -233,7 +233,7 @@ export default function HomePage() {
                 type="button"
                 onClick={handleLucky}
                 disabled={rolling}
-                className="px-6 py-3 bg-zinc-900 text-zinc-200 rounded-md hover:bg-zinc-800 transition-all font-medium disabled:opacity-50"
+                className="px-6 py-3 cursor-pointer bg-zinc-900 text-zinc-200 rounded-md hover:bg-zinc-800 transition-colors font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 I'm Feeling Lucky
               </button>

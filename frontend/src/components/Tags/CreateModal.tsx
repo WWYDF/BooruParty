@@ -1,163 +1,132 @@
-import { AnimatePresence, motion } from "framer-motion";
+"use client";
+
 import { useEffect, useState } from "react";
-import { useToast } from "../Toast";
+import { PlusIcon, TagIcon } from "@phosphor-icons/react";
+import InfoModal from "@/components/UI/Modals/InfoModal";
+import Dropdown from "@/components/UI/Dropdown";
+import Button from "@/components/UI/Button";
+import { useToast } from "@/components/UI/Toast";
+import { API, errorText } from "@/core/api";
+import { CategoryInfo } from "@/components/Posts/Individual/PostView";
 
 type CreateTagModalProps = {
   open: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (tag: { id: number; name: string }) => void;
+  categories: (CategoryInfo & { isDefault?: boolean })[]; // already loaded by the page
 };
 
-type TagCategory = {
-  id: number;
-  name: string;
-  color: string;
-  order: number;
-};
+const MAX_DESCRIPTION = 4096;
 
-export function CreateTagModal({ open, onClose, onCreated }: CreateTagModalProps) {
+const inputClass =
+  "w-full rounded-lg border border-secondary-border bg-zinc-900 px-3 py-2 text-sm text-zinc-200 focus:outline-hidden focus:ring-1 focus:ring-zinc-600";
+
+export function CreateTagModal({ open, onClose, onCreated, categories }: CreateTagModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [categories, setCategories] = useState<TagCategory[]>([]);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
+  // Fresh form every time it opens, starting in the default category
   useEffect(() => {
-    if (open) {
-      fetch("/api/tag-categories?default=true")
-        .then((res) => res.json())
-        .then((data: TagCategory[]) => {
-          setCategories(data);
-          if (data.length > 0) {
-            setCategoryId(data[0].id); // 👈 set first category as default
-          }
-        })
-        .catch((err) => console.error("Failed to load categories", err));
-    }
-  }, [open]);
+    if (!open) return;
+    setName("");
+    setDescription("");
+    setCategoryId(categories.find((c) => c.isDefault)?.id ?? categories[0]?.id ?? null);
+  }, [open, categories]);
 
   const handleSubmit = async () => {
-    if (!name || !categoryId) {
-      toast("Name and category are required.", "error");
+    if (!name.trim()) {
+      toast("The tag needs a name.", "error");
       return;
     }
 
     setSaving(true);
-
     try {
-      const res = await fetch("/api/tags/create", {
+      const res = await API("/api/tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          description: description.trim() || null,
-          categoryId,
+          ...(categoryId !== null && { categoryId }),
+          ...(description.trim() && { description: description.trim() }),
         }),
       });
-
-      if (res.ok) {
-        toast("Tag created successfully!", "success");
-        onCreated();
-        onClose();
-      } else {
-        const data = await res.json();
-        toast(data.error || "Failed to create tag.", "error");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(errorText(data), "error");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      toast("Failed to create tag.", "error");
+      toast(`Created "${data.name}"`, "success");
+      onCreated(data);
+      onClose();
+    } catch {
+      toast("The server could not be reached", "error");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.9 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-secondary border border-secondary-border p-6 rounded-lg w-full max-w-md"
-          >
-            <h2 className="text-xl font-bold text-accent mb-4">Create New Tag</h2>
+    <InfoModal
+      open={open}
+      onClose={onClose}
+      icon={<TagIcon size={24} className="text-accent" />}
+      title="New Tag"
+      subtitle="Spaces become underscores. Aliases and implications can be added after."
+      className="md:max-w-lg lg:max-w-lg"
+      allowOverflow // the Category dropdown has to be able to open past the card's bottom edge
+    >
+      <form
+        className="space-y-4"
+        onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+      >
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-200">Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="example_tag"
+            maxLength={96}
+            spellCheck={false}
+            autoFocus
+            className={inputClass}
+          />
+        </div>
 
-            <div className="space-y-4">
-              {/* Name */}
-              <div>
-                <label className="text-zinc-600 text-sm">Name</label>
-                <input
-                  type="text"
-                  className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                  placeholder="example_tag"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  maxLength={64}
-                />
-              </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-200">Category</label>
+          <Dropdown
+            value={categoryId}
+            options={categories.map((c) => ({ value: c.id, label: c.name, color: c.color }))}
+            onChange={setCategoryId}
+            disabled={saving}
+          />
+        </div>
 
-              {/* Description */}
-              <div>
-                <label className="text-zinc-600 text-sm">Description (optional)</label>
-                <textarea
-                  className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                  placeholder="Describe the tag here..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  maxLength={500}
-                />
-              </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-200">
+            Description <span className="font-normal text-subtle">(optional)</span>
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            maxLength={MAX_DESCRIPTION}
+            placeholder="What this tag is for..."
+            className={`${inputClass} resize-y`}
+          />
+        </div>
 
-              {/* Category */}
-              <div>
-                <label className="text-zinc-600 text-sm">Category</label>
-                <select
-                  value={categoryId ?? ""}
-                  onChange={(e) => setCategoryId(Number(e.target.value))}
-                  className="w-full bg-secondary border border-secondary-border p-2 rounded mt-1 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-800"
-                  required
-                >
-                  <option value="" disabled>Select category</option>
-                  {categories
-                    .sort((a, b) => a.order - b.order)
-                    .map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-4 mt-6">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-zinc-700 rounded text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={saving}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm disabled:opacity-50"
-              >
-                {saving ? "Creating..." : "Create"}
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button type="submit" variant="success" icon={<PlusIcon size={16} />} loading={saving}>
+            Create
+          </Button>
+        </div>
+      </form>
+    </InfoModal>
   );
 }

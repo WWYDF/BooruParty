@@ -249,7 +249,7 @@ export default function PostMetadata({
           {/* Stats bar (Score, Favorites, and Boosts) */}
           <div className="flex items-center gap-4">
             <button
-              className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+              className="flex cursor-pointer items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
               onClick={() => router.push(`/posts?query=${encodeURIComponent("order:score")}`)}
             >
               <ThumbsUpIcon size={16} className="text-green-400" />
@@ -431,7 +431,7 @@ export default function PostMetadata({
                         >
                           <button
                             onClick={() => modifyQuery("add", tag.name)}
-                            className="transition hover:text-green-400"
+                            className="cursor-pointer transition hover:text-green-400"
                             title="Add tag to search"
                           >
                             <PlusIcon size={12} weight="bold" />
@@ -439,7 +439,7 @@ export default function PostMetadata({
 
                           <button
                             onClick={() => modifyQuery("exclude", tag.name)}
-                            className="transition hover:text-red-400"
+                            className="cursor-pointer transition hover:text-red-400"
                             title="Exclude tag from search"
                           >
                             <MinusIcon size={12} weight="bold" />
@@ -451,7 +451,7 @@ export default function PostMetadata({
 
                           <button
                             onClick={() => modifyQuery("replace", tag.name)}
-                            className="hover:underline"
+                            className="cursor-pointer hover:underline"
                             title="Search only this tag"
                           >
                             {tag.name}

@@ -44,7 +44,7 @@ export default function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex items-center justify-center font-medium transition
+      className={`inline-flex cursor-pointer items-center justify-center font-medium transition
         focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50
         disabled:cursor-not-allowed disabled:opacity-50
         ${VARIANTS[variant]} ${SIZES[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
