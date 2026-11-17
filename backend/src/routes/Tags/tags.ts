@@ -483,7 +483,14 @@ const tags: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      await prisma.tag.delete({ where: { id: row.tag.id } });
+      await prisma.$transaction(async (tx) => {
+        // Every post carrying this tag loses one tag. Before the delete: the cascade removes the PostTag rows we match on.
+        await tx.post.updateMany({
+          where: { tags: { some: { tagId: row.tag.id } } },
+          data: { tagCount: { decrement: 1 } },
+        });
+        await tx.tag.delete({ where: { id: row.tag.id } });
+      });
     } catch (e) {
       // Someone else deleted (or merged) it between our lookup and now
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
@@ -553,6 +560,14 @@ const tags: FastifyPluginAsync = async (fastify) => {
         if (source.id === target.id) {
           throw new HttpError(400, { error: 'Cannot merge a tag into itself' });
         }
+
+        // 0. Posts that have BOTH tags end up with one fewer tag (the cascade drops their source row and step 1 adds nothing)
+        // Must run before step 1, while "has target" still means "had it already".
+        await tx.$executeRaw`
+          UPDATE "Post" SET "tagCount" = "tagCount" - 1
+          WHERE "id" IN (SELECT "postId" FROM "PostTag" WHERE "tagId" = ${source.id})
+            AND "id" IN (SELECT "postId" FROM "PostTag" WHERE "tagId" = ${target.id})
+        `;
 
         // 1. Posts: give every source post the target tag (skip posts that already have it)
         const movedPosts = await tx.$executeRaw`
