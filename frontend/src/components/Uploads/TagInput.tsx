@@ -190,7 +190,7 @@ export default function TagInput({
           disabled={disabled}
           autoComplete="off"
           spellCheck={false}
-          className="min-w-[8rem] flex-1 bg-transparent py-0.5 text-sm text-white focus:outline-none"
+          className="min-w-32 flex-1 bg-transparent py-0.5 text-sm text-white focus:outline-none"
         />
       </div>
 

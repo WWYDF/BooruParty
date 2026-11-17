@@ -108,10 +108,10 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
             className="absolute inset-0 w-full h-full object-cover"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-black/60 to-transparent z-10" />
 
         {/* Header content */}
-        <div className="relative z-20 h-full flex flex-col justify-end px-4 pb-4 max-w-screen-2xl mx-auto">
+        <div className="relative z-20 h-full flex flex-col justify-end px-4 pb-4 max-w-(--breakpoint-2xl) mx-auto">
           {editMode ? (
             <PoolEditForm
               name={name}
@@ -191,7 +191,7 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
 
       {/* Edit Mode Buttons */}
       {editMode && (
-        <div className="max-w-screen-2xl mx-auto px-4 pt-4 flex justify-between items-center">
+        <div className="max-w-(--breakpoint-2xl) mx-auto px-4 pt-4 flex justify-between items-center">
           <div className="flex gap-3">
             <button
               onClick={handleSave}
@@ -224,7 +224,7 @@ export default function ClientPoolPage({ pool }: { pool: Pool }) {
       )}
 
       {/* Post Grid */}
-      <section className="max-w-screen-2xl mx-auto px-2 sm:px-4 py-6">
+      <section className="max-w-(--breakpoint-2xl) mx-auto px-2 sm:px-4 py-6">
         {editMode ? (
           <PoolReorderGrid items={poolData.items} onReorderDone={setOrder} />
         ) : (

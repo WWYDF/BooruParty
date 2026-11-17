@@ -39,7 +39,7 @@ export default async function PoolsPage() {
   }
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-6">
+    <div className="max-w-(--breakpoint-xl) mx-auto px-4 py-6">
       <ClientPoolGrid />
     </div>
   );

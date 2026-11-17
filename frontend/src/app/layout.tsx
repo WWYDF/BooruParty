@@ -36,7 +36,7 @@ export default function RootLayout({
         <UserProvider>
           <Navbar />
           <ToastProvider>
-            <main className="flex-grow">
+            <main className="grow">
               {children}
             </main>
           </ToastProvider>

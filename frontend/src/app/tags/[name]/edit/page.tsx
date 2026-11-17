@@ -67,7 +67,7 @@ function NameListInput({ value, onChange, placeholder }: { value: string[]; onCh
         onBlur={() => text.trim() && add()}
         placeholder={value.length ? "" : placeholder}
         spellCheck={false}
-        className="min-w-[8rem] flex-1 bg-transparent py-0.5 text-sm text-white focus:outline-none"
+        className="min-w-32 flex-1 bg-transparent py-0.5 text-sm text-white focus:outline-none"
       />
     </div>
   );

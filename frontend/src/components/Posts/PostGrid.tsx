@@ -84,9 +84,9 @@ export default function PostGrid({
     <div
       className="
         grid gap-4
-        [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]
-        sm:[grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]
-        lg:[grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]
+        grid-cols-[repeat(auto-fit,minmax(160px,1fr))]
+        sm:grid-cols-[repeat(auto-fit,minmax(240px,1fr))]
+        lg:grid-cols-[repeat(auto-fit,minmax(300px,1fr))]
       "
     >
       {externalPosts.map((post, index) => {

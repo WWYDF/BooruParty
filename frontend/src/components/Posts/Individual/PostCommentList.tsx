@@ -191,7 +191,7 @@ export default function PostCommentList({ comments, embeddedPosts, parentSafety,
                 ) : (
                   <>
                     {hasText && (
-                      <p className="whitespace-pre-wrap break-words text-sm text-zinc-300">{text}</p>
+                      <p className="whitespace-pre-wrap wrap-break-word text-sm text-zinc-300">{text}</p>
                     )}
 
                     {/* GIFs / images from allowed hosts */}

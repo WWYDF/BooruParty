@@ -218,7 +218,7 @@ export default function AutoTaggerModal({
 
       <div
         ref={dialogRef}
-        className="relative z-10 md:w-[80%] h-[100dvh] max-w-none rounded-none
+        className="relative z-10 md:w-[80%] h-dvh max-w-none rounded-none
            md:max-w md:h-auto md:max-h-[90vh] md:rounded-2xl
            border border-zinc-800 bg-zinc-900/90 shadow-xl flex flex-col"
       >
@@ -415,7 +415,7 @@ export default function AutoTaggerModal({
           <div className="hidden md:flex gap-4 h-full">
             {/* LEFT: Preview */}
             <div
-              className="flex-shrink-0 w-[40%] rounded-xl p-3 flex flex-col items-center"
+              className="shrink-0 w-[40%] rounded-xl p-3 flex flex-col items-center"
             >
               <div className="text-xs text-zinc-400 mb-2">Post Preview</div>
               <img

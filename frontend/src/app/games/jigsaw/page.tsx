@@ -400,7 +400,7 @@ function PuzzleGrid({ post, gridSize, onGridSizeChange, filterVague, onToggleFil
       </div>
 
       {/* Sidebar - Second on mobile, first on desktop */}
-      <div className="w-full md:w-64 flex-shrink-0 space-y-4 md:space-y-6 order-2 md:order-1">
+      <div className="w-full md:w-64 shrink-0 space-y-4 md:space-y-6 order-2 md:order-1">
         <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
           <h2 className="text-lg font-semibold mb-4">Settings</h2>
           

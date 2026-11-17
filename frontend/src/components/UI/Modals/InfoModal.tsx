@@ -86,7 +86,7 @@ export default function InfoModal({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[1000]">
+        <div className="fixed inset-0 z-1000">
           {/* Overlay */}
           <motion.div
             className="fixed inset-0 bg-black/60"

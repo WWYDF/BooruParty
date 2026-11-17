@@ -61,7 +61,7 @@ function renderCommentEmbeds(embeds: { type: "url" | "post"; value: string }[]) 
           <img
             src={thumb}
             alt={`Post ${embed.value}`}
-            className="w-full max-w-xs rounded-lg object-cover aspect-[4/3]"
+            className="w-full max-w-xs rounded-lg object-cover aspect-4/3"
           />
         </div>
       );
@@ -475,7 +475,7 @@ export default function UserProfilePage() {
                   <img
                     src={`${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${post.id}_small.webp`}
                     alt={`Post #${post.id}`}
-                    className="w-full aspect-[4/3] object-cover rounded-lg"
+                    className="w-full aspect-4/3 object-cover rounded-lg"
                   />
                 </div>
               ))}
@@ -515,7 +515,7 @@ export default function UserProfilePage() {
               {/* Fake Favorites collection */}
               <a
                 href={`/posts?query=favorites%3A${encodeURIComponent(user.username)}`}
-                className="relative block rounded-lg overflow-hidden aspect-[4/3] border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30"
+                className="relative block rounded-lg overflow-hidden aspect-4/3 border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30"
               >
                 {user.favorites?.length > 0 ? (
                   <img
@@ -535,7 +535,7 @@ export default function UserProfilePage() {
               {/* Fake Liked Pools collection */}
               <a
                 href={`/pools?search=likes%3A${encodeURIComponent(user.username)}`}
-                className="relative block rounded-lg overflow-hidden aspect-[4/3] border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30"
+                className="relative block rounded-lg overflow-hidden aspect-4/3 border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30"
               >
                 {user.poolVotes?.length > 0 ? (
                   <img
@@ -559,7 +559,7 @@ export default function UserProfilePage() {
                   <div
                     key={col.id}
                     onContextMenu={(e) => isOwner && openMenu(e, col.id, col.name)}
-                    className="group relative rounded-lg overflow-hidden aspect-[4/3] border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 cursor-pointer"
+                    className="group relative rounded-lg overflow-hidden aspect-4/3 border border-zinc-800 hover:border-darkerAccent transform transition duration-200 hover:-translate-y-1.5 hover:shadow-lg hover:shadow-accent/30 cursor-pointer"
                     onClick={() => router.push(`/posts?query=collection%3A${encodeURIComponent(col.id)}`)}
                   >
                     {firstPostId ? (
@@ -664,7 +664,7 @@ export default function UserProfilePage() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.1 }}
-            className="fixed z-[200] bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl py-1 w-44 overflow-hidden"
+            className="fixed z-200 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl py-1 w-44 overflow-hidden"
             style={{ top: menuPos.y, left: menuPos.x }}
           >
             <button
@@ -693,7 +693,7 @@ export default function UserProfilePage() {
       <AnimatePresence>
         {editingCol && (
           <motion.div
-            className="fixed inset-0 z-[200] flex items-center justify-center"
+            className="fixed inset-0 z-200 flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

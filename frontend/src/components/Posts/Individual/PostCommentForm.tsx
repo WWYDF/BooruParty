@@ -91,7 +91,7 @@ export default function PostCommentForm({ postId, onPosted }: Props) {
           rows={1}
           maxLength={MAX_COMMENT_LENGTH}
           placeholder="Write a comment..."
-          className="min-h-[2.5rem] flex-1 resize-y rounded-lg border border-secondary-border bg-zinc-900 p-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+          className="min-h-10 flex-1 resize-y rounded-lg border border-secondary-border bg-zinc-900 p-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-600"
         />
         {canEmbedPosts && (
           <Button

@@ -44,7 +44,7 @@ export default function GamesPage() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h1 className="text-5xl font-bold text-white mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold text-white mb-4 bg-linear-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             Available Games
           </h1>
         </motion.div>
@@ -72,12 +72,12 @@ export default function GamesPage() {
                     {/* Content */}
                     <div className="relative z-10">
                       {/* Icon */}
-                      <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${game.color} flex items-center justify-center mb-4 shadow-lg`}>
+                      <div className={`w-16 h-16 rounded-xl bg-linear-to-br ${game.color} flex items-center justify-center mb-4 shadow-lg`}>
                         <Icon className="w-8 h-8 text-white" weight="duotone" />
                       </div>
 
                       {/* Text */}
-                      <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-purple-400 group-hover:to-pink-400 transition-all">
+                      <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-transparent group-hover:bg-linear-to-r group-hover:bg-clip-text group-hover:from-purple-400 group-hover:to-pink-400 transition-all">
                         {game.name}
                       </h3>
                       <p className="text-zinc-400 mb-4">
@@ -92,7 +92,7 @@ export default function GamesPage() {
                     </div>
 
                     {/* Decorative corner gradient */}
-                    <div className={`absolute -bottom-8 -right-8 w-32 h-32 bg-gradient-to-br ${game.color} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
+                    <div className={`absolute -bottom-8 -right-8 w-32 h-32 bg-linear-to-br ${game.color} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
                   </motion.div>
                 </Link>
               </motion.div>

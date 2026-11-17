@@ -24,7 +24,7 @@ export default function LoadingOverlay({
   label = 'Loading…',
   blur = true,
   blockScroll = false,
-  zIndexClassName = 'z-[1000]',
+  zIndexClassName = 'z-1000',
   panelClassName = '',
 }: FetchingIndicatorProps) {
   // Global ref count so multiple overlays can coexist

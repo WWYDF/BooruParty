@@ -66,7 +66,7 @@ export function CreateCollectionModal({ open, onClose, onCreated }: Props) {
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[1000]">
+        <div className="fixed inset-0 z-1000">
           <motion.div
             key="overlay"
             className="fixed inset-0 bg-black/70"

@@ -30,7 +30,7 @@ export function PoolCard({
   score,
 }: PoolCardProps) {
   const content = (
-    <div className="relative aspect-[9/16] rounded-lg overflow-hidden bg-secondary border border-secondary-border group">
+    <div className="relative aspect-9/16 rounded-lg overflow-hidden bg-secondary border border-secondary-border group">
       {/* Safety Badge */}
       {safety && showOverlay && (
         <div className="absolute top-2 left-2 z-10 px-2 py-0.5 text-xs font-medium rounded bg-black/70 text-white">
@@ -54,7 +54,7 @@ export function PoolCard({
       {/* Overlay */}
       {showOverlay && (
         <div className="absolute bottom-0 left-0 w-full z-10 pointer-events-none">
-          <div className="absolute -top-6 left-0 w-full h-6 bg-gradient-to-t from-black/70 to-transparent" />
+          <div className="absolute -top-6 left-0 w-full h-6 bg-linear-to-t from-black/70 to-transparent" />
           <div className="bg-black/80 px-3 pt-2 pb-1">
             {typeof score === "number" && score !== 0 && (
                 <div className="absolute right-2 top-[65%] -translate-y-1/2 flex items-center gap-1 text-xs bg-black/60 px-2 py-0.5 rounded-full pointer-events-auto">

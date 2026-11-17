@@ -1,16 +1,16 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  --color-tertiary: #0E0E0E;
-  --color-secondary: #0E0E0E;
-  --color-secondary-border: #1D1D29;
-  --color-primary-500: #0C0C0C;
+  --color-tertiary: #0e0e0e;
+  --color-secondary: #0e0e0e;
+  --color-secondary-border: #1d1d29;
+  --color-primary-500: #0c0c0c;
   --color-primary-600: #000000;
-  --color-primary-border: #E5E5E5;
+  --color-primary-border: #e5e5e5;
   --color-accent: #ffbb3d;
   --color-darkerAccent: #bb8624;
-  --color-error: #FF5E4F;
-  --color-subtle: #85828B;
+  --color-error: #ff5e4f;
+  --color-subtle: #85828b;
 
   --text-2xs: 0.625rem;
   --text-3xs: 0.5rem;
@@ -25,7 +25,7 @@
 body {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
-  @apply text-white bg-primary-500 bg-gradient-to-tl from-primary-500 to-primary-600 w-full h-full bg-no-repeat min-h-screen min-w-[100vw] bg-fixed;
+  @apply text-white bg-primary-500 bg-linear-to-tl from-primary-500 to-primary-600 w-full h-full bg-no-repeat min-h-screen min-w-screen bg-fixed;
 }
 
 @media (max-width: 768px) {
