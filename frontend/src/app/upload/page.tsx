@@ -45,8 +45,6 @@ export default function UploadPage() {
   const hasPerm = (perm: string) => user?.permissions.includes(perm) ?? false
   const canDupe = hasPerm('posts.create.dupes')
 
-  // ---- Item helpers ----
-
   const patchItems = (ids: Iterable<string>, patch: (item: UploadItem) => Partial<UploadItem>) => {
     const set = new Set(ids)
     setItems((prev) => prev.map((i) => (set.has(i.id) ? { ...i, ...patch(i) } : i)))
@@ -60,8 +58,6 @@ export default function UploadPage() {
     setItems((prev) => prev.filter((i) => !set.has(i.id)))
     setSelected((prev) => new Set([...prev].filter((id) => !set.has(id))))
   }
-
-  // ---- Adding files ----
 
   const onDrop = async (files: File[]) => {
     // Some formats (e.g. .mkv on Windows) have no MIME type; let the server decide those
@@ -91,8 +87,6 @@ export default function UploadPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, multiple: true })
 
-  // ---- Selection ----
-
   const handleCardClick = (id: string, e: React.MouseEvent) => {
     if (e.shiftKey && lastClicked.current) {
       const ids = items.map((i) => i.id)
@@ -116,8 +110,6 @@ export default function UploadPage() {
     })
     lastClicked.current = id
   }
-
-  // ---- Uploading ----
 
   // One POST /api/posts/create. The backend only reads fields sent BEFORE the file, so the file goes last.
   const uploadItem = async (item: UploadItem, skipDupes: boolean) => {
@@ -167,8 +159,6 @@ export default function UploadPage() {
     setUploading(false)
   }
 
-  // ---- Duplicates ----
-
   const reviewDuplicate = async (item: UploadItem) => {
     if (item.status.state !== 'duplicate') return
     try {
@@ -195,8 +185,6 @@ export default function UploadPage() {
     setUploading(false)
   }
 
-  // ---- Derived state ----
-
   const selectedItems = items.filter((i) => selected.has(i.id))
   const editableSelected = selectedItems.filter(isEditable)
   const count = (state: UploadStatus['state']) => items.filter((i) => i.status.state === state).length
@@ -205,8 +193,7 @@ export default function UploadPage() {
   const duplicates = count('duplicate')
   const failed = count('error')
 
-  // ---- Permission gates ----
-
+  // Permission gates
   if (user === undefined) return null // still loading /api/me
 
   if (!user || !hasPerm('posts.create')) {

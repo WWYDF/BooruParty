@@ -4,7 +4,7 @@ module.exports = {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/core/dictionary.ts',
+    './src/core/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
@@ -17,22 +17,8 @@ module.exports = {
         'primary-border': '#E5E5E5',
         accent: '#ffbb3d',
         darkerAccent: '#bb8624',
-        // accent: '#F69325', // halloween theme
         error: '#FF5E4F',
-        goalie: '#85828B',
-        forward: '#66e97b',
-        // forward: '#F69325', // halloween theme
         subtle: '#85828B',
-        win: '#A4FF95',
-        // win: '#FFB768', // halloween theme
-        mid: '#f6ff79',
-        loss: '#FF7979',
-        odyssey: '#D38938',
-        support: '#0E0E0E',
-        'support-border': '#27262B',
-        halloween: '#F69325', // halloween theme
-        winter: '#C5FAF0', // christmas theme
-        pink: '#F763E4',
       },
       gridTemplateColumns: {
         '13': 'repeat(13, minmax(0, 1fr))',
