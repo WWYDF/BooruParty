@@ -159,6 +159,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
           <ul className="list-disc pl-5 text-zinc-300">
             <li><code>safety:safe,questionable</code> <a className="text-subtle">· Only these safeties (safe, questionable, explicit).</a></li>
             <li><code>type:image</code> <a className="text-subtle">· Only these file types (image, animated, video).</a></li>
+            <li><code>flag:reaction</code> <a className="text-subtle">· Posts with a specially flagged tag (e.g. reaction images). <code>-flag:</code> excludes them.</a></li>
             <li><code>from:{'<username>'}</code> <a className="text-subtle">· Posts uploaded by a user.</a></li>
             <li><code>score:{'>'}10</code> <a className="text-subtle">· Score filter. Also works with <code>{'>='}</code>, <code>{'<'}</code>, <code>{'<='}</code>, or an exact number.</a></li>
             <li><code>tagcount:{'<'}5</code> <a className="text-subtle">· Posts with fewer than 5 tags (same comparisons as score).</a></li>

@@ -96,8 +96,9 @@ export default function InfoModal({
             onClick={onClose}
           />
 
-          {/* Centering wrapper with reliable gutters */}
-          <div className="fixed inset-0 flex items-center justify-center px-4 py-6 sm:px-6">
+          {/* Centering wrapper with reliable gutters. It covers the overlay, so it has to close on click too
+              (clicks inside the card don't reach it: the card stops propagation) */}
+          <div className="fixed inset-0 flex items-center justify-center px-4 py-6 sm:px-6" onClick={onClose}>
             <motion.div
               role="dialog"
               aria-modal="true"

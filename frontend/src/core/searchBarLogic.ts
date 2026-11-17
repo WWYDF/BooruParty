@@ -24,10 +24,12 @@ type TagResult = {
 const SYSTEM_VALUES: Record<string, string[]> = {
   safety: ["safe", "questionable", "explicit"],
   type: ["image", "animated", "video"],
+  flag: ["reaction"],  // TagFlag enum, lowercase
+  flags: ["reaction"],
   order: ["newest", "oldest", "score", "random"],
   sort: ["newest", "oldest", "score", "random"],
 };
-const SYSTEM_KEYS = ["safety", "type", "order", "from", "score", "tagcount", "id"];
+const SYSTEM_KEYS = ["safety", "type", "flag", "order", "from", "score", "tagcount", "id"];
 
 const DEBOUNCE_MS = 150;
 
