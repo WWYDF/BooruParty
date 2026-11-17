@@ -64,3 +64,15 @@ export async function moveIntoPlace(
 export async function discardFiles(paths: string[]) {
   await Promise.all(paths.map((p) => fs.promises.rm(p, { force: true })));
 }
+
+// Every file on disk that belongs to a post (original, preview, thumbnails), as absolute paths
+export function postFilePaths(post: { fileKey: string, originalPath: string, previewPath: string | null }): string[] {
+  const stored = [post.originalPath];
+  if (post.previewPath) stored.push(post.previewPath);
+
+  for (const label of Object.keys(THUMBNAIL_SIZES)) {
+    stored.push(storedPath('thumbnails', `${post.fileKey}_${label}.webp`));
+  }
+
+  return stored.map((p) => path.join(process.cwd(), p));
+}

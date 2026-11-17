@@ -5,6 +5,10 @@ import { prisma } from "@/core/plugins/prisma";
 import { rolePermissionCheck } from "@/core/utilities/permissionCache";
 import { HttpError } from "@/core/utilities/errors";
 import { ResolvedTag, resolveTagNames } from "@/core/utilities/tags";
+import { discardFiles, postFilePaths } from "@/components/uploads/finalize";
+import { appLogger } from "@/core/plugins/logger";
+
+const logger = appLogger('Posts/Manage');
 
 type EditBody = {
   safety?: Safety,
@@ -133,7 +137,63 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
     }
 
     return reply.status(204).send();
-  }
-)};
+  });
+
+  fastify.delete('/:id', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer', minimum: 1 } },
+      },
+    },
+  }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { id: true, uploaderId: true, fileKey: true, originalPath: true, previewPath: true }
+    });
+    if (!post) return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
+
+    // Same rule as editing, delete.others covers your own posts too
+    const isOwner = post.uploaderId === req.user.sub;
+    const allowed = rolePermissionCheck(req.user.roleId, 'posts.delete.others')
+      || (isOwner && rolePermissionCheck(req.user.roleId, 'posts.delete.own'));
+
+    if (!allowed) {
+      return reply.status(403).send({ error: 'Forbidden', hint: `Missing permission: ${isOwner ? 'posts.delete.own' : 'posts.delete.others'}` });
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Lock the post row. A concurrent edit or delete of this post waits until we're done.
+        const locked = await tx.$queryRaw<{id: number }[]>`SELECT id FROM "Post" WHERE id = ${id} FOR UPDATE`;
+        if (locked.length === 0) throw new HttpError(404, { error: 'Not found', hint: 'No post with that id' });
+
+        // -1 on every tag this post has, in one query, BEFORE the cascade removes the PostTag rows
+        await tx.tag.updateMany({
+          where: { posts: { some: { postId: id } } },
+          data: { postCount: { decrement: 1 } }
+        });
+
+        await tx.post.delete({ where: { id } }); // cascades PostTag rows
+      });
+    } catch (e) {
+      if (e instanceof HttpError) return reply.status(e.status).send(e.body);
+      throw e;
+    };
+
+    // Only after the commit: if the tx had failed, the post would still need its files
+    try {
+      await discardFiles(postFilePaths(post));
+    } catch (e) {
+      logger.error(`Post ${id} deleted, but some of its files could not be removed`, e);
+    }
+
+    return reply.status(204).send();
+  });
+};
 
 export default managePosts;
