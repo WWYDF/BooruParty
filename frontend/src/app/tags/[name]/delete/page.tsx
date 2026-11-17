@@ -70,11 +70,14 @@ export default function TagDeletePage() {
         <Link href={`/tags/${encodeURIComponent(tag.name)}/merge`} className="text-accent hover:underline">Merge it</Link>.
       </p>
 
-      <Checkbox checked={confirmed} onChange={setConfirmed} label={<>Delete <span className="text-zinc-100">{tag.name}</span> permanently</>} />
+      {/* Final step: confirm, then delete (each on its own line; Checkbox and Button are inline-flex) */}
+      <div className="flex flex-col items-start gap-3 border-t border-secondary-border pt-4">
+        <Checkbox checked={confirmed} onChange={setConfirmed} label={<>Delete <span className="text-red-400">{tag.name}</span> permanently</>} />
 
-      <Button variant="danger" icon={<TrashIcon size={16} />} loading={deleting} disabled={!confirmed} onClick={handleDelete}>
-        Delete tag
-      </Button>
+        <Button variant="danger" icon={<TrashIcon size={16} />} loading={deleting} disabled={!confirmed} onClick={handleDelete}>
+          Delete tag
+        </Button>
+      </div>
     </div>
   );
 }

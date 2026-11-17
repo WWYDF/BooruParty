@@ -81,16 +81,19 @@ export default function MergeTagPage() {
         <TagInput value={target ? [target] : []} onChange={pickTarget} placeholder="Search for the tag to keep..." />
       </div>
 
-      <Checkbox
-        checked={keepNames}
-        onChange={setKeepNames}
-        label={
-          <>
-            Keep {allNames.length === 1 ? "the name" : "the names"}{" "}
-            <span className="text-zinc-400">{allNames.join(", ")}</span> as aliases of the target
-          </>
-        }
-      />
+      {/* Checkbox is inline-flex: wrapping it in a block keeps it on its own line */}
+      <div>
+        <Checkbox
+          checked={keepNames}
+          onChange={setKeepNames}
+          label={
+            <>
+              Keep {allNames.length === 1 ? "the name" : "the names"}{" "}
+              <span className="text-zinc-400">{allNames.join(", ")}</span> as aliases of the target
+            </>
+          }
+        />
+      </div>
 
       {target && (
         <div className="space-y-1 rounded-xl border border-secondary-border bg-zinc-900/40 px-4 py-3 text-zinc-300">
@@ -111,22 +114,25 @@ export default function MergeTagPage() {
         </div>
       )}
 
-      <Checkbox
-        checked={confirmed}
-        onChange={setConfirmed}
-        disabled={!target}
-        label="I understand this can't be undone"
-      />
+      {/* Final step: confirm, then merge */}
+      <div className="flex flex-col items-start gap-3 border-t border-secondary-border pt-4">
+        <Checkbox
+          checked={confirmed}
+          onChange={setConfirmed}
+          disabled={!target}
+          label="I understand this can't be undone"
+        />
 
-      <Button
-        variant="danger"
-        icon={<GitMergeIcon size={16} />}
-        loading={merging}
-        disabled={!target || !confirmed}
-        onClick={handleMerge}
-      >
-        Merge tag
-      </Button>
+        <Button
+          variant="danger"
+          icon={<GitMergeIcon size={16} />}
+          loading={merging}
+          disabled={!target || !confirmed}
+          onClick={handleMerge}
+        >
+          Merge tag
+        </Button>
+      </div>
     </div>
   );
 }
