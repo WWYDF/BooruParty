@@ -1,12 +1,12 @@
-import { parseEmbeds } from "@/components/posts/comments";
-import { visibleConditions } from "@/components/posts/postQuery";
-import { MAX_INT } from "@/core/objects/limits";
+import { assertEmbedsAllowed, parseEmbeds, resolveEmbeddedPosts } from "@/components/posts/comments";
+import { MAX_COMMENT_LENGTH, MAX_INT } from "@/core/objects/limits";
 import { commentSelect } from "@/core/objects/selects/comments";
-import { postSummarySelect } from "@/core/objects/selects/summaries";
+import { postVisibilitySelect } from "@/core/objects/selects/posts";
 import { prisma } from "@/core/plugins/prisma";
-import { formatPostSummary } from "@/core/utilities/reformatters";
-import { assertPostVisible, getBrowsingViewer, getViewer, isHiddenFrom, postVisibilitySelect } from "@/core/utilities/viewer";
+import { requirePermission } from "@/core/utilities/permissionCache";
+import { assertPostVisible, getBrowsingViewer } from "@/core/utilities/viewer";
 import { FastifyPluginAsync } from "fastify";
+import { Prisma } from "../../../prisma/client";
 
 const postComments: FastifyPluginAsync = async (fastify) => {
 
@@ -51,21 +51,62 @@ const postComments: FastifyPluginAsync = async (fastify) => {
     // Each comment carries its own parsed embeds, so the UI never needs the media allowlist
     const comments = page.map((c) => ({ ...c, embeds: parseEmbeds(c.content) }));
 
-    // Every embedded post on this page in ONE query. Posts this viewer can't see are absent
-    const embeddedIds = [...new Set(comments.flatMap((c) => c.embeds.postIds))];
-    const embedded = embeddedIds.length
-      ? await prisma.post.findMany({
-          where: { AND: [{ id: { in: embeddedIds } }, ...visibleConditions(viewer)] },
-          select: postSummarySelect,
-        })
-      : [];
+    const embeddedPosts = await resolveEmbeddedPosts(comments.flatMap((c) => c.embeds.postIds), viewer);
     
-      return reply.status(200).send({
-        nextCursor: hasMore ? page[page.length - 1].id : null,
-        comments,
-        embeddedPosts: Object.fromEntries(embedded.map((p) => [p.id, formatPostSummary(p)])),
+    return reply.status(200).send({
+      nextCursor: hasMore ? page[page.length - 1].id : null,
+      comments,
+      embeddedPosts,
+    });
+  });
+
+  fastify.post('/:id/comments', {
+    onRequest: [fastify.authenticate, requirePermission('comment.create')],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer', minimum: 1, maximum: MAX_INT } },
+      },
+      body: {
+        type: 'object',
+        required: ['content'],
+        additionalProperties: false,
+        properties: { content: { type: 'string', minLength: 1, maxLength: MAX_COMMENT_LENGTH } },
+      },
+    },
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+    const content = (req.body as { content: string }).content.trim();
+    if (!content) return reply.status(400).send({ error: 'Empty comment', hint: 'Write something first' });
+  
+    // You can only comment on a post you can see lol
+    const viewer = await getBrowsingViewer(req);
+    const post = await prisma.post.findUnique({ where: { id }, select: postVisibilitySelect });
+    assertPostVisible(viewer, post); // automatically replies with 404 if not visible
+
+    const embeds = parseEmbeds(content);
+    assertEmbedsAllowed(embeds, req.user.roleId);
+
+    try {
+      const comment = await prisma.postComment.create({
+        data: { postId: id, authorId: req.user.sub, content },
+        select: commentSelect,
       });
-  })
+
+      return reply.status(201).send({
+        comment: { ...comment, embeds },
+        embeddedPosts: await resolveEmbeddedPosts(embeds.postIds, viewer),
+      })
+    } catch (e) {
+      // The post was deleted between the visibility check and the insert
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2003') {
+        return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
+      }
+      throw e;
+    }
+  });
 }
 
 export default postComments;

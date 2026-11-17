@@ -16,12 +16,6 @@ export type Viewer = {
   canSeePrivate: boolean, // only admins have this for moderation purposes
 }
 
-// The fields isHiddenFrom needs. Spread it into any post select: { ...postVisibilitySelect, score: true }
-export const postVisibilitySelect = {
-  safety: true,
-  uploader: { select: { id: true, private: true } },
-} satisfies Prisma.PostSelect;
-
 type VisibilityFields = { safety: Safety, uploader: { id: string, private: boolean } };
 
 

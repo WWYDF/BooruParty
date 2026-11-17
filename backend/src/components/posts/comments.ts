@@ -2,8 +2,13 @@
 // Allowed external hosts
 
 import { MAX_COMMENT_EMBEDS, MAX_INT } from "@/core/objects/limits";
+import { prisma } from "@/core/plugins/prisma";
 import { HttpError } from "@/core/utilities/errors";
 import { rolePermissionCheck } from "@/core/utilities/permissionCache";
+import { visibleConditions } from "./postQuery";
+import { postSummarySelect } from "@/core/objects/selects/summaries";
+import { formatPostSummary } from "@/core/utilities/reformatters";
+import { Viewer } from "@/core/utilities/viewer";
 
 // Overritten by process.env.COMMENT_MEDIA_HOSTS
 export const DEFAULT_MEDIA_HOSTS = [
@@ -62,3 +67,16 @@ export function assertEmbedsAllowed(embeds: CommentEmbeds, roleId: string) {
     throw new HttpError(403, { error: 'Forbidden', hint: 'Missing permission: comment.embed.url' });
   }
 }
+
+// Summaries for the embedded posts this viewer may see, keyed by id. Hidden/deleted ones are simply absent.
+export async function resolveEmbeddedPosts(postIds: number[], viewer: Viewer) {
+  const ids = [...new Set(postIds)];
+  if (!ids.length) return {};
+
+  const posts = await prisma.post.findMany({
+    where: { AND: [{ id: { in: ids } }, ...visibleConditions(viewer)] },
+    select: postSummarySelect,
+  });
+  return Object.fromEntries(posts.map((p) => [p.id, formatPostSummary(p)]));
+}
+

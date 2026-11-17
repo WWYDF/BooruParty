@@ -18,4 +18,10 @@ export const postDetailSelect = {
   },
 } satisfies Prisma.PostSelect;
 
+// The fields isHiddenFrom needs. Spread it into any post select: { ...postVisibilitySelect, score: true }
+export const postVisibilitySelect = {
+  safety: true,
+  uploader: { select: { id: true, private: true } },
+} satisfies Prisma.PostSelect;
+
 export type PostDetail = Prisma.PostGetPayload<{ select: typeof postDetailSelect }>;
