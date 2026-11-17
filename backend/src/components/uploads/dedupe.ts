@@ -27,10 +27,11 @@ export async function computePHash(filePath: string, type: FileType): Promise<st
 }
 
 // Returns the id of the closest existing post within the threshold, or null
-export async function findDuplicate(pHash: string): Promise<number | null> {
+export async function findDuplicate(pHash: string, excludeId?: number): Promise<number | null> {
   const rows = await prisma.$queryRaw<{ id: number }[]>`
     SELECT id FROM "Post"
     WHERE length("pHash") = 64
+      AND id <> ${excludeId ?? 0}
       AND bit_count("pHash"::bit(64) # ${pHash}::bit(64)) <= ${DUPE_THRESHOLD}
     ORDER BY bit_count("pHash"::bit(64) # ${pHash}::bit(64)) ASC
     LIMIT 1

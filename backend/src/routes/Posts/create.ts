@@ -3,21 +3,17 @@ import { appLogger } from "@/core/plugins/logger";
 import { requirePermission, rolePermissionCheck } from "@/core/utilities/permissionCache";
 import crypto from 'node:crypto';
 import path from "node:path";
-import { cleanupTemp, detectFileType, tempDir } from "@/components/uploads/receive";
-import { pipeline } from 'node:stream/promises';
 import fs from "fs";
-import { PermissionName } from "@/core/objects/permissions";
-import { computePHash, findDuplicate } from "@/components/uploads/dedupe";
-import { generateThumbnails } from "@/components/uploads/thumbnails";
-import { generatePreview } from "@/components/uploads/previews";
-import { probeVideo } from "@/components/uploads/video";
+import { cleanupTemp, tempDir } from "@/components/uploads/receive";
+import { pipeline } from 'node:stream/promises';
 import { getField, parseUploadFields } from "@/components/uploads/fields";
-import { discardFiles, getAspectRatio, moveIntoPlace } from "@/components/uploads/finalize";
+import { discardFiles } from "@/components/uploads/finalize";
 import { prisma } from "@/core/plugins/prisma";
 import { withAssetUrls } from "@/core/utilities/reformatters";
 import { resolveTagNames } from "@/core/utilities/tags";
 import { HttpError } from "@/core/utilities/errors";
 import { Prisma } from "../../../prisma/client";
+import { processUpload } from "@/components/uploads/process";
 
 const logger = appLogger('Posts/Create');
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
@@ -48,7 +44,7 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       if (!parsed.ok) { return reply.status(400).send({ error: `Invalid fields`, hint: parsed.error }) };
       const { safety, sources, notes, tags } = parsed.fields;
 
-      // 2.5 Validate tags
+      // 3. Validate tags
       const resolvedTags = await resolveTagNames(tags);
       if (resolvedTags.invalid.length) {
         return reply.status(400).send({
@@ -64,39 +60,9 @@ const createPost: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      // 3. Work out what it really is
-      const detected = await detectFileType(tempPath);
-      if (!detected) { return reply.status(415).send({ error: 'Unsupported file type' }) };
-
-      // 4. is this user allowed to upload this kind of file?
-      const typePerm = `upload.type.${detected.type.toLowerCase()}` as PermissionName;
-      if (!rolePermissionCheck(req.user.roleId, typePerm)) { return reply.status(403).send({ error: 'Forbidden', hint: `Missing permission: ${typePerm}` }) };
-
-      // 5. Duplicate check
+      // 4. Process file (detect, check, dedupe, thumbs, preview, measure, and move into place)
       const skipDupes = getField(upload, 'skipDupes') === 'true';
-      const pHash = await computePHash(tempPath, detected.type);
-      const dupeBypass = skipDupes && rolePermissionCheck(req.user.roleId, 'posts.create.dupes');
-
-      if (!dupeBypass) {
-        const duplicateOf = await findDuplicate(pHash);
-        if (duplicateOf !== null) {
-          return reply.status(409).send({ error: 'Duplicate', hint: "This file already exists", duplicateOf });
-        }
-      }
-
-      // 6. Thumbnails
-      await generateThumbnails(tempPath, detected.type, fileKey);
-
-      // 7. Preview
-      const videoInfo = detected.type === 'VIDEO' ? await probeVideo(tempPath) : null;
-      const preview = await generatePreview(tempPath, detected, fileKey, videoInfo);
-
-      // 8. Final measurements
-      const aspectRatio = await getAspectRatio(tempPath, videoInfo);
-      const { size: fileSize } = await fs.promises.stat(tempPath);
-
-      // 9. Move everything into place
-      const { originalPath, previewPath } = await moveIntoPlace(fileKey, tempPath, detected, preview, moved);
+      const file = await processUpload(tempPath, fileKey, { roleId: req.user.roleId, skipDupes, moved });
 
       // 10. Save the post and its tags together
       const post = await prisma.$transaction(async (tx) => {
@@ -110,21 +76,12 @@ const createPost: FastifyPluginAsync = async (fastify) => {
 
         const post = await tx.post.create({
           data: {
+            ...file,
             uploaderId: req.user.sub,
-            type: detected.type,
             fileKey,
-            originalPath,
-            previewPath,
             safety,
             sources,
             notes,
-            aspectRatio,
-            fileSize: BigInt(fileSize),
-            previewSize: preview ? BigInt(preview.size) : null,
-            duration: videoInfo?.duration ?? null,
-            hasAudio: videoInfo?.hasAudio ?? false,
-            pHash,
-            dupeBypass,
             tagCount: tagIds.length,
             tags: { create: tagIds.map((tagId) => ({ tagId })) },
           },
