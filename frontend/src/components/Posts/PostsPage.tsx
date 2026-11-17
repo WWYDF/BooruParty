@@ -118,6 +118,10 @@ export default function ClientPostsPage() {
     perPage.current = prefs.postsPerPage;
     setLayout(prefs.layout);
 
+    // The URL is what this feed shows, so it's what post navigation should follow.
+    // (Plain /posts from the navbar = default feed, replacing any older search.)
+    sessionStorage.setItem("lastSearchParams", JSON.stringify({ query: initialText, safety: initialSafeties.join("-") }));
+
     // Clear per-post caches left by the individual post page
     Object.keys(sessionStorage)
       .filter((k) => k.startsWith("bp:dims:") || k.startsWith("bp:size:"))
