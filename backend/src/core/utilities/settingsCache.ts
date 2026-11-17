@@ -17,7 +17,7 @@ export type CachedSettings = Prisma.ServerSettingsGetPayload<{ select: typeof se
 let settings: CachedSettings | null = null;
 
 // Reads the settings row into memory.
-// Calls once at startup (after setup), and again whenever settings are edited. (not implemented yet)
+// Calls once at startup (after setup), and again whenever settings are edited.
 export async function loadServerSettings() {
   const row = await prisma.serverSettings.findUnique({ where: { id: 1 }, select: settingsSelect });
   if (!row) throw new Error('ServerSettings row is missing. Did checkSetup() run first?');

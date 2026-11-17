@@ -10,6 +10,7 @@ import viewPosts from './Posts/view';
 import stats from './System/stats';
 import managePosts from './Posts/manage';
 import replacePosts from './Posts/replace';
+import settings from './System/settings';
 
 const logger = appLogger('Routes');
 
@@ -24,6 +25,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(tagCategories, { prefix: '/tag-categories' });
   fastify.register(tags, { prefix: '/tags' });
   fastify.register(stats, { prefix: '/system' });
+  fastify.register(settings, { prefix: '/system' });
 
   logger.success('[+] API Routes Initialized!');
 };

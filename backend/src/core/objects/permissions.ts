@@ -41,6 +41,7 @@ export const PERMISSIONS = [
   "tags.delete",
   "tags.categories.manage",
   "dashboard.view",
+  "dashboard.settings",
   "dashboard.analytics",
   "dashboard.update",
   "dashboard.backups",
