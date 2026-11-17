@@ -101,9 +101,11 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
     .map((name) => byName.get(name))
     .filter((t): t is TagChip => t !== undefined);
 
-  // No backend yet: these render and can be changed, but are never sent
-  const [featured, setFeatured] = useState(false);
-  const [relatedPosts, setRelatedPosts] = useState<number[]>([]);
+  // Related posts: the ones this user can see (the server keeps any hidden ones on save)
+  const originalRelated = post.related.map((r) => r.id);
+  const [relatedPosts, setRelatedPosts] = useState<number[]>(originalRelated);
+
+  // No backend yet: renders and can be changed, but is never sent
   const [pools, setPools] = useState<number[]>([]);
 
   const [newFile, setNewFile] = useState<File | null>(null);
@@ -140,6 +142,7 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
     if (notes.trim() !== (post.notes ?? '')) body.notes = notes.trim() || null;
     const tagNames = tags.map((t) => t.name);
     if (!sameSet(tagNames, post.tags.map((t) => t.name))) body.tags = tagNames;
+    if (!sameSet(relatedPosts.map(String), originalRelated.map(String))) body.related = relatedPosts;
 
     const hasFields = Object.keys(body).length > 0;
     if (!hasFields && !newFile && !thumb) {
@@ -405,9 +408,7 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
 
       {/* Related posts (no backend yet) */}
       <div>
-        <label className="mb-1.5 block font-medium text-white">
-          Related Posts <span className="text-xs font-normal text-subtle">(coming soon, not saved)</span>
-        </label>
+        <label className="mb-1.5 block font-medium text-white">Related Posts</label>
         <RelatedPostInput value={relatedPosts} onChange={setRelatedPosts} />
       </div>
 

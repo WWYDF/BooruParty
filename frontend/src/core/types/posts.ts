@@ -92,7 +92,10 @@ export type PostDetail = {
     small: string,
     med: string,
     large: string,
-  }
+  },
+
+  related: Posts[],   // feed-card summaries, oldest link first; only posts this viewer may see
+  featured: boolean,  // is this the site's featured post?
 }
 
 
@@ -106,9 +109,10 @@ export type PostUserStatus = {
   collections: string[], // what collections the post is in (ids)
 }
 
+// GET /api/posts/:id/navigate. null = nothing that way (end of the search, or order:random)
 export type PostNavigatorType = {
-  previousPostId: number;
-  nextPostId: number;
+  previousPostId: number | null;
+  nextPostId: number | null;
 }
 
 

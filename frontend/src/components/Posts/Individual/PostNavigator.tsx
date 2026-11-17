@@ -1,6 +1,8 @@
 "use client";
 
 import { PostNavigatorType } from "@/core/types/posts";
+import { API } from "@/core/api";
+import { lastFeedQuery } from "@/core/feedQuery";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -8,31 +10,26 @@ import { useEffect, useState } from "react";
 
 type Props = { postId: number; poolId?: number; fullscreen?: boolean };
 
+const NO_NAV: PostNavigatorType = { previousPostId: null, nextPostId: null };
+
 export function useAdjacentPosts(postId: number, poolId?: number) {
-  const [nav, setNav] = useState<PostNavigatorType>({ previousPostId: 0, nextPostId: 0 });
+  const [nav, setNav] = useState<PostNavigatorType>(NO_NAV);
 
   useEffect(() => {
-    async function fetchAdjacentPosts() {
-      let res;
-      if (poolId) {
-        res = await fetch(`/api/pools/${poolId}/navigate?current=${postId}`, { cache: "no-store" });
-      } else {
-        const saved = JSON.parse(sessionStorage.getItem("lastSearchParams") ?? "{}");
-        console.log(saved.query);
-        const query = saved.query ?? "";
-        const safety = saved.safety ?? "";
-        const sort = saved.sort ?? "new";
-        const params = new URLSearchParams({
-          current: postId.toString(),
-          ...(query && { query }),
-          ...(safety && { safety }),
-          ...(sort && { sort }),
-        });
-        res = await fetch(`/api/posts/navigate?${params.toString()}`, { cache: "no-store" });
-      }
-      if (res?.ok) setNav(await res.json());
-    }
-    fetchAdjacentPosts();
+    let cancelled = false; // ignore a slow answer for the post we already left
+    setNav(NO_NAV);
+
+    // TODO: pools have no API yet; pool navigation comes with it
+    if (poolId) return;
+
+    // Step through the same search the feed showed (Next = up the feed, newer by default)
+    const params = new URLSearchParams({ q: lastFeedQuery() });
+    API(`/api/posts/${postId}/navigate?${params}`)
+      .then((res) => (res.ok ? res.json() : NO_NAV))
+      .then((data: PostNavigatorType) => { if (!cancelled) setNav(data); })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
   }, [postId, poolId]);
 
   return nav;
@@ -48,7 +45,8 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
   const leftShowsPrevious = isPool ? true : flipNavigators;  // pool: prev on left; non-pool: flip decides
   const rightShowsNext   = isPool ? true : flipNavigators;   // pool: next on right; non-pool: flip decides
 
-  const buildLink = (targetId: number) =>
+  // Only called for ids that exist (the buttons are disabled when there's nothing that way)
+  const buildLink = (targetId: number | null) =>
     fullscreen
       ? (poolId ? `/post/${targetId}/fullscreen?pool=${poolId}` : `/post/${targetId}/fullscreen`)
       : (poolId ? `/post/${targetId}?pool=${poolId}` : `/post/${targetId}`);
@@ -81,7 +79,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
         !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
       if (typing) return;
 
-      const go = (targetId: number) => {
+      const go = (targetId: number | null) => {
         if (!targetId) return;
         const href = fullscreen
           ? (poolId ? `/post/${targetId}/fullscreen?pool=${poolId}` : `/post/${targetId}/fullscreen`)

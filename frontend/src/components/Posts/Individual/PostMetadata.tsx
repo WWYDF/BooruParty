@@ -19,6 +19,7 @@ import {
   ThumbsUpIcon,
 } from "@phosphor-icons/react";
 import { formatCounts, formatStorageFromBytes } from "@/core/formats";
+import { API, errorText } from "@/core/api";
 import { RoleBadge } from "@/components/RoleBadge";
 import Button from "@/components/UI/Button";
 import { useToast } from "@/components/UI/Toast";
@@ -37,7 +38,6 @@ const SAFETY_TEXT: Record<Safety, string> = {
 
 // Placeholders for features the new API doesn't have yet
 // Swap later, the JSX below already handles them.
-type RelatedPost = { id: number; thumbnail: string };
 type PostPool = {
   id: number;
   name: string;
@@ -50,7 +50,6 @@ const PLACEHOLDER = {
   anonymous: false,
   favorites: 0,
   boosts: 0,
-  related: [] as RelatedPost[],
   pools: [] as PostPool[],
   jigsawEnabled: false,
 };
@@ -92,6 +91,25 @@ export default function PostMetadata({
   const { user } = useUser();
 
   const canFeature = user?.permissions.includes("posts.feature") ?? false;
+  const [featureBusy, setFeatureBusy] = useState(false);
+
+  // Applies instantly: PUT features this post (replacing the current one), DELETE unfeatures it
+  const toggleFeatured = async () => {
+    setFeatureBusy(true);
+    try {
+      const res = await API(`/api/posts/${post.id}/feature`, { method: post.featured ? "DELETE" : "PUT" });
+      if (!res.ok) {
+        toast(errorText(await res.json().catch(() => ({}))), "error");
+        return;
+      }
+      toast(post.featured ? "Post unfeatured" : "Post featured!", "success");
+      onReload(); // picks up the new `featured` flag
+    } catch {
+      toast("The server could not be reached", "error");
+    } finally {
+      setFeatureBusy(false);
+    }
+  };
 
   function modifyQuery(action: "replace" | "add" | "exclude", tag: string) {
     const saved = JSON.parse(sessionStorage.getItem("lastSearchParams") ?? "{}");
@@ -197,9 +215,14 @@ export default function PostMetadata({
         </div>
 
         {canFeature && !editing && (
-          // Applies instantly once the API exists; until then it does nothing
-          <Button size="sm" icon={<StarIcon size={14} />} disabled title="Coming soon">
-            Feature
+          <Button
+            size="sm"
+            icon={<StarIcon size={14} weight={post.featured ? "fill" : "regular"} className={post.featured ? "text-yellow-400" : ""} />}
+            loading={featureBusy}
+            onClick={toggleFeatured}
+            title={post.featured ? "Remove this post from the homepage" : "Show this post on the homepage (replaces the current one)"}
+          >
+            {post.featured ? "Featured" : "Feature"}
           </Button>
         )}
 
@@ -330,20 +353,21 @@ export default function PostMetadata({
           </div>
 
           {/* Related Posts */}
-          {PLACEHOLDER.related.length > 0 && (
-            <Section title="Related Posts">
+          {post.related.length > 0 && (
+            <div>
+              <h3 className="text-zinc-200 font-medium text-sm mb-2">Related Posts</h3>
               <div className="flex flex-wrap gap-2">
-                {PLACEHOLDER.related.map((related) => (
-                  <Link key={related.id} href={`/post/${related.id}`}>
+                {post.related.map((related) => (
+                  <Link key={related.id} href={`/post/${related.id}`} title={`Post #${related.id}`}>
                     <img
-                      src={related.thumbnail}
+                      src={related.thumbnails.small}
                       alt={`Related post ${related.id}`}
                       className="h-16 w-16 rounded-lg border border-secondary-border object-cover transition hover:scale-105"
                     />
                   </Link>
                 ))}
               </div>
-            </Section>
+            </div>
           )}
 
           {/* Pools */}

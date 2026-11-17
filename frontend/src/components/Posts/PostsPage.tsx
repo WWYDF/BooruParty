@@ -6,6 +6,7 @@ import PostGrid from "@/components/Posts/PostGrid";
 import PostToolbar from "./PostToolbar";
 import LoadingOverlay from "../LoadingOverlay";
 import { API, errorText } from "@/core/api";
+import { buildQuery } from "@/core/feedQuery";
 
 type Layout = "GRID" | "COLLAGE";
 type FeedError = { status: number; text: string };
@@ -37,12 +38,6 @@ function readSnapshot(): FeedSnapshot | null {
   }
 }
 
-// Safety buttons become a `safety:` term in the search, unless the user already typed one
-function buildQuery(text: string, safeties: string[]) {
-  const q = text.trim();
-  if (safeties.length === 0 || /(^|\s)-?safety:/i.test(q)) return q;
-  return `${q} safety:${safeties.join(",").toLowerCase()}`.trim();
-}
 
 // Wait for enough posts to render before jumping back to where the user was
 function restoreScroll(y: number, attempt = 0) {
