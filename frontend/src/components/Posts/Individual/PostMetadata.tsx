@@ -400,7 +400,7 @@ export default function PostMetadata({
                             className="hover:text-green-400 transition"
                             title="Add tag to search"
                           >
-                            <PlusIcon size={10} weight="bold" />
+                            <PlusIcon size={12} weight="bold" />
                           </button>
 
                           <button
@@ -408,7 +408,7 @@ export default function PostMetadata({
                             className="hover:text-red-400 transition"
                             title="Exclude tag from search"
                           >
-                            <MinusIcon size={10} weight="bold" />
+                            <MinusIcon size={12} weight="bold" />
                           </button>
 
                           <Link href={`/tags/${encodeURIComponent(tag.name)}`} title="View tag">
@@ -422,6 +422,10 @@ export default function PostMetadata({
                           >
                             {tag.name}
                           </button>
+
+                          <span className="text-subtle text-xs ml-1">
+                            {formatCounts(tag.postCount ?? 0)}
+                          </span>
                         </div>
                       ))}
                     </div>

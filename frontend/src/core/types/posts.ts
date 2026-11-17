@@ -78,6 +78,7 @@ export type PostDetail = {
     id: number,
     name: string,
     categoryId: number,
+    postCount: number,
   }[],
 
   createdAt: Date,

@@ -16,6 +16,7 @@ export const tagSummarySelect = {
   id: true,
   name: true,
   categoryId: true,
+  postCount: true,
 } satisfies Prisma.TagSelect;
 
 // A post as it appears in a feed grid: enough to render a thumbnail card
