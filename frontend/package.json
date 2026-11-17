@@ -17,6 +17,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@phosphor-icons/react": "^2.1.10",
+    "@tailwindcss/postcss": "^4.3.5",
     "caniuse-lite": "^1.0.30001826",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -50,7 +51,7 @@
     "baseline-browser-mapping": "^2.11.37",
     "eslint": "^10.15.0",
     "eslint-config-next": "15.2.4",
-    "tailwindcss": "3.3.2",
+    "tailwindcss": "^4.3.5",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }

@@ -1,6 +1,22 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-tertiary: #0E0E0E;
+  --color-secondary: #0E0E0E;
+  --color-secondary-border: #1D1D29;
+  --color-primary-500: #0C0C0C;
+  --color-primary-600: #000000;
+  --color-primary-border: #E5E5E5;
+  --color-accent: #ffbb3d;
+  --color-darkerAccent: #bb8624;
+  --color-error: #FF5E4F;
+  --color-subtle: #85828B;
+
+  --text-2xs: 0.625rem;
+  --text-3xs: 0.5rem;
+
+  --blur-xs: 2px;
+}
 
 ::-webkit-scrollbar {
   display: none;
