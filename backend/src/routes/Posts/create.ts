@@ -22,6 +22,18 @@ const createPost: FastifyPluginAsync = async (fastify) => {
   fastify.post('/create', {
     onRequest: [fastify.authenticate, requirePermission('posts.create')],
   }, async (req, reply) => {
+
+    // Private accounts' posts would be hidden from everyone but themselves and admins
+    // We aren't free file hosting, so prevent them from making further posts while private
+    const uploader = await prisma.user.findUnique({ where: { id: req.user.sub }, select: { private: true } });
+    if (!uploader) return reply.status(401).send({ error: 'Unauthorized', hint: 'Account no longer exists' });
+    if (uploader.private) {
+      return reply.status(403).send({
+        error: 'Forbidden',
+        hint: 'Private accounts cannot upload. Turn off private mode in your settings to post.',
+      });
+    }
+
     const fileKey = crypto.randomUUID();
     const tempPath = path.join(tempDir, fileKey);
     const ignoreLimit = rolePermissionCheck(req.user.roleId, 'limit.upload.ignore');

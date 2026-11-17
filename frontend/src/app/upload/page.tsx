@@ -209,6 +209,19 @@ export default function UploadPage() {
     )
   }
 
+  // The API refuses uploads from private accounts (their posts would be hidden from everyone)
+  if (user.private) {
+    return (
+      <main className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+        <h1 className="text-3xl font-bold mb-2 text-yellow-400">Your account is private</h1>
+        <p className="text-base text-subtle max-w-md">
+          Private accounts can't upload new posts, since nobody else would be able to see them.
+          Turn off private mode in your <a className="text-accent hover:underline" href={`/account`}>account settings</a> to start posting.
+        </p>
+      </main>
+    )
+  }
+
   return (
     <div className="mx-auto space-y-4 p-4 md:p-8">
       {/* Drop zone: big when empty, compact once files are added */}
