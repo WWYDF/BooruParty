@@ -251,7 +251,8 @@ export default function PostMetadata({
           </div>
 
           {/* Post + file info */}
-          <Section title="Details">
+          <div>
+            <h3 className="text-zinc-200 font-medium text-sm mb-2">Details</h3>
             <dl className="divide-y divide-secondary-border overflow-hidden rounded-xl border border-secondary-border bg-zinc-900/40">
               <InfoRow label="Safety">
                 <span className={`font-semibold ${SAFETY_TEXT[post.safety]}`}>{SAFETY_STYLES[post.safety].label}</span>
@@ -274,11 +275,12 @@ export default function PostMetadata({
               )}
               <InfoRow label="Uploaded">{new Date(post.createdAt).toLocaleDateString()}</InfoRow>
             </dl>
-          </Section>
+          </div>
 
           {/* Sources */}
           {sources.length > 0 && (
-            <Section title={`Sources (${sources.length})`}>
+            <div>
+              <h3 className="text-zinc-200 font-medium text-sm mb-2">Sources</h3>
               <div className="divide-y divide-secondary-border overflow-hidden rounded-xl border border-secondary-border bg-zinc-900/40">
                 {sources.map((src) => (
                   <Link
@@ -294,7 +296,7 @@ export default function PostMetadata({
                   </Link>
                 ))}
               </div>
-            </Section>
+            </div>
           )}
 
           {/* Quick actions */}
@@ -381,11 +383,12 @@ export default function PostMetadata({
 
           {/* Notes */}
           {post.notes && (
-            <Section title="Notes">
-              <div className="whitespace-pre-wrap rounded-xl border border-secondary-border bg-zinc-900/40 px-3 py-2 text-sm text-zinc-300">
+            <div>
+              <h3 className="text-zinc-200 font-medium text-sm mb-2">Notes</h3>
+              <div className="whitespace-pre-wrap rounded-xl border border-secondary-border bg-zinc-900/40 px-3 py-2 text-sm text-zinc-400">
                 {post.notes}
               </div>
-            </Section>
+            </div>
           )}
 
           {/* Tags */}
@@ -449,7 +452,7 @@ export default function PostMetadata({
   );
 }
 
-// Small uppercase heading over a block
+// Small uppercase heading over a block (to be removed)
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
