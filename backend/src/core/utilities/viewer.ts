@@ -53,3 +53,10 @@ export function effectiveSafety(viewer: Viewer, requested?: Safety[]): Safety[] 
     ? requested.filter((s) => viewer.safety.includes(s))
     : requested;
 }
+
+// Same rules GET /:id uses: guests are capped by guestSafety; private uploaders are only visible to themselves + admins
+export function isHiddenFrom(viewer: Viewer, post: { safety: Safety, uploader: { id: string, private: boolean } }): boolean {
+  const hiddenBySafety = viewer.safetyIsCap && !viewer.safety.includes(post.safety);
+  const hiddenByPrivacy = post.uploader.private && !viewer.canSeePrivate && post.uploader.id !== viewer.userId;
+  return hiddenBySafety || hiddenByPrivacy;
+}

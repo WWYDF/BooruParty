@@ -5,16 +5,8 @@ import { prisma } from "@/core/plugins/prisma";
 import { formatPostDetail, formatPostSummary } from "@/core/utilities/reformatters";
 import { parseSearch } from "@/core/utilities/search";
 import { getServerSettings } from "@/core/utilities/settingsCache";
-import { getViewer, Viewer } from "@/core/utilities/viewer";
+import { getViewer, isHiddenFrom, Viewer } from "@/core/utilities/viewer";
 import { FastifyPluginAsync } from "fastify";
-import { Safety } from "../../../prisma/client";
-
-// Same rules GET /:id uses: guests are capped by guestSafety; private uploaders are only visible to themselves + admins
-function isHiddenFrom(viewer: Viewer, post: { safety: Safety, uploader: { id: string, private: boolean } }): boolean {
-  const hiddenBySafety = viewer.safetyIsCap && !viewer.safety.includes(post.safety);
-  const hiddenByPrivacy = post.uploader.private && !viewer.canSeePrivate && post.uploader.id !== viewer.userId;
-  return hiddenBySafety || hiddenByPrivacy;
-}
 
 
 const viewPosts: FastifyPluginAsync = async (fastify) => {
