@@ -1,22 +1,34 @@
-export type Comments = {
+import { Posts } from './posts';
+import { UserSimpleSummary } from './users';
+
+// Parsed by the server from `content`. Only these are embeds; any other link is plain text.
+export type CommentEmbeds = {
+  postIds: number[]; // ":123:" tokens, unique, in order of appearance
+  media: string[];   // https URLs on the server's media allowlist (GIFs etc.)
+};
+
+// One comment, as returned by GET/POST/PATCH
+export type PostComment = {
   id: number;
-  postId: number;
   content: string;
+  editedAt: string | null; // null = never edited
   createdAt: string;
-  author: {
-    id: string;
-    username: string;
-    role: {
-      name: string;
-    };
-    avatar: string
-  },
-  isEmbed: boolean;
-  score: number;
-  userVote: number;
-  post: {
-    previewPath: string;
-  },
-  canEdit: boolean;
-  canDelete: boolean;
+  author: UserSimpleSummary;
+  embeds: CommentEmbeds;
+};
+
+// Embedded posts this viewer may see, keyed by id. A missing id = deleted or hidden (render "unavailable").
+export type EmbeddedPosts = Record<number, Posts>;
+
+// GET /api/posts/:id/comments (newest first)
+export type CommentPage = {
+  comments: PostComment[];
+  nextCursor: number | null;
+  embeddedPosts: EmbeddedPosts;
+};
+
+// POST /api/posts/:id/comments and PATCH /api/comments/:commentId
+export type CommentWriteResponse = {
+  comment: PostComment;
+  embeddedPosts: EmbeddedPosts;
 };

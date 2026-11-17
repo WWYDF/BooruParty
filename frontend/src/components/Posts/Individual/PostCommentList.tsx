@@ -1,591 +1,271 @@
 "use client";
 
-import { RoleBadge } from "@/components/clientSide/RoleBadge";
-import { ALLOWED_EMBED_SOURCES } from "@/core/dictionary";
-import { Comments } from "@/core/types/comments";
-import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowFatDown, ArrowFatUp, Trash, PencilSimple, Check, X } from "phosphor-react";
-import { JSX, useEffect, useState } from "react";
-import { useToast } from "../../Toast";
-import clsx from "clsx";
-import ConfirmModal from "../../ConfirmModal";
-import sanitizeHtml from "sanitize-html";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
+import { RoleBadge } from "@/components/RoleBadge";
+import Button from "@/components/UI/Button";
+import ConfirmModal from "@/components/UI/Modals/ConfirmModal";
+import { useToast } from "@/components/UI/Toast";
+import { useUser } from "@/components/UserProvider";
+import { API, errorText } from "@/core/api";
+import { defaultAvatar } from "@/core/constants/defaults";
+import { CommentWriteResponse, EmbeddedPosts, PostComment } from "@/core/types/comments";
+import { Safety } from "@/core/types/posts";
+import { MAX_COMMENT_LENGTH } from "./PostCommentForm";
 
-type ExtractedEmbed =
-  | { type: "url"; value: string }
-  | {
-      type: "post";
-      postId: number;
-      inline: boolean;
-      previewPath: string;
-      safety: "SAFE" | "SKETCHY" | "UNSAFE";
-      shouldBlur: boolean;
-    };
-
-type PreviewData = {
-  previewPath: string;
-  safety: "SAFE" | "SKETCHY" | "UNSAFE";
+type Props = {
+  comments: PostComment[];
+  embeddedPosts: EmbeddedPosts;
+  parentSafety: Safety;                               // embeds "spicier" than this post get blurred until hovered
+  onUpdated: (result: CommentWriteResponse) => void;  // after a successful edit
+  onDeleted: (commentId: number) => void;
 };
 
-type MentionMap = Record<string, boolean>; // username, user exists?
+const SAFETY_RANK: Record<Safety, number> = { SAFE: 0, QUESTIONABLE: 1, EXPLICIT: 2 };
 
-const SANITIZE_INLINE: sanitizeHtml.IOptions = {
-  allowedTags: ['b', 'strong', 'i', 'em', 'h1'],
-  allowedAttributes: {},
-  allowedSchemes: [],
-};
+// Tokens worth turning into something: post embeds, links, @mentions. Everything else stays plain text.
+const TOKEN = /:(\d{1,10}):|(https?:\/\/[^\s<>"']+)|(?<![\w@])@([A-Za-z0-9_]{2,32})/g;
 
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-function extractEmbeds(
-  content: string,
-  previewMap: Record<number, { previewPath: string; safety: "SAFE" | "SKETCHY" | "UNSAFE" }>,
-  blurUnsafeEmbeds: boolean,
-  parentPostSafety: "SAFE" | "SKETCHY" | "UNSAFE"
-): ExtractedEmbed[] {
-  const embeds: ExtractedEmbed[] = [];
+// The comment's text as React nodes. Embeds the server recognised are left out here (they render as cards below).
+// Plain text only: content is never treated as HTML.
+function renderText(comment: PostComment): React.ReactNode[] {
+  const { content, embeds } = comment;
+  const nodes: React.ReactNode[] = [];
+  let last = 0;
 
-  const urlRegex = /https?:\/\/[^\s]+/g;
-  const postRegex = /:(\d+):/g;
+  for (const m of content.matchAll(TOKEN)) {
+    const start = m.index ?? 0;
+    if (start > last) nodes.push(content.slice(last, start));
+    last = start + m[0].length;
 
-  const urlMatches = content.match(urlRegex) || [];
-  for (const url of urlMatches) {
-    try {
-      const hostname = new URL(url).hostname;
-      if (Object.keys(ALLOWED_EMBED_SOURCES).some((d) => hostname.endsWith(d))) {
-        embeds.push({ type: "url", value: url });
-      }
-    } catch {}
-  }
+    const [token, postId, url, mention] = m;
 
-  let match;
-  while ((match = postRegex.exec(content)) !== null) {
-    const postId = parseInt(match[1]);
-    if (!isNaN(postId)) {
-      // Check if the entire content is just ":<id>:" (no other text)
-      const isAlone = content.trim() === match[0];
-      const postData = previewMap[postId];
-      const previewPath = postData?.previewPath ?? `${process.env.NEXT_PUBLIC_FASTIFY}/data/thumbnails/${postId}_small.webp`;
-      const safety = postData?.safety ?? "SAFE";
-      embeds.push({
-        type: "post",
-        postId,
-        inline: !isAlone,
-        previewPath,
-        safety,
-        shouldBlur:
-          blurUnsafeEmbeds &&
-          parentPostSafety === "SAFE" &&
-          safety === "UNSAFE",
-      });
-    }
-  }
+    if (postId !== undefined && embeds.postIds.includes(Number(postId))) continue; // shown as a card
+    if (url !== undefined && embeds.media.includes(url)) continue;                // shown as an image
 
-  return embeds;
-}
-
-function renderEmbeds(embeds: ExtractedEmbed[]): JSX.Element[] {
-  return embeds.map((embed, index) => {
-    if (embed.type === "url") {
-      try {
-        const parsed = new URL(embed.value);
-        const type = Object.entries(ALLOWED_EMBED_SOURCES).find(([domain]) =>
-          parsed.hostname.endsWith(domain)
-        )?.[1];
-
-        if (!type) return null;
-
-        if (type === "image") {
-          return (
-            <div key={index} className="mt-2">
-              <img
-                src={embed.value}
-                alt="Embedded media"
-                className="rounded-lg max-w-1/2 max-h-64 object-contain"
-              />
-            </div>
-          );
-        }
-
-        if (type === "iframe") {
-          return (
-            <div key={index} className="mt-2">
-              <iframe
-                src={embed.value}
-                className="w-full max-w-1/2 h-64 rounded"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-              />
-            </div>
-          );
-        }
-      } catch {
-        return null;
-      }
-    }
-
-    if (embed.type === "post") {
-      return (
-        <div key={index} className="mt-2">
-          <a href={`/post/${embed.postId}`} className="block max-w-xs rounded-lg overflow-hidden border border-secondary-border hover:border-darkerAccent transition">
-            <img
-              src={embed.previewPath}
-              alt={`Post #${embed.postId}`}
-              title={`Post #${embed.postId} from ${embed.previewPath}`}
-              className={clsx(
-                "w-full object-cover rounded-lg transition duration-300",
-                embed.shouldBlur && "blur-md hover:blur-none"
-              )}
-            />
-          </a>
-        </div>
+    if (url !== undefined) {
+      nodes.push(
+        <a key={start} href={url} target="_blank" rel="noopener noreferrer nofollow" className="text-accent hover:underline break-all">
+          {url}
+        </a>,
       );
-    }
-
-    return null;
-  }).filter(Boolean) as JSX.Element[];
-}
-
-export default function PostCommentList({
-  comments,
-  loading,
-  error,
-  blurUnsafeEmbeds,
-  parentPostSafety,
-  canVoteOnComments
-}: {
-  comments: Comments[];
-  loading: boolean;
-  error: string | null;
-  blurUnsafeEmbeds: boolean;
-  parentPostSafety: "SAFE" | "SKETCHY" | "UNSAFE";
-  canVoteOnComments: boolean;
-}) {
-  if (loading) return null;
-  if (error) return <p className="text-red-500 text-sm">Error: {error}</p>;
-  if (!comments.length) return <p className="text-subtle text-sm italic">No comments yet.</p>;
-
-  const referencedPostIds = Array.from(
-    new Set(
-      comments.flatMap(comment =>
-        Array.from(comment.content.matchAll(/:(\d+):/g)).map(([, id]) => parseInt(id))
-      )
-    )
-  ).filter(Boolean);  
-
-  const router = useRouter();
-  const toast = useToast();
-  const [previewMap, setPreviewMap] = useState<Record<number, PreviewData>>({});
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editContent, setEditContent] = useState<string>("");
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
-  const [mentionExists, setMentionExists] = useState<MentionMap>({});
-
-  useEffect(() => {
-    // Collect unique mentions
-    const uniques = Array.from(
-      new Set(
-        comments.flatMap(c =>
-          Array.from(
-            c.content.matchAll(/(?<=^|\s|[^\w])@([A-Za-z0-9_]{2,32})(?=$|\s|[^\w])/g)
-          ).map(m => m[1])
-        )
-      )
-    );
-    if (uniques.length === 0) return;
-  
-    const ac = new AbortController();
-  
-    (async () => {
-      try {
-        const results = await Promise.allSettled(
-          uniques.map(async (name) => {
-            const key = name.toLowerCase();
-            // skip if we already know
-            if (mentionExists[key] !== undefined) return [key, mentionExists[key]] as const;
-  
-            const res = await fetch(`/api/users/${encodeURIComponent(name)}`, { signal: ac.signal });
-            return [key, res.ok] as const; // 2xx = exists
-          })
-        );
-  
-        const map: Record<string, boolean> = {};
-        for (const r of results) {
-          if (r.status === "fulfilled") {
-            const [k, ok] = r.value;
-            if (typeof k === "string") map[k] = !!ok;
-          }
-        }
-        setMentionExists(prev => ({ ...prev, ...map }));
-      } catch {
-       // ignore
-      }
-    })();
-  
-    return () => ac.abort();
-  }, [comments]);
-
-  useEffect(() => {
-    if (referencedPostIds.length === 0) return;
-  
-    const loadPreviews = async () => {
-      const res = await fetch(`/api/posts/previews?ids=${referencedPostIds.join(",")}`);
-      const data = await res.json();
-      setPreviewMap(
-        Object.fromEntries(
-          data.map((post: PreviewData & { id: number }) => [
-            post.id,
-            { previewPath: post.previewPath, safety: post.safety },
-          ])
-        )
+    } else if (mention !== undefined) {
+      nodes.push(
+        <Link key={start} href={`/users/${encodeURIComponent(mention)}`} className="text-accent hover:underline">
+          @{mention}
+        </Link>,
       );
-    };
-  
-    loadPreviews();
-  }, [comments]);
-
-  const handleVote = async (commentId: number, vote: 1 | 0 | -1) => {
-    const current = comments.find(c => c.id === commentId); // Find comment interacted with
-    if (!current) return;
-
-    const newVote = current.userVote === vote ? 0 : vote;;
-
-    const res = await fetch(`/api/comments/${commentId}/vote`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ vote: newVote }),
-    });
-    
-    if (!res.ok) {
-      const data = await res.json();
-      if (data?.error?.toLowerCase().includes("unauthorized")) {
-        toast("You must be logged in to vote.", "error");
-      } else {
-        toast("Failed to vote.", "error");
-      }
-      return;
-    }
-  
-    router.refresh();
-  };
-
-  const handleSaveEdit = async (commentId: number) => {
-    if (!editContent.trim()) {
-      toast("Comment cannot be empty", "error");
-      return;
-    }
-  
-    const res = await fetch(`/api/comments/${commentId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ content: editContent }),
-    });
-  
-    if (!res.ok) {
-      toast("Failed to update comment", "error");
     } else {
-      toast("Comment updated!", "success");
-      setEditingId(null);
-      router.refresh();
+      nodes.push(token); // e.g. ":0:", or a post id the server didn't treat as an embed
     }
-  };  
-  
-  const handleDelete = (commentId: number) => {
-    setCommentToDelete(commentId);
-    setShowConfirm(true);
+  }
+  if (last < content.length) nodes.push(content.slice(last));
+
+  // Removing embeds can leave blank edges ("look :5:" -> "look "); trim the ends
+  if (typeof nodes[0] === "string") nodes[0] = nodes[0].trimStart();
+  const end = nodes.length - 1;
+  if (typeof nodes[end] === "string") nodes[end] = (nodes[end] as string).trimEnd();
+  return nodes;
+}
+
+export default function PostCommentList({ comments, embeddedPosts, parentSafety, onUpdated, onDeleted }: Props) {
+  const { user } = useUser();
+  const toast = useToast();
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const hasPerm = (perm: string) => user?.permissions.includes(perm) ?? false;
+  // Same rule as the API: "others" covers your own too
+  const can = (action: "edit" | "delete", comment: PostComment) =>
+    hasPerm(`comment.${action}.others`) || (user?.id === comment.author.id && hasPerm(`comment.${action}.own`));
+
+  const startEdit = (comment: PostComment) => {
+    setEditingId(comment.id);
+    setEditContent(comment.content);
   };
 
-  function renderTextWithMentions(text: string) {
-    const parts: React.ReactNode[] = [];
-    const regex = /(?<=^|\s|[^\w])@([A-Za-z0-9_]{2,32})(?=$|\s|[^\w])/g;
-    let lastIndex = 0;
-    let m: RegExpExecArray | null;
-  
-    while ((m = regex.exec(text)) !== null) {
-      const start = m.index;
-      const end = start + m[0].length;
-      const before = text.slice(lastIndex, start);
-  
-      if (before) {
-        parts.push(
-          <span
-            key={`t-${lastIndex}`}
-            className="break-words"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(before, SANITIZE_INLINE) }}
-          />
-        );
-      }
-  
-      const username = m[1];
-      const exists = mentionExists[username.toLowerCase()] === true;
-  
-      if (exists) {
-        parts.push(
-          <Link
-            key={`m-${start}`}
-            href={`/users/${encodeURIComponent(username)}`}
-            className="text-accent hover:underline"
-          >
-            @{username}
-          </Link>
-        );
-      } else {
-        // Not a valid user, render as plain text
-        parts.push(
-          <span
-            key={`p-${start}`}
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(m[0], SANITIZE_INLINE) }}
-          />
-        );
-      }
-  
-      lastIndex = end;
+  const saveEdit = async (commentId: number) => {
+    if (!editContent.trim()) {
+      toast("A comment can't be empty. Delete it instead.", "error");
+      return;
     }
-  
-    // Tail piece
-    if (lastIndex < text.length) {
-      const tail = text.slice(lastIndex);
-      parts.push(
-        <span
-          key={`t-${lastIndex}-end`}
-          className="break-words"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(tail, SANITIZE_INLINE) }}
-        />
-      );
+    setSaving(true);
+    try {
+      const res = await API(`/api/comments/${commentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(errorText(data), "error");
+        return;
+      }
+      setEditingId(null);
+      onUpdated(data as CommentWriteResponse);
+    } catch {
+      toast("The server could not be reached", "error");
+    } finally {
+      setSaving(false);
     }
-  
-    return parts;
-  }
-    
+  };
+
+  const confirmDelete = async () => {
+    const id = deleteId;
+    setDeleteId(null);
+    if (id === null) return;
+    try {
+      const res = await API(`/api/comments/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        toast(errorText(await res.json().catch(() => ({}))), "error");
+        return;
+      }
+      onDeleted(id);
+      toast("Comment deleted", "success");
+    } catch {
+      toast("The server could not be reached", "error");
+    }
+  };
+
+  if (!comments.length) return <p className="text-sm text-subtle">No comments yet.</p>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <AnimatePresence initial={false}>
-        {comments.map((comment) => (
-          <motion.div
-            key={comment.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="flex gap-4 bg-secondary p-4 rounded-2xl"
-          >
-            {/* Avatar */}
-            <div className="flex gap-4 w-full">
-              <div className="flex-shrink-0">
-                {comment.author.avatar ? (
-                  <img
-                    src={comment.author.avatar}
-                    alt={comment.author.username}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-secondary-border flex items-center justify-center text-subtle text-xs">
-                    ?
-                  </div>
-                )}
-              </div>
+        {comments.map((comment) => {
+          const editing = editingId === comment.id;
+          const text = renderText(comment);
+          const hasText = text.some((n) => typeof n !== "string" || n.trim() !== "");
 
-              {/* Content */}
-              <div className="flex-1">
-                <div className="text-muted text-sm mb-1 text-zinc-400 overflow-hidden break-words">
-                  <Link
-                    href={`/users/${encodeURIComponent(comment.author.username)}`}
-                    className="text-accent hover:underline"
-                  >
-                    <span>{comment.author.username}</span>
+          return (
+            <motion.div
+              key={comment.id}
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="flex gap-3 rounded-2xl bg-secondary p-4"
+            >
+              <img src={defaultAvatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+
+              <div className="min-w-0 flex-1">
+                {/* Header */}
+                <div className="mb-1 flex flex-wrap items-center gap-x-2 text-sm">
+                  <Link href={`/users/${encodeURIComponent(comment.author.username)}`} className="text-accent hover:underline">
+                    {comment.author.username}
                   </Link>
                   <RoleBadge role={comment.author.role} />
-
-                  <a className="ml-1 text-xs text-zinc-500">
-                    {new Date(comment.createdAt).toLocaleString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </a>
+                  <span className="text-xs text-zinc-500">{formatDate(comment.createdAt)}</span>
+                  {comment.editedAt && (
+                    <span className="text-xs text-zinc-600" title={`Edited ${formatDate(comment.editedAt)}`}>(edited)</span>
+                  )}
                 </div>
-                <div className="text-base text-zinc-400 whitespace-pre-wrap break-words hyphens-auto">
-                  {(() => {
-                    const embeds = comment.isEmbed
-                    ? extractEmbeds(comment.content, previewMap, blurUnsafeEmbeds, parentPostSafety)
-                    : [];
 
-                    const visibleContent = embeds.reduce((text, embed) => {
-                      if (embed.type === "url") {
-                        return text.replace(embed.value, "").trim();
-                      } else if (embed.type === "post" && !embed.inline) {
-                        return text.replace(`:${embed.postId}:`, "").trim();
-                      }
-                      return text;
-                    }, comment.content);
-
-                    return editingId === comment.id ? (
-                      <div className="space-y-2 mt-1">
-                        <textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-sm text-white resize-none  focus:outline-none focus:ring-1 focus:ring-zinc-700"
-                          rows={4}
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleSaveEdit(comment.id)}
-                            className="text-green-400 hover:underline inline-flex items-center gap-1 text-xs"
-                          >
-                            <Check size={14} weight="bold" />
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="text-zinc-400 hover:underline inline-flex items-center gap-1 text-xs"
-                          >
-                            <X size={14} weight="bold" />
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                    <>
-                      <div className="text-base text-zinc-400 whitespace-pre-wrap break-words">
-                        {visibleContent.split(/(:\d+:)/g).map((chunk, idx) => {
-                          const match = chunk.match(/^:(\d+):$/);
-                          if (match) {
-                            const id = parseInt(match[1]);
-                            const isInline = embeds.some(
-                              (e) => e.type === "post" && e.postId === id && e.inline
-                            );
-                            if (isInline) {
-                              return;
-                            }
-                          }
-                          return <span key={idx} className="break-words">{renderTextWithMentions(chunk)}</span>;
-                        })}
-                        {comment.isEmbed && renderEmbeds(embeds)}
-                      </div>
-                    </>
-                  );
-                  })()}
-                </div>
-                <div className="flex gap-2 text-2xs mt-1 text-zinc-600 overflow-hidden break-words">
-                  {comment.canEdit && (
-                    <button
-                      onClick={() => {
-                        setEditingId(comment.id);
-                        setEditContent(comment.content);
+                {editing ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveEdit(comment.id); }
+                        if (e.key === "Escape") setEditingId(null);
                       }}
-                      className="hover:underline inline-flex items-center gap-1"
-                    >
-                      Edit
-                    </button>
-                  )}
-                  {comment.canDelete && (
-                    <button
-                      onClick={() => handleDelete(comment.id)}
-                      className="hover:underline inline-flex items-center gap-1"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Voting Column */}
-              <div className="flex flex-col items-center pr-1 pt-1">
-                {canVoteOnComments ? (
-                  <>
-                    <button onClick={() => handleVote(comment.id, 1)}>
-                      <ArrowFatUp
-                        size={16}
-                        weight={comment.userVote === 1 ? "fill" : "bold"}
-                        className={clsx(
-                          "transition lg:hover:text-white",
-                          comment.userVote === 1 ? "text-accent" : "text-subtle"
-                        )}
-                      />
-                    </button>
-
-                    <div className="h-full flex items-center justify-center">
-                      <span
-                        className={clsx(
-                          "text-xs font-medium",
-                          comment.score > 0
-                            ? "text-accent"
-                            : comment.score < 0
-                            ? "text-red-500"
-                            : "text-subtle"
-                        )}
-                        title={`This comment has ${comment.score} vote(s).`}
-                      >
-                        {comment.score}
-                      </span>
+                      rows={4}
+                      maxLength={MAX_COMMENT_LENGTH}
+                      autoFocus
+                      className="w-full resize-y rounded-lg border border-secondary-border bg-zinc-900 p-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="success" loading={saving} onClick={() => saveEdit(comment.id)}>Save</Button>
+                      <Button size="sm" disabled={saving} onClick={() => setEditingId(null)}>Cancel</Button>
                     </div>
-
-                    <button onClick={() => handleVote(comment.id, -1)}>
-                      <ArrowFatDown
-                        size={16}
-                        weight={comment.userVote === -1 ? "fill" : "bold"}
-                        className={clsx(
-                          "transition lg:hover:text-white",
-                          comment.userVote === -1 ? "text-red-500" : "text-subtle"
-                        )}
-                      />
-                    </button>
-                  </>
+                  </div>
                 ) : (
-                  <div className="h-full flex items-center justify-center">
-                    <span
-                      className={clsx(
-                        "text-xs font-medium px-2 py-0.5 rounded bg-zinc-900",
-                        comment.score > 0
-                          ? "text-green-400"
-                          : comment.score < 0
-                          ? "text-red-400"
-                          : "text-subtle"
-                      )}
-                      title={`This comment has ${comment.score} vote(s).`}
-                    >
-                      {comment.score}
-                    </span>
+                  <>
+                    {hasText && (
+                      <p className="whitespace-pre-wrap break-words text-sm text-zinc-300">{text}</p>
+                    )}
+
+                    {/* GIFs / images from allowed hosts */}
+                    {comment.embeds.media.map((url) => (
+                      <img
+                        key={url}
+                        src={url}
+                        alt="Embedded media"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        className="mt-2 max-h-64 max-w-full rounded-lg object-contain"
+                      />
+                    ))}
+
+                    {/* Embedded posts */}
+                    {comment.embeds.postIds.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {comment.embeds.postIds.map((id) => {
+                          const embedded = embeddedPosts[id];
+                          if (!embedded) {
+                            // Deleted or hidden from this viewer; deliberately the same message for both
+                            return (
+                              <div key={id} className="flex h-24 w-24 items-center justify-center rounded-lg border border-dashed border-secondary-border text-center text-xs text-zinc-500">
+                                Post unavailable
+                              </div>
+                            );
+                          }
+                          const blur = SAFETY_RANK[embedded.safety] > SAFETY_RANK[parentSafety];
+                          return (
+                            <Link
+                              key={id}
+                              href={`/post/${id}`}
+                              title={`Post #${id}`}
+                              className="group block h-32 w-32 overflow-hidden rounded-lg border border-secondary-border transition hover:border-darkerAccent"
+                            >
+                              <img
+                                src={embedded.thumbnails.med}
+                                alt={`Post #${id}`}
+                                loading="lazy"
+                                className={`h-full w-full object-cover transition duration-300 ${blur ? "blur-md group-hover:blur-none" : ""}`}
+                              />
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Actions */}
+                {!editing && (can("edit", comment) || can("delete", comment)) && (
+                  <div className="mt-2 flex gap-3 text-xs text-zinc-500">
+                    {can("edit", comment) && (
+                      <button onClick={() => startEdit(comment)} className="inline-flex items-center gap-1 hover:text-white">
+                        <PencilSimpleIcon size={12} /> Edit
+                      </button>
+                    )}
+                    {can("delete", comment) && (
+                      <button onClick={() => setDeleteId(comment.id)} className="inline-flex items-center gap-1 hover:text-red-400">
+                        <TrashIcon size={12} /> Delete
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </AnimatePresence>
 
       <ConfirmModal
-        open={showConfirm}
-        onClose={() => {
-          setShowConfirm(false);
-          setCommentToDelete(null);
-        }}
-        onConfirm={async () => {
-          if (!commentToDelete) return;
-
-          const res = await fetch(`/api/comments/${commentToDelete}`, {
-            method: "DELETE",
-          });
-
-          if (!res.ok) {
-            toast("Failed to delete comment", "error");
-          } else {
-            toast("Comment deleted!", "success");
-            router.refresh();
-          }
-
-          setShowConfirm(false);
-          setCommentToDelete(null);
-        }}
+        open={deleteId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmDelete}
         title="Delete Comment?"
         description="Are you sure you want to delete this comment? This cannot be undone."
         confirmText="Delete"

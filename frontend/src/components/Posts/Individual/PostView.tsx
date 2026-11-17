@@ -5,25 +5,22 @@ import PostDisplay from './PostDisplay';
 import PostMetadata from './PostMetadata';
 import PostNavigator from './PostNavigator';
 import PostCommentForm from './PostCommentForm';
+import PostCommentList from './PostCommentList';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import Button from '@/components/UI/Button';
 import { useUser } from '@/components/UserProvider';
 import { API } from '@/core/api';
 import { PostDetail } from '@/core/types/posts';
-import { UserSimpleSummary } from '@/core/types/users';
+import { CommentPage, CommentWriteResponse, EmbeddedPosts, PostComment } from '@/core/types/comments';
 
 export type CategoryInfo = { id: number; name: string; color: string; index: number };
 
-// later move to core/types/comments.ts once the comments API exists
-type PostComment = { id: number; content: string; author: UserSimpleSummary; createdAt: string };
-type CommentPage = { comments: PostComment[]; nextCursor: string | null };
-
-// later add 'GET /api/posts/:id/comments?cursor=' (same paging shape as the feed)
-async function fetchComments(postId: number, cursor?: string): Promise<CommentPage> {
-  // const params = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
-  // const res = await API(`/api/posts/${postId}/comments${params}`);
-  // if (!res.ok) throw new Error('Failed to load comments');
-  // return res.json();
-  return { comments: [], nextCursor: null };
+// GET /api/posts/:id/comments, newest first. `cursor` = the last comment id of the previous page.
+async function fetchComments(postId: number, cursor?: number | null): Promise<CommentPage> {
+  const params = cursor ? `?cursor=${cursor}` : '';
+  const res = await API(`/api/posts/${postId}/comments${params}`);
+  if (!res.ok) throw new Error('Failed to load comments');
+  return res.json();
 }
 
 type LoadError = 'notFound' | 'unauthorized' | 'forbidden' | 'network';
@@ -34,6 +31,37 @@ export default function PostView({ postId, poolId }: { postId: number; poolId?: 
   const [categories, setCategories] = useState<Map<number, CategoryInfo>>(new Map());
   const [error, setError] = useState<LoadError | null>(null);
   const [comments, setComments] = useState<PostComment[]>([]);
+  const [embeddedPosts, setEmbeddedPosts] = useState<EmbeddedPosts>({});
+  const [commentCursor, setCommentCursor] = useState<number | null>(null);
+  const [loadingComments, setLoadingComments] = useState(false);
+
+  // Next page of (older) comments
+  const loadMoreComments = async () => {
+    if (commentCursor === null || loadingComments) return;
+    setLoadingComments(true);
+    try {
+      const page = await fetchComments(postId, commentCursor);
+      setComments((prev) => [...prev, ...page.comments.filter((c) => !prev.some((p) => p.id === c.id))]);
+      setEmbeddedPosts((prev) => ({ ...prev, ...page.embeddedPosts }));
+      setCommentCursor(page.nextCursor);
+    } catch {
+      // the button stays, so they can try again
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  // New or edited comment: put it in place and remember any posts it embeds
+  const upsertComment = ({ comment, embeddedPosts: embedded }: CommentWriteResponse) => {
+    setEmbeddedPosts((prev) => ({ ...prev, ...embedded }));
+    setComments((prev) =>
+      prev.some((c) => c.id === comment.id)
+        ? prev.map((c) => (c.id === comment.id ? comment : c))
+        : [comment, ...prev], // newest first
+    );
+  };
+
+  const removeComment = (commentId: number) => setComments((prev) => prev.filter((c) => c.id !== commentId));
 
   useEffect(() => {
     let cancelled = false; // ignore results if the user navigates to another post first
@@ -66,8 +94,16 @@ export default function PostView({ postId, poolId }: { postId: number; poolId?: 
     })();
 
     // Comments load separately so they never hold up the post itself
+    setComments([]);
+    setEmbeddedPosts({});
+    setCommentCursor(null);
     fetchComments(postId)
-      .then((page) => { if (!cancelled) setComments(page.comments); })
+      .then((page) => {
+        if (cancelled) return;
+        setComments(page.comments);
+        setEmbeddedPosts(page.embeddedPosts);
+        setCommentCursor(page.nextCursor);
+      })
       .catch(() => {});
 
     return () => { cancelled = true; };
@@ -106,9 +142,21 @@ export default function PostView({ postId, poolId }: { postId: number; poolId?: 
 
         <section className="order-4 pt-4 space-y-4">
           <h2 className="text-accent text-lg">Comments</h2>
-          {canComment && <PostCommentForm postId={post.id} />}
-          {/* <PostCommentList comments={comments} ... /> */}
-          {comments.length === 0 && <p className="text-sm text-subtle">No comments yet.</p>}
+          {canComment && <PostCommentForm postId={post.id} onPosted={upsertComment} />}
+          <PostCommentList
+            comments={comments}
+            embeddedPosts={embeddedPosts}
+            parentSafety={post.safety}
+            onUpdated={upsertComment}
+            onDeleted={removeComment}
+          />
+          {commentCursor !== null && (
+            <div className="flex justify-center">
+              <Button size="sm" loading={loadingComments} onClick={loadMoreComments}>
+                Load older comments
+              </Button>
+            </div>
+          )}
         </section>
       </div>
     </main>
