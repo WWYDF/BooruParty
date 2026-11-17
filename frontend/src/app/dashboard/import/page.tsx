@@ -1,23 +1,17 @@
-import ImportSoftwares from "@/components/clientSide/Dashboard/Importer/ImportPage";
-import { checkPermissions } from "@/components/serverSide/permCheck";
-import { prisma } from "@/core/prisma";
+import ComingSoon from "@/components/Dashboard/ComingSoon";
 
-export default async function Page() {
-  const hasPerms = (await checkPermissions(['dashboard_import']))['dashboard_import'];
-
-  if (!hasPerms) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center text-center px-4 text-red-400">
-        <h1 className="text-3xl font-bold mb-2">Access Denied</h1>
-        <p className="text-base text-subtle max-w-md">You lack the proper permissions to view this page.</p>
-      </main>
-    );
-  }
-
-  const sessions = await prisma.importSession.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  });
-
-  return <ImportSoftwares previous={sessions} />;
+// TODO: importer rework (see the roadmap: posts keep v0.14 ids, tags re-created via the API, recount counts)
+export default function ImportPage() {
+  return (
+    <ComingSoon
+      title="Importer"
+      description="The importer is being rebuilt to bring a v0.14 site over with its post ids and files intact."
+      planned={[
+        "Posts keep their original ids and files (no re-encoding)",
+        "Tags, aliases and implications re-created",
+        "Post and tag counts recalculated at the end",
+        "Progress view while it runs",
+      ]}
+    />
+  );
 }

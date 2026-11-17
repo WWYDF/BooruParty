@@ -1,272 +1,305 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { Reorder, motion } from "framer-motion";
-import { useToast } from "@/components/clientSide/Toast";
-import { Trash } from "@phosphor-icons/react";
-import ConfirmModal from "@/components/clientSide/ConfirmModal";
+import { useEffect, useRef, useState } from "react";
+import { Reorder } from "framer-motion";
+import { CheckIcon, DotsSixVerticalIcon, PencilSimpleIcon, PlusIcon, StarIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
+import Button from "@/components/UI/Button";
+import ConfirmModal from "@/components/UI/Modals/ConfirmModal";
+import { useToast } from "@/components/UI/Toast";
+import { API, errorText } from "@/core/api";
+import { formatCounts } from "@/core/formats";
 
-type TagCategory = {
+// GET /api/tag-categories
+type Category = {
   id: number;
   name: string;
   color: string;
-  order: number | null;
+  index: number;
+  isDefault: boolean;
+  _count?: { tags: number };
 };
 
-export default function Page() {
-  const [categories, setCategories] = useState<TagCategory[]>([]);
-  const [form, setForm] = useState({ name: "", color: "#ffffff", order: "" });
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", color: "#ffffff", order: "" });
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [purgeChoice, setPurgeChoice] = useState("keep");
+const HEX = /^#[0-9a-f]{6}$/i;
+
+const inputClass =
+  "rounded-lg border border-secondary-border bg-zinc-900 px-3 py-2 text-sm text-zinc-200 focus:outline-hidden focus:ring-1 focus:ring-zinc-600";
+
+// Native color picker + hex text box, kept in sync
+function ColorField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="color"
+        value={HEX.test(value) ? value : "#ffffff"}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 w-9 cursor-pointer rounded-lg border border-secondary-border bg-transparent p-0.5"
+        title="Pick a color"
+      />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value.trim())}
+        maxLength={7}
+        spellCheck={false}
+        className={`${inputClass} w-24 font-mono`}
+      />
+    </div>
+  );
+}
+
+export default function CategoriesPage() {
   const toast = useToast();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [savedOrder, setSavedOrder] = useState<number[]>([]); // ids in the order the server has
+  const [loading, setLoading] = useState(true);
 
-  // Fetch categories once
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const res = await fetch('/api/tag-categories', { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data);
-      }
-    };
-    fetchCategories();
-  }, []);
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState("#3c9aff");
+  const [creating, setCreating] = useState(false);
 
-  const submit = async () => {
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState("");
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [deleting, setDeleting] = useState<Category | null>(null);
+
+  const load = async () => {
     try {
-      const res = await fetch("/api/tag-categories", {
-        method: "POST",
-        body: JSON.stringify({
-          name: form.name,
-          color: form.color,
-          order: form.order ? parseInt(form.order) : null,
-        }),
-      });
-  
-      if (res.ok) {
-        const data = await res.json();
-        setCategories([...categories, data]);
-        setForm({ name: "", color: "#ffffff", order: "" });
-        toast("Category added successfully!", 'success');
-      } else {
-        toast("Failed to add category.", 'error');
-      }
-    } catch (e) {
-      toast("Error adding category.", 'error');
+      const res = await API("/api/tag-categories");
+      if (!res.ok) throw new Error();
+      const data: Category[] = await res.json();
+      setCategories(data);
+      setSavedOrder(data.map((c) => c.id));
+    } catch {
+      toast("Could not load categories", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const startEditing = (cat: TagCategory) => {
-    setEditingId(cat.id);
-    setEditForm({
-      name: cat.name,
-      color: cat.color,
-      order: cat.order?.toString() || "",
-    });
-  };
+  useEffect(() => { load(); }, []);
 
-  const saveEdit = async (id: number) => {
+  const defaultCategory = categories.find((c) => c.isDefault);
+
+  // Shared request helper: sends JSON, toasts the API's error, returns the body on success
+  const send = async (path: string, method: string, body?: object) => {
     try {
-      const res = await fetch(`/api/tag-categories/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          name: editForm.name,
-          color: editForm.color,
-          order: editForm.order ? parseInt(editForm.order) : null,
-        }),
+      const res = await API(path, {
+        method,
+        ...(body && { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
       });
-
-      if (res.ok) {
-        const updated = await res.json();
-        const updatedList = categories.map((cat) => (cat.id === id ? updated : cat));
-        setCategories(updatedList);
-        setEditingId(null);
-      } else {
-        toast("Failed to edit category.", 'error');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(errorText(data), "error");
+        return null;
       }
-    } catch (e) {
-      toast("Failed to edit category.", 'error');
+      return data;
+    } catch {
+      toast("The server could not be reached", "error");
+      return null;
     }
   };
 
+  const create = async () => {
+    if (!newName.trim()) return toast("The category needs a name.", "error");
+    if (!HEX.test(newColor)) return toast("Color must look like #3c9aff.", "error");
+    setCreating(true);
+    const created = await send("/api/tag-categories", "POST", { name: newName.trim(), color: newColor });
+    setCreating(false);
+    if (!created) return;
+    setNewName("");
+    toast(`Created "${created.name}"`, "success");
+    load();
+  };
+
+  const startEdit = (c: Category) => {
+    setEditingId(c.id);
+    setEditName(c.name);
+    setEditColor(c.color);
+  };
+
+  const saveEdit = async (c: Category) => {
+    if (!editName.trim()) return toast("The category needs a name.", "error");
+    if (!HEX.test(editColor)) return toast("Color must look like #3c9aff.", "error");
+
+    const body: Record<string, string> = {};
+    if (editName.trim() !== c.name) body.name = editName.trim();
+    if (editColor.toLowerCase() !== c.color.toLowerCase()) body.color = editColor;
+    if (!Object.keys(body).length) return setEditingId(null);
+
+    setBusyId(c.id);
+    const updated = await send(`/api/tag-categories/${c.id}`, "PATCH", body);
+    setBusyId(null);
+    if (!updated) return;
+    setCategories((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...updated } : x)));
+    setEditingId(null);
+  };
+
+  const makeDefault = async (c: Category) => {
+    setBusyId(c.id);
+    const ok = await send(`/api/tag-categories/${c.id}`, "PATCH", { isDefault: true });
+    setBusyId(null);
+    if (!ok) return;
+    toast(`"${c.name}" is now the default category`, "success");
+    // Only one default at a time: the server flipped the old one, so take its word for everything
+    setCategories((prev) => prev.map((x) => ({ ...x, isDefault: x.id === c.id })));
+  };
+
+  // The latest order, for the drop handler (it can fire before React re-renders with the final position)
+  const categoriesRef = useRef(categories);
+  categoriesRef.current = categories;
+
+  // Runs when a row is dropped. Only rows whose position changed get a PATCH.
   const saveOrder = async () => {
-    try {
-      const res = await fetch("/api/tag-categories", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orders: categories.map((cat, idx) => ({
-            id: cat.id,
-            order: idx,
-          })),
-        }),
-      });
-  
-      if (res.ok) {
-        toast("Order saved successfully!", "success");
-      } else {
-        toast("Failed to save order.", "error");
-      }
-    } catch (error) {
-      toast("Error saving order.", "error");
+    const current = categoriesRef.current;
+    const changed = current.map((c, i) => ({ c, i })).filter(({ c, i }) => c.index !== i);
+    if (!changed.length) return; // dropped where it started
+
+    setSavingOrder(true);
+    const results = await Promise.all(changed.map(({ c, i }) => send(`/api/tag-categories/${c.id}`, "PATCH", { index: i })));
+    setSavingOrder(false);
+
+    if (results.every(Boolean)) {
+      // Saved: remember the new indexes locally instead of refetching (no flicker)
+      setCategories((prev) => prev.map((c) => ({ ...c, index: current.findIndex((x) => x.id === c.id) })));
+      setSavedOrder(current.map((c) => c.id));
+    } else {
+      load(); // something failed (and was toasted): snap back to what the server really has
     }
+  };
+
+  const confirmDelete = async () => {
+    const c = deleting;
+    setDeleting(null);
+    if (!c) return;
+    const result = await send(`/api/tag-categories/${c.id}`, "DELETE");
+    if (!result) return;
+    toast(`Deleted "${c.name}" (${formatCounts(result.movedTags)} tags moved to ${defaultCategory?.name ?? "the default"})`, "success");
+    load();
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
-      {/* Create New Category */}
-      <div className="bg-zinc-900 p-4 rounded-xl space-y-4">
-        <h2 className="text-lg font-semibold text-subtle">Create New Category</h2>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="mx-auto max-w-3xl space-y-6">
+      {/* Create */}
+      <section className="rounded-xl border border-secondary-border bg-zinc-900/40 p-5">
+        <h2 className="mb-3 text-sm font-medium text-zinc-200">New category</h2>
+        {/* items-stretch: the Add button grows to the text box's height */}
+        <form className="flex flex-wrap items-stretch gap-2" onSubmit={(e) => { e.preventDefault(); create(); }}>
           <input
             type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
             placeholder="Name"
-            className="bg-secondary p-2 rounded border border-secondary-border focus:outline-none focus:ring-2 focus:ring-darkerAccent"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            maxLength={32}
+            className={`${inputClass} min-w-0 flex-1`}
           />
-          <input
-            type="color"
-            className="w-10 h-10 rounded bg-transparent"
-            value={form.color}
-            onChange={(e) => setForm({ ...form, color: e.target.value })}
-          />
-          <input
-            type="number"
-            placeholder="Order (optional)"
-            className="bg-secondary p-2 rounded border border-secondary-border focus:outline-none focus:ring-2 focus:ring-darkerAccent"
-            value={form.order}
-            onChange={(e) => setForm({ ...form, order: e.target.value })}
-          />
-          <button onClick={submit} className="bg-darkerAccent text-white p-2 rounded">
-            Add
-          </button>
-        </div>
-      </div>
+          <ColorField value={newColor} onChange={setNewColor} />
+          <Button type="submit" variant="success" icon={<PlusIcon size={18} weight="bold" />} loading={creating} />
+        </form>
+      </section>
 
-      {/* Existing Categories */}
-      <div className="bg-zinc-900 p-4 rounded-xl space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-subtle">Existing Categories</h2>
-          <button
-            onClick={saveOrder}
-            className="bg-darkerAccent text-white px-3 py-1 rounded text-sm"
-          >
-            Save Order
-          </button>
+      {/* List */}
+      <section className="rounded-xl border border-secondary-border bg-zinc-900/40 p-5">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-medium text-zinc-200">Categories</h2>
+            <p className="text-xs text-subtle">Drag to reorder (saves when you drop): tags are grouped in this order on posts. New tags go in the default category.</p>
+          </div>
         </div>
 
-        <Reorder.Group
-          axis="y"
-          values={categories}
-          onReorder={setCategories}
-          className="space-y-3"
-        >
-          {categories.map((cat) => (
-            <Reorder.Item
-              key={cat.id}
-              value={cat}
-              className="cursor-grab active:cursor-grabbing"
-            >
-              <motion.div
-                layout
-                className="bg-secondary p-4 rounded-2xl shadow flex justify-between items-center"
-              >
-                {editingId === cat.id ? (
-                  <div className="flex justify-between items-center w-full gap-2">
-                  {/* Left side: Inputs */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <input
-                      className="bg-secondary-border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-darkerAccent"
-                      value={editForm.name}
-                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      maxLength={64}
-                    />
-                    <input
-                      type="color"
-                      className="w-10 h-10 rounded-lg bg-transparent"
-                      value={editForm.color}
-                      onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Order"
-                      className="bg-secondary-border p-2 rounded-lg w-20 focus:outline-none focus:ring-2 focus:ring-darkerAccent"
-                      value={editForm.order}
-                      onChange={(e) => setEditForm({ ...editForm, order: e.target.value })}
-                    />
-                  </div>
-                
-                  {/* Right side: Save + Delete buttons */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg transition-colors"
-                      onClick={() => saveEdit(cat.id)}
+        {loading ? (
+          <p className="py-6 text-center text-sm text-zinc-600">Loading...</p>
+        ) : (
+          <Reorder.Group axis="y" values={categories} onReorder={setCategories} className="space-y-2">
+            {categories.map((c) => {
+              const editing = editingId === c.id;
+              return (
+                <Reorder.Item
+                  key={c.id}
+                  value={c}
+                  dragListener={!editing}
+                  onDragEnd={saveOrder}
+                  className="flex items-center gap-3 rounded-xl border border-secondary-border bg-secondary px-3 py-2.5"
+                >
+                  <DotsSixVerticalIcon size={18} className={`shrink-0 text-zinc-600 ${editing ? "" : "cursor-grab active:cursor-grabbing"}`} />
+
+                  {editing ? (
+                    <form
+                      className="flex flex-1 flex-wrap items-center gap-2"
+                      onSubmit={(e) => { e.preventDefault(); saveEdit(c); }}
                     >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedCategoryId(cat.id);
-                        setShowConfirm(true);
-                      }}
-                      className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg flex items-center justify-center transition-colors"
-                    >
-                      <Trash size={20} />
-                    </button>
-                  </div>
-                </div>                
-                ) : (
-                  <div
-                    className="flex items-center gap-3 cursor-pointer"
-                    onClick={() => startEditing(cat)}
-                  >
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: cat.color }}
-                    />
-                    <span>{cat.name}</span>
-                  </div>
-                )}
-              </motion.div>
-            </Reorder.Item>
-          ))}
-        </Reorder.Group>
-      </div>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        maxLength={32}
+                        autoFocus
+                        className={`${inputClass} min-w-0 flex-1`}
+                      />
+                      <ColorField value={editColor} onChange={setEditColor} />
+                      <Button type="submit" size="sm" variant="success" icon={<CheckIcon size={14} />} loading={busyId === c.id}>Save</Button>
+                      <Button size="sm" icon={<XIcon size={14} />} onClick={() => setEditingId(null)}>Cancel</Button>
+                    </form>
+                  ) : (
+                    <>
+                      <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
+                      <span className="min-w-0 flex-1 truncate text-sm" style={{ color: c.color }}>{c.name}</span>
+
+                      {c.isDefault && (
+                        <span className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent">Default</span>
+                      )}
+                      {c._count && (
+                        <span className="w-16 text-right text-xs text-zinc-500 tabular-nums">{formatCounts(c._count.tags)} tags</span>
+                      )}
+
+                      <div className="flex items-center gap-1">
+                        {!c.isDefault && (
+                          <button
+                            type="button"
+                            onClick={() => makeDefault(c)}
+                            disabled={busyId === c.id}
+                            title="Make default"
+                            className="cursor-pointer rounded-lg p-1.5 text-subtle transition-colors hover:bg-zinc-800 hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <StarIcon size={16} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => startEdit(c)}
+                          title="Edit"
+                          className="cursor-pointer rounded-lg p-1.5 text-subtle transition-colors hover:bg-zinc-800 hover:text-white"
+                        >
+                          <PencilSimpleIcon size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleting(c)}
+                          disabled={c.isDefault}
+                          title={c.isDefault ? "The default category can't be deleted" : "Delete"}
+                          className="cursor-pointer rounded-lg p-1.5 text-subtle transition-colors hover:bg-zinc-800 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-30"
+                        >
+                          <TrashIcon size={16} />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </Reorder.Item>
+              );
+            })}
+          </Reorder.Group>
+        )}
+      </section>
+
       <ConfirmModal
-        open={showConfirm}
-        onClose={() => {
-          setShowConfirm(false);
-          setSelectedCategoryId(null);
-          setPurgeChoice("keep");
-        }}
-        onConfirm={async () => {
-          if (!selectedCategoryId) return;
-          const res = await fetch(`/api/tag-categories/${selectedCategoryId}?purgeTags=${purgeChoice === "purge"}`,
-            { method: "DELETE" }
-          );
-          if (res.ok) {
-            setCategories(categories.filter((cat) => cat.id !== selectedCategoryId));
-            toast("Category deleted!", "success");
-          } else {
-            toast("Failed to delete category.", "error");
-          }
-          setShowConfirm(false);
-          setSelectedCategoryId(null);
-        }}
-        title="Delete Tag Category?"
-        description={`Should we delete just the category, or also remove all tags associated with it?\nThis cannot be undone.`}
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        onConfirm={confirmDelete}
+        title={`Delete "${deleting?.name}"?`}
+        description={`Its ${formatCounts(deleting?._count?.tags ?? 0)} tags will move to the default category${defaultCategory ? ` (${defaultCategory.name})` : ""}. This can't be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
-        radioOptions={[
-          { label: "Only delete the category", value: "keep", color: "orange" },
-          { label: "Delete category and all tags", value: "purge", color: "red" },
-        ]}
-        selectedRadio={purgeChoice}
-        setSelectedRadio={setPurgeChoice}
       />
     </div>
   );
