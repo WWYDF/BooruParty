@@ -19,6 +19,7 @@ import { initializeEncoder } from './components/uploads/encoders';
 import uploadsHost from './core/plugins/uploads';
 import { STATUS_CODES } from 'http';
 import { loadServerSettings } from './core/utilities/settingsCache';
+import { HttpError } from './core/utilities/errors';
 
 sharp.cache(false);
 const logger = appLogger('Server');
@@ -93,6 +94,9 @@ async function buildServer() {
   });
 
   fastify.setErrorHandler<FastifyError>((err, req, reply) => {
+    // Our own "send exactly this" errors, thrown from helpers or routes
+    if (err instanceof HttpError) return reply.status(err.status).send(err.body);
+
     const status = err.statusCode ?? 500;
 
     if (status >= 500) {

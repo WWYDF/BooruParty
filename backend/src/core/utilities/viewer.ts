@@ -1,8 +1,9 @@
 import { FastifyRequest } from "fastify"
-import { Safety } from "../../../prisma/client"
+import { Prisma, Safety } from "../../../prisma/client"
 import { prisma } from "../plugins/prisma"
 import { rolePermissionCheck } from "./permissionCache";
 import { getServerSettings } from "./settingsCache";
+import { HttpError } from "./errors";
 
 
 // Everything a public route needs to know about who's asking
@@ -14,6 +15,15 @@ export type Viewer = {
   safetyIsCap: boolean, // guests: search may arrow this, but never expand it
   canSeePrivate: boolean, // only admins have this for moderation purposes
 }
+
+// The fields isHiddenFrom needs. Spread it into any post select: { ...postVisibilitySelect, score: true }
+export const postVisibilitySelect = {
+  safety: true,
+  uploader: { select: { id: true, private: true } },
+} satisfies Prisma.PostSelect;
+
+type VisibilityFields = { safety: Safety, uploader: { id: string, private: boolean } };
+
 
 // Must run after fastify.identify
 export async function getViewer(req: FastifyRequest): Promise<Viewer> {
@@ -59,4 +69,23 @@ export function isHiddenFrom(viewer: Viewer, post: { safety: Safety, uploader: {
   const hiddenBySafety = viewer.safetyIsCap && !viewer.safety.includes(post.safety);
   const hiddenByPrivacy = post.uploader.private && !viewer.canSeePrivate && post.uploader.id !== viewer.userId;
   return hiddenBySafety || hiddenByPrivacy;
+}
+
+// Viewer for a route that shows posts: throws 401 (guest, guest access off) or 403 (no posts.view)
+export async function getBrowsingViewer(req: FastifyRequest): Promise<Viewer> {
+  const viewer = await getViewer(req);
+  if (!viewer.canView) {
+    throw viewer.userId
+      ? new HttpError(403, { error: 'Forbidden', hint: 'Missing permission: posts.view' })
+      : new HttpError(401, { error: 'Unauthorized', hint: 'Log in to view posts' });
+  }
+  return viewer;
+}
+
+// Throws 404 if the post is missing OR hidden from this viewer (they must look the same).
+// After this line TypeScript knows `post` isn't null.
+export function assertPostVisible<T extends VisibilityFields>(viewer: Viewer, post: T | null): asserts post is T {
+  if (!post || isHiddenFrom(viewer, post)) {
+    throw new HttpError(404, { error: 'Not found', hint: 'No post with that id' });
+  }
 }

@@ -5,7 +5,7 @@ import { prisma } from "@/core/plugins/prisma";
 import { formatPostDetail, formatPostSummary } from "@/core/utilities/reformatters";
 import { parseSearch } from "@/core/utilities/search";
 import { getServerSettings } from "@/core/utilities/settingsCache";
-import { getViewer, isHiddenFrom, Viewer } from "@/core/utilities/viewer";
+import { assertPostVisible, getBrowsingViewer, getViewer, isHiddenFrom } from "@/core/utilities/viewer";
 import { FastifyPluginAsync } from "fastify";
 
 
@@ -24,19 +24,11 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
   }, async (req, reply) => {
     const { id } = req.params as { id: number };
 
-    const viewer = await getViewer(req);
-    if (!viewer.canView) {
-      return viewer.userId
-        ? reply.status(403).send({ error: 'Forbidden', hint: "Missing permission: posts.view" })
-        : reply.status(401).send({ error: 'Unauthorized', hint: "Log in to view posts" });
-    }
+    const viewer = await getBrowsingViewer(req);
 
+    // A hidden post's comments are as hidden as the post
     const post = await prisma.post.findUnique({ where: { id }, select: postDetailSelect });
-
-    // Guests are capped by guestSafety. A hidden post looks the same as a missing one.
-    if (!post || isHiddenFrom(viewer, post)) {
-      return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
-    }
+    assertPostVisible(viewer, post); // automatically replies with 404 if not visible
 
     // Related Posts (this post can be on either side of a stored pair)
     const relations = await prisma.postRelation.findMany({
@@ -170,12 +162,7 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: number };
     const { q } = req.query as { q: string };
 
-    const viewer = await getViewer(req);
-    if (!viewer.canView) {
-      return viewer.userId
-        ? reply.status(403).send({ error: 'Forbidden', hint: 'Missing permission: posts.view' })
-        : reply.status(401).send({ error: 'Unauthorized', hint: 'Log in to view posts' });
-    }
+    const viewer = await getBrowsingViewer(req);
 
     // Only the sort values are needed (plus what isHiddenFrom checks)
     const current = await prisma.post.findUnique({

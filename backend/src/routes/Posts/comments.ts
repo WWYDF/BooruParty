@@ -5,7 +5,7 @@ import { commentSelect } from "@/core/objects/selects/comments";
 import { postSummarySelect } from "@/core/objects/selects/summaries";
 import { prisma } from "@/core/plugins/prisma";
 import { formatPostSummary } from "@/core/utilities/reformatters";
-import { getViewer, isHiddenFrom } from "@/core/utilities/viewer";
+import { assertPostVisible, getBrowsingViewer, getViewer, isHiddenFrom, postVisibilitySelect } from "@/core/utilities/viewer";
 import { FastifyPluginAsync } from "fastify";
 
 const postComments: FastifyPluginAsync = async (fastify) => {
@@ -32,21 +32,11 @@ const postComments: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: number };
     const { cursor, limit } = req.query as { cursor?: number, limit: number };
 
-    const viewer = await getViewer(req);
-    if (!viewer.canView) {
-      return viewer.userId
-        ? reply.status(403).send({ error: 'Forbidden', hint: 'Missing permission: posts.view' })
-        : reply.status(401).send({ error: 'Unauthorized', hint: 'Log in to view posts' });
-    }
+    const viewer = await getBrowsingViewer(req);
 
     // A hidden post's comments are as hidden as the post
-    const post = await prisma.post.findUnique({
-      where: { id },
-      select: { safety: true, uploader: { select: { id: true, private: true } } },
-    });
-    if (!post || isHiddenFrom(viewer, post)) {
-      return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
-    }
+    const post = await prisma.post.findUnique({ where: { id }, select: postVisibilitySelect });
+    assertPostVisible(viewer, post); // automatically replies with 404 if not visible
 
     const rows = await prisma.postComment.findMany({
       where: { postId: id, ...(cursor ? { id: { lt: cursor } } : {}) },
