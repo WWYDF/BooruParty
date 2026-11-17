@@ -209,7 +209,7 @@ export default function TagInput({
                 onMouseDown={(e) => { e.preventDefault(); choose(i); }}
                 onMouseEnter={() => setHighlighted(i)}
                 className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm ${
-                  i === highlighted ? 'bg-zinc-700 text-white' : ''
+                  i === highlighted ? 'bg-zinc-800 text-white' : ''
                 }`}
               >
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tag.category.color }} />
@@ -227,7 +227,7 @@ export default function TagInput({
               onMouseDown={(e) => { e.preventDefault(); choose(results.length); }}
               onMouseEnter={() => setHighlighted(results.length)}
               className={`flex cursor-pointer items-center gap-2 border-t border-secondary-border px-3 py-2 text-sm ${
-                highlighted === results.length ? 'bg-zinc-700 text-white' : ''
+                highlighted === results.length ? 'bg-zinc-800 text-white' : ''
               }`}
             >
               <PlusIcon size={12} weight="bold" className="shrink-0 text-subtle" />

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowCounterClockwiseIcon,
   FileArrowUpIcon,
@@ -453,11 +454,16 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
         {/* Picked tags: newest on top (highlighted), then the post's existing tags */}
         {displayTags.length > 0 && (
           <div className="mt-3 flex flex-col gap-2">
+            {/* initial={false}: tags already there when the editor opens don't animate, only new ones */}
+            <AnimatePresence initial={false}>
             {displayTags.map((tag) => {
               const isAdded = addedSet.has(tag.name);
               return (
-                <div
+                <motion.div
                   key={tag.name}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.25 }}
                   className={`flex w-fit items-center gap-2 rounded-2xl border px-3 py-1.5 transition-colors ${
                     tag.isNew
                       ? 'border-dashed border-zinc-600'
@@ -488,9 +494,10 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
                   {tag.postCount !== undefined && (
                     <span className="ml-1 text-xs text-zinc-400">{formatCounts(tag.postCount)}</span>
                   )}
-                </div>
+                </motion.div>
               );
             })}
+            </AnimatePresence>
           </div>
         )}
       </div>
