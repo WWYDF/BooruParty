@@ -8,6 +8,8 @@ import { ResolvedTag, resolveTagNames } from "@/core/utilities/tags";
 import { discardFiles, postFilePaths } from "@/components/uploads/finalize";
 import { appLogger } from "@/core/plugins/logger";
 import { MAX_RELATED_POSTS } from "@/core/objects/limits";
+import { getViewer } from "@/core/utilities/viewer";
+import { visibleConditions } from "@/components/posts/postQuery";
 
 const logger = appLogger('Posts/Manage');
 
@@ -49,6 +51,7 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
   }, async (req, reply) => {
     const { id } = req.params as { id: number };
     const body = req.body as EditBody;
+    const viewer = await getViewer(req);
 
     const post = await prisma.post.findUnique({
       where: { id },
@@ -136,19 +139,9 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
           await tx.post.update({ where: { id }, data: { tagCount: wanted.size }});
         }
 
-        // Related posts
+        // Related posts (full replacement list, but only for posts this editor can see)
         if (body.related !== undefined) {
-          const wanted = new Set(body.related.filter((rid) => rid !== id)); // cant relate post to itself
-
-          // Unknown ids would fail the foreign key as a 500
-          // Turn them into a clear 400 instead
-          if (wanted.size) {
-            const found = await tx.post.findMany({ where: { id: { in: [...wanted] } }, select: { id: true } });
-            const missing = [...wanted].filter((rid) => !found.some((f) => f.id === rid));
-            if (missing.length) {
-              throw new HttpError(400, { error: 'Unknown posts', hint: `No posts with ids: ${missing.join(', ')}` });
-            }
-          }
+          const wanted = new Set(body.related.filter((rid) => rid !== id)); // can't relate a post to itself
 
           // This post can be on either side of a stored pair
           const current = await tx.postRelation.findMany({
@@ -157,8 +150,26 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
           });
           const have = new Set(current.map((r) => (r.fromId === id ? r.toId : r.fromId)));
 
+          // Which of these posts the editor can actually see (the same rules GET /:id used to build their list)
+          const candidates = [...new Set([...wanted, ...have])];
+          const visible = new Set(
+            candidates.length
+              ? (await tx.post.findMany({
+                  where: { AND: [{ id: { in: candidates } }, ...visibleConditions(viewer)] },
+                  select: { id: true },
+                })).map((p) => p.id)
+              : [],
+          );
+
           const toAdd = [...wanted].filter((rid) => !have.has(rid));
-          const toRemove = [...have].filter((rid) => !wanted.has(rid));
+          // Relations to posts the editor can't see never reached their editor, so leaving them out isn't a removal
+          const toRemove = [...have].filter((rid) => !wanted.has(rid) && visible.has(rid));
+
+          // Can't link what you can't see. Reported like a missing post, so private ids can't be probed
+          const unknown = toAdd.filter((rid) => !visible.has(rid));
+          if (unknown.length) {
+            throw new HttpError(400, { error: 'Unknown posts', hint: `No posts with ids: ${unknown.join(', ')}`, missing: unknown });
+          }
 
           if (toRemove.length) {
             await tx.postRelation.deleteMany({ where: { OR: toRemove.map((rid) => relationPair(id, rid)) } });
