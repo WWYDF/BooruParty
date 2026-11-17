@@ -50,7 +50,6 @@ function ColorField({ value, onChange }: { value: string; onChange: (v: string) 
 export default function CategoriesPage() {
   const toast = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [savedOrder, setSavedOrder] = useState<number[]>([]); // ids in the order the server has
   const [loading, setLoading] = useState(true);
 
   const [newName, setNewName] = useState("");
@@ -70,7 +69,6 @@ export default function CategoriesPage() {
       if (!res.ok) throw new Error();
       const data: Category[] = await res.json();
       setCategories(data);
-      setSavedOrder(data.map((c) => c.id));
     } catch {
       toast("Could not load categories", "error");
     } finally {
@@ -150,23 +148,19 @@ export default function CategoriesPage() {
   const categoriesRef = useRef(categories);
   categoriesRef.current = categories;
 
-  // Runs when a row is dropped. Only rows whose position changed get a PATCH.
+  // Runs when a row is dropped: one PUT with every id in the new order
   const saveOrder = async () => {
     const current = categoriesRef.current;
-    const changed = current.map((c, i) => ({ c, i })).filter(({ c, i }) => c.index !== i);
-    if (!changed.length) return; // dropped where it started
+    if (current.every((c, i) => c.index === i)) return; // dropped where it started
 
     setSavingOrder(true);
-    const results = await Promise.all(changed.map(({ c, i }) => send(`/api/tag-categories/${c.id}`, "PATCH", { index: i })));
+    const saved: Category[] | null = await send("/api/tag-categories/reorder", "PUT", { ids: current.map((c) => c.id) });
     setSavingOrder(false);
 
-    if (results.every(Boolean)) {
-      // Saved: remember the new indexes locally instead of refetching (no flicker)
-      setCategories((prev) => prev.map((c) => ({ ...c, index: current.findIndex((x) => x.id === c.id) })));
-      setSavedOrder(current.map((c) => c.id));
-    } else {
-      load(); // something failed (and was toasted): snap back to what the server really has
-    }
+    // Saved: the response is the stored list (same order we're showing, so nothing jumps).
+    // Failed, e.g. 409 because someone added/removed a category meanwhile (already toasted): reload the truth.
+    if (saved) setCategories(saved);
+    else load();
   };
 
   const confirmDelete = async () => {

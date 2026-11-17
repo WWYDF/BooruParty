@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {
   ArrowsClockwiseIcon,
   ClipboardTextIcon,
-  DownloadSimpleIcon,
   GearSixIcon,
   HardDrivesIcon,
   ImagesIcon,
@@ -22,12 +21,11 @@ type Stats = { megaBytesUsed: number; postCount: number; updatedAt: string | nul
 
 // Icon + one-liner for each section tile (the Home tile itself is skipped)
 const SECTION_INFO: Record<string, { icon: React.ReactNode; blurb: string }> = {
-  "/dashboard/settings": { icon: <GearSixIcon size={20} />, blurb: "Guest access, safety limits, featured post" },
+  "/dashboard/settings": { icon: <GearSixIcon size={20} />, blurb: "Guest access and safety limits" },
   "/dashboard/categories": { icon: <SwatchesIcon size={20} />, blurb: "Tag categories, colors and order" },
   "/dashboard/roles": { icon: <UsersThreeIcon size={20} />, blurb: "Roles and their permissions" },
-  "/dashboard/addons": { icon: <PuzzlePieceIcon size={20} />, blurb: "Autotagger, games and extras" },
+  "/dashboard/addons": { icon: <PuzzlePieceIcon size={20} />, blurb: "AutoTagger, games and extras" },
   "/dashboard/logs": { icon: <ClipboardTextIcon size={20} />, blurb: "Who changed what, and when" },
-  "/dashboard/import": { icon: <DownloadSimpleIcon size={20} />, blurb: "Bring posts over from another booru" },
 };
 
 function formatStorage(mb: number) {

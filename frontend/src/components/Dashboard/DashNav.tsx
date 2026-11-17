@@ -14,7 +14,6 @@ export const DASHBOARD_SECTIONS = [
   { name: "Roles", href: "/dashboard/roles", perm: "dashboard.roles" },
   { name: "Addons", href: "/dashboard/addons", perm: "dashboard.addons" },
   { name: "Audit Log", href: "/dashboard/logs", perm: "dashboard.audit.log" },
-  { name: "Importer", href: "/dashboard/import", perm: "administrator" },
 ] as const;
 
 export function useDashboardSections() {

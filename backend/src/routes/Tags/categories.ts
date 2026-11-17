@@ -4,6 +4,7 @@ import { requirePermission } from "@/core/utilities/permissionCache";
 import { FastifyPluginAsync } from "fastify";
 import { Prisma } from "../../../prisma/client";
 import { hexColorSchema } from "@/core/objects/fastifySchemas";
+import { HttpError } from "@/core/utilities/errors";
 
 const logger = appLogger('Tags/Categories');
 
@@ -22,6 +23,7 @@ const tagCategories: FastifyPluginAsync = async (fastify) => {
     return reply.status(200).send(categories);
   })
 
+  // Create new category
   fastify.post('/', {
     onRequest: canManage,
     schema: {
@@ -85,6 +87,7 @@ const tagCategories: FastifyPluginAsync = async (fastify) => {
     }
   })
 
+  // Edit existing category
   fastify.patch('/:id', {
     onRequest: canManage,
     schema: {
@@ -189,6 +192,44 @@ const tagCategories: FastifyPluginAsync = async (fastify) => {
       logger.error('Failed to delete category', e);
       return reply.status(500).send({ error: 'Something went wrong' });
     }
+  });
+
+  // Set the whole index order in one batch
+  fastify.put('/reorder', {
+    onRequest: canManage,
+    schema: {
+      body: {
+        type: 'object',
+        required: ['ids'],
+        additionalProperties: false,
+        properties: {
+          ids: { type: 'array', minItems: 1, maxItems: 200, uniqueItems: true, items: { type: 'integer', minimum: 1 } },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { ids } = req.body as { ids: number[] };
+    
+    const categories = await prisma.$transaction(async (tx) => {
+      // Must be exactly the current set of categories.
+      const existing = await tx.tagCategory.findMany({ select: { id: true } });
+      const known = new Set(existing.map((c) => c.id));
+      if (ids.length !== known.size || ids.some((id) => !known.has(id))) {
+        throw new HttpError(409, { error: 'Conflict', hint: 'The categories changed since this list was loaded' });
+      }
+
+      // One small update per category
+      for (const [index, id] of ids.entries()) {
+        await tx.tagCategory.update({ where: { id }, data: { index } })
+      }
+
+      return tx.tagCategory.findMany({
+        orderBy: { index: 'asc' },
+        include: { _count: { select: { tags: true } } },
+      });
+    });
+
+    return reply.status(200).send(categories);
   });
 }
 
