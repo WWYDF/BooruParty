@@ -4,6 +4,7 @@ import { isHttpUrl, MAX_NOTES_LENGTH, MAX_SOURCE_LENGTH, MAX_SOURCES, MAX_TAGS }
 import { prisma } from "@/core/plugins/prisma";
 import { rolePermissionCheck } from "@/core/utilities/permissionCache";
 import { HttpError } from "@/core/utilities/errors";
+import { ResolvedTag, resolveTagNames } from "@/core/utilities/tags";
 
 type EditBody = {
   safety?: Safety,
@@ -77,10 +78,57 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
         const { count } = await tx.post.updateMany({ where: { id }, data });
         if (count === 0) throw new HttpError(404, { error: 'Not found', hint: 'No post with that id' });
 
-        // Step 3
+        // Tags
+        if (body.tags !== undefined) {
+          const { tags: found, missing, invalid } = await resolveTagNames(body.tags, tx);
+
+          if (invalid.length) {
+            throw new HttpError(400, { error: 'Invalid tags', hint: invalid.map((i) => `"${i.input}": ${i.reason}`).join(' ') });
+          }
+
+          // Unknown tags get created in default category if allowed by user's permissions
+          let created: ResolvedTag[] = []
+          if (missing.length) {
+            if (!rolePermissionCheck(req.user.roleId, 'tags.create')) {
+              throw new HttpError(403, { error: 'Forbidden', hint: `Missing permission: tags.create (unknown tags: ${missing.join(', ')})`, missing });
+            }
+
+            const category = await tx.tagCategory.findFirst({ where: { isDefault: true }, select: { id: true } });
+            if (!category) throw new Error('No default tag category exists');
+
+            created = await tx.tag.createManyAndReturn({
+              data: missing.map((name) => ({ name, categoryId: category.id })),
+              select: { id: true, name: true },
+            });
+            await tx.tagName.createMany({ data: created.map((t) => ({ name: t.name, tagId: t.id })) });
+          }
+          
+          // Diff: what the post should have vs what is has now
+          const wanted = new Set([...found, ...created].map((t) => t.id));
+          const current = await tx.postTag.findMany({ where: { postId: id }, select: { tagId: true } });
+          const have = new Set(current.map((r) => r.tagId));
+
+          const toAdd = [...wanted].filter((tagId) => !have.has(tagId));
+          const toRemove = [...have].filter((tagId) => !wanted.has(tagId));
+
+          if (toRemove.length) {
+            await tx.postTag.deleteMany({ where: { postId: id, tagId: { in: toRemove } } });
+            await tx.tag.updateMany({ where: { id: { in: toRemove } }, data: { postCount: { decrement: 1 } } });
+          }
+
+          if (toAdd.length) {
+            await tx.postTag.createMany({ data: toAdd.map((tagId) => ({ postId: id, tagId })) });
+            await tx.tag.updateMany({ where: { id: { in: toAdd } }, data: { postCount: { increment: 1 } } });
+          }
+
+          await tx.post.update({ where: { id }, data: { tagCount: wanted.size }});
+        }
       })
     } catch (e) {
       if (e instanceof HttpError) return reply.status(e.status).send(e.body);
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code == 'P2002') {
+        return reply.status(409).send({ error: 'Conflict', hint: 'A tag was created by someone else at the same moment. Please retry.' })
+      }
       throw e;
     }
 
