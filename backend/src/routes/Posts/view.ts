@@ -1,4 +1,4 @@
-import { buildPostQuery, cursorCondition, encodeCursor } from "@/components/posts/postQuery";
+import { buildPostQuery, cursorCondition, encodeCursor, visibleConditions } from "@/components/posts/postQuery";
 import { postDetailSelect } from "@/core/objects/selects/posts";
 import { postSummarySelect } from "@/core/objects/selects/summaries";
 import { prisma } from "@/core/plugins/prisma";
@@ -40,7 +40,31 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
     }
 
-    return reply.status(200).send(formatPostDetail(post));
+    // Related Posts (this post can be on either side of a stored pair)
+    const relations = await prisma.postRelation.findMany({
+      where: { OR: [{ fromId: id }, { toId: id }] },
+      select: { fromId: true, toId: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    const relatedIds = relations.map((r) => (r.fromId === id ? r.toId : r.fromId));
+
+    // Same visibility rules as the feed (Hidden posts are left out)
+    const relatedRows = relatedIds.length
+      ? await prisma.post.findMany({
+          where: { AND: [{ id: { in: relatedIds } }, ...visibleConditions(viewer)] },
+          select: postSummarySelect,
+        })
+      : [];
+    
+    // findMany doesnt keep the "in" order.
+    // Reorder them in the order they were linkedin.com
+    const byId = new Map(relatedRows.map((r) => [r.id, r]));
+    const related = relatedIds.flatMap((rid) => {
+      const row = byId.get(rid);
+      return row ? [formatPostSummary(row)] : [];
+    });
+
+    return reply.status(200).send({ ...formatPostDetail(post), related });
   });
 
   // Feed / Search

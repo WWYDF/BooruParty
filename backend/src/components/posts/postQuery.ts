@@ -1,5 +1,5 @@
 import { NumberFilter, ParsedQuery, SortOrder, Wildcard } from '@/core/utilities/search';
-import { Prisma } from '../../../prisma/client';
+import { Prisma, Safety } from '../../../prisma/client';
 import { resolveTagNames } from '@/core/utilities/tags';
 import { effectiveSafety, Viewer } from '@/core/utilities/viewer';
 
@@ -43,6 +43,24 @@ export function cursorCondition(order: SortOrder, cursor: string): Prisma.PostWh
   return order === 'oldest' ? { id: { gt: id } } : { id: { lt: id } };
 }
 
+// Conditions for "posts this viewer may see" (safety + private accounts)
+// Safety defaults to the viewer's default/cap
+export function visibleConditions(viewer: Viewer, safety: Safety[] = effectiveSafety(viewer)): Prisma.PostWhereInput[] {
+  const conditions: Prisma.PostWhereInput[] = [{ safety: { in: safety } }];
+
+  // Private uploaders' posts: Only visible to themselves and admins
+  if (!viewer.canSeePrivate) {
+    conditions.push({
+      OR: [
+        { uploader: { private: false } },
+        ...(viewer.userId ? [{ uploaderId: viewer.userId }] : []),
+      ],
+    });
+  }
+
+  return conditions;
+}
+
 // Build List Posts Query
 export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<PostQuery> {
   // Resolve all three tag lists in parallel (aliases -> real tags)
@@ -61,17 +79,7 @@ export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<Po
   if (safety.length === 0) return { empty: true, unknownTags };
   if (q.type && q.type.length === 0) return { empty: true, unknownTags };
 
-  const AND: Prisma.PostWhereInput[] = [{ safety: { in: safety } }];
-
-  // Private uploaders' posts: only visible to themselves and admins
-  if (!viewer.canSeePrivate) {
-    AND.push({
-      OR: [
-        { uploader: { private: false } },
-        ...(viewer.userId ? [{ uploaderId: viewer.userId }] : []),
-      ],
-    });
-  }
+  const AND: Prisma.PostWhereInput[] = visibleConditions(viewer, safety);
 
 
   // Tags
