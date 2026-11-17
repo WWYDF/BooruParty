@@ -1,7 +1,7 @@
 // Functions that take in objects and replace specific parts (idk bro just look at it smh)
 
 import { THUMBNAIL_SIZES, ThumbnailSize } from "@/components/uploads/thumbnails";
-import { PostSummary } from "../objects/selects/summaries";
+import { PostSummary, UserSummary } from "../objects/selects/summaries";
 import { PostDetail } from "../objects/selects/posts";
 
 // Strip any trailing slash so we never end up with "//data/..."
@@ -44,4 +44,12 @@ export function formatPostDetail(post: PostDetail) {
     previewSize: previewSize === null ? null : Number(previewSize),
     tags: tags.map((t) => t.tag),
   };
+}
+
+export function avatarUrl(avatarKey: string | null): string | null {
+  return avatarKey ? `${PUBLIC_URL}/data/avatars/${avatarKey}.webp` : null;
+}
+
+export function formatUserSummary(user: UserSummary) {
+  return { ...user, avatar: avatarUrl(user.avatarKey) };
 }

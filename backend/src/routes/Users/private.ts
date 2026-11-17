@@ -136,7 +136,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
     });
 
     return reply.status(200).send(prefs);
-  }
-)};
+  });
+};
 
 export default privateUsers;

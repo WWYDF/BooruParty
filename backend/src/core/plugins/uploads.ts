@@ -9,11 +9,6 @@ const uploadsHost: FastifyPluginAsync = async (fastify) => {
     setHeaders: (res, filePath) => {
       // Cache for 3 hours
       res.setHeader('Cache-Control', 'public, max-age=10800, immutable');
-
-      // Avatars cache for 6 hours
-      if (filePath.includes('/avatars/')) {
-        res.setHeader('Cache-Control', 'public, max-age=21600');
-      }
     },
   });
 };

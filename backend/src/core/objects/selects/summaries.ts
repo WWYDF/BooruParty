@@ -4,6 +4,7 @@ import { Prisma } from "../../../../prisma/client";
 export const userSummarySelect = {
   id: true,
   username: true,
+  avatarKey: true,
   private: true,
   lastSeen: true,
   updatedAt: true,

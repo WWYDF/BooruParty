@@ -12,3 +12,7 @@ export const MAX_INT = 2_147_483_647; // Postgres int4; bigger ids can't exist a
 // Comments
 export const MAX_COMMENT_LENGTH = 2000;
 export const MAX_COMMENT_EMBEDS = 2; 
+
+// Avatars
+export const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
+export const AVATAR_SIZE = 256; // square px
