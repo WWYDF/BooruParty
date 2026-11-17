@@ -5,6 +5,9 @@ import fs from "fs";
 import { DetectedFile, tempDir } from "./receive";
 import { PreviewResult } from "./previews";
 import { THUMBNAIL_SIZES } from "./thumbnails";
+import { appLogger } from "@/core/plugins/logger";
+
+const logger = appLogger('Posts/Finalize');
 
 
 // Width / Height as the file is displayed
@@ -62,6 +65,7 @@ export async function moveIntoPlace(
 
 // Deletes files that were already moved into place (used when creating the post fails)
 export async function discardFiles(paths: string[]) {
+  for (const path of paths) { logger.verbose(`(Deleted) ${path}`); }
   await Promise.all(paths.map((p) => fs.promises.rm(p, { force: true })));
 }
 

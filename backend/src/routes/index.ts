@@ -9,6 +9,7 @@ import tags from './Tags/tags';
 import viewPosts from './Posts/view';
 import stats from './System/stats';
 import managePosts from './Posts/manage';
+import replacePosts from './Posts/replace';
 
 const logger = appLogger('Routes');
 
@@ -19,6 +20,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(createPost, { prefix: '/posts' });
   fastify.register(viewPosts, { prefix: '/posts' });
   fastify.register(managePosts, { prefix: '/posts' });
+  fastify.register(replacePosts, { prefix: '/posts' });
   fastify.register(tagCategories, { prefix: '/tag-categories' });
   fastify.register(tags, { prefix: '/tags' });
   fastify.register(stats, { prefix: '/system' });

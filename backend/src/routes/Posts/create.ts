@@ -64,7 +64,7 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       const skipDupes = getField(upload, 'skipDupes') === 'true';
       const file = await processUpload(tempPath, fileKey, { roleId: req.user.roleId, skipDupes, moved });
 
-      // 10. Save the post and its tags together
+      // 5. Save the post and its tags together
       const post = await prisma.$transaction(async (tx) => {
         // Resolve again: tags may have been deleted or merged while we were processing
         const { tags: found, missing } = await resolveTagNames(tags, tx);

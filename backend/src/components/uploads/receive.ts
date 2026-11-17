@@ -3,7 +3,6 @@ import { FileType } from "../../../prisma/client";
 import { fileTypeFromFile } from 'file-type';
 import sharp from "sharp";
 import fs from "fs";
-import { MultipartFile } from "@fastify/multipart";
 import { appLogger } from "@/core/plugins/logger";
 
 const logger = appLogger('Posts/Receive');
@@ -45,6 +44,8 @@ export async function detectFileType(filePath: string): Promise<DetectedFile | n
 export async function cleanupTemp(fileKey: string) {
   try {
     const entries = await fs.promises.readdir(tempDir);
+    logger.debug(`Removing temp files...`);
+    for (const entry of entries) { logger.verbose(`(Deleted) ${entry}`); }
     await Promise.all(
       entries
         .filter((name) => name.startsWith(fileKey))
