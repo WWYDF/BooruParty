@@ -264,6 +264,7 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
       {/* Save / delete */}
       <div className="flex gap-2">
         <Button
+          size='lg'
           variant="success"
           fullWidth
           icon={<FloppyDiskIcon size={16} />}
@@ -273,38 +274,44 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
           {status ?? 'Save Changes'}
         </Button>
         {canDelete && (
-          <Button variant="danger" icon={<TrashIcon size={16} />} disabled={busy} onClick={() => setShowDelete(true)}>
+          <Button size='lg' variant="danger" icon={<TrashIcon size={16} />} disabled={busy} onClick={() => setShowDelete(true)}>
             Delete
           </Button>
         )}
       </div>
 
-      {/* File actions: whichever buttons apply share the row evenly */}
-      <div className="flex gap-2">
-        <Button
-          size="md"
-          className="flex-1"
-          icon={<FileArrowUpIcon size={14} />}
-          disabled={busy}
-          onClick={() => fileInput.current?.click()}
-        >
-          Replace Post
-        </Button>
-        {isVideo && (
+      {/* File actions */}
+      <div className="flex flex-col gap-2">
+        {/* Replace buttons share the row evenly */}
+        <div className="flex gap-2">
           <Button
             size="md"
             className="flex-1"
-            icon={<ImageSquareIcon size={14} />}
+            icon={<FileArrowUpIcon size={14} />}
             disabled={busy}
-            onClick={() => thumbInput.current?.click()}
+            onClick={() => fileInput.current?.click()}
           >
-            Replace Thumbnail
+            Replace Post
           </Button>
-        )}
+          {isVideo && (
+            <Button
+              size="md"
+              className="flex-1"
+              icon={<ImageSquareIcon size={14} />}
+              disabled={busy}
+              onClick={() => thumbInput.current?.click()}
+            >
+              Replace Thumbnail
+            </Button>
+          )}
+        </div>
+
+        {/* Only when there's a custom thumbnail to undo */}
         {post.thumbKey && thumb?.kind !== 'reset' && (
           <Button
             size="md"
-            className="flex-1"
+            fullWidth
+            variant='danger'
             icon={<ArrowCounterClockwiseIcon size={14} />}
             disabled={busy}
             onClick={() => setThumb({ kind: 'reset' })}
@@ -338,14 +345,14 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
       {/* Staged file changes */}
       {(newFile || thumb) && (
         <div className="space-y-1 rounded-lg border border-secondary-border bg-zinc-900/60 px-3 py-2 text-xs">
-          {newFile && <Staged label="New file" value={newFile.name} onClear={() => setNewFile(null)} disabled={busy} />}
+          {newFile && <Staged label="Post" value={newFile.name} onClear={() => setNewFile(null)} disabled={busy} />}
           {thumb?.kind === 'replace' && (
-            <Staged label="New thumbnail" value={thumb.file.name} onClear={() => setThumb(null)} disabled={busy} />
+            <Staged label="Thumbnail" value={thumb.file.name} onClear={() => setThumb(null)} disabled={busy} />
           )}
           {thumb?.kind === 'reset' && (
-            <Staged label="Thumbnail" value="reset to automatic" onClear={() => setThumb(null)} disabled={busy} />
+            <Staged label="Thumbnail" value="Reset to default" onClear={() => setThumb(null)} disabled={busy} />
           )}
-          <p className="text-subtle">Applied when you save.</p>
+          <p className="text-subtle">Staged changes will be applied when you save.</p>
         </div>
       )}
 

@@ -3,7 +3,7 @@
 import { CircleNotchIcon } from '@phosphor-icons/react';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'success';
-type Size = 'sm' | 'md';
+type Size = 'sm' | 'md' | 'lg';
 
 type ButtonProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
   children?: React.ReactNode;
@@ -17,13 +17,14 @@ type ButtonProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children
 const VARIANTS: Record<Variant, string> = {
   primary: 'bg-accent text-black hover:bg-darkerAccent',
   secondary: 'border border-secondary-border bg-zinc-900 text-zinc-200 hover:bg-secondary-border hover:text-white',
-  danger: 'bg-red-600 text-white hover:bg-red-700',
+  danger: 'bg-red-700 text-white hover:bg-red-800',
   success: 'bg-green-600 text-white hover:bg-green-700',
 };
 
 const SIZES: Record<Size, string> = {
-  sm: 'gap-1.5 rounded-lg px-2.5 py-1 text-xs',
-  md: 'gap-2 rounded-xl px-3 py-1.5 text-sm',
+  sm: 'gap-1 rounded-sm px-1.5 py-0.5 text-2xs',
+  md: 'gap-1.5 rounded-md px-2.5 py-1.5 text-xs',
+  lg: 'gap-2 rounded-lg px-3 py-1.5 text-sm',
 };
 
 export default function Button({
