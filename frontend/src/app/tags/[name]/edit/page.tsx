@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { FloppyDiskIcon, XIcon } from "@phosphor-icons/react";
+import { FloppyDiskIcon, SmileyIcon, XIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
-import Checkbox from "@/components/UI/Checkbox";
+import { FullCheckboxGroup } from "@/components/UI/FullCheckbox";
+import Dropdown from "@/components/UI/Dropdown";
 import { useToast } from "@/components/UI/Toast";
 import { useUser } from "@/components/UserProvider";
 import TagInput from "@/components/Uploads/TagInput";
@@ -14,8 +15,13 @@ import { TagChip } from "@/core/types/uploads";
 import { TagFlag } from "@/core/types/tags";
 
 // Every flag a tag can carry, with what it does (keep in sync with the TagFlag enum)
-const FLAG_OPTIONS: { flag: TagFlag; label: string; description: string }[] = [
-  { flag: "REACTION", label: "Reaction image", description: "Posts with this tag show up in the comment reaction picker." },
+const FLAG_OPTIONS: { value: TagFlag; label: string; description: string; icon: React.ReactNode }[] = [
+  {
+    value: "REACTION",
+    label: "Reaction image",
+    description: "Posts with this tag show up in the comment reaction picker.",
+    icon: <SmileyIcon size={18} />,
+  },
 ];
 
 const MAX_DESCRIPTION = 4096;
@@ -111,9 +117,6 @@ export default function TagEditPage() {
     setter(next.filter((t) => !ownNames.has(t.name)));
   };
 
-  const toggleFlag = (flag: TagFlag, on: boolean) =>
-    setFlags((prev) => (on ? [...prev, flag] : prev.filter((f) => f !== flag)));
-
   const handleSave = async () => {
     const newName = normalize(primary);
     if (!newName) {
@@ -178,16 +181,12 @@ export default function TagEditPage() {
 
         <div>
           <label className={labelClass}>Category</label>
-          <select value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))} className={inputClass}>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-zinc-500">
-            Color:{" "}
-            <span style={{ color: colorOf(categoryId) }}>■</span>{" "}
-            {categories.find((c) => c.id === categoryId)?.name}
-          </p>
+          <Dropdown
+            value={categoryId}
+            options={categories.map((cat) => ({ value: cat.id, label: cat.name, color: cat.color }))}
+            onChange={setCategoryId}
+            disabled={saving}
+          />
         </div>
       </div>
 
@@ -220,14 +219,7 @@ export default function TagEditPage() {
       {/* Flags */}
       <div>
         <label className={labelClass}>Flags</label>
-        <div className="space-y-2 rounded-lg border border-secondary-border bg-zinc-900/40 p-3">
-          {FLAG_OPTIONS.map(({ flag, label, description }) => (
-            <div key={flag}>
-              <Checkbox checked={flags.includes(flag)} onChange={(on) => toggleFlag(flag, on)} label={label} />
-              <p className="ml-6 text-xs text-zinc-500">{description}</p>
-            </div>
-          ))}
-        </div>
+        <FullCheckboxGroup options={FLAG_OPTIONS} value={flags} onChange={setFlags} disabled={saving} />
       </div>
 
       {/* Description */}
