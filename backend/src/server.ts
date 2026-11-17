@@ -33,6 +33,7 @@ const DIRECTORIES = [
   "data/previews/image",
   "data/previews/animated",
   "data/previews/video",
+  "data/avatars",
   "data/temp",
 ]
 

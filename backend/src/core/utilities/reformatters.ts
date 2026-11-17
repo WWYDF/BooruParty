@@ -43,6 +43,7 @@ export function formatPostDetail(post: PostDetail) {
     fileSize: Number(fileSize),
     previewSize: previewSize === null ? null : Number(previewSize),
     tags: tags.map((t) => t.tag),
+    uploader: formatUserSummary(post.uploader),
   };
 }
 
@@ -51,5 +52,5 @@ export function avatarUrl(avatarKey: string | null): string | null {
 }
 
 export function formatUserSummary(user: UserSummary) {
-  return { ...user, avatar: avatarUrl(user.avatarKey) };
+  return { ...user, avatar: avatarUrl(user.avatarKey), avatarKey: undefined };
 }

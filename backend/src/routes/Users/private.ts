@@ -6,6 +6,7 @@ import { emailSchema, passwordSchema, usernameSchema } from '@/core/objects/fast
 import { Prisma, Safety } from '../../../prisma/client';
 import bcrypt from 'bcrypt';
 import { rolePermissionCheck, rolePermissionList } from '@/core/utilities/permissionCache';
+import { formatUserSummary } from '@/core/utilities/reformatters';
 
 const logger = appLogger('Users/Private');
 
@@ -28,7 +29,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
       return reply.status(401).send({ error: 'Unauthorized', hint: "You aren't logged in" });
     }
 
-    return reply.status(200).send({ ...user, permissions: rolePermissionList(user.roleId) });
+    return reply.status(200).send({ ...formatUserSummary(user), permissions: rolePermissionList(user.roleId) });
   });
 
   // Base /me -> Edit base user object like user, pass, or email
@@ -92,7 +93,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
         await createSession(req, reply, { sub: updated.id, username: updated.username, roleId: updated.roleId });
       }
 
-      return reply.status(200).send(updated);
+      return reply.status(200).send(formatUserSummary(updated));
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         const field = (e.meta?.target as string[])?.includes('email') ? 'Email' : 'Username';

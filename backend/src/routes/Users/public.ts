@@ -1,11 +1,9 @@
 import { FastifyPluginAsync } from 'fastify';
-import { appLogger } from '@/core/plugins/logger';
 import { prisma } from '@/core/plugins/prisma';
 import { userProfileSelect } from '@/core/objects/selects/users';
 import { Prisma } from '../../../prisma/client';
 import { userSummarySelect } from '@/core/objects/selects/summaries';
-
-const logger = appLogger('Users/Public');
+import { formatUserSummary } from '@/core/utilities/reformatters';
 
 const publicUsers: FastifyPluginAsync = async (fastify) => {
 
@@ -28,7 +26,7 @@ const publicUsers: FastifyPluginAsync = async (fastify) => {
 
     if (!user) { return reply.status(404).send({ error: 'Not Found', hint: "No user with that username" }) };
 
-    return reply.status(200).send(user);
+    return reply.status(200).send(formatUserSummary(user));
   });
 
   // View a page of users
@@ -77,7 +75,7 @@ const publicUsers: FastifyPluginAsync = async (fastify) => {
         total,
         totalPages: Math.ceil(total / limit),
       },
-      users,
+      users: users.map(formatUserSummary),
     })
   });
 };

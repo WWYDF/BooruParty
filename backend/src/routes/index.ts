@@ -14,6 +14,7 @@ import settings from './System/settings';
 import featurePosts from './Posts/feature';
 import postComments from './Posts/comments';
 import manageComments from './Comments/manage';
+import avatars from './Users/avatars';
 
 const logger = appLogger('Routes');
 
@@ -21,6 +22,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(authUsers, { prefix: '/auth' });
   fastify.register(privateUsers, { prefix: '/me' });
   fastify.register(publicUsers, { prefix: '/users' });
+  fastify.register(avatars, { prefix: '/avatars' });
   fastify.register(createPost, { prefix: '/posts' });
   fastify.register(viewPosts, { prefix: '/posts' });
   fastify.register(managePosts, { prefix: '/posts' });

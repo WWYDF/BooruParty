@@ -18,7 +18,7 @@ const logger = appLogger('Avatars');
 const avatars: FastifyPluginAsync = async (fastify) => {
 
   // Upload a new avatar (multipart, one image)
-  fastify.post('/create', {
+  fastify.put('/change', {
     onRequest: [fastify.authenticate, requirePermission('profile.edit.avatar')],
   }, async (req, reply) => {
     if (!req.isMultipart()) {
