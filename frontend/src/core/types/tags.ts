@@ -59,6 +59,30 @@ export type Tag = {
   };
 };
 
+// --- New API (GET /api/tags/:name) ---
+
+export type TagFlag = 'REACTION';
+
+// Implications / suggestions only carry the category id; colors come from /api/tag-categories
+export type RelatedTag = { id: number; name: string; categoryId: number };
+
+export type TagDetail = {
+  id: number;
+  name: string;
+  description: string | null;
+  categoryId: number;
+  category: { id: number; name: string; color: string; index: number; isDefault: boolean };
+  postCount: number;
+  flags: TagFlag[];
+  aliases: string[];              // other names that resolve to this tag (the main name excluded)
+  implications: RelatedTag[];     // direct: adding this tag also adds these
+  suggestions: RelatedTag[];
+  allImplications: RelatedTag[];  // the full chain (implications of implications)
+  matchedAlias: string | null;    // set when the page was opened through an alias
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TagGroup = {
   category: {
     name: string,

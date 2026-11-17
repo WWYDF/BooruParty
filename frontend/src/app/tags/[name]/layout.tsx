@@ -1,5 +1,5 @@
-import CenteredPageWrapper from "@/components/clientSide/Tags/Layout/CenteredPageWrapper";
-import TagSubNavbar from "@/components/clientSide/Tags/Layout/TagSubNavbar";
+import CenteredPageWrapper from "@/components/Tags/Layout/CenteredPageWrapper";
+import TagSubNavbar from "@/components/Tags/Layout/TagSubNavbar";
 import { ReactNode } from "react";
 
 type Props = {
