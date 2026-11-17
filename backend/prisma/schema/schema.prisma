@@ -51,6 +51,7 @@ model User {
   role                    Role                      @relation(fields: [roleId], references: [id])
 
   posts                   Post[]
+  comments                PostComment[]
 
   lastSeen                String?                   // pair with updatedAt
   updatedAt               DateTime                  @updatedAt
@@ -116,7 +117,7 @@ model Post {
   tagCount                Int                       @default(0) // Posts API calculates this on change
   score                   Int                       @default(0) // Votes API calculates this on change
   // votes
-  // comments
+  comments                PostComment[]
   // boosts
   relatedFrom             PostRelation[]            @relation("RelatedFrom")
   relatedTo               PostRelation[]            @relation("RelatedTo")
@@ -137,6 +138,21 @@ model PostRelation {
 
   @@id([fromId, toId])
   @@index([toId])
+}
+
+model PostComment {
+  id                      Int                       @id @default(autoincrement())
+  postId                  Int
+  post                    Post                      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId                String
+  author                  User                      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  content                 String                    // raw text as written (after safety checks)
+  editedAt                DateTime?                 // null = never edited (shown as "edited" in UI)
+  createdAt               DateTime                  @default(now())
+
+  @@index([postId, id])                             // a post's comments, paged by id
+  @@index([authorId])                               // a user's comments (profile activity)
 }
 
 
