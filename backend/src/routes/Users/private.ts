@@ -19,7 +19,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', async (req, reply) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user.sub },
-      include: { role: true },
+      include: { role: true, preferences: true },
       omit: { passHash: true },
     });
 

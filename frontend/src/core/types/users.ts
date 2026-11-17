@@ -145,6 +145,11 @@ export type UserSimpleSummary = {
   }
 }
 
+// GET /api/users/:username
+export type UserProfile = UserSimpleSummary & {
+  preferences: { profileBackground: number | null } | null,
+}
+
 // Private Stuff
 export type UserPrivateSummary = UserSimpleSummary & {
   email: string,

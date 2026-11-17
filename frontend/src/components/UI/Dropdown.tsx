@@ -143,6 +143,8 @@ export default function Dropdown<T extends string | number>({ value, options, on
           exit={{ opacity: 0, y: -4, scaleY: 0.96 }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
           style={{ transformOrigin: 'top' }}
+          // Inside a <label>, the click after choosing would be forwarded to the toggle button and reopen the list
+          onClick={(e) => e.preventDefault()}
           className="absolute left-0 top-full z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-secondary-border bg-secondary shadow-lg"
         >
           {options.map((option, i) => {

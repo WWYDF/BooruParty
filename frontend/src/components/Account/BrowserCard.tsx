@@ -11,7 +11,7 @@ import { AccountCard, Field, inputClass } from "./AccountCard";
 const BROWSER_PREFS_KEY = "browserPreferences";
 
 type BrowserPrefs = { layout: "GRID" | "COLLAGE"; postsPerPage: number; flipNavigators: boolean };
-const DEFAULTS: BrowserPrefs = { layout: "GRID", postsPerPage: 30, flipNavigators: false };
+const DEFAULTS: BrowserPrefs = { layout: "GRID", postsPerPage: 75, flipNavigators: false };
 
 const readStored = () => JSON.parse(localStorage.getItem(BROWSER_PREFS_KEY) ?? "{}");
 
