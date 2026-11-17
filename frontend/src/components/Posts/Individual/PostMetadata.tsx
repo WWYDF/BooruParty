@@ -7,6 +7,7 @@ import {
   ArrowSquareOutIcon,
   CodeIcon,
   CopyIcon,
+  EyeIcon,
   GoogleLogoIcon,
   MinusIcon,
   PencilSimpleIcon,
@@ -157,9 +158,6 @@ export default function PostMetadata({
     };
   }, [post.id]);
 
-  // The API gives exact sizes now, so no need to measure them in the browser
-  const showingPreview = !viewingFull && post.previewSize !== null;
-
   // Only sources that parse as URLs get a row
   const sources = post.sources.flatMap((src) => {
     try {
@@ -258,16 +256,14 @@ export default function PostMetadata({
                 <span className={`font-semibold ${SAFETY_TEXT[post.safety]}`}>{SAFETY_STYLES[post.safety].label}</span>
               </InfoRow>
               <InfoRow label="Type">{typeLabel} ({fileExt})</InfoRow>
-              <InfoRow label="Size">
-                {showingPreview ? (
-                  <>
-                    {formatStorageFromBytes(post.previewSize!)}
-                    <span className="ml-1 text-subtle">(preview of {formatStorageFromBytes(post.fileSize)})</span>
-                  </>
-                ) : (
-                  formatStorageFromBytes(post.fileSize)
-                )}
+              <InfoRow label="Original Size">
+                {formatStorageFromBytes(post.fileSize)}
               </InfoRow>
+              {post.previewSize !== null && (
+                <InfoRow label="Preview Size">
+                  {formatStorageFromBytes(post.previewSize)}
+                </InfoRow>
+              )}
               {dimensions && <InfoRow label="Dimensions">{dimensions.w} × {dimensions.h}</InfoRow>}
               {post.duration !== null && <InfoRow label="Duration">{formatDuration(post.duration)}</InfoRow>}
               {post.type === "VIDEO" && post.hasAudio !== null && (
