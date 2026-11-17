@@ -10,7 +10,7 @@ export const SAFETY_STYLES: Record<Safety, { label: string; short: string; activ
 
 // A tag picked in the UI. Uploads only allow existing tags (the create API rejects unknown ones);
 // the post editor may add new ones (isNew), which PATCH creates on save if the user has tags.create.
-export type TagChip = { name: string; color?: string; isNew?: boolean };
+export type TagChip = { name: string; color?: string; isNew?: boolean; postCount?: number };
 
 export type UploadStatus =
   | { state: 'queued' }

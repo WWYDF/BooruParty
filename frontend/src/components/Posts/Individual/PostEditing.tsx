@@ -1,14 +1,18 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowCounterClockwiseIcon,
   FileArrowUpIcon,
   FloppyDiskIcon,
   ImageSquareIcon,
+  PlusIcon,
+  TagIcon,
   TrashIcon,
   XIcon,
 } from '@phosphor-icons/react';
+import { formatCounts } from '@/core/formats';
 import Button from '@/components/UI/Button';
 import Checkbox from '@/components/UI/Checkbox';
 import ConfirmModal from '@/components/UI/Modals/ConfirmModal';
@@ -52,9 +56,49 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
   const [safety, setSafety] = useState<Safety>(post.safety);
   const [sourcesText, setSourcesText] = useState(post.sources.join('\n'));
   const [notes, setNotes] = useState(post.notes ?? '');
-  const [tags, setTags] = useState<TagChip[]>(() =>
-    post.tags.map((t) => ({ name: t.name, color: colorFor(t.categoryId) })),
+  // The post's tags in the same order the post page shows them: category index, then name
+  const [originalOrder] = useState<string[]>(() =>
+    [...post.tags]
+      .sort((a, b) =>
+        (categories.get(a.categoryId)?.index ?? Infinity) - (categories.get(b.categoryId)?.index ?? Infinity)
+        || a.name.localeCompare(b.name))
+      .map((t) => t.name),
   );
+
+  const [tags, setTags] = useState<TagChip[]>(() => {
+    const byName = new Map(post.tags.map((t) => [t.name, t]));
+    return originalOrder.map((name) => {
+      const t = byName.get(name)!;
+      return { name: t.name, color: colorFor(t.categoryId), postCount: t.postCount };
+    });
+  });
+
+  // Names added during this edit, newest batch first ("pikachu, pokemon, nintendo" stays together).
+  // Local only: after a save the post reloads in normal order, and the next edit starts fresh.
+  const [addOrder, setAddOrder] = useState<string[]>([]);
+
+  // Latest tags, for callbacks that finish after a re-render (TagInput waits for implications)
+  const tagsRef = useRef(tags);
+  tagsRef.current = tags;
+
+  const changeTags = (next: TagChip[]) => {
+    const before = new Set(tagsRef.current.map((t) => t.name));
+    const batch = next.map((t) => t.name).filter((name) => !before.has(name));
+    if (batch.length) setAddOrder((order) => [...batch, ...order.filter((name) => !batch.includes(name))]);
+    setTags(next);
+  };
+
+  const removeTag = (name: string) => {
+    setTags((prev) => prev.filter((t) => t.name !== name));
+    setAddOrder((order) => order.filter((n) => n !== name)); // re-adding it later puts it back on top
+  };
+
+  // Shown under the input: this edit's additions on top, then the remaining original tags
+  const byName = new Map(tags.map((t) => [t.name, t]));
+  const addedSet = new Set(addOrder);
+  const displayTags = [...addOrder, ...originalOrder.filter((name) => !addedSet.has(name))]
+    .map((name) => byName.get(name))
+    .filter((t): t is TagChip => t !== undefined);
 
   // No backend yet: these render and can be changed, but are never sent
   const [featured, setFeatured] = useState(false);
@@ -73,8 +117,8 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
   const hasPerm = (perm: string) => user?.permissions.includes(perm) ?? false;
   const isOwner = !!user && user.id === post.uploader.id;
   const canDelete = hasPerm('posts.delete.others') || (isOwner && hasPerm('posts.delete.own'));
-  const canFeature = hasPerm('posts.feature');
   const canCreateTags = hasPerm('tags.create');
+  const isVideo = post.type === 'VIDEO'; // only videos get a custom-thumbnail option
 
   const invalidSources = parseSources(sourcesText).invalid;
 
@@ -193,8 +237,8 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
         try {
           const res = await API(`/api/tags/${encodeURIComponent(name)}`);
           if (res.ok) {
-            const data: { name: string; category?: { color: string } } = await res.json();
-            return { name: data.name, color: data.category?.color };
+            const data: { name: string; postCount?: number; category?: { color: string } } = await res.json();
+            return { name: data.name, color: data.category?.color, postCount: data.postCount };
           }
           if (res.status === 404 && canCreateTags) return { name, isNew: true };
         } catch {
@@ -205,13 +249,12 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
     );
 
     const skipped = names.filter((_, i) => resolved[i] === null);
-    setTags((prev) => {
-      const next = [...prev];
-      for (const chip of resolved) {
-        if (chip && !next.some((t) => t.name === chip.name)) next.push(chip);
-      }
-      return next;
-    });
+    // Build on the latest list (the lookups took a moment), as one batch so they land on top together
+    const next = [...tagsRef.current];
+    for (const chip of resolved) {
+      if (chip && !next.some((t) => t.name === chip.name)) next.push(chip);
+    }
+    changeTags(next);
 
     if (skipped.length) toast(`Skipped unknown tags: ${skipped.join(', ')}`, 'error');
   };
@@ -236,33 +279,39 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
         )}
       </div>
 
-      {/* File actions + feature */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" icon={<FileArrowUpIcon size={14} />} disabled={busy} onClick={() => fileInput.current?.click()}>
-          Replace file
+      {/* File actions: whichever buttons apply share the row evenly */}
+      <div className="flex gap-2">
+        <Button
+          size="md"
+          className="flex-1"
+          icon={<FileArrowUpIcon size={14} />}
+          disabled={busy}
+          onClick={() => fileInput.current?.click()}
+        >
+          Replace Post
         </Button>
-        <Button size="sm" icon={<ImageSquareIcon size={14} />} disabled={busy} onClick={() => thumbInput.current?.click()}>
-          Replace thumbnail
-        </Button>
+        {isVideo && (
+          <Button
+            size="md"
+            className="flex-1"
+            icon={<ImageSquareIcon size={14} />}
+            disabled={busy}
+            onClick={() => thumbInput.current?.click()}
+          >
+            Replace Thumbnail
+          </Button>
+        )}
         {post.thumbKey && thumb?.kind !== 'reset' && (
           <Button
-            size="sm"
+            size="md"
+            className="flex-1"
             icon={<ArrowCounterClockwiseIcon size={14} />}
             disabled={busy}
             onClick={() => setThumb({ kind: 'reset' })}
             title="Go back to the automatically generated thumbnail"
           >
-            Reset thumbnail
+            Reset Thumbnail
           </Button>
-        )}
-        {canFeature && (
-          <Checkbox
-            className="ml-auto"
-            checked={featured}
-            onChange={setFeatured}
-            label="Feature this post"
-            title="Coming soon: not saved yet"
-          />
         )}
 
         {/* Hidden pickers; value is cleared so picking the same file again still fires onChange */}
@@ -382,15 +431,60 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
         </div>
         <TagInput
           value={tags}
-          onChange={setTags}
+          onChange={changeTags}
           placeholder="Add tags..."
           withImplications
           colorFor={colorFor}
           allowNew={canCreateTags}
           disabled={busy}
+          showChips={false}
         />
         {tags.some((t) => t.isNew) && (
-          <p className="mt-1 text-xs text-subtle">Dashed tags don&apos;t exist yet and will be created when you save.</p>
+          <p className="mt-1 text-xs text-subtle">Dashed tags don't exist yet and will be created when you save.</p>
+        )}
+
+        {/* Picked tags: newest on top (highlighted), then the post's existing tags */}
+        {displayTags.length > 0 && (
+          <div className="mt-3 flex flex-col gap-2">
+            {displayTags.map((tag) => {
+              const isAdded = addedSet.has(tag.name);
+              return (
+                <div
+                  key={tag.name}
+                  className={`flex w-fit items-center gap-2 rounded-2xl border px-3 py-1.5 transition-colors ${
+                    tag.isNew
+                      ? 'border-dashed border-zinc-600'
+                      : isAdded
+                        ? 'border-zinc-800 bg-zinc-900/60'
+                        : 'border-zinc-900'
+                  }`}
+                  style={{ color: tag.color ?? '#3c9aff' }}
+                  title={tag.isNew ? 'This tag will be created when you save' : undefined}
+                >
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag.name)}
+                    disabled={busy}
+                    className="hover:opacity-80 disabled:opacity-50"
+                    title={`Remove ${tag.name}`}
+                  >
+                    <XIcon size={16} />
+                  </button>
+
+                  {!tag.isNew && (
+                    <Link href={`/tags/${encodeURIComponent(tag.name)}`} className="hover:opacity-80" title="View tag">
+                      <TagIcon size={16} />
+                    </Link>
+                  )}
+
+                  <span>{tag.name}</span>
+                  {tag.postCount !== undefined && (
+                    <span className="ml-1 text-xs text-zinc-400">{formatCounts(tag.postCount)}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 

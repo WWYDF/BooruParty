@@ -26,6 +26,7 @@ type Props = {
   withImplications?: boolean;                             // picking a tag also adds everything it implies
   colorFor?: (categoryId: number) => string | undefined;  // colors for implied tags (they only come with a categoryId)
   allowNew?: boolean;                                     // offer "Add new tag" for names that don't exist yet
+  showChips?: boolean;                                    // false = the parent renders the picked tags itself
 };
 
 // Mirrors the server's normalizeTagName closely enough for display; the server has the final say
@@ -40,6 +41,7 @@ export default function TagInput({
   withImplications = false,
   colorFor,
   allowNew = false,
+  showChips = true,
 }: Props) {
   const [text, setText] = useState('');
   const [results, setResults] = useState<TagResult[]>([]);
@@ -89,27 +91,30 @@ export default function TagInput({
     setResults([]);
   };
 
+  // A pick is one change: [picked tag, ...everything it implies], so the parent sees them as one batch
   const add = async (tag: TagResult) => {
     clearInput();
-    onChange([...value, { name: tag.name, color: tag.category.color }]);
-    if (!withImplications) return;
+    const picked: TagChip = { name: tag.name, color: tag.category.color, postCount: tag.postCount };
+    if (!withImplications) {
+      onChange([...value, picked]);
+      return;
+    }
 
+    let implied: TagChip[] = [];
     try {
       const res = await API(`/api/tags/${encodeURIComponent(tag.name)}`);
-      if (!res.ok) return;
-      const data: { allImplications: ImpliedTag[] } = await res.json();
-
-      // The user may have changed the list while this loaded; build on the latest one
-      const current = valueRef.current;
-      if (!current.some((t) => t.name === tag.name)) return; // removed again before implications arrived
-
-      const implied = data.allImplications
-        .filter((i) => !current.some((t) => t.name === i.name))
-        .map((i) => ({ name: i.name, color: colorFor?.(i.categoryId) }));
-      if (implied.length) onChange([...current, ...implied]);
+      if (res.ok) {
+        const data: { allImplications: ImpliedTag[] } = await res.json();
+        implied = data.allImplications.map((i) => ({ name: i.name, color: colorFor?.(i.categoryId) }));
+      }
     } catch {
-      // implications are a convenience; the picked tag is already added
+      // implications are a convenience; still add the picked tag
     }
+
+    // The user may have changed the list while this loaded; build on the latest one
+    const current = valueRef.current;
+    if (current.some((t) => t.name === picked.name)) return; // already added meanwhile
+    onChange([...current, picked, ...implied.filter((i) => !current.some((t) => t.name === i.name))]);
   };
 
   const addNew = () => {
@@ -134,7 +139,7 @@ export default function TagInput({
     } else if ((e.key === 'Enter' || e.key === 'Tab') && text.trim()) {
       e.preventDefault();
       choose(highlighted);
-    } else if (e.key === 'Backspace' && !text && value.length) {
+    } else if (e.key === 'Backspace' && showChips && !text && value.length) {
       remove(value[value.length - 1].name);
     } else if (e.key === 'Escape') {
       setText('');
@@ -150,7 +155,7 @@ export default function TagInput({
           disabled ? 'opacity-50' : 'focus-within:ring-1 focus-within:ring-zinc-600'
         }`}
       >
-        {value.map((tag) => (
+        {showChips && value.map((tag) => (
           <span
             key={tag.name}
             className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm ${
@@ -181,7 +186,7 @@ export default function TagInput({
           onKeyDown={handleKeyDown}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder={value.length ? '' : placeholder}
+          placeholder={showChips && value.length ? '' : placeholder}
           disabled={disabled}
           autoComplete="off"
           spellCheck={false}
