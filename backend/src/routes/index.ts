@@ -13,6 +13,7 @@ import replacePosts from './Posts/replace';
 import settings from './System/settings';
 import featurePosts from './Posts/feature';
 import postComments from './Posts/comments';
+import manageComments from './Comments/manage';
 
 const logger = appLogger('Routes');
 
@@ -26,6 +27,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(replacePosts, { prefix: '/posts' });
   fastify.register(featurePosts, { prefix: '/posts' });
   fastify.register(postComments, { prefix: '/posts' });
+  fastify.register(manageComments, { prefix: '/comments' });
   fastify.register(tagCategories, { prefix: '/tag-categories' });
   fastify.register(tags, { prefix: '/tags' });
   fastify.register(stats, { prefix: '/system' });

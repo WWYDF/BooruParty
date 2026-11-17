@@ -56,14 +56,19 @@ export function parseEmbeds(content: string): CommentEmbeds {
 }
 
 // Throws an HttpError if this role may not post these embeds. Used by POST and PATCH.
-export function assertEmbedsAllowed(embeds: CommentEmbeds, roleId: string) {
+// Embeds already in the comment don't need permission again, only new ones do.
+export function assertEmbedsAllowed(embeds: CommentEmbeds, roleId: string, previous?: CommentEmbeds) {
   if (embeds.postIds.length + embeds.media.length > MAX_COMMENT_EMBEDS) {
     throw new HttpError(400, { error: 'Too many embeds', hint: `A comment can embed at most ${MAX_COMMENT_EMBEDS} posts/GIFs` });
   }
-  if (embeds.postIds.length && !rolePermissionCheck(roleId, 'comment.embed.post')) {
+
+  const newPosts = embeds.postIds.filter((id) => !previous?.postIds.includes(id));
+  const newMedia = embeds.media.filter((url) => !previous?.media.includes(url));
+
+  if (newPosts.length && !rolePermissionCheck(roleId, 'comment.embed.post')) {
     throw new HttpError(403, { error: 'Forbidden', hint: 'Missing permission: comment.embed.post' });
   }
-  if (embeds.media.length && !rolePermissionCheck(roleId, 'comment.embed.url')) {
+  if (newMedia.length && !rolePermissionCheck(roleId, 'comment.embed.url')) {
     throw new HttpError(403, { error: 'Forbidden', hint: 'Missing permission: comment.embed.url' });
   }
 }
