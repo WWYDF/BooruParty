@@ -21,7 +21,9 @@ const RESERVED_PREFIXES = new Set([
   'sort',
   'order',
   'category',
-  'tagcount'
+  'tagcount',
+  'flag',
+  'flags'
 ]);
 
 export type TagNameResult = 

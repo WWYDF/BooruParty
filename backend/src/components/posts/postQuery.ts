@@ -1,5 +1,5 @@
 import { NumberFilter, ParsedQuery, SortOrder, Wildcard } from '@/core/utilities/search';
-import { Prisma, Safety } from '../../../prisma/client';
+import { Prisma, Safety, TagFlag } from '../../../prisma/client';
 import { resolveTagNames } from '@/core/utilities/tags';
 import { effectiveSafety, Viewer } from '@/core/utilities/viewer';
 
@@ -108,6 +108,9 @@ export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<Po
   if (q.type) AND.push({ type: { in: q.type } });
   if (q.from.length) AND.push({ uploader: { username: { in: q.from } } });
   if (q.notFrom.length) AND.push({ uploader: { username: { notIn: q.notFrom } } });
+  for (const group of q.flags) AND.push({ tags: { some: { tag: { flags: { hasSome: group } } } } });
+  if (q.notFlags.length) AND.push({ tags: { none: { tag: { flags: { hasSome: q.notFlags } } } } });
+
   AND.push(
     ...numberConditions('score', q.score),
     ...numberConditions('tagCount', q.tagcount),

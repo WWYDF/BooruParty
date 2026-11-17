@@ -3,7 +3,7 @@ import { prisma } from "@/core/plugins/prisma";
 import { requirePermission } from "@/core/utilities/permissionCache";
 import { Db, getImpliedTags, normalizeTagName, resolveTagNames, wouldCreateCycle } from "@/core/utilities/tags";
 import { FastifyPluginAsync } from "fastify";
-import { Prisma } from "../../../prisma/client";
+import { Prisma, TagFlag } from "../../../prisma/client";
 import { HttpError } from '@/core/utilities/errors';
 
 const logger = appLogger('Tags');
@@ -289,6 +289,7 @@ const tags: FastifyPluginAsync = async (fastify) => {
           aliases: { type: 'array', maxItems: 50, items: tagNameInputSchema },
           implications: { type: 'array', maxItems: 50, items: tagNameInputSchema },
           suggestions: { type: 'array', maxItems: 50, items: tagNameInputSchema },
+          flags: { type: 'array', uniqueItems: true, items: { type: 'string', enum: Object.values(TagFlag) } },
         },
       },
     },
@@ -301,6 +302,7 @@ const tags: FastifyPluginAsync = async (fastify) => {
       aliases?: string[],
       implications?: string[],
       suggestions?: string[],
+      flags?: TagFlag[],
     };
 
     const current = normalizeTagName(input);
@@ -368,6 +370,7 @@ const tags: FastifyPluginAsync = async (fastify) => {
         if (newName !== undefined) data.name = newName;
         if (body.categoryId !== undefined) data.categoryId = body.categoryId;
         if (body.description !== undefined) data.description = body.description?.trim() || null;
+        if (body.flags !== undefined) data.flags = body.flags; // full replacement, like aliases
         if (Object.keys(data).length) await tx.tag.update({ where: { id: tag.id }, data });
 
         

@@ -179,6 +179,7 @@ model Tag {
   description             String?
   categoryId              Int
   category                TagCategory               @relation(fields: [categoryId], references: [id]) // category deletion handles tag migration
+  flags                   TagFlag[]                 @default([])
 
   posts                   PostTag[]
   implications            TagImplication[]          @relation("TagImplies")     // tags this tag implies

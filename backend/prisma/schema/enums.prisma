@@ -11,3 +11,7 @@ enum FileType {
   ANIMATED   // gif, animated png, animated webp, etc.
   VIDEO      // mp4, mkv, webm, mov, etc.
 }
+
+enum TagFlag {
+  REACTION
+}

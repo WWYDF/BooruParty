@@ -1,4 +1,4 @@
-import { FileType, Safety } from "../../../prisma/client";
+import { FileType, Safety, TagFlag } from "../../../prisma/client";
 import { normalizeTagName } from "./tags";
 
 
@@ -17,6 +17,8 @@ export type ParsedQuery = {
   excludeWildcards: Wildcard[],
   safety?: Safety[],              // undefined = search didn't say; viewer default applies
   type?: FileType[],
+  flags: TagFlag[][],
+  notFlags: TagFlag[],
   from: string[],                 // uploader usernames (must be one of)
   notFrom: string[],
   score: NumberFilter[],
@@ -67,6 +69,8 @@ export function parseSearch(input: string): ParsedQuery {
     anyOf: [],
     includeWildcards: [],
     excludeWildcards: [],
+    flags: [],
+    notFlags: [],
     from: [],
     notFrom: [],
     score: [],
@@ -94,7 +98,7 @@ export function parseSearch(input: string): ParsedQuery {
     const key = colon > 0 ? token.slice(0, colon) : '';
     const value = colon > 0 ? token.slice(colon + 1) : '';
 
-    if (key && or && ['safety', 'type', 'from', 'score', 'tagcount', 'id', 'order', 'sort'].includes(key)) {
+    if (key && or && ['safety', 'type', 'from', 'score', 'tagcount', 'id', 'order', 'sort', 'flag', 'flags'].includes(key)) {
       q.errors.push(`"~" can't be used with ${key}:`);
       continue;
     }
@@ -110,6 +114,14 @@ export function parseSearch(input: string): ParsedQuery {
         const values = parseEnumList(value, Object.values(FileType));
         if (!values) { q.errors.push(`type: must be ${Object.values(FileType).join(', ').toLowerCase()}`); continue; }
         q.type = narrow(q.type, values, negate, Object.values(FileType));
+        continue;
+      }
+      case 'flag': // flags: works too
+      case 'flags': {
+        const values = parseEnumList(value, Object.values(TagFlag));
+        if (!values) { q.errors.push(`${key}: must be ${Object.values(TagFlag).join(', ').toLowerCase()}`); continue; }
+        if (negate) q.notFlags.push(...values);
+        else q.flags.push(values);
         continue;
       }
       case 'from': {
