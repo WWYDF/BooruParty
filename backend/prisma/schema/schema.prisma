@@ -95,6 +95,7 @@ model Post {
   originalPath            String
   previewPath             String?                   // If null, preview was deemed larger than original
   fileKey                 String                    @unique // The random UUID for saving filenames with
+  thumbKey                String?                   // custom thumbnail's UUID key. (null = auto thumb under fileKey)
   safety                  Safety
   sources                 String[]
   notes                   String?

@@ -52,13 +52,7 @@ export async function moveIntoPlace(
     await moveTo(preview.path, previewPath, moved);
   }
 
-  for (const label of Object.keys(THUMBNAIL_SIZES)) {
-    await moveTo(
-      path.join(tempDir, `${fileKey}_${label}.webp`),
-      storedPath('thumbnails', `${fileKey}_${label}.webp`),
-      moved,
-    );
-  }
+  await moveThumbnails(fileKey, moved);
 
   return { originalPath, previewPath };
 }
@@ -69,14 +63,32 @@ export async function discardFiles(paths: string[]) {
   await Promise.all(paths.map((p) => fs.promises.rm(p, { force: true })));
 }
 
-// Every file on disk that belongs to a post (original, preview, thumbnails), as absolute paths
-export function postFilePaths(post: { fileKey: string, originalPath: string, previewPath: string | null }): string[] {
-  const stored = [post.originalPath];
-  if (post.previewPath) stored.push(post.previewPath);
-
+// Moves <key>_small/med/large.webp from temp into data/thumbnails
+export async function moveThumbnails(key: string, moved: string[]) {
   for (const label of Object.keys(THUMBNAIL_SIZES)) {
-    stored.push(storedPath('thumbnails', `${post.fileKey}_${label}.webp`));
+    await moveTo(
+      path.join(tempDir, `${key}_${label}.webp`),
+      storedPath('thumbnails', `${key}_${label}.webp`),
+      moved,
+    );
   }
+}
 
-  return stored.map((p) => path.join(process.cwd(), p));
+// Absolute paths of the thumbnail files for one thumbKey
+export function thumbnailFilePaths(key: string): string[] {
+  return Object.keys(THUMBNAIL_SIZES).map((label) =>
+    path.join(process.cwd(), storedPath('thumbnails', `${key}_${label}.webp`))
+  );
+}
+
+// Every file on disk that belongs to a post (original, preview, auto + custom thumbnails), as absolute paths
+export function postFilePaths(post: { fileKey: string, thumbKey: string | null, originalPath: string, previewPath: string | null }): string[] {
+    const files = [post.originalPath, post.previewPath]
+      .filter((p): p is string => p !== null)
+      .map((p) => path.join(process.cwd(), p));
+
+  files.push(...thumbnailFilePaths(post.fileKey));
+  if (post.thumbKey) files.push(...thumbnailFilePaths(post.thumbKey));
+
+  return files;
 }

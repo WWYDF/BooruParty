@@ -66,14 +66,14 @@ const replacePosts: FastifyPluginAsync = async (fastify) => {
       oldFiles = await prisma.$transaction(async (tx) => {
         // Lock the row and read its CURRENT files. If someone replaced it while we were processing,
         // these are the ones that are now stale, not the ones we saw at the start of the function.
-        const [current] = await tx.$queryRaw<{ fileKey: string, originalPath: string, previewPath: string | null }[]>`
-          SELECT "fileKey", "originalPath", "previewPath" FROM "Post" WHERE id = ${id} FOR UPDATE
+        const [current] = await tx.$queryRaw<{ fileKey: string, thumbKey: string | null, originalPath: string, previewPath: string | null }[]>`
+          SELECT "fileKey", "thumbKey", "originalPath", "previewPath" FROM "Post" WHERE id = ${id} FOR UPDATE
         `;
         if (!current) throw new HttpError(404, { error: 'Not found', hint: 'No post with that id' });
 
         await tx.post.update({
           where: { id },
-          data: { ...file, fileKey, updatedAt: new Date() },
+          data: { ...file, fileKey, thumbKey: null, updatedAt: new Date() },
         });
 
         return postFilePaths(current);

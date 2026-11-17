@@ -24,7 +24,8 @@ export const postSummarySelect = {
   id: true,
   type: true,
   safety: true,
-  fileKey: true,      // thumbnail URLs are derived from this
+  fileKey: true,      // automatic thumbnail URLs are derived from this
+  thumbKey: true,     // custom thumbnail URLs are derived from this
   aspectRatio: true,
   duration: true,
   hasAudio: true,

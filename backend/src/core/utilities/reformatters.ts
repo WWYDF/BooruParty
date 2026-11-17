@@ -21,16 +21,17 @@ export function withAssetUrls<T extends Record<string, any>>(obj: T, keys: (keyo
 }
 
 // Thumbnails aren't stored since they follow a consistent format.
-// Their paths are derived from fileKey.
-export function thumbnailUrls(fileKey: string): Record<ThumbnailSize, string> {
+// Custom thumbnail (thumbKey) wins over the auto ones (fileKey).
+export function thumbnailUrls(post: { fileKey: string, thumbKey: string | null }): Record<ThumbnailSize, string> {
+  const key = post.thumbKey ?? post.fileKey;
   return Object.fromEntries(
-    Object.keys(THUMBNAIL_SIZES).map((size) => [size, `${PUBLIC_URL}/data/thumbnails/${fileKey}_${size}.webp`])
+    Object.keys(THUMBNAIL_SIZES).map((size) => [size, `${PUBLIC_URL}/data/thumbnails/${key}_${size}.webp`])
   ) as Record<ThumbnailSize, string>
 }
 
 // Feed card
 export function formatPostSummary(post: PostSummary) {
-  return { ...post, thumbnails: thumbnailUrls(post.fileKey) };
+  return { ...post, thumbnails: thumbnailUrls(post) };
 }
 
 // Single post page
@@ -38,7 +39,7 @@ export function formatPostDetail(post: PostDetail) {
   const { tags, fileSize, previewSize, ...rest } = post;
   return {
     ...withAssetUrls(rest, ['originalPath', 'previewPath']),
-    thumbnails: thumbnailUrls(post.fileKey),
+    thumbnails: thumbnailUrls(post),
     fileSize: Number(fileSize),
     previewSize: previewSize === null ? null : Number(previewSize),
     tags: tags.map((t) => t.tag),

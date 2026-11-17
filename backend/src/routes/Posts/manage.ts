@@ -153,7 +153,7 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
 
     const post = await prisma.post.findUnique({
       where: { id },
-      select: { id: true, uploaderId: true, fileKey: true, originalPath: true, previewPath: true }
+      select: { id: true, uploaderId: true, fileKey: true, thumbKey: true, originalPath: true, previewPath: true }
     });
     if (!post) return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
 
