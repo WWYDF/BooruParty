@@ -10,6 +10,7 @@ import { appLogger } from "@/core/plugins/logger";
 import { MAX_POST_NOTES_LENGTH, MAX_POST_SOURCE_LENGTH, MAX_POST_SOURCES, MAX_POST_TAGS, MAX_RELATED_POSTS } from "@/core/objects/limits";
 import { getViewer } from "@/core/utilities/viewer";
 import { visibleConditions } from "@/components/posts/postQuery";
+import { getServerSettings, loadServerSettings } from "@/core/utilities/settingsCache";
 
 const logger = appLogger('Posts/Manage');
 
@@ -240,6 +241,9 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
     // Only after the commit: if the tx had failed, the post would still need its files
     try {
       await discardFiles(postFilePaths(post));
+
+      // if this post was featured, refresh the serverSettings cache
+      if (getServerSettings().featuredPostId === id) await loadServerSettings();
     } catch (e) {
       logger.error(`Post ${id} deleted, but some of its files could not be removed`, e);
     }

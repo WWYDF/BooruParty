@@ -10,6 +10,7 @@ const logger = appLogger('Settings');
 const settingsSelect = {
   guestAccess: true,
   guestSafety: true,
+  featuredPostId: true,
 } satisfies Prisma.ServerSettingsSelect;
 
 export type CachedSettings = Prisma.ServerSettingsGetPayload<{ select: typeof settingsSelect }>;

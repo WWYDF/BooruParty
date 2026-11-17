@@ -20,6 +20,8 @@ datasource db {
 model ServerSettings {
   id                      Int                       @id @default(1)
   lastSetupVersion        String?
+  featuredPostId          Int?
+  featuredPost            Post?                     @relation(fields: [featuredPostId], references: [id], onDelete: SetNull)
 
   guestAccess             Boolean                   @default(false)
   guestSafety             Safety[]                  @default([SAFE])
@@ -118,6 +120,7 @@ model Post {
   // boosts
   relatedFrom             PostRelation[]            @relation("RelatedFrom")
   relatedTo               PostRelation[]            @relation("RelatedTo")
+  featured                ServerSettings[]          // required back-relation to server settings
   // etc.
 
   updatedAt               DateTime                  @default(now()) // editing a post manually updates this

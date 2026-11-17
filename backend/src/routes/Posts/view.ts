@@ -4,6 +4,7 @@ import { postSummarySelect } from "@/core/objects/selects/summaries";
 import { prisma } from "@/core/plugins/prisma";
 import { formatPostDetail, formatPostSummary } from "@/core/utilities/reformatters";
 import { parseSearch } from "@/core/utilities/search";
+import { getServerSettings } from "@/core/utilities/settingsCache";
 import { getViewer } from "@/core/utilities/viewer";
 import { FastifyPluginAsync } from "fastify";
 
@@ -64,7 +65,11 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
       return row ? [formatPostSummary(row)] : [];
     });
 
-    return reply.status(200).send({ ...formatPostDetail(post), related });
+    return reply.status(200).send({
+      ...formatPostDetail(post),
+      related,
+      featured: getServerSettings().featuredPostId === id,
+    });
   });
 
   // Feed / Search
