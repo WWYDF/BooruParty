@@ -14,9 +14,9 @@ import { resolveTagNames } from "@/core/utilities/tags";
 import { HttpError } from "@/core/utilities/errors";
 import { Prisma } from "../../../prisma/client";
 import { processUpload } from "@/components/uploads/process";
+import { MAX_UPLOAD_BYTES } from "@/core/objects/limits";
 
 const logger = appLogger('Posts/Create');
-const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
 
 const createPost: FastifyPluginAsync = async (fastify) => {
   fastify.post('/create', {

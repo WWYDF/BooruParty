@@ -1,5 +1,6 @@
 import { MultipartFile } from "@fastify/multipart";
 import { Safety } from "../../../prisma/client"
+import { MAX_POST_NOTES_LENGTH, MAX_POST_SOURCE_LENGTH, MAX_POST_SOURCES, MAX_POST_TAGS } from "@/core/objects/limits";
 
 export type UploadFields = {
   safety: Safety,
@@ -10,11 +11,6 @@ export type UploadFields = {
 
 type ParseResult = { ok: true, fields: UploadFields } | { ok: false, error: string };
 
-// Just to prevent abuse on creation
-export const MAX_SOURCES = 10;
-export const MAX_SOURCE_LENGTH = 512;
-export const MAX_NOTES_LENGTH = 2048;
-export const MAX_TAGS = 300;
 
 export function getField(upload: MultipartFile, name: string): string | undefined {
   const field = upload.fields[name];
@@ -50,11 +46,11 @@ export function parseUploadFields(upload: MultipartFile): ParseResult {
     } catch {
       return { ok: false, error: `sources must be a JSON array of URLs` };
     }
-    if (!Array.isArray(parsed) || parsed.length > MAX_SOURCES) {
-      return { ok: false, error: `sources must be an array of at most ${MAX_SOURCES} URLs` };
+    if (!Array.isArray(parsed) || parsed.length > MAX_POST_SOURCES) {
+      return { ok: false, error: `sources must be an array of at most ${MAX_POST_SOURCES} URLs` };
     }
     for (const s of parsed) {
-      if (typeof s !== 'string' || s.length > MAX_SOURCE_LENGTH || !isHttpUrl(s.trim())) {
+      if (typeof s !== 'string' || s.length > MAX_POST_SOURCE_LENGTH || !isHttpUrl(s.trim())) {
         return { ok: false, error: `Invalid source URL: ${String(s).slice(0, 100)}` };
       }
     }
@@ -63,8 +59,8 @@ export function parseUploadFields(upload: MultipartFile): ParseResult {
 
   // Notes (optional)
   const notes = getField(upload, 'notes')?.trim() || null;
-  if (notes && notes.length > MAX_NOTES_LENGTH) {
-    return { ok: false, error: `notes must be at most ${MAX_NOTES_LENGTH} characters` };
+  if (notes && notes.length > MAX_POST_NOTES_LENGTH) {
+    return { ok: false, error: `notes must be at most ${MAX_POST_NOTES_LENGTH} characters` };
   }
 
   // Tags (optional JSON array of names; normalized + resolved later in the route)
@@ -77,8 +73,8 @@ export function parseUploadFields(upload: MultipartFile): ParseResult {
     } catch {
       return { ok: false, error: `tags must be a JSON array of tag names` };
     }
-    if (!Array.isArray(parsed) || parsed.length > MAX_TAGS || !parsed.every((t) => typeof t === 'string')) {
-      return { ok: false, error: `tags must be an array of at most ${MAX_TAGS} tag names` };
+    if (!Array.isArray(parsed) || parsed.length > MAX_POST_TAGS || !parsed.every((t) => typeof t === 'string')) {
+      return { ok: false, error: `tags must be an array of at most ${MAX_POST_TAGS} tag names` };
     }
     tags = parsed;
   }

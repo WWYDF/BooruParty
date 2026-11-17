@@ -1,13 +1,13 @@
 import { FastifyPluginAsync } from "fastify"
 import { Prisma, Safety } from "../../../prisma/client"
-import { isHttpUrl, MAX_NOTES_LENGTH, MAX_SOURCE_LENGTH, MAX_SOURCES, MAX_TAGS } from "@/components/uploads/fields";
+import { isHttpUrl } from "@/components/uploads/fields";
 import { prisma } from "@/core/plugins/prisma";
 import { rolePermissionCheck } from "@/core/utilities/permissionCache";
 import { HttpError } from "@/core/utilities/errors";
 import { ResolvedTag, resolveTagNames } from "@/core/utilities/tags";
 import { discardFiles, postFilePaths } from "@/components/uploads/finalize";
 import { appLogger } from "@/core/plugins/logger";
-import { MAX_RELATED_POSTS } from "@/core/objects/limits";
+import { MAX_POST_NOTES_LENGTH, MAX_POST_SOURCE_LENGTH, MAX_POST_SOURCES, MAX_POST_TAGS, MAX_RELATED_POSTS } from "@/core/objects/limits";
 import { getViewer } from "@/core/utilities/viewer";
 import { visibleConditions } from "@/components/posts/postQuery";
 
@@ -41,9 +41,9 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
         minProperties: 1,
         properties: {
           safety: { type: 'string', enum: Object.values(Safety) },
-          sources: { type: 'array', maxItems: MAX_SOURCES, items: { type: 'string', maxLength: MAX_SOURCE_LENGTH } },
-          notes: { type: ['string', 'null'], maxLength: MAX_NOTES_LENGTH },
-          tags: { type: 'array', maxItems: MAX_TAGS, items: { type: 'string' } },
+          sources: { type: 'array', maxItems: MAX_POST_SOURCES, items: { type: 'string', maxLength: MAX_POST_SOURCE_LENGTH } },
+          notes: { type: ['string', 'null'], maxLength: MAX_POST_NOTES_LENGTH },
+          tags: { type: 'array', maxItems: MAX_POST_TAGS, items: { type: 'string' } },
           related: { type: 'array', maxItems: MAX_RELATED_POSTS, items: { type: 'integer', minimum: 1 } },
         },
       },

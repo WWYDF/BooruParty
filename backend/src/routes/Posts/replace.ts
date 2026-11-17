@@ -12,10 +12,9 @@ import { processUpload } from "@/components/uploads/process";
 import { HttpError } from "@/core/utilities/errors";
 import { discardFiles, moveThumbnails, postFilePaths, thumbnailFilePaths } from "@/components/uploads/finalize";
 import { generateThumbnails } from "@/components/uploads/thumbnails";
+import { MAX_THUMBNAIL_BYTES, MAX_UPLOAD_BYTES } from "@/core/objects/limits";
 
 const logger = appLogger('Posts/Replace');
-const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024; // 100 MB
-const MAX_THUMBNAIL_BYTES = 20 * 1024 * 1024; // 20 MB
 
 const replacePosts: FastifyPluginAsync = async (fastify) => {
   fastify.put('/:id/file', {
