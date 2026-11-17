@@ -150,3 +150,21 @@ export type UserPrivateSummary = UserSimpleSummary & {
   lastLogin: Date,
   permissions: string[],
 }
+
+// PATCH /api/me/preferences (and GET /api/me's `preferences`)
+export type AccountPreferences = {
+  blurUnsafeEmbeds: boolean,
+  defaultSafety: Safety[],
+  profileBackground: number | null,
+}
+
+// GET /api/me (the parts the account page uses)
+export type AccountDetails = {
+  id: string,
+  username: string,
+  email: string,
+  private: boolean,
+  createdAt: string,
+  role: { name: string, color: string },
+  preferences?: AccountPreferences | null, // null/missing = no row yet, so the server defaults apply
+}
