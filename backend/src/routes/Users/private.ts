@@ -44,6 +44,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
           email: emailSchema,
           password: passwordSchema,       // the NEW password
           currentPassword: { type: 'string', maxLength: 1024 },
+          about: { type: ['string', 'null'], maxLength: 64 }, // short bio
           private: { type: 'boolean' },
         },
       },
@@ -55,6 +56,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
       password?: string,
       currentPassword?: string,
       private?: boolean,
+      about?: string | null,
     };
 
     const user = await prisma.user.findUnique({ where: { id: req.user.sub } });
@@ -74,6 +76,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
     if (body.username !== undefined) data.username = body.username.trim();
     if (body.email !== undefined) data.email = body.email.trim().toLowerCase();
     if (body.private !== undefined) data.private = body.private;
+    if (body.about !== undefined) data.about = body.about?.trim() || null;
     if (body.password !== undefined) {
       if (Buffer.byteLength(body.password) > 72) { return reply.status(400).send({ error: 'Password is too long' }); }
       data.passHash = await bcrypt.hash(body.password, 12);

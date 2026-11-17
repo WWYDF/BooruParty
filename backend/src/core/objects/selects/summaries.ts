@@ -1,7 +1,20 @@
 import { Prisma } from "../../../../prisma/client";
 
-// Fields anyone can see about a user: comments, post uploaders, lists
+// Basic fields anyone can see about a user (surface level stuff)
 export const userSummarySelect = {
+  id: true,
+  username: true,
+  avatarKey: true,
+  about: true,
+  private: true,
+  lastSeen: true,
+  updatedAt: true,
+  createdAt: true,
+  role: { select: { name: true, color: true, index: true } },
+} satisfies Prisma.UserSelect;
+
+// Advanced fields anyone can see about a user (profile specific stuff)
+export const userDetailedSelect = {
   id: true,
   username: true,
   avatarKey: true,

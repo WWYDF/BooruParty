@@ -45,6 +45,7 @@ model User {
   username                String                    @unique @db.Citext
   passHash                String
   avatarKey               String?
+  about                   String?
   sessions                Session[]
   preferences             Preferences?
   private                 Boolean                   @default(false)

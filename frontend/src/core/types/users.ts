@@ -165,6 +165,7 @@ export type AccountDetails = {
   email: string,
   private: boolean,
   avatar: string | null, // URL, null = default avatar
+  about: string | null,  // short bio, max 64 chars
   createdAt: string,
   role: { name: string, color: string },
   preferences?: AccountPreferences | null, // null/missing = no row yet, so the server defaults apply

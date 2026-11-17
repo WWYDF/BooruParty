@@ -9,8 +9,9 @@ import { AccountCard, CardActions, Field, inputClass } from "./AccountCard";
 import AvatarPicker from "./AvatarPicker";
 import { useSend } from "./useSend";
 
-// Same rule as the API's usernameSchema
+// Same rules as the API's schemas
 const USERNAME = /^[a-zA-Z0-9_.-]{3,32}$/;
+const ABOUT_MAX = 64;
 
 export default function ProfileCard({ me, canEditAvatar, onSaved }: {
   me: AccountDetails;
@@ -20,19 +21,31 @@ export default function ProfileCard({ me, canEditAvatar, onSaved }: {
   const send = useSend();
   const toast = useToast();
   const [username, setUsername] = useState(me.username);
+  const [about, setAbout] = useState(me.about ?? "");
   const [saving, setSaving] = useState(false);
 
-  const trimmed = username.trim();
-  const dirty = trimmed !== me.username;
+  const trimmedName = username.trim();
+  const trimmedAbout = about.trim() || null; // empty clears it
+  const nameChanged = trimmedName !== me.username;
+  const aboutChanged = trimmedAbout !== (me.about ?? null);
+  const dirty = nameChanged || aboutChanged;
 
   const save = async () => {
-    if (!USERNAME.test(trimmed)) return toast("Usernames are 3-32 characters: letters, numbers, _ . and -", "error");
+    if (nameChanged && !USERNAME.test(trimmedName)) return toast("Usernames are 3-32 characters: letters, numbers, _ . and -", "error");
+
+    // PATCH semantics: only what changed
+    const body: { username?: string; about?: string | null } = {};
+    if (nameChanged) body.username = trimmedName;
+    if (aboutChanged) body.about = trimmedAbout;
+
     setSaving(true);
-    const updated = await send<AccountDetails>("/api/me", "PATCH", { username: trimmed });
+    const updated = await send<AccountDetails>("/api/me", "PATCH", body);
     setSaving(false);
     if (!updated) return;
-    onSaved({ username: updated.username });
-    toast("Username changed", "success");
+
+    setAbout(updated.about ?? "");
+    onSaved({ username: updated.username, about: updated.about });
+    toast("Profile saved", "success");
   };
 
   return (
@@ -52,9 +65,15 @@ export default function ProfileCard({ me, canEditAvatar, onSaved }: {
           />
         </Field>
 
-        {/* No description field on User yet */}
-        <Field label="About me" hint="Coming soon.">
-          <textarea rows={3} disabled placeholder="Tell people a bit about yourself..." className={`${inputClass} resize-none`} />
+        <Field label="About me" hint={`${about.length}/${ABOUT_MAX}`}>
+          <input
+            type="text"
+            value={about}
+            onChange={(e) => setAbout(e.target.value)}
+            maxLength={ABOUT_MAX}
+            placeholder="A short line about yourself"
+            className={inputClass}
+          />
         </Field>
 
         <CardActions>
