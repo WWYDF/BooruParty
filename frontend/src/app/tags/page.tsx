@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CaretLeftIcon, CaretRightIcon, MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import Dropdown from "@/components/UI/Dropdown";
+import Pagination from "@/components/UI/Pagination";
 import { useUser } from "@/components/UserProvider";
 import { CreateTagModal } from "@/components/Tags/CreateModal";
 import { CategoryInfo } from "@/components/Posts/Individual/PostView";
@@ -24,7 +25,7 @@ type TagRow = {
   names?: { name: string }[]; // only while searching: the names that matched
 };
 
-type Pagination = { page: number; limit: number; total: number; totalPages: number };
+type PageInfo = { page: number; limit: number; total: number; totalPages: number };
 
 const PER_PAGE = 50;
 const SORT_OPTIONS: { value: Sort; label: string }[] = [
@@ -33,18 +34,6 @@ const SORT_OPTIONS: { value: Sort; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "oldest", label: "Oldest" },
 ];
-
-// Page numbers to show: 1 … (p-1) p (p+1) … last
-function pageList(page: number, total: number): (number | "…")[] {
-  const pages = new Set([1, total, page - 1, page, page + 1].filter((p) => p >= 1 && p <= total));
-  const sorted = [...pages].sort((a, b) => a - b);
-  const out: (number | "…")[] = [];
-  sorted.forEach((p, i) => {
-    if (i > 0 && p - sorted[i - 1] > 1) out.push("…");
-    out.push(p);
-  });
-  return out;
-}
 
 export default function TagListPage() {
   const router = useRouter();
@@ -61,7 +50,7 @@ export default function TagListPage() {
 
   const [categories, setCategories] = useState<(CategoryInfo & { isDefault?: boolean })[]>([]);
   const [tags, setTags] = useState<TagRow[]>([]);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [pagination, setPagination] = useState<PageInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -234,43 +223,7 @@ export default function TagListPage() {
       </div>
 
       {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
-        <nav className="flex items-center justify-center gap-1 pb-6 text-sm">
-          <button
-            onClick={() => goToPage(page - 1)}
-            disabled={page === 1}
-            className="cursor-pointer rounded-lg p-2 text-subtle transition-colors hover:bg-secondary hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-            aria-label="Previous page"
-          >
-            <CaretLeftIcon size={16} />
-          </button>
-
-          {pageList(page, pagination.totalPages).map((p, i) =>
-            p === "…" ? (
-              <span key={`gap-${i}`} className="px-2 text-zinc-600">…</span>
-            ) : (
-              <button
-                key={p}
-                onClick={() => goToPage(p)}
-                className={`min-w-9 cursor-pointer rounded-lg px-2 py-1.5 tabular-nums transition-colors ${
-                  p === page ? "bg-accent font-semibold text-black" : "text-zinc-300 hover:bg-secondary"
-                }`}
-              >
-                {p}
-              </button>
-            ),
-          )}
-
-          <button
-            onClick={() => goToPage(page + 1)}
-            disabled={page === pagination.totalPages}
-            className="cursor-pointer rounded-lg p-2 text-subtle transition-colors hover:bg-secondary hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-            aria-label="Next page"
-          >
-            <CaretRightIcon size={16} />
-          </button>
-        </nav>
-      )}
+      {pagination && <Pagination page={page} totalPages={pagination.totalPages} onChange={goToPage} />}
 
       <CreateTagModal
         open={createOpen}

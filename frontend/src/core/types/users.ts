@@ -133,6 +133,7 @@ export type UserSimpleSummary = {
   id: string,
   username: string,
   avatar: string | null,
+  about: string | null,
   private: boolean,
   lastSeen: string | null, // like last activity (e.g. "viewing post #33")
   updatedAt: Date,
