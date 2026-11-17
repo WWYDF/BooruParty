@@ -2,6 +2,7 @@ import { FastifyRequest } from "fastify"
 import { Safety } from "../../../prisma/client"
 import { prisma } from "../plugins/prisma"
 import { rolePermissionCheck } from "./permissionCache";
+import { getServerSettings } from "./settingsCache";
 
 
 // Everything a public route needs to know about who's asking
@@ -17,11 +18,7 @@ export type Viewer = {
 // Must run after fastify.identify
 export async function getViewer(req: FastifyRequest): Promise<Viewer> {
   if (!req.user) {
-    // SWAP FOR CACHED SETTINGS AFTER I SET THAT UP (l8r)
-    const settings = await prisma.serverSettings.findUnique({
-      where: { id: 1 },
-      select: { guestAccess: true, guestSafety: true },
-    });
+    const settings = getServerSettings();
 
     return {
       userId: null,

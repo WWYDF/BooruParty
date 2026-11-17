@@ -18,6 +18,7 @@ import sharp from 'sharp';
 import { initializeEncoder } from './components/uploads/encoders';
 import uploadsHost from './core/plugins/uploads';
 import { STATUS_CODES } from 'http';
+import { loadServerSettings } from './core/utilities/settingsCache';
 
 sharp.cache(false);
 const logger = appLogger('Server');
@@ -119,6 +120,7 @@ async function buildServer() {
   // Autorun on Startup
   await checkSetup(); // make sure server has been setup
   await loadRolePermissions(); // load role permissions into memory
+  await loadServerSettings(); // load server settings into memory
   await initializeEncoder(); // Pick and validate an encoder for video previews
   
   console.log(' ');
