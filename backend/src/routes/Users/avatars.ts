@@ -1,4 +1,4 @@
-import { requirePermission } from "@/core/utilities/permissionCache";
+import { requirePermission, rolePermissionCheck } from "@/core/utilities/permissionCache";
 import { FastifyPluginAsync } from "fastify";
 import crypto from 'node:crypto';
 import path from 'node:path';
@@ -77,6 +77,63 @@ const avatars: FastifyPluginAsync = async (fastify) => {
     }
 
     return reply.status(200).send({ avatar: avatarUrl(avatarKey) });
+  });
+
+  // Revert back to default avatar
+  // Admins can pass ?userId= to reset a specific user
+  fastify.delete('/reset', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      querystring: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          userId: { type: 'string', minLength: 1, maxLength: 64 },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { userId } = req.query as { userId?: string };
+    const targetId = userId ?? req.user.sub;
+    const isSelf = targetId === req.user.sub;
+
+    // Resetting your own needs nothing
+    if (!isSelf && !rolePermissionCheck(req.user.roleId, 'profile.edit.others')) {
+      return reply.status(403).send({ error: 'Forbidden', hint: 'Missing permission: profile.edit.others' });
+    }
+
+    let oldKey: string | null = null;
+    try {
+      oldKey = await prisma.$transaction(async (tx) => {
+        // Lock the row so this can't race a PUT and delete the file it just set
+        const [current] = await tx.$queryRaw<{ avatarKey: string | null }[]>`
+          SELECT "avatarKey" FROM "User" WHERE id = ${targetId} FOR UPDATE
+        `;
+        if (!current) {
+          throw isSelf
+            ? new HttpError(401, { error: 'Unauthorized', hint: "You aren't logged in" })
+            : new HttpError(404, { error: 'Not found', hint: 'No user with that id' });
+        }
+
+        // Already on the default, nothing to do
+        if (!current.avatarKey) return null;
+
+        await tx.user.update({ where: { id: targetId }, data: { avatarKey: null } });
+        return current.avatarKey;
+      });
+    } catch (e) {
+      if (e instanceof HttpError) throw e;
+      logger.error(`Removing avatar failed for user ${targetId}`, e);
+      return reply.status(500).send({ error: 'Avatar removal failed' });
+    }
+
+    if (oldKey) {
+      if (!isSelf) logger.info(`${req.user.username} reset ${targetId}'s avatar`);
+      await discardFiles([avatarFilePath(oldKey)])
+        .catch((e) => logger.error(`Avatar cleared, but its file (${oldKey}) could not be removed`, e));
+    }
+
+    return reply.status(204).send();
   })
 }
 

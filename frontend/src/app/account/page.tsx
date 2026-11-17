@@ -44,6 +44,7 @@ export default function AccountPage() {
       ...(updated.username !== undefined && { username: updated.username }),
       ...(updated.email !== undefined && { email: updated.email }),
       ...(updated.private !== undefined && { private: updated.private }),
+      ...(updated.avatar !== undefined && { avatar: updated.avatar }),
     });
   };
 
@@ -58,7 +59,7 @@ export default function AccountPage() {
 
       <div className="grid items-start gap-12 lg:grid-cols-2">
         <div className="space-y-6">
-          <ProfileCard me={me} onSaved={accountSaved} />
+          <ProfileCard me={me} canEditAvatar={user.permissions.includes("profile.edit.avatar")} onSaved={accountSaved} />
           <EmailCard me={me} onSaved={accountSaved} />
           <PasswordCard />
           <PrivacyCard me={me} onSaved={accountSaved} />

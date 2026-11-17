@@ -1,17 +1,22 @@
 'use client';
 
 import { useState } from "react";
-import { CameraIcon, FloppyDiskIcon } from "@phosphor-icons/react";
+import { FloppyDiskIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import { useToast } from "@/components/UI/Toast";
 import { AccountDetails } from "@/core/types/users";
 import { AccountCard, CardActions, Field, inputClass } from "./AccountCard";
+import AvatarPicker from "./AvatarPicker";
 import { useSend } from "./useSend";
 
 // Same rule as the API's usernameSchema
 const USERNAME = /^[a-zA-Z0-9_.-]{3,32}$/;
 
-export default function ProfileCard({ me, onSaved }: { me: AccountDetails; onSaved: (updated: Partial<AccountDetails>) => void }) {
+export default function ProfileCard({ me, canEditAvatar, onSaved }: {
+  me: AccountDetails;
+  canEditAvatar: boolean;
+  onSaved: (updated: Partial<AccountDetails>) => void;
+}) {
   const send = useSend();
   const toast = useToast();
   const [username, setUsername] = useState(me.username);
@@ -33,15 +38,7 @@ export default function ProfileCard({ me, onSaved }: { me: AccountDetails; onSav
   return (
     <AccountCard title="Profile" description="How other people see you around the site.">
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (dirty) save(); }}>
-        {/* No avatar upload API yet */}
-        <div className="flex items-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/i/user.png" alt="" className="h-16 w-16 rounded-full border border-secondary-border object-cover" />
-          <div>
-            <Button icon={<CameraIcon size={16} />} disabled title="Avatars aren't supported yet">Change avatar</Button>
-            <p className="mt-1 text-xs text-zinc-600">Coming soon.</p>
-          </div>
-        </div>
+        <AvatarPicker avatar={me.avatar ?? null} canEdit={canEditAvatar} onChange={(avatar) => onSaved({ avatar })} />
 
         <Field label="Username" hint="3-32 characters: letters, numbers, _ . and -">
           <input

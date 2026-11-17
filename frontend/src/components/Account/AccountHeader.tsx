@@ -8,7 +8,7 @@ export default function AccountHeader({ me }: { me: AccountDetails }) {
   return (
     <header className="flex flex-wrap items-center gap-4 rounded-xl border border-secondary-border bg-zinc-900/40 p-5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/i/user.png" alt="" className="h-14 w-14 rounded-full border border-secondary-border object-cover" />
+      <img src={me.avatar ?? "/i/user.png"} alt="" className="h-14 w-14 rounded-full border border-secondary-border object-cover" />
       <div className="min-w-0 flex-1">
         <h1 className="flex items-center gap-2 truncate text-xl font-semibold text-zinc-100">
           {me.username}
