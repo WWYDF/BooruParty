@@ -8,8 +8,9 @@ export const SAFETY_STYLES: Record<Safety, { label: string; short: string; activ
   EXPLICIT: { label: 'Explicit', short: 'E', active: 'bg-red-600 text-white', badge: 'bg-red-600/90 text-white' },
 };
 
-// A tag picked in the UI. Only existing tags can be chosen (the API rejects unknown ones).
-export type TagChip = { name: string; color?: string };
+// A tag picked in the UI. Uploads only allow existing tags (the create API rejects unknown ones);
+// the post editor may add new ones (isNew), which PATCH creates on save if the user has tags.create.
+export type TagChip = { name: string; color?: string; isNew?: boolean };
 
 export type UploadStatus =
   | { state: 'queued' }

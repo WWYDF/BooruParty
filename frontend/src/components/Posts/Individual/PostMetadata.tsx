@@ -9,6 +9,7 @@ import { RoleBadge } from "@/components/RoleBadge";
 import { useToast } from "@/components/UI/Toast";
 import { PostDetail, Safety } from "@/core/types/posts";
 import { CategoryInfo } from "./PostView";
+import PostEditing from "./PostEditing";
 import { defaultAvatar } from "@/core/constants/defaults";
 
 const SAFETY_COLORS: Record<PostDetail["safety"], string> = {
@@ -56,10 +57,12 @@ export default function PostMetadata({
   post,
   categories,
   canEdit,
+  onReload,
 }: {
   post: PostDetail;
   categories: Map<number, CategoryInfo>;
   canEdit: boolean;
+  onReload: () => void; // refetch the post after an edit
 }) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null);
   const [viewingFull, setViewingFullState] = useState<boolean>(false);
@@ -213,8 +216,12 @@ export default function PostMetadata({
 
       {editing ? (
         <div className="mr-4">
-          {/* EditPost still uses the old Post type, and there's no PATCH /api/posts/:id yet */}
-          <p className="text-subtle">Post editing isn't available yet.</p>
+          <PostEditing
+            post={post}
+            categories={categories}
+            onSaved={() => { setEditing(false); onReload(); }}
+            onDeleted={() => router.push('/posts')}
+          />
         </div>
       ) : (
         <>

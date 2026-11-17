@@ -26,10 +26,12 @@ export async function API(path: string, init: RequestInit = {}): Promise<Respons
 export type UploadResponse = { status: number; data: any };
 
 // fetch() can't report upload progress, so file uploads use XMLHttpRequest instead
-function xhrUpload(path: string, body: FormData, onProgress?: (fraction: number) => void): Promise<UploadResponse> {
+type UploadMethod = 'POST' | 'PUT';
+
+function xhrUpload(path: string, body: FormData, onProgress?: (fraction: number) => void, method: UploadMethod = 'POST'): Promise<UploadResponse> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_Endpoint}${path}`);
+    xhr.open(method, `${API_Endpoint}${path}`);
     xhr.withCredentials = true; // same as fetch's credentials: 'include'
     xhr.responseType = 'json';  // non-JSON bodies come back as null
     xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(e.loaded / e.total); };
@@ -40,11 +42,12 @@ function xhrUpload(path: string, body: FormData, onProgress?: (fraction: number)
 }
 
 // Like API(), but for multipart uploads with progress. Same refresh-and-retry on 401.
-export async function APIUpload(path: string, body: FormData, onProgress?: (fraction: number) => void): Promise<UploadResponse> {
-  let res = await xhrUpload(path, body, onProgress);
+// method: POST for new uploads, PUT for replacing a post's file/thumbnail.
+export async function APIUpload(path: string, body: FormData, onProgress?: (fraction: number) => void, method: UploadMethod = 'POST'): Promise<UploadResponse> {
+  let res = await xhrUpload(path, body, onProgress, method);
   if (res.status === 401 && await refreshSession()) {
     onProgress?.(0);
-    res = await xhrUpload(path, body, onProgress);
+    res = await xhrUpload(path, body, onProgress, method);
   }
   return res;
 }

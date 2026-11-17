@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "@phosphor-icons/react";
-import AddButton from "../../AddButton";
+import AddButton from "@/components/UI/AddButton";
 
 export default function RelatedPostInput({
   value,

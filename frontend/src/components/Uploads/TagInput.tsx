@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { XIcon } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
+import { PlusIcon, XIcon } from '@phosphor-icons/react';
 import { API } from '@/core/api';
 import { formatCounts } from '@/core/formats';
 import { TagChip } from '../../core/types/uploads';
@@ -15,19 +15,41 @@ type TagResult = {
   names?: { name: string }[]; // only the names that matched the search
 };
 
+// GET /api/tags/:name -> allImplications item
+type ImpliedTag = { id: number; name: string; categoryId: number };
+
 type Props = {
   value: TagChip[];
   onChange: (tags: TagChip[]) => void;
   placeholder?: string;
   disabled?: boolean;
+  withImplications?: boolean;                             // picking a tag also adds everything it implies
+  colorFor?: (categoryId: number) => string | undefined;  // colors for implied tags (they only come with a categoryId)
+  allowNew?: boolean;                                     // offer "Add new tag" for names that don't exist yet
 };
 
-export default function TagInput({ value, onChange, placeholder = 'Add a tag...', disabled }: Props) {
+// Mirrors the server's normalizeTagName closely enough for display; the server has the final say
+const normalize = (input: string) =>
+  input.normalize('NFC').trim().toLowerCase().replace(/\s+/g, '_').replace(/_+/g, '_');
+
+export default function TagInput({
+  value,
+  onChange,
+  placeholder = 'Add a tag...',
+  disabled,
+  withImplications = false,
+  colorFor,
+  allowNew = false,
+}: Props) {
   const [text, setText] = useState('');
   const [results, setResults] = useState<TagResult[]>([]);
   const [highlighted, setHighlighted] = useState(0);
   const [focused, setFocused] = useState(false);
   const [searched, setSearched] = useState(false); // a search finished for the current text
+
+  // Latest value, for async work that finishes after the user has changed the list again
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   useEffect(() => {
     const term = text.trim();
@@ -52,24 +74,66 @@ export default function TagInput({ value, onChange, placeholder = 'Add a tag...'
     return () => { clearTimeout(timer); controller.abort(); };
   }, [text, value]);
 
-  const add = (tag: TagResult) => {
-    onChange([...value, { name: tag.name, color: tag.category.color }]);
+  // "Add new tag" row: only once the search finished and nothing matches the name or one of its aliases
+  const newName = normalize(text);
+  const offerNew =
+    allowNew &&
+    searched &&
+    newName !== '' &&
+    !value.some((v) => v.name === newName) &&
+    !results.some((r) => r.name === newName || r.names?.some((n) => n.name === newName));
+  const optionCount = results.length + (offerNew ? 1 : 0);
+
+  const clearInput = () => {
     setText('');
     setResults([]);
+  };
+
+  const add = async (tag: TagResult) => {
+    clearInput();
+    onChange([...value, { name: tag.name, color: tag.category.color }]);
+    if (!withImplications) return;
+
+    try {
+      const res = await API(`/api/tags/${encodeURIComponent(tag.name)}`);
+      if (!res.ok) return;
+      const data: { allImplications: ImpliedTag[] } = await res.json();
+
+      // The user may have changed the list while this loaded; build on the latest one
+      const current = valueRef.current;
+      if (!current.some((t) => t.name === tag.name)) return; // removed again before implications arrived
+
+      const implied = data.allImplications
+        .filter((i) => !current.some((t) => t.name === i.name))
+        .map((i) => ({ name: i.name, color: colorFor?.(i.categoryId) }));
+      if (implied.length) onChange([...current, ...implied]);
+    } catch {
+      // implications are a convenience; the picked tag is already added
+    }
+  };
+
+  const addNew = () => {
+    clearInput();
+    onChange([...value, { name: newName, isNew: true }]);
+  };
+
+  const choose = (index: number) => {
+    if (index < results.length) add(results[index]);
+    else if (offerNew) addNew();
   };
 
   const remove = (name: string) => onChange(value.filter((t) => t.name !== name));
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown' && results.length) {
+    if (e.key === 'ArrowDown' && optionCount) {
       e.preventDefault();
-      setHighlighted((i) => (i + 1) % results.length);
-    } else if (e.key === 'ArrowUp' && results.length) {
+      setHighlighted((i) => (i + 1) % optionCount);
+    } else if (e.key === 'ArrowUp' && optionCount) {
       e.preventDefault();
-      setHighlighted((i) => (i <= 0 ? results.length - 1 : i - 1));
+      setHighlighted((i) => (i <= 0 ? optionCount - 1 : i - 1));
     } else if ((e.key === 'Enter' || e.key === 'Tab') && text.trim()) {
       e.preventDefault();
-      if (results[highlighted]) add(results[highlighted]);
+      choose(highlighted);
     } else if (e.key === 'Backspace' && !text && value.length) {
       remove(value[value.length - 1].name);
     } else if (e.key === 'Escape') {
@@ -89,9 +153,13 @@ export default function TagInput({ value, onChange, placeholder = 'Add a tag...'
         {value.map((tag) => (
           <span
             key={tag.name}
-            className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-sm"
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-sm ${
+              tag.isNew ? 'border border-dashed border-zinc-500 bg-transparent' : 'bg-secondary'
+            }`}
             style={{ color: tag.color ?? '#fff' }}
+            title={tag.isNew ? 'New tag: created when you save' : undefined}
           >
+            {tag.isNew && <PlusIcon size={10} weight="bold" className="text-subtle" />}
             {tag.name}
             {!disabled && (
               <button
@@ -123,30 +191,45 @@ export default function TagInput({ value, onChange, placeholder = 'Add a tag...'
 
       {showDropdown && (
         <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-secondary-border bg-secondary shadow-md">
-          {results.length === 0 ? (
+          {optionCount === 0 && (
             <p className="px-3 py-2 text-sm text-subtle">No tag starting with &quot;{text.trim()}&quot;</p>
-          ) : (
-            results.map((tag, i) => {
-              const alias = tag.names?.some((n) => n.name === tag.name) ? undefined : tag.names?.[0]?.name;
-              return (
-                <div
-                  key={tag.id}
-                  // mousedown + preventDefault keeps focus in the input, so blur doesn't close the list first
-                  onMouseDown={(e) => { e.preventDefault(); add(tag); }}
-                  onMouseEnter={() => setHighlighted(i)}
-                  className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm ${
-                    i === highlighted ? 'bg-zinc-700 text-white' : ''
-                  }`}
-                >
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tag.category.color }} />
-                  <span className="truncate">
-                    {alias && <span className="text-subtle">{alias} → </span>}
-                    {tag.name}
-                  </span>
-                  <span className="ml-auto shrink-0 text-xs text-subtle">{formatCounts(tag.postCount)}</span>
-                </div>
-              );
-            })
+          )}
+
+          {results.map((tag, i) => {
+            const alias = tag.names?.some((n) => n.name === tag.name) ? undefined : tag.names?.[0]?.name;
+            return (
+              <div
+                key={tag.id}
+                // mousedown + preventDefault keeps focus in the input, so blur doesn't close the list first
+                onMouseDown={(e) => { e.preventDefault(); choose(i); }}
+                onMouseEnter={() => setHighlighted(i)}
+                className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm ${
+                  i === highlighted ? 'bg-zinc-700 text-white' : ''
+                }`}
+              >
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tag.category.color }} />
+                <span className="truncate">
+                  {alias && <span className="text-subtle">{alias} → </span>}
+                  {tag.name}
+                </span>
+                <span className="ml-auto shrink-0 text-xs text-subtle">{formatCounts(tag.postCount)}</span>
+              </div>
+            );
+          })}
+
+          {offerNew && (
+            <div
+              onMouseDown={(e) => { e.preventDefault(); choose(results.length); }}
+              onMouseEnter={() => setHighlighted(results.length)}
+              className={`flex cursor-pointer items-center gap-2 border-t border-secondary-border px-3 py-2 text-sm ${
+                highlighted === results.length ? 'bg-zinc-700 text-white' : ''
+              }`}
+            >
+              <PlusIcon size={12} weight="bold" className="shrink-0 text-subtle" />
+              <span className="truncate">
+                Add new tag <span className="text-white">&quot;{newName}&quot;</span>
+              </span>
+            </div>
           )}
         </div>
       )}

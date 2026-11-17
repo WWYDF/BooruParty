@@ -64,6 +64,7 @@ export type PostDetail = {
   type: FileType,
   safety: Safety,
   fileKey: string,
+  thumbKey: string | null, // set = custom thumbnail (can be reset); null = automatic thumbnails
   aspectRatio: number,
   sources: string[],
   notes: string | null,

@@ -73,6 +73,17 @@ export default function PostView({ postId, poolId }: { postId: number; poolId?: 
     return () => { cancelled = true; };
   }, [postId]);
 
+  // After an edit: refetch just the post, keeping the current one on screen until the new one arrives
+  const reloadPost = async () => {
+    try {
+      const res = await API(`/api/posts/${postId}`);
+      if (res.ok) setPost(await res.json());
+      else if (res.status === 404) setError('notFound');
+    } catch {
+      // keep showing what we have; a page refresh will retry
+    }
+  };
+
   if (error) return <PostError error={error} />;
   if (!post) return <LoadingOverlay show label="Loading Post..." />;
 
@@ -85,7 +96,7 @@ export default function PostView({ postId, poolId }: { postId: number; poolId?: 
     <main className="grid grid-cols-1 lg:grid-cols-[375px_1fr] gap-6 p-4">
       {/* LEFT COLUMN - Metadata */}
       <div className="order-3 lg:order-1 lg:col-span-1 mt-6 lg:mt-0 border-r border-zinc-900">
-        <PostMetadata post={post} categories={categories} canEdit={canEdit} />
+        <PostMetadata post={post} categories={categories} canEdit={canEdit} onReload={reloadPost} />
       </div>
 
       {/* RIGHT COLUMN - Main content + Comments */}
