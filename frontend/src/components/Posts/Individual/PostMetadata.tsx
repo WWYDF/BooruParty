@@ -3,16 +3,32 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PencilSimpleIcon, MinusIcon, PlusIcon, TagIcon, StarIcon, SparkleIcon, ThumbsUpIcon } from "@phosphor-icons/react";
+import {
+  ArrowSquareOutIcon,
+  CodeIcon,
+  CopyIcon,
+  GoogleLogoIcon,
+  MinusIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  PuzzlePieceIcon,
+  SparkleIcon,
+  StarIcon,
+  TagIcon,
+  ThumbsUpIcon,
+} from "@phosphor-icons/react";
 import { formatCounts, formatStorageFromBytes } from "@/core/formats";
 import { RoleBadge } from "@/components/RoleBadge";
+import Button from "@/components/UI/Button";
 import { useToast } from "@/components/UI/Toast";
+import { useUser } from "@/components/UserProvider";
 import { PostDetail, Safety } from "@/core/types/posts";
+import { SAFETY_STYLES } from "@/core/types/uploads";
 import { CategoryInfo } from "./PostView";
 import PostEditing from "./PostEditing";
 import { defaultAvatar } from "@/core/constants/defaults";
 
-const SAFETY_COLORS: Record<PostDetail["safety"], string> = {
+const SAFETY_TEXT: Record<Safety, string> = {
   SAFE: "text-green-400",
   QUESTIONABLE: "text-yellow-400",
   EXPLICIT: "text-red-400",
@@ -53,6 +69,9 @@ function groupTags(tags: PostDetail["tags"], categories: Map<number, CategoryInf
   );
 }
 
+const formatDuration = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+
 export default function PostMetadata({
   post,
   categories,
@@ -69,6 +88,9 @@ export default function PostMetadata({
   const [editing, setEditing] = useState(false);
   const router = useRouter();
   const toast = useToast();
+  const { user } = useUser();
+
+  const canFeature = user?.permissions.includes("posts.feature") ?? false;
 
   function modifyQuery(action: "replace" | "add" | "exclude", tag: string) {
     const saved = JSON.parse(sessionStorage.getItem("lastSearchParams") ?? "{}");
@@ -137,12 +159,18 @@ export default function PostMetadata({
 
   // The API gives exact sizes now, so no need to measure them in the browser
   const showingPreview = !viewingFull && post.previewSize !== null;
-  const fileSizeText = showingPreview
-    ? `${formatStorageFromBytes(post.previewSize!)} (Preview)`
-    : `${formatStorageFromBytes(post.fileSize)} (Full)`;
+
+  // Only sources that parse as URLs get a row
+  const sources = post.sources.flatMap((src) => {
+    try {
+      return [{ href: src, host: new URL(src).hostname.replace(/^www\./, "") }];
+    } catch {
+      return [];
+    }
+  });
 
   return (
-    <div className="flex flex-col gap-4 text-sm text-subtle">
+    <div className="mr-4 flex flex-col gap-5 text-sm text-subtle">
       {/* Header with user info */}
       <div className="flex items-center gap-3">
         <img
@@ -153,13 +181,13 @@ export default function PostMetadata({
           className="rounded-full border border-secondary-border"
         />
 
-        <div className="flex-1">
-          <p className="text-base text-white font-semibold flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2 text-base font-semibold text-white">
             {PLACEHOLDER.anonymous ? (
               <span className="text-zinc-500">Anonymous</span>
             ) : (
               <>
-                <Link href={`/users/${encodeURIComponent(uploader.username)}`} className="text-accent hover:underline">
+                <Link href={`/users/${encodeURIComponent(uploader.username)}`} className="truncate text-accent hover:underline">
                   {uploader.username}
                 </Link>
                 <RoleBadge role={uploader.role} />
@@ -170,241 +198,217 @@ export default function PostMetadata({
           <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>
         </div>
 
+        {canFeature && !editing && (
+          // Applies instantly once the API exists; until then it does nothing
+          <Button size="sm" icon={<StarIcon size={14} />} disabled title="Coming soon">
+            Feature
+          </Button>
+        )}
+
         {editing ? (
-          <button
-            onClick={() => setEditing(false)}
-            className="text-sm text-white bg-secondary-border transition px-3 py-1 mr-4 rounded hover:bg-accent hover:text-black"
-          >
+          <Button size="sm" onClick={() => setEditing(false)}>
             Cancel
-          </button>
+          </Button>
         ) : canEdit ? (
-          <button
-            onClick={() => setEditing(true)}
-            className="text-subtle hover:text-accent transition-colors text-sm flex items-center gap-1 mr-4"
-          >
-            <PencilSimpleIcon size={16} /> Edit post
-          </button>
+          <Button size="sm" icon={<PencilSimpleIcon size={14} />} onClick={() => setEditing(true)}>
+            Edit
+          </Button>
         ) : null}
       </div>
 
-      {/* Stats bar (Score, Favorites, and Boosts) */}
-      {!editing && (
-        <div className="flex items-center gap-4 mr-4">
-          <button
-            className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
-            onClick={() => router.push(`/posts?query=${encodeURIComponent("order:score")}`)}
-          >
-            <ThumbsUpIcon size={16} className="text-green-400" />
-            <span className="text-xs text-white/80">Score</span>
-            <span className="text-xs font-semibold text-subtle">{formatCounts(post.score)}</span>
-          </button>
-
-          {/* No order:favorites / order:boosts in the search yet, so these don't link anywhere */}
-          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
-            <StarIcon size={16} className="text-yellow-400" />
-            <span className="text-xs text-white/80">Favorites</span>
-            <span className="text-xs font-semibold text-subtle">{formatCounts(PLACEHOLDER.favorites)}</span>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
-            <SparkleIcon size={16} className="text-cyan-400" />
-            <span className="text-xs text-white/80">Boosts</span>
-            <span className="text-xs font-semibold text-subtle">{formatCounts(PLACEHOLDER.boosts)}</span>
-          </div>
-        </div>
-      )}
-
       {editing ? (
-        <div className="mr-4">
-          <PostEditing
-            post={post}
-            categories={categories}
-            onSaved={() => { setEditing(false); onReload(); }}
-            onDeleted={() => router.push('/posts')}
-          />
-        </div>
+        <PostEditing
+          post={post}
+          categories={categories}
+          onSaved={() => { setEditing(false); onReload(); }}
+          onDeleted={() => router.push("/posts")}
+        />
       ) : (
         <>
-          {/* Post info */}
-          <div>
-            <p className="flex items-baseline gap-1 text-xs">
-              <span className="text-white font-medium w-[80px]">Safety</span>
-              <span className={`font-semibold ${SAFETY_COLORS[post.safety]}`}>{post.safety}</span>
-            </p>
+          {/* Stats bar (Score, Favorites, and Boosts) */}
+          <div className="flex items-center gap-4">
+            <button
+              className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+              onClick={() => router.push(`/posts?query=${encodeURIComponent("order:score")}`)}
+            >
+              <ThumbsUpIcon size={16} className="text-green-400" />
+              <span className="text-xs text-white/80">Score</span>
+              <span className="text-xs font-semibold text-subtle">{formatCounts(post.score)}</span>
+            </button>
 
-            <p className="flex items-center gap-1 text-xs text-subtle">
-              <span className="text-white font-medium w-[80px]">File Type</span>
-              {typeLabel} ({fileExt})
-            </p>
+            {/* No order:favorites / order:boosts in the search yet, so these don't link anywhere */}
+            <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+              <StarIcon size={16} className="text-yellow-400" />
+              <span className="text-xs text-white/80">Favorites</span>
+              <span className="text-xs font-semibold text-subtle">{formatCounts(PLACEHOLDER.favorites)}</span>
+            </div>
 
-            <p className="flex items-center gap-1 text-xs text-subtle">
-              <span className="text-white font-medium w-[80px]">File Size</span>
-              {fileSizeText}
-            </p>
+            <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+              <SparkleIcon size={16} className="text-cyan-400" />
+              <span className="text-xs text-white/80">Boosts</span>
+              <span className="text-xs font-semibold text-subtle">{formatCounts(PLACEHOLDER.boosts)}</span>
+            </div>
+          </div>
 
-            {dimensions && (
-              <p className="flex items-center gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">Dimensions</span>
-                {dimensions.w} × {dimensions.h}
-              </p>
-            )}
+          {/* Post + file info */}
+          <Section title="Details">
+            <dl className="divide-y divide-secondary-border overflow-hidden rounded-xl border border-secondary-border bg-zinc-900/40">
+              <InfoRow label="Safety">
+                <span className={`font-semibold ${SAFETY_TEXT[post.safety]}`}>{SAFETY_STYLES[post.safety].label}</span>
+              </InfoRow>
+              <InfoRow label="Type">{typeLabel} ({fileExt})</InfoRow>
+              <InfoRow label="Size">
+                {showingPreview ? (
+                  <>
+                    {formatStorageFromBytes(post.previewSize!)}
+                    <span className="ml-1 text-subtle">(preview of {formatStorageFromBytes(post.fileSize)})</span>
+                  </>
+                ) : (
+                  formatStorageFromBytes(post.fileSize)
+                )}
+              </InfoRow>
+              {dimensions && <InfoRow label="Dimensions">{dimensions.w} × {dimensions.h}</InfoRow>}
+              {post.duration !== null && <InfoRow label="Duration">{formatDuration(post.duration)}</InfoRow>}
+              {post.type === "VIDEO" && post.hasAudio !== null && (
+                <InfoRow label="Audio">{post.hasAudio ? "Yes" : "No"}</InfoRow>
+              )}
+              <InfoRow label="Uploaded">{new Date(post.createdAt).toLocaleDateString()}</InfoRow>
+            </dl>
+          </Section>
 
-            {post.duration !== null && (
-              <p className="flex items-center gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">Duration</span>
-                {Math.floor(post.duration / 60)}:{String(Math.floor(post.duration % 60)).padStart(2, "0")}
-                {post.hasAudio === false && " (no audio)"}
-              </p>
-            )}
+          {/* Sources */}
+          {sources.length > 0 && (
+            <Section title={`Sources (${sources.length})`}>
+              <div className="divide-y divide-secondary-border overflow-hidden rounded-xl border border-secondary-border bg-zinc-900/40">
+                {sources.map((src) => (
+                  <Link
+                    key={src.href}
+                    href={src.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={src.href}
+                    className="flex items-center gap-2 px-3 py-2 text-xs text-accent transition hover:bg-zinc-800/60"
+                  >
+                    <span className="truncate">{src.host}</span>
+                    <ArrowSquareOutIcon size={14} className="ml-auto shrink-0 text-subtle" />
+                  </Link>
+                ))}
+              </div>
+            </Section>
+          )}
 
-            {post.sources.length > 0 && (
-              <p className="flex items-start gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">Sources</span>
-                <span className="flex-1 text-xs">
-                  {post.sources.map((src, i) => {
-                    try {
-                      const url = new URL(src);
-                      return (
-                        <span key={i}>
-                          <Link
-                            href={src}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-accent hover:underline focus:outline-none"
-                            title={src}
-                          >
-                            {url.hostname}
-                          </Link>
-                          {i < post.sources.length - 1 && <span className="text-subtle">, </span>}
-                        </span>
-                      );
-                    } catch {
-                      return null;
-                    }
-                  })}
-                </span>
-              </p>
-            )}
-
-            <p className="flex items-start gap-1 text-xs text-subtle">
-              <span className="text-white font-medium w-[80px]">Search</span>
-              <Link
-                href={`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(post.thumbnails.large)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent hover:underline focus:outline-none"
-              >
-                Google Images
-              </Link>
-            </p>
-
-            <p className="flex items-center gap-1 text-xs text-subtle">
-              <span className="text-white font-medium w-[80px]">Preview</span>
-              <button onClick={copyPreview} className="text-accent hover:underline focus:outline-none">
-                Click to Copy
-              </button>
-            </p>
-
-            <p className="flex items-center gap-1 text-xs text-subtle">
-              <span className="text-white font-medium w-[80px]">Embed</span>
-              <button onClick={copyEmbed} className="text-accent hover:underline focus:outline-none">
-                Click to Copy
-              </button>
-            </p>
-
+          {/* Quick actions */}
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              size="sm"
+              icon={<GoogleLogoIcon size={14} />}
+              onClick={() =>
+                window.open(
+                  `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(post.thumbnails.large)}`,
+                  "_blank",
+                  "noopener,noreferrer",
+                )
+              }
+              title="Search Google Images for this post"
+            >
+              Search
+            </Button>
+            <Button size="sm" icon={<CopyIcon size={14} />} onClick={copyPreview} title="Copy the preview's URL">
+              Copy
+            </Button>
+            <Button size="sm" icon={<CodeIcon size={14} />} onClick={copyEmbed} title="Copy the embed code for comments">
+              Embed
+            </Button>
             {PLACEHOLDER.jigsawEnabled && post.type !== "VIDEO" && (
-              <p className="flex items-start gap-1 text-xs text-subtle">
-                <span className="text-white font-medium w-[80px]">Jigsaw</span>
-                <button
-                  onClick={() => router.push(`/games/jigsaw?postId=${post.id}`)}
-                  className="text-accent hover:underline focus:outline-none"
-                >
-                  Click to Play
-                </button>
-              </p>
+              <Button
+                size="sm"
+                className="col-span-3"
+                icon={<PuzzlePieceIcon size={14} />}
+                onClick={() => router.push(`/games/jigsaw?postId=${post.id}`)}
+              >
+                Play Jigsaw
+              </Button>
             )}
           </div>
 
           {/* Related Posts */}
           {PLACEHOLDER.related.length > 0 && (
-            <div className="mt-4">
-              <p className="text-white font-medium text-sm mb-1">Related Posts</p>
+            <Section title="Related Posts">
               <div className="flex flex-wrap gap-2">
                 {PLACEHOLDER.related.map((related) => (
                   <Link key={related.id} href={`/post/${related.id}`}>
                     <img
                       src={related.thumbnail}
                       alt={`Related post ${related.id}`}
-                      className="w-16 h-16 object-cover rounded border border-secondary-border hover:scale-105 transition"
+                      className="h-16 w-16 rounded-lg border border-secondary-border object-cover transition hover:scale-105"
                     />
                   </Link>
                 ))}
               </div>
-            </div>
+            </Section>
           )}
 
           {/* Pools */}
           {PLACEHOLDER.pools.length > 0 && (
-            <div className="mt-4">
-              <p className="text-white font-medium text-sm mb-1">Pools</p>
-              <div className="flex flex-col gap-4">
+            <Section title="Pools">
+              <div className="flex flex-col gap-3">
                 {PLACEHOLDER.pools.map((pool) => (
-                  <Link key={pool.id} href={`/pools/${pool.id}`} className="flex items-center gap-3 group">
-                    <div className="w-[54px] h-[96px] overflow-hidden rounded border border-secondary-border bg-zinc-800">
+                  <Link key={pool.id} href={`/pools/${pool.id}`} className="group flex items-center gap-3">
+                    <div className="h-[96px] w-[54px] overflow-hidden rounded-lg border border-secondary-border bg-zinc-800">
                       {pool.cover ? (
                         <img
                           src={pool.cover}
                           alt={`Pool ${pool.name}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition"
+                          className="h-full w-full object-cover transition group-hover:scale-105"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-zinc-500">
+                        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
                           No preview
                         </div>
                       )}
                     </div>
                     <div>
-                      <p className={`text-sm font-medium ${SAFETY_COLORS[pool.safety]}`}>{pool.name}</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">
+                      <p className={`text-sm font-medium ${SAFETY_TEXT[pool.safety]}`}>{pool.name}</p>
+                      <p className="mt-0.5 text-xs text-zinc-400">
                         Page {pool.page} of {pool.total}
                       </p>
                     </div>
                   </Link>
                 ))}
               </div>
-            </div>
+            </Section>
           )}
 
           {/* Notes */}
           {post.notes && (
-            <div className="mt-3">
-              <p className="text-white font-medium text-sm mb-1">Notes</p>
-              <div className="bg-zinc-900/75 px-4 py-2 rounded border border-secondary-border text-sm whitespace-pre-wrap text-subtle mr-3">
+            <Section title="Notes">
+              <div className="whitespace-pre-wrap rounded-xl border border-secondary-border bg-zinc-900/40 px-3 py-2 text-sm text-zinc-300">
                 {post.notes}
               </div>
-            </div>
+            </Section>
           )}
 
           {/* Tags */}
           {post.tags.length > 0 && (
-            <div className="mt-3">
-              <p className="text-white font-medium text-lg mb-2">Tags ({post.tags.length})</p>
-              <div className="flex flex-col gap-3">
+            <div>
+              <h3 className="text-white font-medium text-lg mb-2">Tags ({post.tags.length})</h3>
+              <div className="flex flex-col gap-4">
                 {tagGroups.map((group) => (
                   <div key={group.category?.id ?? "unknown"}>
-                    <p className="text-subtle text-sm mb-1">
-                      {group.category?.name ?? "Other"} {group.tags.length >= 5 ? `(${group.tags.length})` : ""}
+                    <p className="mb-1.5 flex items-center gap-2 text-sm text-subtle">
+                      {group.category?.name ?? "Other"}
+                      {group.tags.length >= 5 && <span className="text-zinc-600">{group.tags.length}</span>}
                     </p>
                     <div className="flex flex-col gap-2">
                       {group.tags.map((tag) => (
                         <div
                           key={tag.id}
-                          className="inline-flex items-center gap-1 border border-zinc-900 px-2 py-1 rounded-full w-fit"
+                          className="inline-flex w-fit items-center gap-1 rounded-full border border-zinc-900 px-2 py-1"
                           style={{ color: group.category?.color ?? "#fff" }}
                         >
                           <button
                             onClick={() => modifyQuery("add", tag.name)}
-                            className="hover:text-green-400 transition"
+                            className="transition hover:text-green-400"
                             title="Add tag to search"
                           >
                             <PlusIcon size={12} weight="bold" />
@@ -412,14 +416,14 @@ export default function PostMetadata({
 
                           <button
                             onClick={() => modifyQuery("exclude", tag.name)}
-                            className="hover:text-red-400 transition"
+                            className="transition hover:text-red-400"
                             title="Exclude tag from search"
                           >
                             <MinusIcon size={12} weight="bold" />
                           </button>
 
                           <Link href={`/tags/${encodeURIComponent(tag.name)}`} title="View tag">
-                            <TagIcon size={14} className="hover:opacity-80 transition" />
+                            <TagIcon size={14} className="transition hover:opacity-80" />
                           </Link>
 
                           <button
@@ -430,9 +434,7 @@ export default function PostMetadata({
                             {tag.name}
                           </button>
 
-                          <span className="text-subtle text-xs ml-1">
-                            {formatCounts(tag.postCount ?? 0)}
-                          </span>
+                          <span className="ml-1 text-xs text-subtle">{formatCounts(tag.postCount ?? 0)}</span>
                         </div>
                       ))}
                     </div>
@@ -443,6 +445,26 @@ export default function PostMetadata({
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// Small uppercase heading over a block
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-subtle">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+// One label/value line inside a <dl> card
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-3 py-2 text-xs">
+      <dt className="text-subtle">{label}</dt>
+      <dd className="text-right text-zinc-200">{children}</dd>
     </div>
   );
 }
