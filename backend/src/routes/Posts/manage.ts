@@ -7,6 +7,7 @@ import { HttpError } from "@/core/utilities/errors";
 import { ResolvedTag, resolveTagNames } from "@/core/utilities/tags";
 import { discardFiles, postFilePaths } from "@/components/uploads/finalize";
 import { appLogger } from "@/core/plugins/logger";
+import { MAX_RELATED_POSTS } from "@/core/objects/limits";
 
 const logger = appLogger('Posts/Manage');
 
@@ -15,6 +16,12 @@ type EditBody = {
   sources?: string[],
   notes?: string | null,
   tags?: string[],
+  related?: number[],
+}
+
+// PostRelation stores each pair once, lower id first. Every read/write goes through this
+function relationPair(a: number, b: number) {
+  return a < b ? { fromId: a, toId: b } : { fromId: b, toId: a };
 }
 
 const managePosts: FastifyPluginAsync = async (fastify) => {
@@ -35,6 +42,7 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
           sources: { type: 'array', maxItems: MAX_SOURCES, items: { type: 'string', maxLength: MAX_SOURCE_LENGTH } },
           notes: { type: ['string', 'null'], maxLength: MAX_NOTES_LENGTH },
           tags: { type: 'array', maxItems: MAX_TAGS, items: { type: 'string' } },
+          related: { type: 'array', maxItems: MAX_RELATED_POSTS, items: { type: 'integer', minimum: 1 } },
         },
       },
     },
@@ -126,6 +134,39 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
           }
 
           await tx.post.update({ where: { id }, data: { tagCount: wanted.size }});
+        }
+
+        // Related posts
+        if (body.related !== undefined) {
+          const wanted = new Set(body.related.filter((rid) => rid !== id)); // cant relate post to itself
+
+          // Unknown ids would fail the foreign key as a 500
+          // Turn them into a clear 400 instead
+          if (wanted.size) {
+            const found = await tx.post.findMany({ where: { id: { in: [...wanted] } }, select: { id: true } });
+            const missing = [...wanted].filter((rid) => !found.some((f) => f.id === rid));
+            if (missing.length) {
+              throw new HttpError(400, { error: 'Unknown posts', hint: `No posts with ids: ${missing.join(', ')}` });
+            }
+          }
+
+          // This post can be on either side of a stored pair
+          const current = await tx.postRelation.findMany({
+            where: { OR: [{ fromId: id }, { toId: id }] },
+            select: { fromId: true, toId: true },
+          });
+          const have = new Set(current.map((r) => (r.fromId === id ? r.toId : r.fromId)));
+
+          const toAdd = [...wanted].filter((rid) => !have.has(rid));
+          const toRemove = [...have].filter((rid) => !wanted.has(rid));
+
+          if (toRemove.length) {
+            await tx.postRelation.deleteMany({ where: { OR: toRemove.map((rid) => relationPair(id, rid)) } });
+          }
+
+          if (toAdd.length) {
+            await tx.postRelation.createMany({ data: toAdd.map((rid) => relationPair(id, rid)), skipDuplicates: true });
+          }
         }
       })
     } catch (e) {

@@ -116,10 +116,24 @@ model Post {
   // votes
   // comments
   // boosts
+  relatedFrom             PostRelation[]            @relation("RelatedFrom")
+  relatedTo               PostRelation[]            @relation("RelatedTo")
   // etc.
 
   updatedAt               DateTime                  @default(now()) // editing a post manually updates this
   createdAt               DateTime                  @default(now())
+}
+
+model PostRelation {
+  fromId                  Int
+  from                    Post                      @relation("RelatedFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId                    Int
+  to                      Post                      @relation("RelatedTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  createdAt               DateTime                  @default(now())
+
+  @@id([fromId, toId])
+  @@index([toId])
 }
 
 
