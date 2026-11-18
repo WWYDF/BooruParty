@@ -7,8 +7,7 @@ import { ArrowRightIcon, ImagesIcon, SmileyIcon } from "@phosphor-icons/react";
 import { API } from "@/core/api";
 import { formatCounts } from "@/core/formats";
 import { Posts } from "@/core/types/posts";
-import { RelatedTag, TagDetail, TagFlag } from "@/core/types/tags";
-import { CategoryInfo } from "@/components/Posts/Individual/PostView";
+import { CategoryInfo, RelatedTag, TagDetail, TagFlag } from "@/core/types/tags";
 
 const RECENT_POSTS = 12;
 

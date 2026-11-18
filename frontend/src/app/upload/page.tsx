@@ -7,6 +7,8 @@ import UploadCard from '@/components/Uploads/UploadCard'
 import UploadEditor from '@/components/Uploads/UploadEditor'
 import TagInput from '@/components/Uploads/TagInput'
 import DuplicateModal from '@/components/Uploads/DuplicateModal'
+import { CreateTagModal } from '@/components/Tags/CreateModal'
+import { CategoryInfo } from '@/core/types/tags'
 import { TagChip, UploadItem, UploadStatus, isEditable, parseSources } from '@/core/types/uploads'
 import { useToast } from '@/components/UI/Toast'
 import { useUser } from '@/components/UserProvider'
@@ -27,7 +29,33 @@ export default function UploadPage() {
   const [dupe, setDupe] = useState<{ item: UploadItem; original: PostDetail } | null>(null)
   const idCounter = useRef(0)
 
+  // "Add new tag" opens a category picker; the tag box awaits the result
+  const [categories, setCategories] = useState<(CategoryInfo & { isDefault: boolean })[]>([])
+  const [newTagName, setNewTagName] = useState<string | null>(null)
+  const newTagResolve = useRef<((tag: TagChip | null) => void) | null>(null)
+
   useEffect(() => { itemsRef.current = items }, [items])
+
+  useEffect(() => {
+    API('/api/tag-categories')
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setCategories)
+      .catch(() => {}) // without categories the modal falls back to the server's default
+  }, [])
+
+  const requestNewTag = (name: string) =>
+    new Promise<TagChip | null>((resolve) => {
+      newTagResolve.current?.(null) // only one modal at a time
+      newTagResolve.current = resolve
+      setNewTagName(name)
+    })
+
+  // Called with the tag on create, then with null on close; only the first call counts
+  const finishNewTag = (tag: TagChip | null) => {
+    newTagResolve.current?.(tag)
+    newTagResolve.current = null
+    setNewTagName(null)
+  }
 
   // Free thumbnail object URLs when leaving the page
   useEffect(() => () => {
@@ -44,6 +72,7 @@ export default function UploadPage() {
 
   const hasPerm = (perm: string) => user?.permissions.includes(perm) ?? false
   const canDupe = hasPerm('posts.create.dupes')
+  const canCreateTags = hasPerm('tags.create')
 
   const patchItems = (ids: Iterable<string>, patch: (item: UploadItem) => Partial<UploadItem>) => {
     const set = new Set(ids)
@@ -288,7 +317,13 @@ export default function UploadPage() {
           {/* Tags for every file */}
           <div>
             <label className="mb-1.5 block text-xs text-subtle">Tags for every file</label>
-            <TagInput value={globalTags} onChange={setGlobalTags} placeholder="Added to all files on upload..." />
+            <TagInput
+              value={globalTags}
+              onChange={setGlobalTags}
+              placeholder="Added to all files on upload..."
+              allowNew={canCreateTags}
+              onCreateNew={requestNewTag}
+            />
           </div>
 
           <div className="grid items-start gap-6 lg:grid-cols-[1fr_320px]">
@@ -313,6 +348,7 @@ export default function UploadPage() {
                 lockedCount={selectedItems.length - editableSelected.length}
                 onPatch={(patch) => patchItems(editableSelected.map((i) => i.id), patch)}
                 onRemove={() => removeItems(editableSelected.map((i) => i.id))}
+                onCreateTag={canCreateTags ? requestNewTag : undefined}
               />
             </aside>
           </div>
@@ -330,6 +366,14 @@ export default function UploadPage() {
           canDupe={canDupe}
         />
       )}
+
+      <CreateTagModal
+        open={newTagName !== null}
+        initialName={newTagName ?? ''}
+        categories={categories}
+        onCreated={(tag) => finishNewTag({ name: tag.name, color: tag.category.color })}
+        onClose={() => finishNewTag(null)}
+      />
     </div>
   )
 }

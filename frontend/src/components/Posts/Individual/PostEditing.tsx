@@ -21,7 +21,7 @@ import { useToast } from '@/components/UI/Toast';
 import { useUser } from '@/components/UserProvider';
 import TagInput from '@/components/Uploads/TagInput';
 import RelatedPostInput from './PostRelation';
-import { CategoryInfo } from './PostView';
+import { CategoryInfo } from '@/core/types/tags';
 import { API, APIUpload, UploadResponse, errorText } from '@/core/api';
 import { PostDetail, Safety } from '@/core/types/posts';
 import { SAFETY_LEVELS, SAFETY_STYLES, TagChip, parseSources } from '@/core/types/uploads';

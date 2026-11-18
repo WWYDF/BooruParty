@@ -26,7 +26,7 @@ import { useToast } from "@/components/UI/Toast";
 import { useUser } from "@/components/UserProvider";
 import { PostDetail, Safety } from "@/core/types/posts";
 import { SAFETY_STYLES } from "@/core/types/uploads";
-import { CategoryInfo } from "./PostView";
+import { CategoryInfo } from "@/core/types/tags";
 import PostEditing from "./PostEditing";
 import { defaultAvatar } from "@/core/constants/defaults";
 

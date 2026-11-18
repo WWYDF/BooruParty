@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API } from "@/core/api";
-import { TagDetail } from "@/core/types/tags";
-import { CategoryInfo } from "@/components/Posts/Individual/PostView";
+import { CategoryInfo, TagDetail } from "@/core/types/tags";
 
 // Loads a tag + all categories for the /tags/[name]/* pages.
 // Opened through an alias -> replaces the URL with the real name (same sub page), so edits/merges/deletes

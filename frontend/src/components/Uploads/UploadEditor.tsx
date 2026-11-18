@@ -10,11 +10,12 @@ type Props = {
   lockedCount: number;  // selected files that are uploading/uploaded (shown, but not editable)
   onPatch: (patch: (item: UploadItem) => Partial<UploadItem>) => void;
   onRemove: () => void;
+  onCreateTag?: (name: string) => Promise<TagChip | null>; // set = "Add new tag" is offered (the page owns the modal)
 };
 
 const sameTag = (a: TagChip, b: TagChip) => a.name === b.name;
 
-export default function UploadEditor({ items, lockedCount, onPatch, onRemove }: Props) {
+export default function UploadEditor({ items, lockedCount, onPatch, onRemove, onCreateTag }: Props) {
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-secondary-border bg-secondary p-4 text-sm text-subtle space-y-2">
@@ -94,7 +95,7 @@ export default function UploadEditor({ items, lockedCount, onPatch, onRemove }: 
       {/* Tags */}
       <div>
         <label className="mb-1.5 block text-xs text-subtle">Tags</label>
-        <TagInput value={commonTags} onChange={changeTags} />
+        <TagInput value={commonTags} onChange={changeTags} allowNew={!!onCreateTag} onCreateNew={onCreateTag} />
         {partialTags.size > 0 && (
           <p className="mt-1 text-xs text-subtle" title={[...partialTags].join(', ')}>
             +{partialTags.size} tag{partialTags.size === 1 ? '' : 's'} on only some of these files

@@ -9,7 +9,7 @@ import Dropdown from "@/components/UI/Dropdown";
 import Pagination from "@/components/UI/Pagination";
 import { useUser } from "@/components/UserProvider";
 import { CreateTagModal } from "@/components/Tags/CreateModal";
-import { CategoryInfo } from "@/components/Posts/Individual/PostView";
+import { CategoryInfo } from "@/core/types/tags";
 import { API, errorText } from "@/core/api";
 import { formatCounts } from "@/core/formats";
 

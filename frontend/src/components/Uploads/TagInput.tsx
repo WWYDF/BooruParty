@@ -26,6 +26,7 @@ type Props = {
   withImplications?: boolean;                             // picking a tag also adds everything it implies
   colorFor?: (categoryId: number) => string | undefined;  // colors for implied tags (they only come with a categoryId)
   allowNew?: boolean;                                     // offer "Add new tag" for names that don't exist yet
+  onCreateNew?: (name: string) => Promise<TagChip | null>; // create it now (e.g. via a modal); null = cancelled. Without this, new tags become "created on save" chips
   showChips?: boolean;                                    // false = the parent renders the picked tags itself
 };
 
@@ -41,6 +42,7 @@ export default function TagInput({
   withImplications = false,
   colorFor,
   allowNew = false,
+  onCreateNew,
   showChips = true,
 }: Props) {
   const [text, setText] = useState('');
@@ -117,9 +119,17 @@ export default function TagInput({
     onChange([...current, picked, ...implied.filter((i) => !current.some((t) => t.name === i.name))]);
   };
 
-  const addNew = () => {
+  const addNew = async () => {
     clearInput();
-    onChange([...value, { name: newName, isNew: true }]);
+    if (!onCreateNew) {
+      onChange([...value, { name: newName, isNew: true }]);
+      return;
+    }
+
+    const created = await onCreateNew(newName);
+    if (!created) return; // cancelled or failed (the creator shows its own errors)
+    const current = valueRef.current;
+    if (!current.some((t) => t.name === created.name)) onChange([...current, created]);
   };
 
   const choose = (index: number) => {

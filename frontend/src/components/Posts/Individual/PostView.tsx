@@ -12,8 +12,7 @@ import { useUser } from '@/components/UserProvider';
 import { API } from '@/core/api';
 import { PostDetail } from '@/core/types/posts';
 import { CommentPage, CommentWriteResponse, EmbeddedPosts, PostComment } from '@/core/types/comments';
-
-export type CategoryInfo = { id: number; name: string; color: string; index: number };
+import { CategoryInfo } from '@/core/types/tags';
 
 // GET /api/posts/:id/comments, newest first. `cursor` = the last comment id of the previous page.
 async function fetchComments(postId: number, cursor?: number | null): Promise<CommentPage> {

@@ -92,11 +92,5 @@ export type TagGroup = {
   tags: Tag[]
 }
 
-export type TagCategory = {
-  id: number,
-  name: string,
-  color: string,
-  order: number,
-  isDefault: boolean,
-  updatedAt: Date
-}
+// GET /api/tag-categories item (only the fields the frontend uses; the list also carries isDefault)
+export type CategoryInfo = { id: number; name: string; color: string; index: number };

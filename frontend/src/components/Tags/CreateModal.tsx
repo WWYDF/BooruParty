@@ -7,13 +7,14 @@ import Dropdown from "@/components/UI/Dropdown";
 import Button from "@/components/UI/Button";
 import { useToast } from "@/components/UI/Toast";
 import { API, errorText } from "@/core/api";
-import { CategoryInfo } from "@/components/Posts/Individual/PostView";
+import { CategoryInfo } from "@/core/types/tags";
 
 type CreateTagModalProps = {
   open: boolean;
   onClose: () => void;
-  onCreated: (tag: { id: number; name: string }) => void;
+  onCreated: (tag: { id: number; name: string; category: { color: string } }) => void;
   categories: (CategoryInfo & { isDefault?: boolean })[]; // already loaded by the page
+  initialName?: string; // prefill, e.g. the name typed into a tag box
 };
 
 const MAX_DESCRIPTION = 4096;
@@ -21,7 +22,7 @@ const MAX_DESCRIPTION = 4096;
 const inputClass =
   "w-full rounded-lg border border-secondary-border bg-zinc-900 px-3 py-2 text-sm text-zinc-200 focus:outline-hidden focus:ring-1 focus:ring-zinc-600";
 
-export function CreateTagModal({ open, onClose, onCreated, categories }: CreateTagModalProps) {
+export function CreateTagModal({ open, onClose, onCreated, categories, initialName = "" }: CreateTagModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -31,10 +32,10 @@ export function CreateTagModal({ open, onClose, onCreated, categories }: CreateT
   // Fresh form every time it opens, starting in the default category
   useEffect(() => {
     if (!open) return;
-    setName("");
+    setName(initialName);
     setDescription("");
     setCategoryId(categories.find((c) => c.isDefault)?.id ?? categories[0]?.id ?? null);
-  }, [open, categories]);
+  }, [open, categories, initialName]);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
