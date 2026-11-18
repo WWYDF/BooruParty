@@ -16,3 +16,7 @@ export const MAX_COMMENT_EMBEDS = 2;
 // Avatars
 export const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
 export const AVATAR_SIZE = 256; // square px
+
+// Pools
+export const MAX_POOL_NAME_LENGTH = 128;
+export const MAX_POOL_DESCRIPTION_LENGTH = 2048;
