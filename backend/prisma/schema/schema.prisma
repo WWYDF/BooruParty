@@ -70,6 +70,8 @@ model User {
   postFavorites           PostFavorite[]
   postBoosts              PostBoost[]
 
+  poolFavorites           PoolFavorite[]
+
   // Dates
   lastSeen                String?                   // pair with updatedAt
   lastBoostAt             DateTime?
@@ -146,6 +148,7 @@ model Post {
   relatedFrom             PostRelation[]            @relation("RelatedFrom")
   relatedTo               PostRelation[]            @relation("RelatedTo")
   featured                ServerSettings[]          // required back-relation to server settings
+  pools                   PoolPost[]
   // etc.
 
   updatedAt               DateTime                  @default(now()) // editing a post manually updates this
@@ -300,4 +303,49 @@ model TagSuggestion {
 
   @@id([tagId, suggestedId])
   @@index([suggestedId])
+}
+
+
+// -------------------------------------------------------------------------------------------------------
+//                                              POOLS
+// -------------------------------------------------------------------------------------------------------
+
+model Pool {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @db.Citext
+  description             String?
+  yearStart               Int?
+  yearEnd                 Int?
+  favoriteCount           Int                       @default(0) // Favorites API calcs this on change
+
+  items                   PoolPost[]
+  favorites               PoolFavorite[]
+
+  updatedAt               DateTime                  @updatedAt
+  createdAt               DateTime                  @default(now())
+}
+
+model PoolPost {
+  poolId                  Int
+  pool                    Pool                      @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  postId                  Int
+  post                    Post                      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  index                   Int
+
+  @@id([poolId, postId])                            // a post appears once per pool
+  @@unique([poolId, index])                         // also serves as the ordered-read index
+  @@index([postId])                                 // "which pools is this post in" + delete cascade
+}
+
+model PoolFavorite {
+  poolId                  Int
+  pool                    Pool                      @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  userId                  String
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt               DateTime                  @default(now())
+
+  @@id([userId, poolId])                            // one fav per pool
+  @@index([userId, createdAt])                      // a user's favorite pools, newest first
+  @@index([poolId])                                 // cascade on pool delete
 }

@@ -24,7 +24,7 @@ export const PERMISSIONS = [
   "pool.create",
   "pool.manage",
   "pool.delete",
-  "pool.vote",
+  "pool.favorite",
   "profile.create",
   "profile.view",
   "profile.edit.avatar",

@@ -87,7 +87,7 @@ const default_perms: PermissionName[] = [
   "comment.edit.own",
   "comment.delete.own",
   "comment.vote",
-  "pool.vote",
+  "pool.favorite",
   "profile.create",
   "profile.view",
   "profile.edit.avatar",
