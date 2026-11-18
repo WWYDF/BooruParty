@@ -68,7 +68,7 @@ export default function Navbar() {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4 }}
-        className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800 md:sticky top-0 z-30"
+        className="w-full px-6 py-4 flex items-center justify-between bg-zinc-950 border-b border-zinc-800 md:sticky top-0 z-40"
       >
         <>
           {/* Mobile logo */}

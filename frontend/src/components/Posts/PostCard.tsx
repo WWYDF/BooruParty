@@ -1,7 +1,7 @@
 'use client';
 
 import { Posts } from "@/core/types/posts";
-import { ChatsIcon, FilmStripIcon, HeartIcon, SparkleIcon, ThumbsUpIcon } from "@phosphor-icons/react";
+import { ChatsIcon, HeartIcon, ImagesIcon, SparkleIcon, ThumbsUpIcon, VideoCameraIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 
 interface PostCardProps {
@@ -13,8 +13,6 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post, viewMode, selectionMode, isSelected, toggleSelect }: PostCardProps) {
-  const isAnimated = post.type !== 'IMAGE';
-
   return (
     <Link
       href={selectionMode ? "#" : `/post/${post.id}`}
@@ -69,9 +67,14 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
 
         {/* Floating Icons */}
         <div className="absolute bottom-2 left-2 flex items-center gap-2">
-          {isAnimated && (
+          {post.type === 'VIDEO' && (
             <div className="bg-secondary-border px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <FilmStripIcon size={16} />
+              <VideoCameraIcon size={16} />
+            </div>
+          )}
+          {post.type === 'ANIMATED' && (
+            <div className="bg-secondary-border px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <ImagesIcon size={16} />
             </div>
           )}
         </div>
