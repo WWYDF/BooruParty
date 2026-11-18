@@ -49,7 +49,7 @@ export default function TagInput({
   const [results, setResults] = useState<TagResult[]>([]);
   const [highlighted, setHighlighted] = useState(0);
   const [focused, setFocused] = useState(false);
-  const [searched, setSearched] = useState(false); // a search finished for the current text
+  const [searched, setSearched] = useState(false); // a search finished since the box was last empty (results may lag the text by one debounce)
 
   // Latest value, for async work that finishes after the user has changed the list again
   const valueRef = useRef(value);
@@ -57,8 +57,8 @@ export default function TagInput({
 
   useEffect(() => {
     const term = text.trim();
-    setSearched(false);
-    if (!term) { setResults([]); return; }
+    // Keep the previous results (and the "Add new tag" row) up while this search runs, so they don't flicker per keystroke
+    if (!term) { setResults([]); setSearched(false); return; }
 
     const controller = new AbortController();
     const timer = setTimeout(async () => {

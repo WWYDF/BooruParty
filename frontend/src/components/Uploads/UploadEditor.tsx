@@ -6,8 +6,8 @@ import TagInput from './TagInput';
 import { SAFETY_LEVELS, SAFETY_STYLES, TagChip, UploadItem, parseSources } from '../../core/types/uploads';
 
 type Props = {
-  items: UploadItem[];  // the selected files that can still be edited
-  lockedCount: number;  // selected files that are uploading/uploaded (shown, but not editable)
+  items: UploadItem[];  // the selected files (only unsent files can be selected)
+  uploading: boolean;   // the queue is running: nothing is editable until it finishes
   onPatch: (patch: (item: UploadItem) => Partial<UploadItem>) => void;
   onRemove: () => void;
   onCreateTag?: (name: string) => Promise<TagChip | null>; // set = "Add new tag" is offered (the page owns the modal)
@@ -15,14 +15,22 @@ type Props = {
 
 const sameTag = (a: TagChip, b: TagChip) => a.name === b.name;
 
-export default function UploadEditor({ items, lockedCount, onPatch, onRemove, onCreateTag }: Props) {
+export default function UploadEditor({ items, uploading, onPatch, onRemove, onCreateTag }: Props) {
+  if (uploading) {
+    return (
+      <div className="rounded-xl border border-secondary-border bg-secondary p-4 text-sm text-subtle space-y-2">
+        <p className="text-white font-medium">Uploading...</p>
+        <p>Editing is paused until the queue finishes. Files that fail or turn out to be duplicates can be edited afterwards.</p>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-secondary-border bg-secondary p-4 text-sm text-subtle space-y-2">
         <p className="text-white font-medium">Nothing selected</p>
         <p>Click a file to edit its safety, tags, sources and notes.</p>
         <p className="text-xs">Shift-click selects a range. Ctrl/⌘-click adds to the selection.</p>
-        {lockedCount > 0 && <p className="text-xs">Files that are uploading or done can&apos;t be edited.</p>}
       </div>
     );
   }
@@ -64,11 +72,6 @@ export default function UploadEditor({ items, lockedCount, onPatch, onRemove, on
               ? `${formatStorageFromBytes(single.file.size)} · ${single.file.type || 'unknown type'}`
               : 'Changes apply to every selected file'}
           </p>
-          {lockedCount > 0 && (
-            <p className="text-xs text-yellow-400">
-              {lockedCount} more selected {lockedCount === 1 ? 'file is' : 'files are'} uploading or done and won&apos;t change
-            </p>
-          )}
         </div>
       </div>
 

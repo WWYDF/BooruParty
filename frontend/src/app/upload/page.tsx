@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { UploadSimpleIcon } from '@phosphor-icons/react'
+import { BroomIcon, CheckSquareIcon, SquareIcon, UploadSimpleIcon } from '@phosphor-icons/react'
+import Button from '@/components/UI/Button'
 import UploadCard from '@/components/Uploads/UploadCard'
 import UploadEditor from '@/components/Uploads/UploadEditor'
 import TagInput from '@/components/Uploads/TagInput'
@@ -74,6 +75,9 @@ export default function UploadPage() {
   const canDupe = hasPerm('posts.create.dupes')
   const canCreateTags = hasPerm('tags.create')
 
+  // Only unsent files can be picked for editing, and nothing while the queue runs
+  const canSelect = (item: UploadItem) => !uploading && isEditable(item)
+
   const patchItems = (ids: Iterable<string>, patch: (item: UploadItem) => Partial<UploadItem>) => {
     const set = new Set(ids)
     setItems((prev) => prev.map((i) => (set.has(i.id) ? { ...i, ...patch(i) } : i)))
@@ -120,7 +124,8 @@ export default function UploadPage() {
     if (e.shiftKey && lastClicked.current) {
       const ids = items.map((i) => i.id)
       const [a, b] = [ids.indexOf(lastClicked.current), ids.indexOf(id)].sort((x, y) => x - y)
-      setSelected((prev) => new Set([...prev, ...ids.slice(a, b + 1)]))
+      const range = items.slice(a, b + 1).filter(canSelect).map((i) => i.id) // skip sent files in between
+      setSelected((prev) => new Set([...prev, ...range]))
     } else if (e.ctrlKey || e.metaKey) {
       toggleOne(id)
     } else {
@@ -175,6 +180,7 @@ export default function UploadPage() {
   const runQueue = async (skipDupes = false) => {
     if (uploading) return
     setUploading(true)
+    setSelected(new Set()) // editing is locked while the queue runs; the active file gets the outline instead
 
     const targetIds = itemsRef.current
       .filter((i) => i.status.state === 'queued' || i.status.state === 'error' || (skipDupes && i.status.state === 'duplicate'))
@@ -210,12 +216,12 @@ export default function UploadPage() {
       : item.tags
 
     setUploading(true)
+    setSelected(new Set())
     await uploadItem({ ...item, tags }, true)
     setUploading(false)
   }
 
-  const selectedItems = items.filter((i) => selected.has(i.id))
-  const editableSelected = selectedItems.filter(isEditable)
+  const selectedItems = items.filter((i) => selected.has(i.id) && isEditable(i)) // isEditable: belt and braces, selection should only hold these
   const count = (state: UploadStatus['state']) => items.filter((i) => i.status.state === state).length
   const pending = count('queued') + count('error')
   const done = count('done')
@@ -291,19 +297,23 @@ export default function UploadPage() {
 
             <span className="mx-1 h-5 w-px bg-secondary-border" />
 
-            <button onClick={() => setSelected(new Set(items.map((i) => i.id)))} className="text-sm cursor-pointer text-subtle hover:text-white">
+            <Button
+              icon={<CheckSquareIcon size={14} />}
+              onClick={() => setSelected(new Set(items.filter(canSelect).map((i) => i.id)))}
+              disabled={uploading}
+            >
               Select all
-            </button>
-            <button onClick={() => setSelected(new Set())} className="text-sm cursor-pointer text-subtle hover:text-white">
+            </Button>
+            <Button icon={<SquareIcon size={14} />} onClick={() => setSelected(new Set())} disabled={uploading}>
               Select none
-            </button>
+            </Button>
             {done > 0 && (
-              <button
+              <Button
+                icon={<BroomIcon size={14} />}
                 onClick={() => removeItems(items.filter((i) => i.status.state === 'done').map((i) => i.id))}
-                className="text-sm text-subtle hover:text-white"
               >
                 Clear finished
-              </button>
+              </Button>
             )}
 
             <span className="ml-auto text-xs text-subtle">
@@ -323,6 +333,7 @@ export default function UploadPage() {
               placeholder="Added to all files on upload..."
               allowNew={canCreateTags}
               onCreateNew={requestNewTag}
+              disabled={uploading}
             />
           </div>
 
@@ -333,7 +344,12 @@ export default function UploadPage() {
                 <UploadCard
                   key={item.id}
                   item={item}
-                  selected={selected.has(item.id)}
+                  selected={
+                    uploading
+                      ? item.status.state === 'uploading' || item.status.state === 'processing' // the file being sent right now
+                      : selected.has(item.id)
+                  }
+                  selectable={canSelect(item)}
                   onClick={(e) => handleCardClick(item.id, e)}
                   onToggle={() => toggleOne(item.id)}
                   onReview={() => reviewDuplicate(item)}
@@ -344,10 +360,10 @@ export default function UploadPage() {
             {/* Editor panel */}
             <aside className="lg:sticky lg:top-24">
               <UploadEditor
-                items={editableSelected}
-                lockedCount={selectedItems.length - editableSelected.length}
-                onPatch={(patch) => patchItems(editableSelected.map((i) => i.id), patch)}
-                onRemove={() => removeItems(editableSelected.map((i) => i.id))}
+                items={selectedItems}
+                uploading={uploading}
+                onPatch={(patch) => patchItems(selectedItems.map((i) => i.id), patch)}
+                onRemove={() => removeItems(selectedItems.map((i) => i.id))}
                 onCreateTag={canCreateTags ? requestNewTag : undefined}
               />
             </aside>

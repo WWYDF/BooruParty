@@ -6,13 +6,14 @@ import { SAFETY_STYLES, UploadItem } from '../../core/types/uploads';
 
 type Props = {
   item: UploadItem;
-  selected: boolean;
+  selected: boolean;                      // outlined: picked for editing, or the file uploading right now
+  selectable: boolean;                    // false = no checkbox/Review, clicks do nothing (sent files, or the queue is running)
   onClick: (e: React.MouseEvent) => void; // selection (shift/ctrl handled by the page)
   onToggle: () => void;                  // checkbox: add/remove just this card
   onReview: () => void;                  // duplicate: open the comparison modal
 };
 
-export default function UploadCard({ item, selected, onClick, onToggle, onReview }: Props) {
+export default function UploadCard({ item, selected, selectable, onClick, onToggle, onReview }: Props) {
   const { status } = item;
   const safety = SAFETY_STYLES[item.safety];
   const ext = item.file.name.split('.').pop()?.toUpperCase() ?? '?';
@@ -20,9 +21,13 @@ export default function UploadCard({ item, selected, onClick, onToggle, onReview
 
   return (
     <div
-      onClick={onClick}
-      className={`group relative cursor-pointer select-none overflow-hidden rounded-xl border bg-secondary transition ${
-        selected ? 'border-accent ring-2 ring-accent/40' : 'border-secondary-border hover:border-zinc-600'
+      onClick={selectable ? onClick : undefined}
+      className={`group relative select-none overflow-hidden rounded-xl border bg-secondary transition ${
+        selectable ? 'cursor-pointer' : 'cursor-default'
+      } ${
+        selected
+          ? 'border-accent ring-2 ring-accent/40'
+          : `border-secondary-border ${selectable ? 'hover:border-zinc-600' : ''}`
       }`}
     >
       {/* Thumbnail */}
@@ -39,17 +44,19 @@ export default function UploadCard({ item, selected, onClick, onToggle, onReview
         )}
 
         {/* Checkbox */}
-        <button
-          onClick={(e) => { stop(e); onToggle(); }}
-          className={`absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded border transition ${
-            selected
-              ? 'border-accent bg-accent text-black'
-              : 'border-zinc-500 bg-black/50 text-transparent opacity-0 group-hover:opacity-100'
-          }`}
-          title={selected ? 'Deselect' : 'Select'}
-        >
-          <CheckIcon size={12} weight="bold" />
-        </button>
+        {selectable && (
+          <button
+            onClick={(e) => { stop(e); onToggle(); }}
+            className={`absolute left-2 top-2 flex h-5 w-5 cursor-pointer items-center justify-center rounded border transition ${
+              selected
+                ? 'border-accent bg-accent text-black'
+                : 'border-zinc-500 bg-black/50 text-transparent opacity-0 group-hover:opacity-100'
+            }`}
+            title={selected ? 'Deselect' : 'Select'}
+          >
+            <CheckIcon size={12} weight="bold" />
+          </button>
+        )}
 
         {/* Safety + type badges */}
         <div className="absolute right-2 top-2 flex items-center gap-1">
@@ -81,19 +88,19 @@ export default function UploadCard({ item, selected, onClick, onToggle, onReview
 
         {status.state === 'processing' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white">
-            <span className="animate-pulse">Processing…</span>
+            <span className="animate-pulse">Processing...</span>
           </div>
         )}
 
         {status.state === 'done' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/60 text-green-400">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/80 backdrop-blur-xs text-green-400">
             <CheckCircleIcon size={28} weight="fill" />
             <a
               href={`/post/${status.postId}`}
               target="_blank"
               rel="noreferrer"
               onClick={stop}
-              className="text-xs text-white underline hover:text-accent"
+              className="text-xs text-white underline hover:text-accent font-medium"
             >
               Post #{status.postId}
             </a>
@@ -104,12 +111,14 @@ export default function UploadCard({ item, selected, onClick, onToggle, onReview
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 text-center text-yellow-300">
             <WarningIcon size={24} weight="fill" />
             <span className="text-xs">Duplicate of #{status.postId}</span>
-            <button
-              onClick={(e) => { stop(e); onReview(); }}
-              className="rounded bg-zinc-800 px-2 py-1 text-xs text-white hover:bg-zinc-700"
-            >
-              Review
-            </button>
+            {selectable && (
+              <button
+                onClick={(e) => { stop(e); onReview(); }}
+                className="cursor-pointer rounded bg-zinc-800 px-2 py-1 text-xs text-white hover:bg-zinc-700"
+              >
+                Review
+              </button>
+            )}
           </div>
         )}
       </div>
