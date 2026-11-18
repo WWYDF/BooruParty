@@ -21,6 +21,7 @@ model ServerSettings {
   id                      Int                       @id @default(1)
   lastSetupVersion        String?
   convertShortVids        Boolean                   @default(true)
+  boostCooldown           Int                       @default(86400) // in seconds
 
   featuredPostId          Int?
   featuredPost            Post?                     @relation(fields: [featuredPostId], references: [id], onDelete: SetNull)
@@ -58,8 +59,11 @@ model User {
   comments                PostComment[]
   postVotes               PostVote[]
   postFavorites           PostFavorite[]
+  postBoosts              PostBoost[]
 
+  // Dates
   lastSeen                String?                   // pair with updatedAt
+  lastBoostAt             DateTime?
   updatedAt               DateTime                  @updatedAt
   lastLogin               DateTime                  @default(now())
   createdAt               DateTime                  @default(now())
@@ -122,13 +126,14 @@ model Post {
   tagCount                Int                       @default(0) // Posts API calculates this on change
   score                   Int                       @default(0) // Votes API calculates this on change
   favoriteCount           Int                       @default(0) // Votes API calculates this on change
+  boostCount              Int                       @default(0) // Votes API calculates this on change
 
   // Relationals
   tags                    PostTag[]
   votes                   PostVote[]
   favorites               PostFavorite[]
   comments                PostComment[]
-  // boosts
+  boosts                  PostBoost[]
   relatedFrom             PostRelation[]            @relation("RelatedFrom")
   relatedTo               PostRelation[]            @relation("RelatedTo")
   featured                ServerSettings[]          // required back-relation to server settings
@@ -191,6 +196,20 @@ model PostFavorite {
   @@id([userId, postId])                            // one fav per post
   @@index([userId, createdAt])                      // a user's favorites, newest first
   @@index([postId])                                 // who favorited this post / cascade on post delete
+}
+
+// Boosts
+model PostBoost {
+  id                      Int                       @id @default(autoincrement())
+  postId                  Int
+  post                    Post                      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId                  String
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt               DateTime                  @default(now())
+
+  @@index([userId, createdAt])                      // a user's history, newest first
+  @@index([postId])                                 // a post's boosts / cascade on post delete
 }
 
 

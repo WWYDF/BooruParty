@@ -1,11 +1,12 @@
-import { setFavorite, setVote, VoteValue } from "@/components/posts/interactions";
+import { boostPost, setFavorite, setVote, undoBoost, VoteValue } from "@/components/posts/interactions";
 import { requirePermission, rolePermissionCheck } from "@/core/utilities/permissionCache";
 import { postVisibilitySelect } from "@/core/objects/selects/posts";
 import { MAX_INT } from "@/core/objects/limits";
 import { prisma } from "@/core/plugins/prisma";
 import { assertPostVisible, getBrowsingViewer } from "@/core/utilities/viewer";
 import { FastifyPluginAsync } from "fastify";
-import { Prisma } from "../../../prisma/client";
+import { getServerSettings } from "@/core/utilities/settingsCache";
+import { isMissingRowError } from "@/core/utilities/errors";
 
 
 const postInteractions: FastifyPluginAsync = async (fastify) => {
@@ -42,9 +43,7 @@ const postInteractions: FastifyPluginAsync = async (fastify) => {
     } catch (e) {
       // Post deleted between the visibility check and the write:
       // P2003 = the vote insert hit a missing post, P2025 = the score update found no post
-      if (e instanceof Prisma.PrismaClientKnownRequestError && (e.code === 'P2003' || e.code === 'P2025')) {
-        return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
-      }
+      if (isMissingRowError(e)) { return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' }) };
       throw e;
     }
   });
@@ -89,9 +88,63 @@ const postInteractions: FastifyPluginAsync = async (fastify) => {
 
       return reply.status(200).send({ favorited, ...result });
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && (e.code === 'P2003' || e.code === 'P2025')) {
-        return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
-      }
+      if (isMissingRowError(e)) { return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' }) };
+      throw e;
+    }
+  });
+
+  // Boost a post (once per cooldown). Returns the new count and the user's cooldown state.
+  fastify.put('/:id/boost', {
+    onRequest: [fastify.authenticate, requirePermission('posts.boost')],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer', minimum: 1, maximum: MAX_INT } },
+      },
+    },
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+
+    const viewer = await getBrowsingViewer(req);
+    const post = await prisma.post.findUnique({ where: { id }, select: postVisibilitySelect });
+    assertPostVisible(viewer, post);
+
+    const cooldown = getServerSettings().boostCooldown;
+    try {
+      const result = await prisma.$transaction((tx) => boostPost(tx, id, req.user.sub, cooldown));
+      return reply.status(200).send(result);
+    } catch (e) {
+      if (isMissingRowError(e)) { return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' }) };
+      throw e;
+    }
+  });
+
+  // Undo your active boost on this post (only before the cooldown ends). Refunds the cooldown.
+  fastify.delete('/:id/boost', {
+    onRequest: [fastify.authenticate, requirePermission('posts.boost')],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer', minimum: 1, maximum: MAX_INT } },
+      },
+    },
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+
+    const viewer = await getBrowsingViewer(req);
+    const post = await prisma.post.findUnique({ where: { id }, select: postVisibilitySelect });
+    assertPostVisible(viewer, post);
+
+    const cooldown = getServerSettings().boostCooldown;
+    try {
+      const result = await prisma.$transaction((tx) => undoBoost(tx, id, req.user.sub, cooldown));
+      return reply.send(result);
+    } catch (e) {
+      if (isMissingRowError(e)) { return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' }) };
       throw e;
     }
   });

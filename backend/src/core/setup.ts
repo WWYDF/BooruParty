@@ -75,6 +75,7 @@ const default_perms: PermissionName[] = [
   "posts.delete.own",
   "posts.vote",
   "posts.favorite",
+  "posts.boost",
   "comment.create",
   "comment.embed.post",
   "comment.edit.own",

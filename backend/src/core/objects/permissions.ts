@@ -12,6 +12,7 @@ export const PERMISSIONS = [
   "posts.feature",
   "posts.vote",
   "posts.favorite",
+  "posts.boost",
   "comment.create",
   "comment.embed.url",
   "comment.embed.post",

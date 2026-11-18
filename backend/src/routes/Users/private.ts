@@ -7,6 +7,8 @@ import { Prisma, Safety } from '../../../prisma/client';
 import bcrypt from 'bcrypt';
 import { rolePermissionCheck, rolePermissionList } from '@/core/utilities/permissionCache';
 import { formatUserSummary } from '@/core/utilities/reformatters';
+import { getBoostState } from '@/components/posts/interactions';
+import { getServerSettings } from '@/core/utilities/settingsCache';
 
 const logger = appLogger('Users/Private');
 
@@ -29,7 +31,13 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
       return reply.status(401).send({ error: 'Unauthorized', hint: "You aren't logged in" });
     }
 
-    return reply.status(200).send({ ...formatUserSummary(user), permissions: rolePermissionList(user.roleId) });
+    const boost = await getBoostState(prisma, user.id, user.lastBoostAt, getServerSettings().boostCooldown);
+
+    return reply.status(200).send({
+      ...formatUserSummary(user),
+      permissions: rolePermissionList(user.roleId),
+      boost
+    });
   });
 
   // Base /me -> Edit base user object like user, pass, or email

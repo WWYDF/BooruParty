@@ -12,6 +12,7 @@ const settingsSelect = {
   guestSafety: true,
   featuredPostId: true,
   convertShortVids: true,
+  boostCooldown: true,
 } satisfies Prisma.ServerSettingsSelect;
 
 export type CachedSettings = Prisma.ServerSettingsGetPayload<{ select: typeof settingsSelect }>;
