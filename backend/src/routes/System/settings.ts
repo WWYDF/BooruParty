@@ -26,6 +26,7 @@ const settings: FastifyPluginAsync = async (fastify) => {
             uniqueItems: true,
             items: { type: 'string', enum: Object.values(Safety) },
           },
+          convertShortVids: { type: 'boolean' },
         },
       },
     },
@@ -33,6 +34,7 @@ const settings: FastifyPluginAsync = async (fastify) => {
     const body = req.body as {
       guestAccess?: boolean,
       guestSafety?: Safety[],
+      convertShortVids?: boolean,
     };
 
     await prisma.serverSettings.update({ where: { id: 1 }, data: body });

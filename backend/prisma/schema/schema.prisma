@@ -20,6 +20,8 @@ datasource db {
 model ServerSettings {
   id                      Int                       @id @default(1)
   lastSetupVersion        String?
+  convertShortVids        Boolean                   @default(true)
+
   featuredPostId          Int?
   featuredPost            Post?                     @relation(fields: [featuredPostId], references: [id], onDelete: SetNull)
 

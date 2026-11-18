@@ -1,6 +1,7 @@
 import { ffmpeg, ffprobe } from "@/core/utilities/ffmpeg";
 import { EncoderConfig, PREVIEW_SCALE } from "./encoders";
 import { appLogger } from "@/core/plugins/logger";
+import { getServerSettings } from "@/core/utilities/settingsCache";
 
 const logger = appLogger('Video');
 
@@ -61,7 +62,8 @@ export async function encodeVideoPreview(inputPath: string, outputPath: string, 
 
 // Convert short, muted videos to animations
 export function shouldConvertToAnimation(info: VideoInfo): boolean {
-  return !info.hasAudio && info.duration > 0 && info.duration <= 5; // 5 seconds max
+  const settings = getServerSettings();
+  return settings?.convertShortVids && !info.hasAudio && info.duration > 0 && info.duration <= 5; // 5 seconds max
 }
 
 export async function convertToAnimatedWebp(inputPath: string, outputPath: string) {

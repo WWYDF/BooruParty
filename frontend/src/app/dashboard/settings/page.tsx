@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { EyeIcon, FloppyDiskIcon, ShieldCheckIcon, ShieldIcon, ShieldWarningIcon, StarIcon } from "@phosphor-icons/react";
+import { EyeIcon, FileVideoIcon, FloppyDiskIcon, ShieldCheckIcon, ShieldIcon, ShieldWarningIcon, StarIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import { FullCheckbox, FullCheckboxGroup } from "@/components/UI/FullCheckbox";
 import { useToast } from "@/components/UI/Toast";
@@ -10,7 +10,12 @@ import { API, errorText } from "@/core/api";
 import { Safety } from "@/core/types/posts";
 
 // GET/PATCH /api/system/settings
-type Settings = { guestAccess: boolean; guestSafety: Safety[]; featuredPostId: number | null };
+type Settings = {
+  guestAccess: boolean,
+  guestSafety: Safety[],
+  featuredPostId: number | null,
+  convertShortVids: boolean,
+};
 
 const SAFETY_OPTIONS: { value: Safety; label: string; description: string; icon: React.ReactNode }[] = [
   { value: "SAFE", label: "Safe", description: "Fine for anyone.", icon: <ShieldCheckIcon size={18} /> },
@@ -35,6 +40,7 @@ export default function AdminSettingsPage() {
   const [saved, setSaved] = useState<Settings | null>(null); // what the server has
   const [guestAccess, setGuestAccess] = useState(false);
   const [guestSafety, setGuestSafety] = useState<Safety[]>([]);
+  const [convertShortVids, setconvertShortVids] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +48,7 @@ export default function AdminSettingsPage() {
     setSaved(s);
     setGuestAccess(s.guestAccess);
     setGuestSafety(s.guestSafety);
+    setconvertShortVids(s.convertShortVids);
   };
 
   useEffect(() => {
@@ -65,6 +72,7 @@ export default function AdminSettingsPage() {
     const body: Partial<Settings> = {};
     if (guestAccess !== saved.guestAccess) body.guestAccess = guestAccess;
     if (!sameSet(guestSafety, saved.guestSafety)) body.guestSafety = guestSafety;
+    if (convertShortVids !== saved.convertShortVids) body.convertShortVids = convertShortVids;
 
     setSaving(true);
     try {
@@ -104,6 +112,19 @@ export default function AdminSettingsPage() {
             <p className="mb-2 text-xs text-subtle">Safety levels guests may see (a hard limit their searches can&apos;t go past):</p>
             <FullCheckboxGroup options={SAFETY_OPTIONS} value={guestSafety} onChange={setGuestSafety} disabled={saving || !guestAccess} />
           </div>
+        </div>
+      </Card>
+
+      <Card title="Uploading" description="Various limits and config options.">
+        <div className="space-y-4">
+          <FullCheckbox
+            checked={convertShortVids}
+            onChange={setconvertShortVids}
+            label="Convert short, muted videos to animations"
+            description="Off: keep them as videos."
+            icon={<FileVideoIcon size={18} />}
+            disabled={saving}
+          />
         </div>
       </Card>
 
