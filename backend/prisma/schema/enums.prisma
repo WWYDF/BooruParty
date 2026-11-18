@@ -15,3 +15,9 @@ enum FileType {
 enum TagFlag {
   REACTION
 }
+
+enum AutoTaggerMode {
+  PASSIVE
+  AGGRESSIVE
+  SELECTIVE
+}

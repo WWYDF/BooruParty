@@ -30,6 +30,15 @@ model ServerSettings {
   guestSafety             Safety[]                  @default([SAFE])
 }
 
+// Works very similarly to ServerSettings, just less "core"
+model Addons {
+  id                      Int                       @id @default(1)
+  
+  enableAutoTagger        Boolean                   @default(false)
+  autoTaggerUrl           String?
+  autoTaggerMode          AutoTaggerMode[]          @default([PASSIVE])
+}
+
 model Session {
   id                      String                    @id @default(uuid())
   userId                  String

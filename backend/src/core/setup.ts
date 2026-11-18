@@ -55,7 +55,13 @@ async function runSetup() {
       lastSetupVersion: CURRENT_VERSION,
       // plus any other default overrides
     }
-  })
+  });
+
+  await prisma.addons.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {},
+  });
 
   logger.success(`[+] Finished setting up! Continue on frontend through ${process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/setup` : 'the website.'}`)
 }
