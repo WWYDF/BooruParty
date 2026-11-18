@@ -54,10 +54,20 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
       return row ? [formatPostSummary(row)] : [];
     });
 
+    // This viewer's own interactions statuses (guests have none)
+    const userId = viewer.userId;
+    const [vote, favorite] = userId
+      ? await Promise.all([
+        prisma.postVote.findUnique({ where: { postId_userId: { postId: id, userId } }, select: { value: true } }),
+        prisma.postFavorite.findUnique({ where: { userId_postId: { userId, postId: id } }, select: { postId: true } }),
+      ])
+      : [null, null];
+
     return reply.status(200).send({
       ...formatPostDetail(post),
       related,
       featured: getServerSettings().featuredPostId === id,
+      viewer: userId ? { vote: vote?.value ?? 0, favorited: favorite !== null } : null,
     });
   });
 
