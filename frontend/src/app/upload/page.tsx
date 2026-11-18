@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { BroomIcon, CheckSquareIcon, SquareIcon, UploadSimpleIcon } from '@phosphor-icons/react'
 import Button from '@/components/UI/Button'
+import Checkbox from '@/components/UI/Checkbox'
+import { autoTaggerHas, useAddons } from '@/core/hooks/useAddons'
 import UploadCard from '@/components/Uploads/UploadCard'
 import UploadEditor from '@/components/Uploads/UploadEditor'
 import TagInput from '@/components/Uploads/TagInput'
@@ -29,6 +31,8 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false)
   const [dupe, setDupe] = useState<{ item: UploadItem; original: PostDetail } | null>(null)
   const idCounter = useRef(0)
+  const addons = useAddons()
+  const [autoTag, setAutoTag] = useState(false) // SELECTIVE mode: the uploader's opt-in
 
   // "Add new tag" opens a category picker; the tag box awaits the result
   const [categories, setCategories] = useState<(CategoryInfo & { isDefault: boolean })[]>([])
@@ -74,6 +78,9 @@ export default function UploadPage() {
   const hasPerm = (perm: string) => user?.permissions.includes(perm) ?? false
   const canDupe = hasPerm('posts.create.dupes')
   const canCreateTags = hasPerm('tags.create')
+  // AGGRESSIVE tags every image anyway, so the opt-in only shows when it would change something
+  const autoTagsAlways = autoTaggerHas(addons, 'AGGRESSIVE')
+  const canChooseAutoTag = !autoTagsAlways && autoTaggerHas(addons, 'SELECTIVE') && hasPerm('posts.autotag')
 
   // Only unsent files can be picked for editing, and nothing while the queue runs
   const canSelect = (item: UploadItem) => !uploading && isEditable(item)
@@ -160,6 +167,7 @@ export default function UploadPage() {
     if (sources.length) form.append('sources', JSON.stringify(sources))
     if (item.notes.trim()) form.append('notes', item.notes.trim())
     if (skipDupes) form.append('skipDupes', 'true')
+    if (canChooseAutoTag && autoTag) form.append('autoTag', 'true')
     form.append('file', item.file) // must be last
 
     setStatus(item.id, { state: 'uploading', progress: 0 })
@@ -314,6 +322,24 @@ export default function UploadPage() {
               >
                 Clear finished
               </Button>
+            )}
+
+            {canChooseAutoTag && (
+              <>
+                <span className="mx-1 h-5 w-px bg-secondary-border" />
+                <Checkbox
+                  checked={autoTag}
+                  onChange={setAutoTag}
+                  disabled={uploading}
+                  label="AutoTag images"
+                  title="Adds the existing tags the AutoTagger finds in each image (videos are skipped)"
+                />
+              </>
+            )}
+            {autoTagsAlways && (
+              <span className="text-xs text-subtle" title="Set by the site's admins">
+                Images are auto-tagged on upload
+              </span>
             )}
 
             <span className="ml-auto text-xs text-subtle">

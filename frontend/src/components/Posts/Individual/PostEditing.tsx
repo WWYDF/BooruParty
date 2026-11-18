@@ -21,6 +21,8 @@ import { useToast } from '@/components/UI/Toast';
 import { useUser } from '@/components/UserProvider';
 import TagInput from '@/components/Uploads/TagInput';
 import RelatedPostInput from './PostRelation';
+import AutoTaggerModal from './AutoTaggerModal';
+import { autoTaggerHas, useAddons } from '@/core/hooks/useAddons';
 import { CategoryInfo } from '@/core/types/tags';
 import { API, APIUpload, UploadResponse, errorText } from '@/core/api';
 import { PostDetail, Safety } from '@/core/types/posts';
@@ -112,6 +114,8 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
   const [thumb, setThumb] = useState<ThumbChange>(null);
   const [status, setStatus] = useState<string | null>(null); // non-null while saving/deleting; shown on the Save button
   const [showDelete, setShowDelete] = useState(false);
+  const [showAutoTagger, setShowAutoTagger] = useState(false);
+  const addons = useAddons();
 
   const fileInput = useRef<HTMLInputElement>(null);
   const thumbInput = useRef<HTMLInputElement>(null);
@@ -425,6 +429,19 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
         <div className="mb-1.5 flex items-center justify-between">
           <label className="font-medium text-white">Tags ({tags.length})</label>
           <div className="space-x-1 text-xs">
+            {autoTaggerHas(addons, 'PASSIVE') && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowAutoTagger(true)}
+                  disabled={busy}
+                  className="cursor-pointer text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  AutoTagger
+                </button>
+                <span className="text-zinc-600">•</span>
+              </>
+            )}
             <button type="button" disabled title="Coming soon" className="cursor-not-allowed text-subtle">
               Suggested Tags
             </button>
@@ -502,6 +519,18 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
           </div>
         )}
       </div>
+
+      <AutoTaggerModal
+        open={showAutoTagger}
+        onClose={() => setShowAutoTagger(false)}
+        postId={post.id}
+        previewUrl={post.thumbnails.large}
+        colorFor={colorFor}
+        currentNames={tags.map((t) => t.name)}
+        canCreateTags={canCreateTags}
+        // One batch, so the picks land on top together like a paste
+        onAdd={(chips) => changeTags([...tagsRef.current, ...chips.filter((c) => !tagsRef.current.some((t) => t.name === c.name))])}
+      />
 
       <ConfirmModal
         open={showDelete}

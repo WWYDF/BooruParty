@@ -1,6 +1,6 @@
 'use client';
 
-import { AutotagMode } from '@/core/types/dashboard';
+import { AutoTaggerMode as AutotagMode } from '@/core/types/addons';
 import AddonSectionCard from './SectionCard';
 import { LinkSimpleIcon, RobotIcon } from '@phosphor-icons/react';
 import ChoiceTiles, { ChoiceTileOption } from '../ChoiceTiles';
@@ -18,12 +18,12 @@ const modeOptions: ChoiceTileOption<AutotagMode>[] = [
   {
     value: 'AGGRESSIVE',
     label: 'Aggressive',
-    desc: 'Always apply received tags automatically on upload.',
+    desc: 'Always apply received tags automatically on upload. (Existing tags only, videos are skipped)',
   },
   {
     value: 'SELECTIVE',
     label: 'Selective',
-    desc: 'Users can apply received tags to their upload batch if they decide to. (Requires Permission)',
+    desc: 'Users can apply received tags to their upload batch if they decide to. (Requires posts.autotag)',
   },
 ];
 
