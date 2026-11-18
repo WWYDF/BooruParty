@@ -16,6 +16,8 @@ import postComments from './Posts/comments';
 import manageComments from './Comments/manage';
 import avatars from './Users/avatars';
 import postInteractions from './Posts/interactions';
+import autoTagPosts from './Posts/autotag';
+import addons from './System/addons';
 
 const logger = appLogger('Routes');
 
@@ -32,10 +34,12 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(postInteractions, { prefix: '/posts' });
   fastify.register(postComments, { prefix: '/posts' });
   fastify.register(manageComments, { prefix: '/comments' });
+  fastify.register(autoTagPosts, { prefix: '/posts' });
   fastify.register(tagCategories, { prefix: '/tag-categories' });
   fastify.register(tags, { prefix: '/tags' });
   fastify.register(stats, { prefix: '/system' });
   fastify.register(settings, { prefix: '/system' });
+  fastify.register(addons, { prefix: '/system' });
 
   logger.success('[+] API Routes Initialized!');
 };
