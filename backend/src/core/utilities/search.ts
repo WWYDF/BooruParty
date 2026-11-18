@@ -1,13 +1,14 @@
 import { FileType, Safety, TagFlag } from "../../../prisma/client";
 import { normalizeTagName } from "./tags";
 
-
 const MAX_TERMS = 40; // every tag term becomes a subquery; keep searches bounded
 
 export type NumberOp = 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
 export type NumberFilter = { op: NumberOp, value: number, };
 export type Wildcard = { kind: 'startsWith' | 'endsWith' | 'contains', value: string };
-export type SortOrder = 'newest' | 'oldest' | 'score' | 'random';
+
+export const SORT_ORDERS = ['newest', 'oldest', 'score', 'favorites', 'boosts', 'random'] as const;
+export type SortOrder = typeof SORT_ORDERS[number];
 
 export type ParsedQuery = {
   include: string[],              // must have all of these tags
@@ -141,7 +142,7 @@ export function parseSearch(input: string): ParsedQuery {
       case 'order': // same as sort, just fall through
       case 'sort': {
         if (negate) { q.errors.push(`-${key}: isn't supported`); continue; }
-        if (!['newest', 'oldest', 'score', 'random'].includes(value)) {
+        if (!(SORT_ORDERS as readonly string[]).includes(value)) {
           q.errors.push(`${key}: must be newest, oldest, score or random`);
           continue;
         }

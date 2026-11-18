@@ -33,7 +33,7 @@ model ServerSettings {
 // Works very similarly to ServerSettings, just less "core"
 model Addons {
   id                      Int                       @id @default(1)
-  
+
   enableAutoTagger        Boolean                   @default(false)
   autoTaggerUrl           String?
   autoTaggerMode          AutoTaggerMode[]          @default([PASSIVE])
@@ -150,6 +150,10 @@ model Post {
 
   updatedAt               DateTime                  @default(now()) // editing a post manually updates this
   createdAt               DateTime                  @default(now())
+
+  @@index([score(sort: Desc), id(sort: Desc)])
+  @@index([favoriteCount(sort: Desc), id(sort: Desc)])
+  @@index([boostCount(sort: Desc), id(sort: Desc)])
 }
 
 model PostRelation {

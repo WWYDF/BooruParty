@@ -23,9 +23,28 @@ function wildcardCondition(wc: Wildcard): Prisma.PostTagWhereInput {
   return { tag: { name: { [wc.kind]: wc.value } } };
 }
 
+// Orders that sort by a count column, highest first
+// In the event of a tie, newest post goes first
+const COUNT_ORDERS = {
+  score: 'score',
+  favorites: 'favoriteCount',
+  boosts: 'boostCount',
+} as const;
+
+
+type CountField = typeof COUNT_ORDERS[keyof typeof COUNT_ORDERS];
+
+function countField(order: SortOrder): CountField | null {
+  return order in COUNT_ORDERS ? COUNT_ORDERS[order as keyof typeof COUNT_ORDERS] : null;
+}
+
+// What a cursor is built from: the post's id plus every count column
+export type CursorPost = { id: number } & Record<CountField, number>;
+
 // Cursor = the last post's sort values: "500" for id orders, "15_500" (score_id) for score order
-export function encodeCursor(order: SortOrder, post: { id: number, score: number }): string {
-  return order === 'score' ? `${post.score}_${post.id}` : String(post.id);
+export function encodeCursor(order: SortOrder, post: CursorPost): string {
+  const field = countField(order);
+  return field ? `${post[field]}_${post.id}` : String(post.id);
 }
 
 // Condition for "rows after (or before) this cursor" in the given order, or null if the cursor is malformed.
@@ -33,15 +52,16 @@ export function encodeCursor(order: SortOrder, post: { id: number, score: number
 export function cursorCondition(order: SortOrder, cursor: string, direction: 'after' | 'before' = 'after'): Prisma.PostWhereInput | null {
   const before = direction === 'before';
 
-  if (order === 'score') {
-    const m = /^(-?\d+)_(\d+)$/.exec(cursor);
-    if (!m) return null;
-    const score = Number(m[1]);
-    const id = Number(m[2]);
-    return before
-      ? { OR: [{ score: { gt: score } }, { score, id: { gt: id } }] }
-      : { OR: [{ score: { lt: score } }, { score, id: { lt: id } }] };
-  }
+    const field = countField(order);
+    if (field) {
+      const m = /^(-?\d+)_(\d+)$/.exec(cursor);
+      if (!m) return null;
+      const value = Number(m[1]);
+      const id = Number(m[2]);
+      return before
+        ? { OR: [{ [field]: { gt: value } }, { [field]: value, id: { gt: id } }] }
+        : { OR: [{ [field]: { lt: value } }, { [field]: value, id: { lt: id } }] };
+    }
 
   if (!/^\d+$/.test(cursor)) return null;
   const id = Number(cursor);
@@ -117,9 +137,10 @@ export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<Po
     ...numberConditions('id', q.id),
   );
 
+  const field = countField(q.order);
   const orderBy: Prisma.PostOrderByWithRelationInput[] =
     q.order === 'oldest' ? [{ id: 'asc' }]
-    : q.order === 'score' ? [{ score: 'desc' }, { id: 'desc' }]
+    : field ? [{ [field]: 'desc' }, { id: 'desc' }]
     : [{ id: 'desc' }]; // newest (and the base order for random)
 
   return { empty: false, where: { AND }, orderBy, random: q.order === 'random', unknownTags };

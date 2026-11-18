@@ -177,7 +177,14 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
     // Only the sort values are needed (plus what isHiddenFrom checks)
     const current = await prisma.post.findUnique({
       where: { id },
-      select: { id: true, score: true, safety: true, uploader: { select: { id: true, private: true } } },
+      select: {
+        id: true,
+        score: true,
+        favoriteCount: true,
+        boostCount: true,
+        safety: true,
+        uploader: { select: { id: true, private: true } },
+      },
     });
     if (!current || isHiddenFrom(viewer, current)) {
       return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
