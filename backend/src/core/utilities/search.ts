@@ -7,6 +7,7 @@ export type NumberOp = 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
 export type NumberFilter = { op: NumberOp, value: number, };
 export type Wildcard = { kind: 'startsWith' | 'endsWith' | 'contains', value: string };
 export type UserFilter = { include: string[], exclude: string[] };
+export type PoolsFilter = { include: number[], exclude: number[] };
 
 export const SORT_ORDERS = ['newest', 'oldest', 'score', 'favorites', 'boosts', 'random'] as const;
 export type SortOrder = typeof SORT_ORDERS[number];
@@ -26,6 +27,7 @@ export type ParsedQuery = {
   favorites: UserFilter           // "favorites:<username>"
   score: NumberFilter[],
   tagcount: NumberFilter[],
+  pools: PoolsFilter,
   id: NumberFilter[],
   order: SortOrder,
   errors: string[],
@@ -77,6 +79,7 @@ export function parseSearch(input: string): ParsedQuery {
     from: { include: [], exclude: [] },
     likes: { include: [], exclude: [] },
     favorites: { include: [], exclude: [] },
+    pools: { include: [], exclude: [] },
     score: [],
     tagcount: [],
     id: [],
@@ -115,6 +118,7 @@ export function parseSearch(input: string): ParsedQuery {
       'sort',
       'flag',
       'flags',
+      'pool',
     ].includes(key)) {
       q.errors.push(`"~" can't be used with ${key}:`);
       continue;
@@ -158,6 +162,13 @@ export function parseSearch(input: string): ParsedQuery {
         const filter = parseNumberFilter(value);
         if (!filter) { q.errors.push(`${key}: must look like 10, >10, >=10, <10 or <=10`); continue; }
         q[key].push(filter);
+        continue;
+      }
+      case 'pool': {
+        // up to 9 digits so it always fits in an int4 (no MAX_INT check needed)
+        const id = /^\d{1,9}$/.test(value) ? Number(value) : 0;
+        if (id < 1) { q.errors.push(`pool: needs a pool id`); continue; }
+        (negate ? q.pools.exclude : q.pools.include).push(id);
         continue;
       }
       case 'order': // same as sort, just fall through

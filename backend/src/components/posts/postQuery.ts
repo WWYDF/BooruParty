@@ -145,6 +145,10 @@ export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<Po
   for (const name of q.favorites.include) AND.push({ favorites: { some: { user: activityUser(viewer, name) } } });
   for (const name of q.favorites.exclude) AND.push({ favorites: { none: { user: activityUser(viewer, name) } } });
 
+  // Pools
+  for (const poolId of q.pools.include) AND.push({ pools: { some: { poolId } } });
+  if (q.pools.exclude.length) AND.push({ pools: { none: { poolId: { in: q.pools.exclude } } } });
+
   // Flags
   for (const group of q.flags) AND.push({ tags: { some: { tag: { flags: { hasSome: group } } } } });
   if (q.notFlags.length) AND.push({ tags: { none: { tag: { flags: { hasSome: q.notFlags } } } } });
