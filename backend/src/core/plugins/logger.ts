@@ -2,6 +2,12 @@ import fp from 'fastify-plugin';
 import { FastifyPluginAsync } from 'fastify';
 import chalk from 'chalk';
 
+const blacklist = [
+  '/data/',
+  '/api/system/stats',
+  '/api/system/addons/',
+]
+
 const routeLogger: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', async (req) => {
     (req as any).startTime = process.hrtime();
@@ -15,8 +21,8 @@ const routeLogger: FastifyPluginAsync = async (fastify) => {
     const url = req.raw.url ?? '';
     const status = res.statusCode;
 
-    // Skip logging for /data/* unless it's a 404
-    if (url.startsWith('/data/') && status !== 404) return;
+    // Skip logging for blacklisted prefixes, unless it's a 404
+    if (blacklist.some((e) => url.startsWith(e)) && status !== 404) return;
 
     const time = chalk.gray(`[${new Date().toLocaleTimeString()}]`);
 
