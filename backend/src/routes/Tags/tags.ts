@@ -1,7 +1,7 @@
 import { appLogger } from "@/core/plugins/logger";
 import { prisma } from "@/core/plugins/prisma";
-import { requirePermission } from "@/core/utilities/permissionCache";
-import { Db, getImpliedTags, normalizeTagName, resolveTagNames, wouldCreateCycle } from "@/core/utilities/tags";
+import { requirePermission, rolePermissionCheck } from "@/core/utilities/permissionCache";
+import { Db, getImpliedTags, normalizeTagName, resolveOrCreateTags, resolveTagNames, wouldCreateCycle } from "@/core/utilities/tags";
 import { FastifyPluginAsync } from "fastify";
 import { Prisma, TagFlag } from "../../../prisma/client";
 import { HttpError } from '@/core/utilities/errors';
@@ -33,24 +33,6 @@ function shapeTagDetail({ implications, suggestions, names, ...tag }: TagDetailR
     suggestions: suggestions.map((s) => s.suggested),
   };
 }
-
-// Resolve names to existing tags, or throw a 400 listing what's wrong
-async function resolveExistingTags(names: string[], field: string, db: Db) {
-  const { tags, missing, invalid } = await resolveTagNames(names, db);
-
-  if (invalid.length) {
-    throw new HttpError(400, {
-      error: `Invalid ${field}`,
-      hint: invalid.map((i) => `"${i.input}": ${i.reason}`).join(' '),
-    });
-  }
-  if (missing.length) {
-    throw new HttpError(400, { error: `Unknown tags in ${field}`, hint: missing.join(', '), missing });
-  }
-
-  return tags;
-}
-
 
 
 const tags: FastifyPluginAsync = async (fastify) => {
@@ -372,11 +354,12 @@ const tags: FastifyPluginAsync = async (fastify) => {
         if (body.description !== undefined) data.description = body.description?.trim() || null;
         if (body.flags !== undefined) data.flags = body.flags; // full replacement, like aliases
         if (Object.keys(data).length) await tx.tag.update({ where: { id: tag.id }, data });
+        const canCreate = rolePermissionCheck(req.user.roleId, 'tags.create');
 
         
         // Implications: diff against current, remove first, cycle-check additions
         if (body.implications !== undefined) {
-          const targets = await resolveExistingTags(body.implications, 'implications', tx);
+          const targets = await resolveOrCreateTags(body.implications, 'implications', canCreate, tx);
           const nameById = new Map(targets.map((t) => [t.id, t.name]));
 
           const current = await tx.tagImplication.findMany({ where: { tagId: tag.id }, select: { impliedId: true } });
@@ -404,7 +387,7 @@ const tags: FastifyPluginAsync = async (fastify) => {
 
         // Suggestions: same diff, no chains, so no cycle check needed
         if (body.suggestions !== undefined) {
-          const targets = await resolveExistingTags(body.suggestions, 'suggestions', tx);
+          const targets = await resolveOrCreateTags(body.suggestions, 'suggestions', canCreate, tx);
           if (targets.some((t) => t.id === tag.id)) {
             throw new HttpError(400, { error: 'Invalid suggestions', hint: 'A tag cannot suggest itself' });
           }

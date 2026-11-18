@@ -109,6 +109,9 @@ export default function TagEditPage() {
     return <p className="text-sm text-red-400">You don&apos;t have permission to edit tags.</p>;
   }
 
+  // Unknown names in Implies/Suggest get created on save (default category), same as the post editor
+  const canCreateTags = user.permissions.includes("tags.create");
+
   // A tag can't imply or suggest itself (under any of its names)
   const ownNames = new Set([tag.name, ...tag.aliases, normalize(primary), ...aliases]);
   const withoutSelf = (next: TagChip[], setter: (v: TagChip[]) => void) => {
@@ -151,7 +154,7 @@ export default function TagEditPage() {
         return;
       }
       toast("Tag saved", "success");
-      router.replace(`/tags/${encodeURIComponent(data.name ?? newName)}`); // may have been renamed
+      router.push(`/tags/${encodeURIComponent(data.name ?? newName)}`); // may have been renamed
     } catch {
       toast("The server could not be reached", "error");
     } finally {
@@ -199,6 +202,7 @@ export default function TagEditPage() {
         <TagInput
           value={implications}
           onChange={(next) => withoutSelf(next, setImplications)}
+          allowNew={canCreateTags}
           placeholder="Tags added automatically along with this one..."
         />
         <p className="mt-1 text-xs text-zinc-500">The post editor adds these when this tag is picked. Loops are refused by the server.</p>
@@ -209,6 +213,7 @@ export default function TagEditPage() {
         <TagInput
           value={suggestions}
           onChange={(next) => withoutSelf(next, setSuggestions)}
+          allowNew={canCreateTags}
           placeholder="Tags often used with this one..."
         />
       </div>

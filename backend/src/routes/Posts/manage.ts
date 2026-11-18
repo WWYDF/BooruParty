@@ -4,7 +4,7 @@ import { isHttpUrl } from "@/components/uploads/fields";
 import { prisma } from "@/core/plugins/prisma";
 import { rolePermissionCheck } from "@/core/utilities/permissionCache";
 import { HttpError } from "@/core/utilities/errors";
-import { ResolvedTag, resolveTagNames } from "@/core/utilities/tags";
+import { ResolvedTag, resolveOrCreateTags, resolveTagNames } from "@/core/utilities/tags";
 import { discardFiles, postFilePaths } from "@/components/uploads/finalize";
 import { appLogger } from "@/core/plugins/logger";
 import { MAX_POST_NOTES_LENGTH, MAX_POST_SOURCE_LENGTH, MAX_POST_SOURCES, MAX_POST_TAGS, MAX_RELATED_POSTS } from "@/core/objects/limits";
@@ -96,31 +96,11 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
 
         // Tags
         if (body.tags !== undefined) {
-          const { tags: found, missing, invalid } = await resolveTagNames(body.tags, tx);
+          const canCreate = rolePermissionCheck(req.user.roleId, 'tags.create');
+          const resolved = await resolveOrCreateTags(body.tags, 'tags', canCreate, tx);
 
-          if (invalid.length) {
-            throw new HttpError(400, { error: 'Invalid tags', hint: invalid.map((i) => `"${i.input}": ${i.reason}`).join(' ') });
-          }
-
-          // Unknown tags get created in default category if allowed by user's permissions
-          let created: ResolvedTag[] = []
-          if (missing.length) {
-            if (!rolePermissionCheck(req.user.roleId, 'tags.create')) {
-              throw new HttpError(403, { error: 'Forbidden', hint: `Missing permission: tags.create (unknown tags: ${missing.join(', ')})`, missing });
-            }
-
-            const category = await tx.tagCategory.findFirst({ where: { isDefault: true }, select: { id: true } });
-            if (!category) throw new Error('No default tag category exists');
-
-            created = await tx.tag.createManyAndReturn({
-              data: missing.map((name) => ({ name, categoryId: category.id })),
-              select: { id: true, name: true },
-            });
-            await tx.tagName.createMany({ data: created.map((t) => ({ name: t.name, tagId: t.id })) });
-          }
-          
           // Diff: what the post should have vs what is has now
-          const wanted = new Set([...found, ...created].map((t) => t.id));
+          const wanted = new Set(resolved.map((t) => t.id));
           const current = await tx.postTag.findMany({ where: { postId: id }, select: { tagId: true } });
           const have = new Set(current.map((r) => r.tagId));
 

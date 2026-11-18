@@ -2,6 +2,7 @@
 
 import { Prisma } from "../../../prisma/client";
 import { prisma } from "../plugins/prisma";
+import { HttpError } from "./errors";
 
 // Lets helpers run either standalone or inside a prisma.$transaction(async (tx) => ...)
 export type Db = typeof prisma | Prisma.TransactionClient;
@@ -55,7 +56,6 @@ export function normalizeTagName(input: string): TagNameResult {
 }
 
 
-// ----------------------------------------------
 export type ResolveResult = {
   tags: ResolvedTag[], // unique tags found (aliases resolved to the real tag)
   missing: string[], // valid names that don't exist yet (normalized)
@@ -93,7 +93,6 @@ export async function resolveTagNames(inputs: string[], db: Db = prisma): Promis
 }
 
 
-// ----------------------------------------------
 // Everything the given tags imply, following chains (pikachu -> pokemon -> nintendo).
 // The input tags themselves are excluded from the result.
 export type ImpliedTag = ResolvedTag & { categoryId: number };
@@ -126,4 +125,30 @@ export async function wouldCreateCycle(tagId: number, impliedId: number, db: Db 
 
   const reachable = await getImpliedTags([impliedId], db);
   return reachable.some((t) => t.id === tagId);
+}
+
+// Resolve names to tags, creating any that dont exist yet in the default category.
+// Pass a transaction to the client: the tag and tagname inserts must land together
+export async function resolveOrCreateTags(inputs: string[], field: string, canCreate: boolean, db: Db = prisma): Promise<ResolvedTag[]> {
+  const { tags, missing, invalid } = await resolveTagNames(inputs, db);
+
+  if (invalid.length) {
+    throw new HttpError(400, { error: `Invalid ${field}`, hint: invalid.map((i) => `"${i.input}": ${i.reason}`).join(' ') });
+  }
+  if (!missing.length) return tags;
+
+  if (!canCreate) {
+    throw new HttpError(403, { error: 'Forbidden', hint: `Missing permission: tags.create (unknown ${field}: ${missing.join(', ')})`, missing });
+  }
+
+  const category = await db.tagCategory.findFirst({ where: { isDefault: true }, select: { id: true } });
+  if (!category) throw new Error('No default tag category exists');
+
+  const created = await db.tag.createManyAndReturn({
+    data: missing.map((name) => ({ name, categoryId: category.id })),
+    select: { id: true, name: true },
+  });
+  await db.tagName.createMany({ data: created.map((t) => ({ name: t.name, tagId: t.id })) });
+
+  return [...tags, ...created];
 }
