@@ -253,18 +253,23 @@ export default function PostMetadata({
               <span className="text-xs font-semibold text-subtle">{formatCounts(post.score)}</span>
             </button>
 
-            {/* No order:favorites / order:boosts in the search yet, so these don't link anywhere */}
-            <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+            <button
+              className="flex cursor-pointer items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+              onClick={() => router.push(`/posts?query=${encodeURIComponent("order:favorites")}`)}
+            >
               <StarIcon size={16} className="text-yellow-400" />
               <span className="text-xs text-white/80">Favorites</span>
               <span className="text-xs font-semibold text-subtle">{formatCounts(post.favoriteCount)}</span>
-            </div>
+            </button>
 
-            <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
+            <button
+              className="flex cursor-pointer items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2"
+              onClick={() => router.push(`/posts?query=${encodeURIComponent("order:boosts")}`)}
+            >
               <SparkleIcon size={16} className="text-cyan-400" />
               <span className="text-xs text-white/80">Boosts</span>
               <span className="text-xs font-semibold text-subtle">{formatCounts(post.boostCount ?? 0)}</span>
-            </div>
+            </button>
           </div>
 
           {/* Post + file info */}

@@ -21,13 +21,14 @@ type TagResult = {
 };
 
 // Must match parseSearch() in backend/src/core/utilities/search.ts
+const SORT_ORDERS = ["newest", "oldest", "score", "favorites", "boosts", "random"];
 const SYSTEM_VALUES: Record<string, string[]> = {
   safety: ["safe", "questionable", "explicit"],
   type: ["image", "animated", "video"],
   flag: ["reaction"],  // TagFlag enum, lowercase
   flags: ["reaction"],
-  order: ["newest", "oldest", "score", "random"],
-  sort: ["newest", "oldest", "score", "random"],
+  order: SORT_ORDERS,
+  sort: SORT_ORDERS,
 };
 const SYSTEM_KEYS = ["safety", "type", "flag", "order", "from", "score", "tagcount", "id"];
 

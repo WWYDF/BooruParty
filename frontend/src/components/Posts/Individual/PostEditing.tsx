@@ -147,8 +147,9 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
     if (!sameSet(relatedPosts.map(String), originalRelated.map(String))) body.related = relatedPosts;
 
     const hasFields = Object.keys(body).length > 0;
+    // Nothing changed: close the editor as if it saved
     if (!hasFields && !newFile && !thumb) {
-      toast('Nothing to save', 'info');
+      onSaved();
       return;
     }
 
