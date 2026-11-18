@@ -237,6 +237,7 @@ model TagCategory {
   index                   Int                       @default(0)
   isDefault               Boolean                   @default(false)
   tags                    Tag[]
+  flags                   CategoryFlag[]            @default([])
 
   updatedAt               DateTime                  @updatedAt
   createdAt               DateTime                  @default(now())

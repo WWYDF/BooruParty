@@ -2,7 +2,7 @@ import { appLogger } from "@/core/plugins/logger";
 import { prisma } from "@/core/plugins/prisma";
 import { requirePermission } from "@/core/utilities/permissionCache";
 import { FastifyPluginAsync } from "fastify";
-import { Prisma } from "../../../prisma/client";
+import { CategoryFlag, Prisma } from "../../../prisma/client";
 import { hexColorSchema } from "@/core/objects/fastifySchemas";
 import { HttpError } from "@/core/utilities/errors";
 
@@ -105,6 +105,7 @@ const tagCategories: FastifyPluginAsync = async (fastify) => {
           color: hexColorSchema,
           index: { type: 'integer', minimum: 0 },
           isDefault: { type: 'boolean', const: true }, // you can only BECOME default (i.e. cannot PATCH it to false)
+          flags: { type: 'array', uniqueItems: true, items: { type: 'string', enum: Object.values(CategoryFlag) } },
         },
       },
     },
@@ -115,6 +116,7 @@ const tagCategories: FastifyPluginAsync = async (fastify) => {
       color?: string,
       index?: number,
       isDefault?: true,
+      flags?: CategoryFlag[],
     }
 
     // Build the update from only the fields that were sent
@@ -126,6 +128,7 @@ const tagCategories: FastifyPluginAsync = async (fastify) => {
     if (body.color !== undefined) data.color = body.color.toLowerCase();
     if (body.index !== undefined) data.index = body.index;
     if (body.isDefault) data.isDefault = true;
+    if (body.flags !== undefined) data.flags = body.flags;
 
     try {
       const category = await prisma.$transaction(async (tx) => {

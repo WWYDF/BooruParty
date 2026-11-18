@@ -13,11 +13,17 @@ enum FileType {
 }
 
 enum TagFlag {
-  REACTION
+  REACTION    // Reaction images / GIFs for comments
 }
 
 enum AutoTaggerMode {
   PASSIVE
   AGGRESSIVE
   SELECTIVE
+}
+
+// So we can treat popular categories the same, even if their name is a little different
+enum CategoryFlag {
+  CREATOR     // e.g. "Artists"
+  SUBJECT     // e.g. "Characters"
 }

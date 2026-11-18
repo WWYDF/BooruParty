@@ -18,7 +18,7 @@ import { TagFlag } from "@/core/types/tags";
 const FLAG_OPTIONS: { value: TagFlag; label: string; description: string; icon: React.ReactNode }[] = [
   {
     value: "REACTION",
-    label: "Reaction image",
+    label: "Reaction Image",
     description: "Posts with this tag show up in the comment reaction picker.",
     icon: <SmileyIcon size={18} />,
   },

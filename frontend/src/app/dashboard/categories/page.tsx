@@ -8,6 +8,7 @@ import ConfirmModal from "@/components/UI/Modals/ConfirmModal";
 import { useToast } from "@/components/UI/Toast";
 import { API, errorText } from "@/core/api";
 import { formatCounts } from "@/core/formats";
+import { CategoryFlag } from "@/core/types/tags";
 
 // GET /api/tag-categories
 type Category = {
@@ -16,8 +17,43 @@ type Category = {
   color: string;
   index: number;
   isDefault: boolean;
+  flags: CategoryFlag[];
   _count?: { tags: number };
 };
+
+const FLAG_OPTIONS: { value: CategoryFlag; label: string; title: string }[] = [
+  { value: "CREATOR", label: "Creator", title: "Who made the post, e.g. an Artists category" },
+  { value: "SUBJECT", label: "Subject", title: "Who or what is in the post, e.g. a Characters category" },
+];
+
+const sameFlags = (a: CategoryFlag[], b: CategoryFlag[]) => a.length === b.length && a.every((f) => b.includes(f));
+
+// Toggle chips for a category's flags
+function FlagPicker({ value, onChange }: { value: CategoryFlag[]; onChange: (v: CategoryFlag[]) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {FLAG_OPTIONS.map((opt) => {
+        const on = value.includes(opt.value);
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            aria-pressed={on}
+            title={opt.title}
+            onClick={() => onChange(on ? value.filter((f) => f !== opt.value) : [...value, opt.value])}
+            className={`cursor-pointer rounded-full border px-2.5 py-1 text-xs transition-colors ${
+              on
+                ? "border-accent/40 bg-accent/10 text-accent"
+                : "border-secondary-border bg-zinc-900 text-subtle hover:text-zinc-200"
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -59,6 +95,7 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
+  const [editFlags, setEditFlags] = useState<CategoryFlag[]>([]);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
   const [deleting, setDeleting] = useState<Category | null>(null);
@@ -115,15 +152,17 @@ export default function CategoriesPage() {
     setEditingId(c.id);
     setEditName(c.name);
     setEditColor(c.color);
+    setEditFlags(c.flags ?? []);
   };
 
   const saveEdit = async (c: Category) => {
     if (!editName.trim()) return toast("The category needs a name.", "error");
     if (!HEX.test(editColor)) return toast("Color must look like #3c9aff.", "error");
 
-    const body: Record<string, string> = {};
+    const body: { name?: string; color?: string; flags?: CategoryFlag[] } = {};
     if (editName.trim() !== c.name) body.name = editName.trim();
     if (editColor.toLowerCase() !== c.color.toLowerCase()) body.color = editColor;
+    if (!sameFlags(editFlags, c.flags ?? [])) body.flags = editFlags; // the whole list; [] clears them
     if (!Object.keys(body).length) return setEditingId(null);
 
     setBusyId(c.id);
@@ -212,6 +251,8 @@ export default function CategoriesPage() {
                 <Reorder.Item
                   key={c.id}
                   value={c}
+                  // Position only: animating size would scale (squish) the row's contents when edit mode changes its height
+                  layout="position"
                   dragListener={!editing}
                   onDragEnd={saveOrder}
                   className="flex items-center gap-3 rounded-xl border border-secondary-border bg-secondary px-3 py-2.5"
@@ -234,12 +275,25 @@ export default function CategoriesPage() {
                       <ColorField value={editColor} onChange={setEditColor} />
                       <Button type="submit" size="sm" variant="success" icon={<CheckIcon size={14} />} loading={busyId === c.id}>Save</Button>
                       <Button size="sm" icon={<XIcon size={14} />} onClick={() => setEditingId(null)}>Cancel</Button>
+                      <div className="flex w-full items-center gap-2">
+                        <span className="text-xs text-subtle">Flags:</span>
+                        <FlagPicker value={editFlags} onChange={setEditFlags} />
+                      </div>
                     </form>
                   ) : (
                     <>
                       <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
                       <span className="min-w-0 flex-1 truncate text-sm" style={{ color: c.color }}>{c.name}</span>
 
+                      {FLAG_OPTIONS.filter((opt) => c.flags?.includes(opt.value)).map((opt) => (
+                        <span
+                          key={opt.value}
+                          title={opt.title}
+                          className="rounded-full border border-secondary-border bg-zinc-900 px-2 py-0.5 text-xs text-subtle"
+                        >
+                          {opt.label}
+                        </span>
+                      ))}
                       {c.isDefault && (
                         <span className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent">Default</span>
                       )}

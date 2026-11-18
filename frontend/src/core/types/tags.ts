@@ -94,3 +94,6 @@ export type TagGroup = {
 
 // GET /api/tag-categories item (only the fields the frontend uses; the list also carries isDefault)
 export type CategoryInfo = { id: number; name: string; color: string; index: number };
+
+// Marks a category as a well-known kind, whatever its name ("Artists" / "Creators" are both CREATOR)
+export type CategoryFlag = 'CREATOR' | 'SUBJECT';
