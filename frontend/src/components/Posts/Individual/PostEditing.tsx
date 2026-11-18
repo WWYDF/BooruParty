@@ -8,14 +8,12 @@ import {
   FileArrowUpIcon,
   FloppyDiskIcon,
   ImageSquareIcon,
-  PlusIcon,
   TagIcon,
   TrashIcon,
   XIcon,
 } from '@phosphor-icons/react';
 import { formatCounts } from '@/core/formats';
 import Button from '@/components/UI/Button';
-import Checkbox from '@/components/UI/Checkbox';
 import ConfirmModal from '@/components/UI/Modals/ConfirmModal';
 import { useToast } from '@/components/UI/Toast';
 import { useUser } from '@/components/UserProvider';
@@ -429,6 +427,7 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
         <div className="mb-1.5 flex items-center justify-between">
           <label className="font-medium text-white">Tags ({tags.length})</label>
           <div className="space-x-1 text-xs">
+            {/* The AutoTagger's PASSIVE mode; hidden when the server has it off */}
             {autoTaggerHas(addons, 'PASSIVE') && (
               <>
                 <button
@@ -437,15 +436,11 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
                   disabled={busy}
                   className="cursor-pointer text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  AutoTagger
+                  Suggested Tags
                 </button>
                 <span className="text-zinc-600">•</span>
               </>
             )}
-            <button type="button" disabled title="Coming soon" className="cursor-not-allowed text-subtle">
-              Suggested Tags
-            </button>
-            <span className="text-zinc-600">•</span>
             <button type="button" onClick={handlePasteTags} className="cursor-pointer text-accent hover:underline">
               Paste Tags
             </button>

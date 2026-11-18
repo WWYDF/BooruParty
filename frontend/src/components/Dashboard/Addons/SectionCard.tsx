@@ -1,79 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { KeyboardEvent } from 'react';
-import clsx from 'clsx';
-
-export function ToggleSwitch({
-  checked,
-  onChange,
-  size = 'md',
-  disabled = false,
-  label,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  size?: 'sm' | 'md' | 'lg';
-  disabled?: boolean;
-  label?: string;
-}) {
-  const dims = {
-    sm: { w: 36, h: 20, knob: 16, p: 2 },
-    md: { w: 48, h: 28, knob: 24, p: 2 },
-    lg: { w: 64, h: 36, knob: 32, p: 2 },
-  }[size];
-
-  const handleKey = (e: KeyboardEvent<HTMLButtonElement>) => {
-    if (disabled) return;
-    if (e.key === ' ' || e.key === 'Enter') {
-      e.preventDefault();
-      onChange(!checked);
-    }
-    if (e.key === 'ArrowLeft') onChange(false);
-    if (e.key === 'ArrowRight') onChange(true);
-  };
-
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onKeyDown={handleKey}
-      onClick={() => !disabled && onChange(!checked)}
-      className={clsx(
-        'relative inline-flex select-none items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
-        checked ? 'bg-emerald-500/70' : 'bg-zinc-600/60',
-        disabled && 'opacity-60 cursor-not-allowed'
-      )}
-      style={{ width: dims.w, height: dims.h, padding: dims.p }}
-    >
-      {/* background gloss */}
-      <span
-        aria-hidden
-        className={clsx(
-          'absolute inset-0 rounded-full transition-opacity',
-          checked ? 'opacity-100' : 'opacity-0',
-          'bg-emerald-500/20'
-        )}
-      />
-      {/* knob */}
-      <span
-        aria-hidden
-        className={clsx(
-          'block rounded-full bg-white shadow transition-transform',
-          'will-change-transform'
-        )}
-        style={{
-          width: dims.knob,
-          height: dims.knob,
-          transform: `translateX(${checked ? dims.w - dims.knob - dims.p * 2 : 0}px)`,
-        }}
-      />
-    </button>
-  );
-}
+import SwitchIOS from '@/components/UI/SwitchIOS';
 
 export default function AddonSectionCard({
   icon,
@@ -101,11 +29,11 @@ export default function AddonSectionCard({
 
             {/* iOS ahh switch */}
             <div className="flex items-center gap-2">
-              <ToggleSwitch
+              <SwitchIOS
                 checked={enabled}
                 onChange={() => onToggle()}
                 size="md"
-                label={`${title} toggle`}
+                ariaLabel={`${title} toggle`}
               />
             </div>
           </div>

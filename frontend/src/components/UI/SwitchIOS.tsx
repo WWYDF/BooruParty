@@ -1,28 +1,39 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useCallback } from 'react';
+import clsx from 'clsx';
 
 type IOSwitchProps = {
   checked: boolean;
   onChange: (next: boolean) => void;
-  label?: string;            // Optional inline label
+  label?: string;              // Visible text next to the switch
+  ariaLabel?: string;          // Screen-reader name when there's no visible label
+  size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   id?: string;
-  className?: string;        // Extra wrapper classes
+  className?: string;          // Extra wrapper classes
 };
+
+// Track size per variant. The knob is the track height minus 4px (2px gap each side),
+// and slides by (width - height) so it lands the same 2px from the right edge.
+const SIZES = {
+  sm: { w: 36, h: 20 },
+  md: { w: 48, h: 28 },
+  lg: { w: 56, h: 32 },
+} as const;
 
 export default function SwitchIOS({
   checked,
   onChange,
   label,
-  disabled,
+  ariaLabel,
+  size = 'md',
+  disabled = false,
   id,
   className = '',
 }: IOSwitchProps) {
-  const toggle = useCallback(() => {
-    if (!disabled) onChange(!checked);
-  }, [checked, disabled, onChange]);
+  const { w, h } = SIZES[size];
+  const knob = h - 4;
 
   return (
     <button
@@ -30,37 +41,40 @@ export default function SwitchIOS({
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-disabled={disabled}
-      onClick={toggle}
+      aria-label={label ? undefined : ariaLabel}
+      disabled={disabled}
+      // Click and Space/Enter come free with a real <button>; arrows set a direction
+      onClick={() => onChange(!checked)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          toggle();
-        }
+        if (e.key === 'ArrowLeft' && checked) onChange(false);
+        if (e.key === 'ArrowRight' && !checked) onChange(true);
       }}
-      className={`group inline-flex items-center gap-2 cursor-pointer select-none
-        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-        ${className}`}
+      className={clsx(
+        'group inline-flex select-none items-center gap-2 rounded-full focus:outline-hidden',
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+        className,
+      )}
     >
-      {/* Track */}
-      <motion.span
-        className={`relative h-6 w-11 rounded-full border transition
-          ${checked ? 'bg-emerald-500/90 border-emerald-500/80' : 'bg-zinc-700 border-zinc-600'}`}
-        layout
+      {/* Track (focus ring sits here, so it hugs the switch and not the label) */}
+      <span
+        className={clsx(
+          'relative shrink-0 rounded-full border transition-colors',
+          'group-focus-visible:ring-2 group-focus-visible:ring-emerald-500/60',
+          checked ? 'border-emerald-500/80 bg-emerald-500/90' : 'border-zinc-600 bg-zinc-700',
+        )}
+        style={{ width: w, height: h }}
       >
         <motion.span
-          // vertically center without translateY; anchor the base at left:2
-          className="absolute top-0 bottom-0 my-auto h-5 w-5 rounded-full bg-white shadow ring-1 ring-black/10 pointer-events-none"
-          style={{ left: 2 }}
-          animate={{ x: checked ? 20 : 0 }}   // <- precise delta
+          // vertically centered without translateY, so the spring only animates x
+          className="pointer-events-none absolute inset-y-0 my-auto rounded-full bg-white shadow-sm ring-1 ring-black/10"
+          style={{ left: 1, width: knob, height: knob }}
+          animate={{ x: checked ? w - h : 0 }}
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
           initial={false}
         />
-      </motion.span>
+      </span>
 
-      {label && (
-        <span className="text-sm text-zinc-200">{label}</span>
-      )}
+      {label && <span className="text-sm text-zinc-200">{label}</span>}
     </button>
   );
 }

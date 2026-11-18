@@ -372,7 +372,7 @@ export default function PostMetadata({
               <div className="flex flex-col gap-3">
                 {PLACEHOLDER.pools.map((pool) => (
                   <Link key={pool.id} href={`/pools/${pool.id}`} className="group flex items-center gap-3">
-                    <div className="h-[96px] w-[54px] overflow-hidden rounded-lg border border-secondary-border bg-zinc-800">
+                    <div className="h-24 w-13.5 overflow-hidden rounded-lg border border-secondary-border bg-zinc-800">
                       {pool.cover ? (
                         <img
                           src={pool.cover}
@@ -414,9 +414,9 @@ export default function PostMetadata({
               <div className="flex flex-col gap-4">
                 {tagGroups.map((group) => (
                   <div key={group.category?.id ?? "unknown"}>
-                    <p className="mb-1.5 flex items-center gap-2 text-sm text-subtle">
+                    <p className="mb-1.5 flex items-center gap-1 text-sm text-subtle">
                       {group.category?.name ?? "Other"}
-                      {group.tags.length >= 5 && <span className="text-zinc-600">{group.tags.length}</span>}
+                      {group.tags.length >= 5 && <span className="text-zinc-500">({group.tags.length})</span>}
                     </p>
                     <div className="flex flex-col gap-2">
                       {group.tags.map((tag) => (
