@@ -154,11 +154,9 @@ export default function QuickMenu({ onSearch }: Props) {
         aria-expanded={open}
         aria-label={open ? 'Close quick menu' : 'Open quick menu'}
         className={clsx(
-          'flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border shadow-xl transition-colors',
+          'flex h-16 w-16 cursor-pointer items-center justify-center rounded-full border-3 shadow-xl transition',
           'focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/50',
-          open
-            ? 'border-accent/40 bg-zinc-900 text-accent'
-            : 'border-secondary-border bg-secondary text-zinc-200 hover:text-accent',
+          'border-black bg-accent text-secondary hover:brightness-80'
         )}
       >
         <motion.span

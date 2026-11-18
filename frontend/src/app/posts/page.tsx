@@ -1,5 +1,4 @@
 import ClientPostsPage from "@/components/Posts/PostsPage";
-import BackToTop from "@/components/Navigation/BackToTop";
 import { Metadata } from "next";
 import { Suspense } from "react";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -26,7 +25,6 @@ export default async function PostsPage() {
       <Suspense fallback={<LoadingOverlay show label='Loading Posts...' />}>
         <ClientPostsPage />
       </Suspense>
-      <BackToTop />
     </main>
   );
 }
