@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import PostDisplay from './PostDisplay';
 import PostMetadata from './PostMetadata';
 import PostNavigator from './PostNavigator';
+import QuickMenu from '../QuickMenu';
 import PostCommentForm from './PostCommentForm';
 import PostCommentList from './PostCommentList';
 import LoadingOverlay from '@/components/LoadingOverlay';
@@ -159,6 +160,8 @@ export default function PostView({ postId, poolId }: { postId: number; poolId?: 
           )}
         </section>
       </div>
+
+      <QuickMenu />
     </main>
   );
 }

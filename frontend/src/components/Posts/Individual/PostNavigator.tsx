@@ -3,6 +3,7 @@
 import { PostNavigatorType } from "@/core/types/posts";
 import { API } from "@/core/api";
 import { lastFeedQuery } from "@/core/feedQuery";
+import { PREFS_EVENT, readBrowserPref } from "@/core/browserPrefs";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -51,14 +52,12 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
       ? (poolId ? `/post/${targetId}/fullscreen?pool=${poolId}` : `/post/${targetId}/fullscreen`)
       : (poolId ? `/post/${targetId}?pool=${poolId}` : `/post/${targetId}`);
 
-  // load flip preference (non-pool only)
+  // Flip preference (non-pool only): read on mount, then follow changes (e.g. from the QuickMenu toggle)
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("browserPreferences");
-      if (saved) setFlipNavigators(!!JSON.parse(saved).flipNavigators);
-    } catch {
-      setFlipNavigators(false);
-    }
+    const sync = () => setFlipNavigators(!!readBrowserPref("flipNavigators", false));
+    sync();
+    window.addEventListener(PREFS_EVENT, sync);
+    return () => window.removeEventListener(PREFS_EVENT, sync);
   }, []);
 
   useEffect(() => {

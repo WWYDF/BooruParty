@@ -50,7 +50,7 @@ export default function SwitchIOS({
         if (e.key === 'ArrowRight' && !checked) onChange(true);
       }}
       className={clsx(
-        'group inline-flex select-none items-center gap-2 rounded-full focus:outline-hidden',
+        'group inline-flex select-none items-center gap-2 rounded-full focus:outline-hidden align-bottom',
         disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
         className,
       )}

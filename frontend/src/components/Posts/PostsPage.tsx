@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PostGrid from "@/components/Posts/PostGrid";
 import PostToolbar from "./PostToolbar";
+import QuickMenu from "./QuickMenu";
 import LoadingOverlay from "../LoadingOverlay";
 import { API, errorText } from "@/core/api";
 import { buildQuery } from "@/core/feedQuery";
@@ -260,6 +261,9 @@ export default function ClientPostsPage() {
       )}
 
       <div ref={sentinel} />
+
+      {/* The feed only reads ?query= on mount, so the menu runs its searches through search() */}
+      <QuickMenu onSearch={(text) => { setSearchText(text); search(text); }} />
     </>
   );
 }
