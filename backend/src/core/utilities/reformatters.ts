@@ -31,14 +31,20 @@ export function thumbnailUrls(post: { fileKey: string, thumbKey: string | null }
 
 // Feed card
 export function formatPostSummary(post: PostSummary) {
-  return { ...withAssetUrls(post, ['previewPath']), thumbnails: thumbnailUrls(post) };
+  const { _count, ...rest } = post;
+  return {
+    ...withAssetUrls(rest, ['previewPath']),
+    commentCount: _count.comments,
+    thumbnails: thumbnailUrls(post)
+  };
 }
 
 // Single post page
 export function formatPostDetail(post: PostDetail) {
-  const { tags, fileSize, previewSize, ...rest } = post;
+  const { tags, fileSize, previewSize, _count, ...rest } = post;
   return {
     ...withAssetUrls(rest, ['originalPath', 'previewPath']),
+    commentCount: _count.comments,
     thumbnails: thumbnailUrls(post),
     fileSize: Number(fileSize),
     previewSize: previewSize === null ? null : Number(previewSize),

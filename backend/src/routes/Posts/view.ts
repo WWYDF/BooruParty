@@ -1,3 +1,4 @@
+import { getViewerStates } from "@/components/posts/interactions";
 import { buildPostQuery, cursorCondition, encodeCursor, reverseOrder, visibleConditions } from "@/components/posts/postQuery";
 import { postDetailSelect } from "@/core/objects/selects/posts";
 import { postSummarySelect } from "@/core/objects/selects/summaries";
@@ -55,19 +56,13 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
     });
 
     // This viewer's own interactions statuses (guests have none)
-    const userId = viewer.userId;
-    const [vote, favorite] = userId
-      ? await Promise.all([
-        prisma.postVote.findUnique({ where: { postId_userId: { postId: id, userId } }, select: { value: true } }),
-        prisma.postFavorite.findUnique({ where: { userId_postId: { userId, postId: id } }, select: { postId: true } }),
-      ])
-      : [null, null];
+    const states = await getViewerStates([id], viewer.userId);
 
     return reply.status(200).send({
       ...formatPostDetail(post),
       related,
       featured: getServerSettings().featuredPostId === id,
-      viewer: userId ? { vote: vote?.value ?? 0, favorited: favorite !== null } : null,
+      viewer: states.get(id) ?? null,
     });
   });
 
@@ -119,7 +114,11 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
 
       const rows = await prisma.post.findMany({ where: { id: { in: picked } }, select: postSummarySelect });
       const byId = new Map(rows.map((r) => [r.id, r]));
-      const posts = picked.map((id) => byId.get(id)).filter(Boolean).map((p) => formatPostSummary(p!));
+      const states = await getViewerStates(picked, viewer.userId);
+      const posts = picked
+        .map((id) => byId.get(id))
+        .filter(Boolean)
+        .map((p) => ({ ...formatPostSummary(p!), viewer: states.get(p!.id) ?? null }));
 
       return reply.status(200).send({ posts, nextCursor: null, total: ids.length, unknownTags: query.unknownTags });
     }
@@ -144,12 +143,13 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
 
     const hasMore = rows.length > limit;
     const page = hasMore ? rows.slice(0, limit) : rows;
+    const states = await getViewerStates(page.map((p) => p.id), viewer.userId);
 
     return reply.status(200).send({
       nextCursor: hasMore ? encodeCursor(parsed.order, page[page.length -1]) : null,
       total, // first page only, null afterwards
       unknownTags: query.unknownTags,
-      posts: page.map(formatPostSummary),
+      posts: page.map((p) => ({ ...formatPostSummary(p), viewer: states.get(p.id) ?? null })),
     });
   });
 

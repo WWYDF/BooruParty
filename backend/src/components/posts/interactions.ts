@@ -1,5 +1,6 @@
-import { Db } from "@/core/plugins/prisma";
+import { Db, prisma } from "@/core/plugins/prisma";
 
+export type ViewerState = { vote: number, favorited: boolean };
 export type VoteValue = -1 | 0 | 1;
 
 // Sets (or clears, with 0) a user's vote on a post, then recounts the post's score
@@ -35,4 +36,24 @@ export async function setFavorite(db: Db, postId: number, userId: string, favori
   const favoriteCount = await db.postFavorite.count({ where: { postId } });
   const { score } = await db.post.update({ where: { id: postId }, data: { favoriteCount }, select: { score: true } });
   return { favoriteCount, score }
+}
+
+// The viewer's vote and favorite for a whole page of posts: 2 queries total, not 2 per post
+// Guests get an empty map, so "states.get(id) ?? null" gives them viewer: null
+export async function getViewerStates(postIds: number[], userId: string | null, db: Db = prisma): Promise<Map<number, ViewerState>> {
+  const states = new Map<number, ViewerState>();
+  if (!userId || postIds.length === 0) return states;
+
+  const [votes, favorites] = await Promise.all([
+    db.postVote.findMany({ where: { userId, postId: { in: postIds } }, select: { postId: true, value: true } }),
+    db.postFavorite.findMany({ where: { userId, postId: { in: postIds } }, select: { postId: true } }),
+  ]);
+
+  const voteByPost = new Map(votes.map((v) => [v.postId, v.value]));
+  const favorited = new Set(favorites.map((f) => f.postId));
+
+  for (const id of postIds) {
+    states.set(id, { vote: voteByPost.get(id) ?? 0, favorited: favorited.has(id) });
+  }
+  return states;
 }

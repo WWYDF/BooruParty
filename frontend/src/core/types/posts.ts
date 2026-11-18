@@ -50,7 +50,10 @@ export type Posts = {
   hasAudio: boolean,
 
   score: number,
+  favoriteCount: number,
+  commentCount: number,
   createdAt: Date,
+  viewer?: PostViewerState | null, // feed only (null for guests); related posts on the post page don't carry it
 
   thumbnails: {
     small: string,
@@ -96,6 +99,7 @@ export type PostDetail = {
   },
 
   favoriteCount: number,
+  commentCount: number,
 
   related: Posts[],   // feed-card summaries, oldest link first; only posts this viewer may see
   featured: boolean,  // is this the site's featured post?

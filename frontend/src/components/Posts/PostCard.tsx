@@ -1,11 +1,11 @@
 'use client';
 
-import { Post } from "@/core/types/posts";
+import { Posts } from "@/core/types/posts";
 import { ChatsIcon, FilmStripIcon, HeartIcon, SparkleIcon, ThumbsUpIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 
 interface PostCardProps {
-  post: Post;
+  post: Posts;
   viewMode: 'GRID' | 'COLLAGE';
   selectionMode?: boolean;
   isSelected?: boolean;
@@ -76,35 +76,35 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
           )}
         </div>
 
-        {/* <div className="absolute bottom-2 right-2 flex items-center gap-2">
-          {post.comments?.length > 0 && (
+        <div className="absolute bottom-2 right-2 flex items-center gap-2">
+          {post.commentCount > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
               <ChatsIcon size={16} className="text-yellow-500" weight="bold" />
-              <span>{post.comments.length}</span>
+              <span>{post.commentCount}</span>
             </div>
           )}
 
           {post.score > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <ThumbsUpIcon size={16} className="text-green-500" weight={liked ? 'fill' : 'bold'} />
+              <ThumbsUpIcon size={16} className="text-green-500" weight={post.viewer?.vote == 1 ? 'fill' : 'bold'} />
               <span>{post.score}</span>
             </div>
           )}
 
-          {post._count?.favoritedBy > 0 && (
+          {post.favoriteCount > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <HeartIcon size={16} className="text-red-500" weight={faved ? 'fill' : 'bold'} />
-              <span>{post._count?.favoritedBy}</span>
+              <HeartIcon size={16} className="text-red-500" weight={post.viewer?.favorited ? 'fill' : 'bold'} />
+              <span>{post.favoriteCount}</span>
             </div>
           )}
 
-          {post._count?.boosts > 0 && (
+          {/* {post._count?.boosts > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
               <SparkleIcon size={16} className="text-cyan-500" weight="bold" />
               <span>{post._count?.boosts}</span>
             </div>
-          )}
-        </div> */}
+          )} */}
+        </div>
       </div>
     </Link>
   );
