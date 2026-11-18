@@ -1,4 +1,4 @@
-import { getPoolTags, poolSafety } from "@/components/pools/aggregate"
+import { getPoolTags, getPrimaryArtists, poolSafety } from "@/components/pools/aggregate"
 import { visibleConditions } from "@/components/posts/postQuery"
 import { MAX_INT } from "@/core/objects/limits"
 import { poolSummarySelect, postSummarySelect } from "@/core/objects/selects/summaries"
@@ -154,6 +154,10 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
       else itemsByPool.set(item.poolId, [item]);
     }
 
+    const artists = await getPrimaryArtists(
+      new Map([...itemsByPool].map(([poolId, list]) => [poolId, list.map((i) => i.postId)])),
+    );
+
     // Cover = first visible post of each pool
     const coverIds = [...itemsByPool.values()].map((list) => list[0].postId);
     const covers = coverIds.length
@@ -172,6 +176,7 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
           ...pool,
           postCount: list.length,
           safety: poolSafety(list.map((i) => i.post)),
+          artist: artists.get(pool.id) ?? null,
           cover: list.length ? coverById.get(list[0].postId) ?? null : null,
         };
       }),

@@ -1,6 +1,6 @@
 import { prisma } from "@/core/plugins/prisma";
 import { Safety } from "../../../prisma/client";
-import { tagSummarySelect } from "@/core/objects/selects/summaries";
+import { TagSummary, tagSummarySelect } from "@/core/objects/selects/summaries";
 
 // Enum declaration order = most to least safe
 const SAFETY_ORDER = Object.values(Safety);
@@ -43,4 +43,48 @@ export async function getPoolTags(postIds: number[]) {
     tags: tags.map(({ isCreator, ...tag }) => tag),
     artists: tags.filter((t) => t.isCreator).map(({ isCreator, ...tag }) => tag),
   }
+}
+
+
+// Primary artist for many pools at once (pools list cards)
+// postIdsByPool = each pool's VISIBLE post ids
+export async function getPrimaryArtists(postIdsByPool: Map<number, number[]>) {
+  const result = new Map<number, TagSummary>();
+  const allPostIds = [...new Set([...postIdsByPool.values()].flat())];
+  if (allPostIds.length === 0) return result;
+
+  // Only creator tags, so this stays small even for big pools
+  const rows = await prisma.postTag.findMany({
+    where: { postId: { in: allPostIds }, tag: { category: { flags: { has: 'CREATOR' } } } },
+    select: { postId: true, tag: { select: tagSummarySelect } },
+  });
+
+  const tagsByPost = new Map<number, TagSummary[]>();
+  for (const { postId, tag } of rows) {
+    const list = tagsByPost.get(postId);
+    if (list) list.push(tag);
+    else tagsByPost.set(postId, [tag]);
+  }
+
+  for (const [poolId, postIds] of postIdsByPool) {
+    // Count each creator tag across this pool's posts
+    const counts = new Map<number, { tag: TagSummary, n: number }>();
+    for (const postId of postIds) {
+      for (const tag of tagsByPost.get(postId) ?? []) {
+        const entry = counts.get(tag.id);
+        if (entry) entry.n++;
+        else counts.set(tag.id, { tag, n: 1 });
+      }
+    }
+
+    let best: { tag: TagSummary, n: number } | null = null;
+    for (const entry of counts.values()) {
+      if (!best || entry.n > best.n || (entry.n === best.n && entry.tag.name.localeCompare(best.tag.name) < 0)) {
+        best = entry;
+      }
+    }
+    if (best) result.set(poolId, best.tag);
+  }
+
+  return result;
 }
