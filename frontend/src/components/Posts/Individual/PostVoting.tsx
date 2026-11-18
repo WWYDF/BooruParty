@@ -112,7 +112,19 @@ export default function PostVoting({ post, onChange }: Props) {
   // Boost, or undo the active boost on this post. Not optimistic: the cooldown comes from the server's clock.
   const toggleBoost = async () => {
     if (!viewer || !user || busy.current) return;
-    if (onCooldown && !canUndoBoost) return;
+
+    // On cooldown with the boost elsewhere: say where it is, so they can go undo it there if they'd rather boost this one
+    if (onCooldown && !canUndoBoost) {
+      const active = user.boost?.activeBoostPostId;
+      toast(
+        active
+          ? `Your boost is on post #${active}. Undo it there to boost this one instead, or wait ${timer}.`
+          : `The post you boosted was deleted. You can boost again in ${timer}.`,
+        'info',
+      );
+      return;
+    }
+
     busy.current = true;
 
     try {
@@ -181,19 +193,25 @@ export default function PostVoting({ post, onChange }: Props) {
       <div className="flex justify-center gap-2">
         <button
           onClick={toggleBoost}
-          disabled={!canBoost || (onCooldown && !canUndoBoost)}
+          disabled={!canBoost}
           title={
             guestTitle ??
             (canUndoBoost
               ? 'Take back your boost (you can boost again right away)'
               : onCooldown
-                ? 'You can boost one post per cooldown'
+                ? 'On cooldown: click to see which post you boosted'
                 : 'Boost this post')
           }
-          className={`${buttonBase} tabular-nums ${canUndoBoost ? 'bg-cyan-400/10 text-cyan-400' : idle}`}
+          // On cooldown elsewhere it only explains itself (toast), so it looks disabled while staying clickable.
+          // Classes swapped rather than stacked: cursor-pointer + cursor-not-allowed together is a coin flip in Tailwind.
+          className={`tabular-nums ${
+            onCooldown && !canUndoBoost
+              ? 'flex cursor-not-allowed items-center gap-2 rounded-full border border-secondary-border px-3 py-1.5 text-sm opacity-50'
+              : buttonBase
+          } ${canUndoBoost ? 'bg-cyan-400/10 text-cyan-400' : idle}`}
         >
           <SparkleIcon size={18} weight={canUndoBoost ? 'fill' : 'regular'} />
-          {canUndoBoost ? `Boost` : onCooldown ? `${timer}` : 'Boost'}
+          {canUndoBoost ? `Boosted` : onCooldown ? `${timer}` : 'Boost'}
         </button>
       </div>
     </div>
