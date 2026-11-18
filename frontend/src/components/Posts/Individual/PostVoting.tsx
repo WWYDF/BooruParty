@@ -1,277 +1,122 @@
-'use client'
-import { BookmarksSimpleIcon, CheckIcon, PlusIcon, SparkleIcon, StarIcon, ThumbsDownIcon, ThumbsUpIcon } from "@phosphor-icons/react";
-import { useState, useRef, useEffect } from "react";
-import { PostUserStatus } from "@/core/types/posts";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/components/UI/Toast";
-import { CreateCollectionModal } from "@/components/Users/CreateCollectionModal";
+'use client';
 
-type VoteType = "UPVOTE" | "DOWNVOTE" | null;
+import { useRef } from 'react';
+import { StarIcon, ThumbsDownIcon, ThumbsUpIcon } from '@phosphor-icons/react';
+import { useUser } from '@/components/UserProvider';
+import { useToast } from '@/components/UI/Toast';
+import { API, errorText } from '@/core/api';
+import { FavoriteResponse, PostDetail, PostViewerState, VoteResponse, VoteValue } from '@/core/types/posts';
 
 type Props = {
-  post: {
-    id: number;
-    score: number;
-    favorites?: number;
-  },
-  user: PostUserStatus;
+  post: PostDetail;
+  onChange: (patch: Partial<PostDetail>) => void; // merges the server's answer into the page's post (score, counts, viewer)
 };
 
-export default function PostVoting({ post, user }: Props) {
-  const [vote, setVote] = useState<VoteType>(user.vote);
-  const [favorited, setFavorited] = useState(user.favorited);
-  const [boosted, setBoosted] = useState(user.boostOnCooldown);
-  const [loading, setLoading] = useState(false);
-  const [collectionOpen, setCollectionOpen] = useState(false);
-  const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
-  const [collectionSearch, setCollectionSearch] = useState("");
-  const [checkedCollections, setCheckedCollections] = useState<Set<string>>(new Set(user.collections));
-  const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
-  const collectionRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+const buttonBase =
+  'flex cursor-pointer items-center gap-2 rounded-full border border-secondary-border px-3 py-1.5 text-sm transition md:hover:border-zinc-700 disabled:cursor-not-allowed disabled:opacity-50';
+const idle = 'bg-secondary-border text-subtle';
+
+// Upvote / Favorite / Downvote. Boosts and collections come back once their APIs exist.
+export default function PostVoting({ post, onChange }: Props) {
+  const { user } = useUser();
   const toast = useToast();
-  const postId = post.id;
+  const busy = useRef(false); // one request at a time; clicks meanwhile are ignored (not disabled, so the buttons don't flash)
 
-  const fetchCollections = () =>
-    fetch("/api/users/self")
-      .then((res) => res.json())
-      .then((data) => setCollections(data.collections ?? []))
-      .catch(() => {});
+  const viewer = post.viewer; // null = guest
+  const hasPerm = (perm: string) => user?.permissions.includes(perm) ?? false;
+  const canVote = !!viewer && hasPerm('posts.vote');
+  const canFavorite = !!viewer && hasPerm('posts.favorite');
 
-  useEffect(() => {
-    if (!collectionOpen) return;
-    fetchCollections();
-  }, [collectionOpen]);
+  // Flip the button right away, then apply the server's answer (or put the button back if it failed)
+  const send = async <T,>(
+    path: 'vote' | 'favorite',
+    body: object,
+    optimistic: PostViewerState,
+    apply: (data: T) => Partial<PostDetail>,
+  ) => {
+    if (!viewer || busy.current) return;
+    busy.current = true;
+    onChange({ viewer: optimistic });
 
-  useEffect(() => {
-    if (!collectionOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (collectionRef.current && !collectionRef.current.contains(e.target as Node)) {
-        setCollectionOpen(false);
-        setCollectionSearch("");
+    try {
+      const res = await API(`/api/posts/${post.id}/${path}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        onChange({ viewer });
+        toast(errorText(data), 'error');
+        return;
       }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [collectionOpen]);
-
-  const handleVote = async (type: VoteType) => {
-    if (user.signedIn == false) return;
-
-    const newVote = vote === type ? null : type;
-    setVote(newVote);
-    setLoading(true);
-
-    await fetch("/api/posts/vote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId, type: newVote }),
-    });
-
-    if (newVote == 'DOWNVOTE' && favorited) { await toggleFavorite() };
-    if (newVote == 'DOWNVOTE' && boosted) { await boostPost() };
-
-    setLoading(false);
-    router.refresh();
-  };
-
-  const toggleFavorite = async () => {
-    if (user.signedIn == false) return;
-    const res = await fetch(`/api/posts/favorite`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId }),
-    });
-    const data = await res.json();
-    setFavorited(data.favorited);
-
-    // If user just favorited AND hasn't upvoted, auto-upvote
-    if (data.favorited && vote !== "UPVOTE") {
-      await handleVote("UPVOTE");
+      onChange(apply(data));
+    } catch {
+      onChange({ viewer });
+      toast('The server could not be reached', 'error');
+    } finally {
+      busy.current = false;
     }
-    router.refresh();
   };
 
-  const boostPost = async () => {
-    if (user.signedIn === false) return;
-  
-    const res = await fetch(`/api/posts/boost`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId }),
-    });
-  
-    const data = await res.json();
-  
-    if (!res.ok) {
-      if (res.status == 409) { toast(`You have already boosted #${data.lastBoostPost}! Try again in ${data.remaining}`, "error"); return; };
-      
-      console.error("Boost request failed", await res.text());
-      return;
-    }
-  
-    // a new boost was created
-    if (data.boosted == true) {
-      setBoosted(true);
-      if (vote == 'DOWNVOTE') { handleVote('DOWNVOTE') }; // remove downvote
-    } else if (data.onCooldown == true) {
-      toast(`You have already boosted! Try again in ${data.remaining}`, "error");
-      setBoosted(false);
-    } else {
-      setBoosted(false);
-    }
-    router.refresh();
+  // Clicking the active vote again removes it
+  const vote = (value: 1 | -1) => {
+    if (!viewer) return;
+    const next: VoteValue = viewer.vote === value ? 0 : value;
+    send<VoteResponse>('vote', { value: next }, { ...viewer, vote: next }, (data) => ({
+      score: data.score,
+      viewer: { ...viewer, vote: data.myVote },
+    }));
   };
 
-  const addToCollection = async (collectionId: string) => {
-    const isIn = checkedCollections.has(collectionId);
-    setCheckedCollections((prev) => {
-      const next = new Set(prev);
-      isIn ? next.delete(collectionId) : next.add(collectionId);
-      return next;
-    });
-
-    await fetch("/api/collections/self", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        isIn ? { id: collectionId, removePostId: postId } : { id: collectionId, addPostId: postId }
-      ),
-    });
-
-    router.refresh();
+  // A new favorite also upvotes (server side); unfavoriting leaves the vote alone
+  const favorite = () => {
+    if (!viewer) return;
+    const next = !viewer.favorited;
+    const optimisticVote: VoteValue = next && canVote ? 1 : viewer.vote;
+    send<FavoriteResponse>('favorite', { favorited: next }, { vote: optimisticVote, favorited: next }, (data) => ({
+      score: data.score,
+      favoriteCount: data.favoriteCount,
+      viewer: { vote: data.myVote, favorited: data.favorited },
+    }));
   };
 
-  const filteredCollections = collections
-    .filter((c) => c.name.toLowerCase().includes(collectionSearch.toLowerCase()))
-    .slice(0, 10);
+  const guestTitle = viewer ? undefined : 'Log in to vote and favorite';
+  const upvoted = viewer?.vote === 1;
+  const downvoted = viewer?.vote === -1;
+  const favorited = viewer?.favorited ?? false;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex gap-2 justify-center">
-        <button
-          onClick={() => handleVote("UPVOTE")}
-          disabled={loading}
-          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
-            ${vote === "UPVOTE"
-              ? "bg-green-400/10 text-green-400 border-secondary-border md:hover:border-zinc-700"
-              : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
-          `}
-          title={vote ? "Unlike This Post" : "Like This Post"}
-        >
-          <ThumbsUpIcon size={18} weight={vote === "UPVOTE" ? "fill" : "regular"} />
-          Upvote
-        </button>
+    <div className="flex justify-center gap-2">
+      <button
+        onClick={() => vote(1)}
+        disabled={!canVote}
+        title={guestTitle ?? (upvoted ? 'Remove upvote' : 'Upvote this post')}
+        className={`${buttonBase} ${upvoted ? 'bg-green-400/10 text-green-400' : idle}`}
+      >
+        <ThumbsUpIcon size={18} weight={upvoted ? 'fill' : 'regular'} />
+        Upvote
+      </button>
 
-        <button
-          onClick={toggleFavorite}
-          disabled={loading}
-          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
-            ${favorited
-              ? "bg-yellow-400/10 text-yellow-400 border-secondary-border md:hover:border-zinc-700"
-              : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
-          `}
-          title={favorited ? "Unfavorite This Post" : "Favorite This Post"}
-        >
-          <StarIcon size={18} weight={favorited ? "fill" : "regular"} />
-          Favorite
-        </button>
+      <button
+        onClick={favorite}
+        disabled={!canFavorite}
+        title={guestTitle ?? (favorited ? 'Unfavorite this post' : 'Favorite this post')}
+        className={`${buttonBase} ${favorited ? 'bg-yellow-400/10 text-yellow-400' : idle}`}
+      >
+        <StarIcon size={18} weight={favorited ? 'fill' : 'regular'} />
+        Favorite
+      </button>
 
-        <button
-          onClick={() => handleVote("DOWNVOTE")}
-          disabled={loading}
-          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
-            ${vote === "DOWNVOTE"
-              ? "bg-red-400/10 text-red-400 border-secondary-border hover:border-zinc-700"
-              : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
-          `}
-        >
-          <ThumbsDownIcon size={18} weight={vote === "DOWNVOTE" ? "fill" : "regular"} />
-          Downvote
-        </button>
-      </div>
-
-      <div className="flex gap-2 justify-center">
-        <button
-          onClick={boostPost}
-          disabled={loading}
-          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
-            ${boosted
-              ? "bg-cyan-400/10 text-cyan-400 border-secondary-border md:hover:border-zinc-700"
-              : "bg-secondary-border text-subtle border-secondary-border md:hover:border-zinc-700"}
-          `}
-          title={boosted ? "Unboost This Post" : "Boost This Post"}
-        >
-          <SparkleIcon size={18} weight={boosted ? "fill" : "regular"} />
-          Boost
-        </button>
-
-        <div className="relative" ref={collectionRef}>
-          <button
-            disabled={loading}
-            onClick={() => setCollectionOpen((o) => !o)}
-            className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm border transition
-              ${checkedCollections.size > 0
-                ? "bg-purple-400/10 text-purple-400 border-secondary-border md:hover:border-zinc-700"
-                : "bg-secondary-border text-subtle border-secondary-border hover:border-zinc-700"}
-            `}
-          >
-            <BookmarksSimpleIcon size={18} weight={checkedCollections.size > 0 ? "fill" : "regular"} />
-            Collection
-          </button>
-
-          {collectionOpen && (
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
-              <div className="p-2 border-b border-zinc-800 flex gap-2 overflow-hidden">
-                <input
-                  type="text"
-                  placeholder="Search collections..."
-                  value={collectionSearch}
-                  onChange={(e) => setCollectionSearch(e.target.value)}
-                  className="min-w-0 flex-1 bg-zinc-800 text-sm text-white placeholder-zinc-500 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-zinc-600"
-                  autoFocus
-                />
-                <button
-                  onClick={() => { setCollectionOpen(false); setCreateCollectionOpen(true); }}
-                  className="shrink-0 p-1.5 bg-zinc-800 text-zinc-300 rounded-lg border border-zinc-700 hover:border-zinc-500 transition"
-                >
-                  <PlusIcon size={16} weight="bold" />
-                </button>
-              </div>
-              <ul className="max-h-56 overflow-y-auto">
-                {filteredCollections.length === 0 && (
-                  <li className="px-3 py-2 text-sm text-zinc-500">No collections found.</li>
-                )}
-                {filteredCollections.map((col) => (
-                  <li key={col.id}>
-                    <button
-                      onClick={() => addToCollection(col.id)}
-                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-white hover:bg-zinc-800 transition"
-                    >
-                      <span className="truncate mr-2">{col.name}</span>
-                      <span className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center pointer-events-none transition
-                        ${checkedCollections.has(col.id) ? "bg-amber-600 border-amber-500" : "bg-zinc-800 border-zinc-600"}`}>
-                        {checkedCollections.has(col.id) && <CheckIcon size={10} weight="bold" className="text-white" />}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <CreateCollectionModal
-        open={createCollectionOpen}
-        onClose={() => setCreateCollectionOpen(false)}
-        onCreated={async (collectionId) => {
-          await addToCollection(collectionId);
-          await fetchCollections();
-          toast("Collection created and post added!", "success");
-          router.refresh();
-        }}
-      />
+      <button
+        onClick={() => vote(-1)}
+        disabled={!canVote}
+        title={guestTitle ?? (downvoted ? 'Remove downvote' : 'Downvote this post')}
+        className={`${buttonBase} ${downvoted ? 'bg-red-400/10 text-red-400' : idle}`}
+      >
+        <ThumbsDownIcon size={18} weight={downvoted ? 'fill' : 'regular'} />
+        Downvote
+      </button>
     </div>
   );
 }

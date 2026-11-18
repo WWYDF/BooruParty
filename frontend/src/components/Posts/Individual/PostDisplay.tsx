@@ -5,16 +5,15 @@ import { PostDetail } from "@/core/types/posts";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/UI/Toast";
+import PostVoting from "./PostVoting";
 
 type Props = {
   post: PostDetail;
-  showVoting?: boolean;
+  onChange?: (patch: Partial<PostDetail>) => void; // set = show the vote/favorite buttons
   disableFullscreen?: boolean;
 };
 
-const VOTING_ENABLED = false; // no votes API yet; bring back <PostVoting /> when it exists
-
-export default function PostDisplay({ post, showVoting = true, disableFullscreen = false }: Props) {
+export default function PostDisplay({ post, onChange, disableFullscreen = false }: Props) {
   // No preview means the original was already the smallest version, so show it directly
   const [showFull, setShowFull] = useState(post.previewPath === null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -109,7 +108,7 @@ export default function PostDisplay({ post, showVoting = true, disableFullscreen
         </button>
       )}
 
-      {showVoting && VOTING_ENABLED && null /* <PostVoting post={post} /> */}
+      {onChange && <PostVoting post={post} onChange={onChange} />}
 
       {isAnimating && (
         <motion.div

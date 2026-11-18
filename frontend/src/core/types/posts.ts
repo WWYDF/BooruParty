@@ -95,20 +95,25 @@ export type PostDetail = {
     large: string,
   },
 
+  favoriteCount: number,
+
   related: Posts[],   // feed-card summaries, oldest link first; only posts this viewer may see
   featured: boolean,  // is this the site's featured post?
+  viewer: PostViewerState | null, // the logged-in viewer's own state; null for guests
 }
 
+export type VoteValue = -1 | 0 | 1; // dislike, none, like
 
-
-export type PostUserStatus = {
-  vote: 'UPVOTE' | 'DOWNVOTE' | null,
-  favorited: boolean
-  signedIn: boolean
-  boostOnCooldown: boolean,
-  canAutoTag: boolean,
-  collections: string[], // what collections the post is in (ids)
+export type PostViewerState = {
+  vote: VoteValue,
+  favorited: boolean,
 }
+
+// PUT /api/posts/:id/vote
+export type VoteResponse = { score: number, myVote: VoteValue };
+
+// PUT /api/posts/:id/favorite (a new favorite may also like the post, so the vote and score come back too)
+export type FavoriteResponse = { favorited: boolean, favoriteCount: number, score: number, myVote: VoteValue };
 
 // GET /api/posts/:id/navigate. null = nothing that way (end of the search, or order:random)
 export type PostNavigatorType = {
