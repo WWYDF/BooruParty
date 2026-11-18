@@ -8,6 +8,7 @@ import { formatPostSummary } from "@/core/utilities/reformatters"
 import { getBrowsingViewer } from "@/core/utilities/viewer"
 import { FastifyPluginAsync } from "fastify"
 import { Prisma } from "../../../prisma/client"
+import { getPoolSummaries } from "@/components/pools/summary"
 
 const POOL_SORTS = ['updated', 'newest', 'oldest', 'favorites', 'size', 'name'] as const;
 type PoolSort = typeof POOL_SORTS[number];
@@ -146,48 +147,12 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
       prisma.pool.count({ where }),
     ]);
 
-    // Visible posts of this page's pools, in pool order (ids + safety only, it's cheap)
-    const items = pools.length
-      ? await prisma.poolPost.findMany({
-          where: { poolId: { in: pools.map((p) => p.id) }, post: visiblePost },
-          orderBy: [{ poolId: 'asc' }, { index: 'asc' }],
-          select: { poolId: true, postId: true, post: { select: { safety: true } } },
-        })
-      : [];
-
-    const itemsByPool = new Map<number, typeof items>();
-    for (const item of items) {
-      const list = itemsByPool.get(item.poolId);
-      if (list) list.push(item);
-      else itemsByPool.set(item.poolId, [item]);
-    }
-
-    const artists = await getPrimaryArtists(
-      new Map([...itemsByPool].map(([poolId, list]) => [poolId, list.map((i) => i.postId)])),
-    );
-
-    // Cover = first visible post of each pool
-    const coverIds = [...itemsByPool.values()].map((list) => list[0].postId);
-    const covers = coverIds.length
-      ? await prisma.post.findMany({ where: { id: { in: coverIds } }, select: postSummarySelect })
-      : [];
-    const coverById = new Map(covers.map((p) => [p.id, formatPostSummary(p)]));
-
     return reply.send({
       page,
       limit,
       total,
       totalPages: Math.ceil(total / limit),
-      pools: pools.map((pool) => {
-        const list = itemsByPool.get(pool.id) ?? [];
-        return {
-          ...pool,
-          postCount: list.length,
-          safety: poolSafety(list.map((i) => i.post)),
-          artist: artists.get(pool.id) ?? null,
-          cover: list.length ? coverById.get(list[0].postId) ?? null : null,
-        };
-      }),
+      pools: await getPoolSummaries(pools, viewer),
     });
   });
 }

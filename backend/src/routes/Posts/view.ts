@@ -1,7 +1,8 @@
+import { getPoolSummaries } from "@/components/pools/summary";
 import { getViewerStates } from "@/components/posts/interactions";
 import { buildPostQuery, cursorCondition, encodeCursor, reverseOrder, visibleConditions } from "@/components/posts/postQuery";
 import { postDetailSelect } from "@/core/objects/selects/posts";
-import { postSummarySelect } from "@/core/objects/selects/summaries";
+import { poolSummarySelect, postSummarySelect } from "@/core/objects/selects/summaries";
 import { prisma } from "@/core/plugins/prisma";
 import { formatPostDetail, formatPostSummary } from "@/core/utilities/reformatters";
 import { parseSearch } from "@/core/utilities/search";
@@ -55,6 +56,14 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
       return row ? [formatPostSummary(row)] : [];
     });
 
+    // Pools this post is in. The viewer can see this post, so every pool holding it is visible too
+    const poolRows = await prisma.poolPost.findMany({
+      where: { postId: id },
+      orderBy: { pool: { name: 'asc' } },
+      select: { pool: { select: poolSummarySelect } },
+    });
+    const pools = await getPoolSummaries(poolRows.map((r) => r.pool), viewer);
+
     // This viewer's own interactions statuses (guests have none)
     const states = await getViewerStates([id], viewer.userId);
 
@@ -62,6 +71,7 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
       ...formatPostDetail(post),
       related,
       featured: getServerSettings().featuredPostId === id,
+      pools,
       viewer: states.get(id) ?? null,
     });
   });

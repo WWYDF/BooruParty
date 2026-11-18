@@ -1,8 +1,9 @@
 // Functions that take in objects and replace specific parts (idk bro just look at it smh)
 
 import { THUMBNAIL_SIZES, ThumbnailSize } from "@/components/uploads/thumbnails";
-import { PostSummary, UserSummary } from "../objects/selects/summaries";
+import { PoolSummary, PostSummary, TagSummary, UserSummary } from "../objects/selects/summaries";
 import { PostDetail } from "../objects/selects/posts";
+import { Safety } from "../../../prisma/client";
 
 // Strip any trailing slash so we never end up with "//data/..."
 const PUBLIC_URL = (process.env.BACKEND_URL ?? '').replace(/\/+$/, '');
@@ -59,4 +60,22 @@ export function avatarUrl(avatarKey: string | null): string | null {
 
 export function formatUserSummary(user: UserSummary) {
   return { ...user, avatar: avatarUrl(user.avatarKey), avatarKey: undefined };
+}
+
+// Pools
+
+// What a pool card shows that depends on who's looking (only their visible posts count)
+export type PoolViewerParts = {
+  postCount: number,
+  safety: Safety | null,
+  cover: PostSummary | null,
+  artist: TagSummary | null,
+};
+
+export function formatPoolSummary(pool: PoolSummary, parts: PoolViewerParts) {
+  return {
+    ...pool,
+    ...parts,
+    cover: parts.cover ? formatPostSummary(parts.cover) : null,
+  };
 }
