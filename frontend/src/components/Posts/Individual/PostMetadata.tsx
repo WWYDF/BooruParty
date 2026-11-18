@@ -48,7 +48,6 @@ type PostPool = {
 };
 const PLACEHOLDER = {
   anonymous: false,
-  boosts: 0,
   pools: [] as PostPool[],
   jigsawEnabled: false,
 };
@@ -264,7 +263,7 @@ export default function PostMetadata({
             <div className="flex items-center gap-2 rounded-xl border border-secondary-border bg-zinc-900/60 px-3 py-2">
               <SparkleIcon size={16} className="text-cyan-400" />
               <span className="text-xs text-white/80">Boosts</span>
-              <span className="text-xs font-semibold text-subtle">{formatCounts(PLACEHOLDER.boosts)}</span>
+              <span className="text-xs font-semibold text-subtle">{formatCounts(post.boostCount ?? 0)}</span>
             </div>
           </div>
 

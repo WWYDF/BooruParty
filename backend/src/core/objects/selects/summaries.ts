@@ -46,6 +46,7 @@ export const postSummarySelect = {
   hasAudio: true,
   score: true,
   favoriteCount: true,
+  boostCount: true,
   _count: { select: { comments: true } },
   createdAt: true,
 } satisfies Prisma.PostSelect;

@@ -1,6 +1,6 @@
 import { FileType } from "../dictionary";
 import { Tag, TagGroup } from "./tags";
-import { UserSimpleSummary } from "./users";
+import { BoostState, UserSimpleSummary } from "./users";
 
 export type Safety = 'SAFE' | 'QUESTIONABLE' | 'EXPLICIT';
 
@@ -51,6 +51,7 @@ export type Posts = {
 
   score: number,
   favoriteCount: number,
+  boostCount: number,
   commentCount: number,
   createdAt: Date,
   viewer?: PostViewerState | null, // feed only (null for guests); related posts on the post page don't carry it
@@ -99,6 +100,7 @@ export type PostDetail = {
   },
 
   favoriteCount: number,
+  boostCount: number,
   commentCount: number,
 
   related: Posts[],   // feed-card summaries, oldest link first; only posts this viewer may see
@@ -118,6 +120,12 @@ export type VoteResponse = { score: number, myVote: VoteValue };
 
 // PUT /api/posts/:id/favorite (a new favorite may also like the post, so the vote and score come back too)
 export type FavoriteResponse = { favorited: boolean, favoriteCount: number, score: number, myVote: VoteValue };
+
+// PUT (boost) and DELETE (undo) /api/posts/:id/boost
+export type BoostResponse = BoostState & { boostCount: number };
+
+// 429 from PUT /api/posts/:id/boost
+export type BoostCooldownError = { error: string, hint?: string, nextBoostAt: string };
 
 // GET /api/posts/:id/navigate. null = nothing that way (end of the search, or order:random)
 export type PostNavigatorType = {

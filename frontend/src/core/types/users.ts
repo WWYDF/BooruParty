@@ -155,6 +155,13 @@ export type UserPrivateSummary = UserSimpleSummary & {
   email: string,
   lastLogin: Date,
   permissions: string[],
+  boost: BoostState,
+}
+
+// GET /api/me's `boost` (also returned by PUT/DELETE /api/posts/:id/boost). Both null = free to boost.
+export type BoostState = {
+  nextBoostAt: string | null,       // ISO time the cooldown ends
+  activeBoostPostId: number | null, // the post whose boost can still be undone (null if it was deleted)
 }
 
 // PATCH /api/me/preferences (and GET /api/me's `preferences`)

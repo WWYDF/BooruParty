@@ -12,6 +12,7 @@ export const postDetailSelect = {
   previewSize: true,
   score: true,
   favoriteCount: true,
+  boostCount: true,
   updatedAt: true,
   uploader: { select: userSummarySelect },
   tags: {
