@@ -1,3 +1,4 @@
+import { getPoolTags, poolSafety } from "@/components/pools/aggregate"
 import { visibleConditions } from "@/components/posts/postQuery"
 import { MAX_INT } from "@/core/objects/limits"
 import { poolSummarySelect, postSummarySelect } from "@/core/objects/selects/summaries"
@@ -53,10 +54,16 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
     if (!pool || (items.length === 0 && !canManage)) {
       return reply.send(404).send({ error: 'Not found', hint: 'No pool with that id' });
     }
+
+    const posts = items.map((i) => i.post);
+    const { tags, artists } = await getPoolTags(posts.map((p) => p.id));
     
     return reply.status(200).send({
       ...pool,
-      posts: items.map((i) => formatPostSummary(i.post)),
+      safety: poolSafety(posts),
+      artists,
+      tags,
+      posts: posts.map(formatPostSummary),
     });
   })
 }
