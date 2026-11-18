@@ -82,7 +82,7 @@ export default function UploadEditor({ items, lockedCount, onPatch, onRemove }: 
               key={level}
               onClick={() => onPatch(() => ({ safety: level }))}
               className={`rounded px-2 py-1.5 text-xs transition ${
-                commonSafety === level ? SAFETY_STYLES[level].active : 'bg-secondary-border text-subtle hover:text-white'
+                commonSafety === level ? SAFETY_STYLES[level].active : 'bg-secondary-border cursor-pointer text-subtle hover:text-white'
               }`}
             >
               {SAFETY_STYLES[level].label}
@@ -138,7 +138,7 @@ export default function UploadEditor({ items, lockedCount, onPatch, onRemove }: 
 
       <button
         onClick={onRemove}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-900 px-3 py-1.5 text-sm text-red-400 transition hover:bg-red-900/30"
+        className="flex w-full items-center justify-center cursor-pointer gap-2 rounded-lg border border-red-900 px-3 py-1.5 text-sm text-red-400 transition hover:bg-red-900/30"
       >
         <TrashIcon size={14} /> Remove {single ? 'file' : `${items.length} files`}
       </button>

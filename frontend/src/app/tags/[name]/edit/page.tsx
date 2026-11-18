@@ -117,29 +117,26 @@ export default function TagEditPage() {
     setter(next.filter((t) => !ownNames.has(t.name)));
   };
 
+  // PATCH semantics: only what changed (recomputed every render, so it also drives the Save button)
+  const newName = normalize(primary);
+  const body: Record<string, unknown> = {};
+  if (newName !== tag.name) body.name = newName;
+  if (!sameSet(aliases, tag.aliases)) body.aliases = aliases.filter((a) => a !== newName);
+  if (categoryId !== tag.categoryId) body.categoryId = categoryId;
+  if (description.trim() !== (tag.description ?? "")) body.description = description.trim() || null;
+  if (!sameSet(flags, tag.flags)) body.flags = flags;
+  const impNames = implications.map((t) => t.name);
+  if (!sameSet(impNames, tag.implications.map((t) => t.name))) body.implications = impNames;
+  const sugNames = suggestions.map((t) => t.name);
+  if (!sameSet(sugNames, tag.suggestions.map((t) => t.name))) body.suggestions = sugNames;
+  const hasChanges = Object.keys(body).length > 0;
+
   const handleSave = async () => {
-    const newName = normalize(primary);
     if (!newName) {
       toast("The tag needs a name.", "error");
       return;
     }
-
-    // PATCH semantics: only what changed
-    const body: Record<string, unknown> = {};
-    if (newName !== tag.name) body.name = newName;
-    if (!sameSet(aliases, tag.aliases)) body.aliases = aliases.filter((a) => a !== newName);
-    if (categoryId !== tag.categoryId) body.categoryId = categoryId;
-    if (description.trim() !== (tag.description ?? "")) body.description = description.trim() || null;
-    if (!sameSet(flags, tag.flags)) body.flags = flags;
-    const impNames = implications.map((t) => t.name);
-    if (!sameSet(impNames, tag.implications.map((t) => t.name))) body.implications = impNames;
-    const sugNames = suggestions.map((t) => t.name);
-    if (!sameSet(sugNames, tag.suggestions.map((t) => t.name))) body.suggestions = sugNames;
-
-    if (!Object.keys(body).length) {
-      toast("Nothing to save", "info");
-      return;
-    }
+    if (!hasChanges) return;
 
     setSaving(true);
     try {
@@ -238,7 +235,7 @@ export default function TagEditPage() {
         )}
       </div>
 
-      <Button variant="success" icon={<FloppyDiskIcon size={16} />} loading={saving} onClick={handleSave}>
+      <Button variant="success" icon={<FloppyDiskIcon size={16} />} loading={saving} disabled={!hasChanges} onClick={handleSave}>
         Save Changes
       </Button>
     </div>

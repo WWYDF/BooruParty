@@ -41,7 +41,7 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
   return (
     <div className="relative w-full flex items-center gap-2">
       {/* Input + search button group */}
-      <div className="relative flex items-center bg-secondary border border-secondary-border rounded w-full pl-3 pr-2">
+      <div className="relative gap-2 flex items-center bg-secondary border border-secondary-border rounded w-full pl-3 pr-2">
         <input
           ref={inputRef}
           type="text"
@@ -58,19 +58,20 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
         />
 
         <button
-          onClick={showPostCount}
-          className="ml-2 w-8 h-8 flex items-center transition-colors justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300 shrink-0"
-          title="Post count"
-        >
-          <HashStraightIcon size={18} weight="duotone" />
-        </button>
-
-        <button
           onClick={handleSubmit}
-          className="ml-2 w-8 h-8 flex items-center transition-colors justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300 shrink-0"
+          className="w-8 aspect-square cursor-pointer flex items-center transition-colors justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300 shrink-0"
           title="Search"
         >
           <MagnifyingGlassIcon size={16} weight="duotone" />
+        </button>
+
+        {/* Trash button */}
+        <button
+          onClick={handleClear}
+          className="w-8 aspect-square cursor-pointer flex items-center transition-colors justify-center rounded-md bg-zinc-800 hover:bg-red-600 border border-secondary-border text-zinc-300 shrink-0"
+          title="Clear search"
+        >
+          <TrashIcon size={18} weight="duotone" />
         </button>
 
         {/* Autocomplete dropdown */}
@@ -112,19 +113,19 @@ export default function SearchBar({ input, setInput, onSubmit }: PostSearchBarPr
         )}
       </div>
 
-      {/* Trash button */}
+      {/* Post Count */}
       <button
-        onClick={handleClear}
-        className="w-8 h-8 md:w-10 md:h-10 hidden md:flex items-center justify-center rounded-md bg-zinc-800 hover:bg-red-600 text-white transition-colors border border-secondary-border"
-        title="Clear search"
+        onClick={showPostCount}
+        className="w-10 self-stretch cursor-pointer flex items-center transition-colors justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 border border-secondary-border text-zinc-300 shrink-0"
+        title="Post count"
       >
-        <TrashIcon size={18} weight="duotone" />
+        <HashStraightIcon size={18} weight="duotone" />
       </button>
 
       {/* Help button */}
       <button
         onClick={() => setHelpOpen(true)}
-        className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 text-white transition-colors border border-secondary-border"
+        className="w-12 self-stretch cursor-pointer flex items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 text-white transition-colors border border-secondary-border"
         title="Search help"
       >
         <QuestionIcon size={18} weight="duotone" />

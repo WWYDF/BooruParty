@@ -245,7 +245,7 @@ export default function UploadPage() {
             <button
               onClick={() => runQueue()}
               disabled={uploading || pending === 0}
-              className="rounded-lg border-2 border-green-800 px-4 py-1.5 text-sm text-zinc-200 transition hover:bg-green-800/30 disabled:opacity-50"
+              className="rounded-lg cursor-pointer border-2 border-green-800 px-4 py-1.5 text-sm text-zinc-200 transition hover:bg-green-800/30 disabled:opacity-50"
             >
               {uploading ? 'Uploading...' : `Upload ${pending} file${pending === 1 ? '' : 's'}`}
             </button>
@@ -262,10 +262,10 @@ export default function UploadPage() {
 
             <span className="mx-1 h-5 w-px bg-secondary-border" />
 
-            <button onClick={() => setSelected(new Set(items.map((i) => i.id)))} className="text-sm text-subtle hover:text-white">
+            <button onClick={() => setSelected(new Set(items.map((i) => i.id)))} className="text-sm cursor-pointer text-subtle hover:text-white">
               Select all
             </button>
-            <button onClick={() => setSelected(new Set())} className="text-sm text-subtle hover:text-white">
+            <button onClick={() => setSelected(new Set())} className="text-sm cursor-pointer text-subtle hover:text-white">
               Select none
             </button>
             {done > 0 && (
