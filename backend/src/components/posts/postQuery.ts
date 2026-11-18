@@ -96,6 +96,16 @@ export function visibleConditions(viewer: Viewer, safety: Safety[] = effectiveSa
   return conditions;
 }
 
+// The user behind a likes:/favorites: term
+// A private account's activity only shows up for themselves and admins
+function activityUser(viewer: Viewer, username: string): Prisma.UserWhereInput {
+  if (viewer.canSeePrivate) return { username };
+  return {
+    username,
+    OR: [{ private: false }, ...(viewer.userId ? [{ id: viewer.userId }] : [])],
+  };
+}
+
 // Build List Posts Query
 export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<PostQuery> {
   // Resolve all three tag lists in parallel (aliases -> real tags)
@@ -124,10 +134,18 @@ export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<Po
   for (const wc of q.includeWildcards) AND.push({ tags: { some: wildcardCondition(wc) } });
   for (const wc of q.excludeWildcards) AND.push({ tags: { none: wildcardCondition(wc) } });
 
-  // Fields
+  // Content Type
   if (q.type) AND.push({ type: { in: q.type } });
-  if (q.from.length) AND.push({ uploader: { username: { in: q.from } } });
-  if (q.notFrom.length) AND.push({ uploader: { username: { notIn: q.notFrom } } });
+  
+  // Users
+  if (q.from.include.length) AND.push({ uploader: { username: { in: q.from.include } } });
+  if (q.from.exclude.length) AND.push({ uploader: { username: { notIn: q.from.exclude } } });
+  for (const name of q.likes.include) AND.push({ votes: { some: { value: 1, user: activityUser(viewer, name) } } });
+  for (const name of q.likes.exclude) AND.push({ votes: { none: { value: 1, user: activityUser(viewer, name) } } });
+  for (const name of q.favorites.include) AND.push({ favorites: { some: { user: activityUser(viewer, name) } } });
+  for (const name of q.favorites.exclude) AND.push({ favorites: { none: { user: activityUser(viewer, name) } } });
+
+  // Flags
   for (const group of q.flags) AND.push({ tags: { some: { tag: { flags: { hasSome: group } } } } });
   if (q.notFlags.length) AND.push({ tags: { none: { tag: { flags: { hasSome: q.notFlags } } } } });
 

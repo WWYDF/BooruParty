@@ -30,7 +30,7 @@ const SYSTEM_VALUES: Record<string, string[]> = {
   order: SORT_ORDERS,
   sort: SORT_ORDERS,
 };
-const SYSTEM_KEYS = ["safety", "type", "flag", "order", "from", "score", "tagcount", "id"];
+const SYSTEM_KEYS = ["safety", "type", "flag", "order", "from", "posts", "likes", "favorites", "score", "tagcount", "id"];
 
 const DEBOUNCE_MS = 150;
 

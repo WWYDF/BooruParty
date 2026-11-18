@@ -6,6 +6,7 @@ const MAX_TERMS = 40; // every tag term becomes a subquery; keep searches bounde
 export type NumberOp = 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
 export type NumberFilter = { op: NumberOp, value: number, };
 export type Wildcard = { kind: 'startsWith' | 'endsWith' | 'contains', value: string };
+export type UserFilter = { include: string[], exclude: string[] };
 
 export const SORT_ORDERS = ['newest', 'oldest', 'score', 'favorites', 'boosts', 'random'] as const;
 export type SortOrder = typeof SORT_ORDERS[number];
@@ -20,8 +21,9 @@ export type ParsedQuery = {
   type?: FileType[],
   flags: TagFlag[][],
   notFlags: TagFlag[],
-  from: string[],                 // uploader usernames (must be one of)
-  notFrom: string[],
+  from: UserFilter,               // uploader username ("posts:" does the same thing)
+  likes: UserFilter,              // "likes:<username>"
+  favorites: UserFilter           // "favorites:<username>"
   score: NumberFilter[],
   tagcount: NumberFilter[],
   id: NumberFilter[],
@@ -72,8 +74,9 @@ export function parseSearch(input: string): ParsedQuery {
     excludeWildcards: [],
     flags: [],
     notFlags: [],
-    from: [],
-    notFrom: [],
+    from: { include: [], exclude: [] },
+    likes: { include: [], exclude: [] },
+    favorites: { include: [], exclude: [] },
     score: [],
     tagcount: [],
     id: [],
@@ -99,7 +102,20 @@ export function parseSearch(input: string): ParsedQuery {
     const key = colon > 0 ? token.slice(0, colon) : '';
     const value = colon > 0 ? token.slice(colon + 1) : '';
 
-    if (key && or && ['safety', 'type', 'from', 'score', 'tagcount', 'id', 'order', 'sort', 'flag', 'flags'].includes(key)) {
+    if (key && or && [
+      'safety',
+      'type',
+      'from',
+      'likes',
+      'favorites',
+      'score',
+      'tagcount',
+      'id',
+      'order',
+      'sort',
+      'flag',
+      'flags',
+    ].includes(key)) {
       q.errors.push(`"~" can't be used with ${key}:`);
       continue;
     }
@@ -125,9 +141,14 @@ export function parseSearch(input: string): ParsedQuery {
         else q.flags.push(values);
         continue;
       }
-      case 'from': {
-        if (!value) { q.errors.push('from: needs a username'); continue; }
-        (negate ? q.notFrom : q.from).push(value);
+      // This whole block does the same function below btw
+      case 'posts':
+      case 'from':
+      case 'likes':
+      case 'favorites': {
+        if (!value) { q.errors.push(`${key}: needs a username`); continue; }
+        const filter = key === 'posts' ? q.from : q[key];
+        (negate ? filter.exclude : filter.include).push(value);
         continue;
       }
       case 'score':
@@ -143,7 +164,7 @@ export function parseSearch(input: string): ParsedQuery {
       case 'sort': {
         if (negate) { q.errors.push(`-${key}: isn't supported`); continue; }
         if (!(SORT_ORDERS as readonly string[]).includes(value)) {
-          q.errors.push(`${key}: must be newest, oldest, score or random`);
+          q.errors.push(`${key}: must be one of ${SORT_ORDERS.join(', ')}`);
           continue;
         }
         q.order = value as SortOrder;
