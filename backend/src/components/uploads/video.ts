@@ -58,3 +58,22 @@ export async function encodeVideoPreview(inputPath: string, outputPath: string, 
     outputPath
   ]);
 }
+
+// Convert short, muted videos to animations
+export function shouldConvertToAnimation(info: VideoInfo): boolean {
+  return !info.hasAudio && info.duration > 0 && info.duration <= 5; // 5 seconds max
+}
+
+export async function convertToAnimatedWebp(inputPath: string, outputPath: string) {
+  logger.debug(`Converting short, silent video to animated webp: ${outputPath}`);
+  await ffmpeg([
+    '-i', inputPath,
+    '-c:v', 'libwebp_anim',
+    '-lossless', '0',
+    '-q:v', '80',
+    '-loop', '0',
+    '-an', '-sn', '-dn',
+    outputPath,
+  ]);
+}
+//
