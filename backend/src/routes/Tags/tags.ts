@@ -1,7 +1,7 @@
 import { appLogger } from "@/core/plugins/logger";
 import { prisma } from "@/core/plugins/prisma";
 import { requirePermission, rolePermissionCheck } from "@/core/utilities/permissionCache";
-import { Db, getImpliedTags, normalizeTagName, resolveOrCreateTags, resolveTagNames, wouldCreateCycle } from "@/core/utilities/tags";
+import { getImpliedTags, normalizeTagName, resolveOrCreateTags, wouldCreateCycle } from "@/core/utilities/tags";
 import { FastifyPluginAsync } from "fastify";
 import { Prisma, TagFlag } from "../../../prisma/client";
 import { HttpError } from '@/core/utilities/errors';

@@ -1,11 +1,7 @@
 // Tag names rules: Every tag name entering the API goes through normalizeTagName()
 
-import { Prisma } from "../../../prisma/client";
-import { prisma } from "../plugins/prisma";
+import { Db, prisma } from "../plugins/prisma";
 import { HttpError } from "./errors";
-
-// Lets helpers run either standalone or inside a prisma.$transaction(async (tx) => ...)
-export type Db = typeof prisma | Prisma.TransactionClient;
 
 export type ResolvedTag = { id: number, name: string };
 

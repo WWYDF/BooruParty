@@ -10,6 +10,7 @@ export const postDetailSelect = {
   notes: true,
   fileSize: true,
   previewSize: true,
+  score: true,
   updatedAt: true,
   uploader: { select: userSummarySelect },
   tags: {

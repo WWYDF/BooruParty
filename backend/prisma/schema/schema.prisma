@@ -56,6 +56,8 @@ model User {
 
   posts                   Post[]
   comments                PostComment[]
+  postVotes               PostVote[]
+  postFavorites           PostFavorite[]
 
   lastSeen                String?                   // pair with updatedAt
   updatedAt               DateTime                  @updatedAt
@@ -120,7 +122,8 @@ model Post {
   tags                    PostTag[]
   tagCount                Int                       @default(0) // Posts API calculates this on change
   score                   Int                       @default(0) // Votes API calculates this on change
-  // votes
+  votes                   PostVote[]
+  favorites               PostFavorite[]
   comments                PostComment[]
   // boosts
   relatedFrom             PostRelation[]            @relation("RelatedFrom")
@@ -157,6 +160,34 @@ model PostComment {
 
   @@index([postId, id])                             // a post's comments, paged by id
   @@index([authorId])                               // a user's comments (profile activity)
+}
+
+// Likes & Dislikes
+model PostVote {
+  postId                  Int
+  post                    Post                      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId                  String
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value                   Int                       @db.SmallInt // can only be 1 or -1
+
+  createdAt               DateTime                  @default(now())
+
+  @@id([postId, userId])                            // one vote per user per post
+  @@index([userId])                                 // a user's votes / cascade on acc delete
+}
+
+// Favorites (duh)
+model PostFavorite {
+  postId                  Int
+  post                    Post                      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId                  String
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt               DateTime                  @default(now())
+
+  @@id([userId, postId])                            // one fav per post
+  @@index([userId, createdAt])                      // a user's favorites, newest first
+  @@index([postId])                                 // who favorited this post / cascade on post delete
 }
 
 
