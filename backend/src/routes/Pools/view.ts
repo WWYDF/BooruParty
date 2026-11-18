@@ -5,10 +5,11 @@ import { poolSummarySelect, postSummarySelect } from "@/core/objects/selects/sum
 import { prisma } from "@/core/plugins/prisma"
 import { rolePermissionCheck } from "@/core/utilities/permissionCache"
 import { formatPostSummary } from "@/core/utilities/reformatters"
-import { getBrowsingViewer } from "@/core/utilities/viewer"
+import { assertPostVisible, getBrowsingViewer } from "@/core/utilities/viewer"
 import { FastifyPluginAsync } from "fastify"
 import { Prisma } from "../../../prisma/client"
 import { getPoolSummaries } from "@/components/pools/summary"
+import { postVisibilitySelect } from "@/core/objects/selects/posts"
 
 const POOL_SORTS = ['updated', 'newest', 'oldest', 'favorites', 'size', 'name'] as const;
 type PoolSort = typeof POOL_SORTS[number];
@@ -153,6 +154,58 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
       total,
       totalPages: Math.ceil(total / limit),
       pools: await getPoolSummaries(pools, viewer),
+    });
+  });
+
+  // Prev/next post inside a pool, from the post you're on. Skips posts hidden from you.
+  fastify.get('/:id/navigate', {
+    onRequest: [fastify.identify],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer', minimum: 1, maximum: MAX_INT } },
+      },
+      querystring: {
+        type: 'object',
+        required: ['current'],
+        additionalProperties: false,
+        properties: { current: { type: 'integer', minimum: 1, maximum: MAX_INT } },
+      },
+    },
+  }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+    const { current } = req.query as { current: number };
+    const viewer = await getBrowsingViewer(req);
+
+    // The post must be in this pool AND visible to you; otherwise there's nothing to navigate from
+    const item = await prisma.poolPost.findUnique({
+      where: { poolId_postId: { poolId: id, postId: current } },
+      select: { index: true, post: { select: postVisibilitySelect } },
+    });
+    assertPostVisible(viewer, item?.post ?? null);
+
+    const visiblePost = { AND: visibleConditions(viewer) };
+    const [previous, next, before, total] = await Promise.all([
+      prisma.poolPost.findFirst({
+        where: { poolId: id, index: { lt: item!.index }, post: visiblePost },
+        orderBy: { index: 'desc' },
+        select: { postId: true },
+      }),
+      prisma.poolPost.findFirst({
+        where: { poolId: id, index: { gt: item!.index }, post: visiblePost },
+        orderBy: { index: 'asc' },
+        select: { postId: true },
+      }),
+      prisma.poolPost.count({ where: { poolId: id, index: { lt: item!.index }, post: visiblePost } }),
+      prisma.poolPost.count({ where: { poolId: id, post: visiblePost } }),
+    ]);
+
+    return reply.send({
+      previousPostId: previous?.postId ?? null,
+      nextPostId: next?.postId ?? null,
+      position: before + 1, // 1-based, among the posts you can see
+      total,
     });
   });
 }
