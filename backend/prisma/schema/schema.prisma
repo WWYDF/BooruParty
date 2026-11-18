@@ -118,10 +118,13 @@ model Post {
   pHash                   String
   dupeBypass              Boolean                   @default(false)
 
-  // Relationals
-  tags                    PostTag[]
+  // Counts
   tagCount                Int                       @default(0) // Posts API calculates this on change
   score                   Int                       @default(0) // Votes API calculates this on change
+  favoriteCount           Int                       @default(0) // Votes API calculates this on change
+
+  // Relationals
+  tags                    PostTag[]
   votes                   PostVote[]
   favorites               PostFavorite[]
   comments                PostComment[]
