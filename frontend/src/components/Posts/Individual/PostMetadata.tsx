@@ -38,17 +38,8 @@ const SAFETY_TEXT: Record<Safety, string> = {
 
 // Placeholders for features the new API doesn't have yet
 // Swap later, the JSX below already handles them.
-type PostPool = {
-  id: number;
-  name: string;
-  safety: Safety;
-  cover: string | null; // thumbnail URL
-  page: number;         // this post's position in the pool
-  total: number;
-};
 const PLACEHOLDER = {
   anonymous: false,
-  pools: [] as PostPool[],
   jigsawEnabled: false,
 };
 
@@ -372,15 +363,18 @@ export default function PostMetadata({
           )}
 
           {/* Pools */}
-          {PLACEHOLDER.pools.length > 0 && (
+          {post.pools.length > 0 && (
             <Section title="Pools">
               <div className="flex flex-col gap-3">
-                {PLACEHOLDER.pools.map((pool) => (
-                  <Link key={pool.id} href={`/pools/${pool.id}`} className="group flex items-center gap-3">
-                    <div className="h-24 w-13.5 overflow-hidden rounded-lg border border-secondary-border bg-zinc-800">
+                {post.pools.map((pool) => (
+                  <div key={pool.id} className="group flex items-center gap-3">
+                    <Link
+                      href={`/pools/${pool.id}`}
+                      className="h-24 w-13.5 shrink-0 overflow-hidden rounded-lg border border-secondary-border bg-zinc-800"
+                    >
                       {pool.cover ? (
                         <img
-                          src={pool.cover}
+                          src={pool.cover.thumbnails.small}
                           alt={`Pool ${pool.name}`}
                           className="h-full w-full object-cover transition group-hover:scale-105"
                         />
@@ -389,14 +383,23 @@ export default function PostMetadata({
                           No preview
                         </div>
                       )}
-                    </div>
-                    <div>
-                      <p className={`text-sm font-medium ${SAFETY_TEXT[pool.safety]}`}>{pool.name}</p>
-                      <p className="mt-0.5 text-xs text-zinc-400">
-                        Page {pool.page} of {pool.total}
+                    </Link>
+                    <div className="min-w-0">
+                      <Link
+                        href={`/pools/${pool.id}`}
+                        className={`block truncate text-sm font-medium hover:underline ${pool.safety ? SAFETY_TEXT[pool.safety] : "text-white"}`}
+                      >
+                        {pool.name}
+                      </Link>
+                      <p className="mt-0.5 truncate text-xs text-zinc-400">
+                        {pool.postCount} {pool.postCount === 1 ? "post" : "posts"}
+                        {pool.artist && <> · by {pool.artist.name}</>}
                       </p>
+                      <Link href={`/post/${post.id}?pool=${pool.id}`} className="mt-0.5 block text-xs text-accent hover:underline">
+                        Step through pool
+                      </Link>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </Section>

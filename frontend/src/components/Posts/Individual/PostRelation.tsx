@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "@phosphor-icons/react";
+import { XIcon } from "@phosphor-icons/react";
 import AddButton from "@/components/UI/AddButton";
 
 export default function RelatedPostInput({
@@ -39,9 +39,9 @@ export default function RelatedPostInput({
             <span>{id}</span>
             <button
               onClick={() => onChange(value.filter((r) => r !== id))}
-              className="hover:text-red-400"
+              className="hover:text-red-400 cursor-pointer"
             >
-              <X size={12} />
+              <XIcon size={12} />
             </button>
           </div>
         ))}
@@ -58,7 +58,7 @@ export default function RelatedPostInput({
               onChange(value.slice(0, -1));
             }
           }}
-          className="bg-transparent outline-none text-white text-base flex-1 min-w-[50px]"
+          className="bg-transparent outline-none text-white text-base flex-1 min-w-12.5"
           placeholder={placeholder}
         />
       </div>

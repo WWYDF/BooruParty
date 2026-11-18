@@ -105,8 +105,9 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
   const originalRelated = post.related.map((r) => r.id);
   const [relatedPosts, setRelatedPosts] = useState<number[]>(originalRelated);
 
-  // No backend yet: renders and can be changed, but is never sent
-  const [pools, setPools] = useState<number[]>([]);
+  // Pool ids this post is in. Saved through each pool's add/remove endpoints (needs pool.manage)
+  const originalPools = post.pools.map((p) => p.id);
+  const [pools, setPools] = useState<number[]>(originalPools);
 
   const [newFile, setNewFile] = useState<File | null>(null);
   const [thumb, setThumb] = useState<ThumbChange>(null);
@@ -147,8 +148,12 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
     if (!sameSet(relatedPosts.map(String), originalRelated.map(String))) body.related = relatedPosts;
 
     const hasFields = Object.keys(body).length > 0;
+    const addedPools = pools.filter((id) => !originalPools.includes(id));
+    const removedPools = originalPools.filter((id) => !pools.includes(id));
+    const poolsChanged = addedPools.length + removedPools.length > 0;
+
     // Nothing changed: close the editor as if it saved
-    if (!hasFields && !newFile && !thumb) {
+    if (!hasFields && !newFile && !thumb && !poolsChanged) {
       onSaved();
       return;
     }
@@ -190,6 +195,20 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
         setStatus('Resetting thumbnail...');
         const res = await API(`/api/posts/${post.id}/thumbnail`, { method: 'DELETE' });
         if (!res.ok) return fail(`resetting the thumbnail failed: ${errorText(await res.json().catch(() => ({})))}`);
+      }
+
+      // 4. Pools (added ones put this post at the end of the pool)
+      for (const [poolIds, method] of [[addedPools, 'POST'], [removedPools, 'DELETE']] as const) {
+        for (const poolId of poolIds) {
+          setStatus('Updating pools...');
+          const res = await API(`/api/pools/${poolId}/posts`, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ postIds: [post.id] }),
+          });
+          if (!res.ok) return fail(`updating pool #${poolId} failed: ${errorText(await res.json().catch(() => ({})))}`);
+          fieldsSaved = true;
+        }
       }
 
       toast('Post saved', 'success');
@@ -415,13 +434,13 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
         <RelatedPostInput value={relatedPosts} onChange={setRelatedPosts} />
       </div>
 
-      {/* Pools (no backend yet) */}
-      <div>
-        <label className="mb-1.5 block font-medium text-white">
-          Pools <span className="text-xs font-normal text-subtle">(coming soon, not saved)</span>
-        </label>
-        <RelatedPostInput value={pools} onChange={setPools} placeholder="Add pool ID..." />
-      </div>
+      {/* Pools */}
+      {hasPerm('pool.manage') && (
+        <div>
+          <label className="mb-1.5 block font-medium text-white">Pools</label>
+          <RelatedPostInput value={pools} onChange={setPools} placeholder="Add pool ID..." />
+        </div>
+      )}
 
       {/* Tags */}
       <div>

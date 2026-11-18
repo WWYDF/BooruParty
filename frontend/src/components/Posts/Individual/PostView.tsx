@@ -137,7 +137,11 @@ export default function PostView({ postId, poolId }: { postId: number; poolId?: 
 
       {/* RIGHT COLUMN - Main content + Comments */}
       <div className="order-1 lg:order-2 space-y-6">
-        <PostNavigator postId={post.id} poolId={poolId} />
+        <PostNavigator
+          postId={post.id}
+          poolId={poolId}
+          poolName={post.pools.find((p) => p.id === poolId)?.name}
+        />
         {/* Votes/favorites patch score, favoriteCount and viewer in place, so the stats bar updates too */}
         <PostDisplay post={post} onChange={(patch) => setPost((prev) => (prev ? { ...prev, ...patch } : prev))} />
 

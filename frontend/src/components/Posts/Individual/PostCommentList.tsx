@@ -225,7 +225,7 @@ export default function PostCommentList({ comments, embeddedPosts, parentSafety,
                               key={id}
                               href={`/post/${id}`}
                               title={`Post #${id}`}
-                              className="group block h-32 w-32 overflow-hidden rounded-lg border border-secondary-border transition hover:border-darkerAccent"
+                              className="group block h-auto w-full max-w-lg aspect-auto overflow-hidden rounded-lg border border-secondary-border transition hover:border-darkerAccent"
                             >
                               <img
                                 src={embedded.previewPath ?? embedded.thumbnails.med}

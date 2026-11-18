@@ -1,6 +1,7 @@
 import { FileType } from "../dictionary";
 import { Tag, TagGroup } from "./tags";
 import { BoostState, UserSimpleSummary } from "./users";
+import { PoolSummary } from "./pools";
 
 export type Safety = 'SAFE' | 'QUESTIONABLE' | 'EXPLICIT';
 
@@ -104,6 +105,7 @@ export type PostDetail = {
   commentCount: number,
 
   related: Posts[],   // feed-card summaries, oldest link first; only posts this viewer may see
+  pools: PoolSummary[], // pools holding this post, by name
   featured: boolean,  // is this the site's featured post?
   viewer: PostViewerState | null, // the logged-in viewer's own state; null for guests
 }

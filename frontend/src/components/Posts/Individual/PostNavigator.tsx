@@ -1,33 +1,44 @@
 "use client";
 
 import { PostNavigatorType } from "@/core/types/posts";
+import { PoolNavigation } from "@/core/types/pools";
 import { API } from "@/core/api";
 import { lastFeedQuery } from "@/core/feedQuery";
 import { PREFS_EVENT, readBrowserPref } from "@/core/browserPrefs";
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-type Props = { postId: number; poolId?: number; fullscreen?: boolean };
+type Props = {
+  postId: number;
+  poolId?: number;
+  poolName?: string; // shown in the middle while stepping through a pool
+  fullscreen?: boolean;
+};
 
-const NO_NAV: PostNavigatorType = { previousPostId: null, nextPostId: null };
+// position/total only exist inside a pool
+type Adjacent = PostNavigatorType & { position?: number; total?: number };
+
+const NO_NAV: Adjacent = { previousPostId: null, nextPostId: null };
 
 export function useAdjacentPosts(postId: number, poolId?: number) {
-  const [nav, setNav] = useState<PostNavigatorType>(NO_NAV);
+  const [nav, setNav] = useState<Adjacent>(NO_NAV);
 
   useEffect(() => {
     let cancelled = false; // ignore a slow answer for the post we already left
     setNav(NO_NAV);
 
-    // TODO: pools have no API yet; pool navigation comes with it
-    if (poolId) return;
+    // Inside a pool: step through the pool's order. Otherwise: the same search the feed showed
+    // (Next = up the feed, newer by default)
+    const path = poolId
+      ? `/api/pools/${poolId}/navigate?${new URLSearchParams({ current: String(postId) })}`
+      : `/api/posts/${postId}/navigate?${new URLSearchParams({ q: lastFeedQuery() })}`;
 
-    // Step through the same search the feed showed (Next = up the feed, newer by default)
-    const params = new URLSearchParams({ q: lastFeedQuery() });
-    API(`/api/posts/${postId}/navigate?${params}`)
+    API(path)
       .then((res) => (res.ok ? res.json() : NO_NAV))
-      .then((data: PostNavigatorType) => { if (!cancelled) setNav(data); })
+      .then((data: PoolNavigation | PostNavigatorType) => { if (!cancelled) setNav(data); })
       .catch(() => {});
 
     return () => { cancelled = true; };
@@ -36,10 +47,9 @@ export function useAdjacentPosts(postId: number, poolId?: number) {
   return nav;
 }
 
-export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
+export default function PostNavigator({ postId, poolId, poolName, fullscreen }: Props) {
   const router = useRouter();
-  const { previousPostId, nextPostId } = useAdjacentPosts(postId, poolId);
-  const [poolName, setPoolName] = useState<string | null>(null);
+  const { previousPostId, nextPostId, position, total } = useAdjacentPosts(postId, poolId);
   const [flipNavigators, setFlipNavigators] = useState(false);
 
   const isPool = !!poolId;
@@ -60,15 +70,6 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
     return () => window.removeEventListener(PREFS_EVENT, sync);
   }, []);
 
-  useEffect(() => {
-    if (!poolId) return;
-    fetch(`/api/pools/${poolId}`, { cache: "no-store" })
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => setPoolName(data?.name ?? null))
-      .catch(() => setPoolName(null));
-  }, [poolId]);
-  
-
   // Arrow-key navigation that mirrors the button mapping
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -80,10 +81,7 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
 
       const go = (targetId: number | null) => {
         if (!targetId) return;
-        const href = fullscreen
-          ? (poolId ? `/post/${targetId}/fullscreen?pool=${poolId}` : `/post/${targetId}/fullscreen`)
-          : (poolId ? `/post/${targetId}?pool=${poolId}` : `/post/${targetId}`);
-        router.push(href);
+        router.push(buildLink(targetId));
       };
 
       if (e.key === "ArrowLeft") {
@@ -99,7 +97,6 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
 
   // Helpers that always point outward; label/target chosen by pool vs flip rules
   const LeftButton = () => {
-    const isPool = !!poolId;
     // In pool: always PREVIOUS on left. Outside pool: flip decides.
     return leftShowsPrevious ? (
       <button
@@ -123,7 +120,6 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
   };
 
   const RightButton = () => {
-    const isPool = !!poolId;
     // In pool: always NEXT on right. Outside pool: flip decides.
     return rightShowsNext ? (
       <button
@@ -169,10 +165,13 @@ export default function PostNavigator({ postId, poolId, fullscreen }: Props) {
           transition={{ duration: 0.3 }}
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm text-subtle text-center truncate max-w-[40%]"
         >
-          <a className="hidden sm:inline">Pool:{" "}</a>
-          <a href={`/pools/${poolId}`} className="text-accent hover:underline underline-offset-2">
+          <span className="hidden sm:inline">Pool:{" "}</span>
+          <Link href={`/pools/${poolId}`} className="text-accent hover:underline underline-offset-2">
             {poolName}
-          </a>
+          </Link>
+          {position !== undefined && total !== undefined && (
+            <span className="ml-2 text-zinc-500 tabular-nums">{position} / {total}</span>
+          )}
         </motion.div>
       )}
     </motion.div>
