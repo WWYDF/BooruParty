@@ -15,6 +15,8 @@ import { HttpError } from "@/core/utilities/errors";
 import { Prisma } from "../../../prisma/client";
 import { processUpload } from "@/components/uploads/process";
 import { MAX_UPLOAD_BYTES } from "@/core/objects/limits";
+import { getServerAddons } from "@/core/utilities/addonsCache";
+import { autoTagFromThumbnail } from "@/components/addons/autotagger";
 
 const logger = appLogger('Posts/Create');
 
@@ -76,7 +78,25 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       const skipDupes = getField(upload, 'skipDupes') === 'true';
       const file = await processUpload(tempPath, fileKey, { roleId: req.user.roleId, skipDupes, moved });
 
-      // 5. Save the post and its tags together
+      // 5. Upload-based AutoTagger (if disabled, skips)
+      // AGGRESSIVE = always | SELECTIVE = uploader asks and has perms
+      let autoTagNames: string[] = [];
+      const addons = getServerAddons();
+      const wantsAutoTag = addons.autoTaggerMode.includes('AGGRESSIVE')
+        || (addons.autoTaggerMode.includes('SELECTIVE'))
+          && getField(upload, 'autoTag') === 'true'
+          && rolePermissionCheck(req.user.roleId, 'posts.autotag');
+      
+      if (addons.enableAutoTagger && addons.autoTaggerUrl && wantsAutoTag && file.type !== 'VIDEO') {
+        try {
+          const { matches } = await autoTagFromThumbnail(fileKey);
+          autoTagNames = matches.map((m) => m.tag.name);
+        } catch (e) {
+          logger.warn(`AutoTagger requested but was skipped for ${fileKey}.`, e);
+        }
+      }
+
+      // 6. Save the post and its tags together
       const post = await prisma.$transaction(async (tx) => {
         // Resolve again: tags may have been deleted or merged while we were processing
         const { tags: found, missing } = await resolveTagNames(tags, tx);
@@ -84,7 +104,8 @@ const createPost: FastifyPluginAsync = async (fastify) => {
           throw new HttpError(400, { error: 'Unknown tags', hint: `These tags don't exist: ${missing.join(', ')}`, missing });
         }
 
-        const tagIds = found.map((t) => t.id);
+        const { tags: autoFound } = await resolveTagNames(autoTagNames, tx);
+        const tagIds = [...new Set([...found, ...autoFound].map((t) => t.id))];
 
         const post = await tx.post.create({
           data: {

@@ -3,6 +3,8 @@ import { Db, prisma } from "@/core/plugins/prisma";
 import { getServerAddons } from "@/core/utilities/addonsCache";
 import { normalizeTagName } from "@/core/utilities/tags";
 import { Client, handle_file } from "@gradio/client";
+import { thumbnailFilePaths } from "../uploads/finalize";
+import fs from "fs";
 
 const model_repo = 'SmilingWolf/wd-swinv2-tagger-v3';
 const general_thresh = 0.35;
@@ -102,4 +104,23 @@ export async function matchPredictions(predicted: PredictedTag[], db: Db = prism
   
   const matches = [...byTag.values()].sort((a, b) => b.score - a.score);
   return { matches, missing };
+}
+
+// Auto-tags a post from its generated "large" thumbnail (never the custom ones)
+// The timeout keeps a hung Gradio API from stalling an upload forever
+export async function autoTagFromThumbnail(fileKey: string, timeoutMs = 30_000): Promise<AutoTagResult> {
+  // The auto-generated "large" thumbnail (last in THUMBNAIL_SIZES order)
+  const largeThumb = thumbnailFilePaths(fileKey).at(-1)!;
+  const image = new Blob([await fs.promises.readFile(largeThumb)], { type: 'image/webp' });
+
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`AutoTagger timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
+
+  try {
+    return matchPredictions(await Promise.race([predictTags(image), timeout]));
+  } finally {
+    clearTimeout(timer);
+  }
 }
