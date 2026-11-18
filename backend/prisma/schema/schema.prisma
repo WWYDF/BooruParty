@@ -321,7 +321,7 @@ model Pool {
   items                   PoolPost[]
   favorites               PoolFavorite[]
 
-  updatedAt               DateTime                  @updatedAt
+  updatedAt               DateTime                  @default(now()) // API updates automatically
   createdAt               DateTime                  @default(now())
 }
 

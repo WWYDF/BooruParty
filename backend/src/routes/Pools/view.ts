@@ -65,15 +65,23 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
     // (except for people who can manage pools)
     const canManage = viewer.roleId !== null && rolePermissionCheck(viewer.roleId, 'pool.manage');
     if (!pool || (items.length === 0 && !canManage)) {
-      return reply.send(404).send({ error: 'Not found', hint: 'No pool with that id' });
+      return reply.status(404).send({ error: 'Not found', hint: 'No pool with that id' });
     }
 
     const posts = items.map((i) => i.post);
     const { tags, artists } = await getPoolTags(posts.map((p) => p.id));
     
+    const favorite = viewer.userId
+      ? await prisma.poolFavorite.findUnique({
+          where: { userId_poolId: { userId: viewer.userId, poolId: id } },
+          select: { poolId: true },
+        })
+      : null;
+
     return reply.status(200).send({
       ...pool,
       safety: poolSafety(posts),
+      viewer: viewer.userId ? { favorited: favorite !== null } : null,
       artists,
       tags,
       posts: posts.map(formatPostSummary),

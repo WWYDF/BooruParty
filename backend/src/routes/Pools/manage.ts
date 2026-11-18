@@ -91,7 +91,7 @@ const managePools: FastifyPluginAsync = async (fastify) => {
 
     await prisma.$transaction(async (tx) => {
       // Write first: locks the row (so concurrent edits queue up) and tells us if it exists
-      const { count } = await tx.pool.updateMany({ where: { id }, data });
+      const { count } = await tx.pool.updateMany({ where: { id }, data: { ...data, updatedAt: new Date() } });
       if (count === 0) throw new HttpError(404, { error: 'Not found', hint: 'No pool with that id' });
 
       // Check the years as they are AFTER this edit; throwing rolls the update back
