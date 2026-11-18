@@ -20,3 +20,5 @@ export const AVATAR_SIZE = 256; // square px
 // Pools
 export const MAX_POOL_NAME_LENGTH = 128;
 export const MAX_POOL_DESCRIPTION_LENGTH = 2048;
+export const MAX_POOL_BATCH = 200; // posts added/removed per request
+export const MAX_POOL_POSTS = 1000; // total posts in one pool

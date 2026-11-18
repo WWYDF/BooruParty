@@ -20,6 +20,7 @@ import autoTagPosts from './Posts/autotag';
 import addons from './System/addons';
 import viewPools from './Pools/view';
 import managePools from './Pools/manage';
+import poolPosts from './Pools/posts';
 
 const logger = appLogger('Routes');
 
@@ -48,7 +49,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   // Pools
   fastify.register(viewPools, { prefix: '/pools' });
   fastify.register(managePools, { prefix: '/pools' });
-
+  fastify.register(poolPosts, { prefix: '/pools' });
 
   // System
   fastify.register(stats, { prefix: '/system' });

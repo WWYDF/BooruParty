@@ -102,6 +102,24 @@ const managePools: FastifyPluginAsync = async (fastify) => {
     return reply.status(204).send();
   });
 
+  // Delete a pool (its posts are untouched; items + favorites cascade)
+  fastify.delete('/:id', {
+    onRequest: [fastify.authenticate, requirePermission('pool.delete')],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: { id: { type: 'integer', minimum: 1, maximum: MAX_INT } },
+      },
+    },
+  }, async (req, reply) => {
+    const { id } = req.params as { id: number };
+
+    const { count } = await prisma.pool.deleteMany({ where: { id } });
+    if (count === 0) throw new HttpError(404, { error: 'Not found', hint: 'No pool with that id' });
+
+    return reply.status(204).send();
+  });
 };
 
 export default managePools;
