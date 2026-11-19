@@ -9,13 +9,13 @@
 import { confirm, input, number, password, select } from "@inquirer/prompts";
 import chalk from "chalk";
 import { SQL } from "bun";
-import { PrismaClient } from "../prisma/client";
+import { Prisma, PrismaClient } from "../prisma/client";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 
-const old_ver = 'v0.14';
+const old_ver = 'v0.14.2';
 
 const c = { debug: chalk.gray, info: chalk.cyan, success: chalk.green, warn: chalk.yellow, error: chalk.red.bold, critical: chalk.bgRed.whiteBright };
 export const log = (level: keyof typeof c, ...args: unknown[]) => console.log(c[level](`[${level.toUpperCase()}]`), ...args);
@@ -31,36 +31,37 @@ type Database = {
 }
 
 async function getOldDb(): Promise<Database> {
+  console.clear();
   const pfx = old_ver; // in case I change it later
   const name = await input({
-    message: `${pfx} Database Name`,
+    message: `${pfx} Database Name:`,
     default: 'database',
     required: true,
     validate: (v) => v.trim().length > 0 || 'Required',
   });
 
   const host = await input({
-    message: `${pfx} Database Host`,
+    message: `${pfx} Database Host:`,
     default: 'localhost',
     required: true,
     validate: (v) => v.trim().length > 0 || 'Required',
   });
 
   const port = await number({
-    message: `${pfx} Database Port`,
+    message: `${pfx} Database Port:`,
     default: 5432,
     required: true,
   });
 
   const username = await input({
-    message: `${pfx} Postgres Username`,
+    message: `${pfx} Postgres Username:`,
     default: 'username',
     required: true,
     validate: (v) => v.trim().length > 0 || 'Required',
   });
 
   const pwd = await password({
-    message: `${pfx} Postgres Password`,
+    message: `${pfx} Postgres Password:`,
     mask: '*',
   });
 
@@ -70,36 +71,36 @@ async function getOldDb(): Promise<Database> {
 async function getNewDb(): Promise<Database> {
   console.clear();
   log('warn', "Please make sure the new database already exists in psql.");
-  const pfx = 'New'; // in case I change it later
+  const pfx = 'NEW'; // in case I change it later
   const name = await input({
-    message: `${pfx} Database Name`,
+    message: `${pfx} Database Name:`,
     default: 'boorupartyv2',
     required: true,
     validate: (v) => v.trim().length > 0 || 'Required',
   });
 
   const host = await input({
-    message: `${pfx} Database Host`,
+    message: `${pfx} Database Host:`,
     default: 'localhost',
     required: true,
     validate: (v) => v.trim().length > 0 || 'Required',
   });
 
   const port = await number({
-    message: `${pfx} Database Port`,
+    message: `${pfx} Database Port:`,
     default: 5432,
     required: true,
   });
 
   const username = await input({
-    message: `${pfx} Postgres Username`,
+    message: `${pfx} Postgres Username:`,
     default: 'bpUser',
     required: true,
     validate: (v) => v.trim().length > 0 || 'Required',
   });
 
   const pwd = await password({
-    message: `${pfx} Postgres Password`,
+    message: `${pfx} Postgres Password:`,
     mask: '*',
   });
 
@@ -119,13 +120,13 @@ async function getSiteSettings(): Promise<SiteSettings> {
   console.clear();
   log('warn', "Please no trailing slashes on URLs. (a good URL looks like https://example.booru.party");
   const frontendDomain = await input({
-    message: `Frontend Site URL`,
+    message: `Frontend Site URL:`,
     required: true,
     validate: (v) => { try { return ['http:', 'https:'].includes(new URL(v).protocol) || 'Must be http(s)'; } catch { return 'Invalid URL'; } },
   });
 
   const backendDomain = await input({
-    message: `Backend Site URL`,
+    message: `Backend Site URL:`,
     required: true,
     validate: (v) => { try { return ['http:', 'https:'].includes(new URL(v).protocol) || 'Must be http(s)'; } catch { return 'Invalid URL'; } },
   });
@@ -183,7 +184,7 @@ async function getBackendOpts(): Promise<BackendOptions> {
         {
           value: 'vp9',
           name: `VP9${selectedEncoder == 'qsv' ? ' (Recommended)' : ''}`, // VP9 is great on intel gpus, not so great on software encoding lol
-          disabled: (selectedEncoder !== 'qsv' && selectedEncoder !== 'cpu') && 'Not compatible with selected device'
+          disabled: (selectedEncoder !== 'qsv' && selectedEncoder !== 'cpu' && selectedEncoder !== 'automatic') && '(Not compatible with selected device)'
         },
         {
           value: 'h265',
@@ -196,7 +197,7 @@ async function getBackendOpts(): Promise<BackendOptions> {
         {
           value: 'av1',
           name: 'AV1',
-          disabled: (selectedEncoder == 'amf') && 'Not compatible with selected device'
+          disabled: (selectedEncoder == 'amf') && '(Not compatible with selected device)'
         },
       ],
     });
@@ -283,7 +284,7 @@ async function checkShouldInquire(): Promise<boolean> {
       log('warn', `${msgPfx} Continuing will overwrite the entire file.`);
       const cont = await confirm({ message: "Continue?", default: false, });
       if (cont) { return true } // they do
-      else { throw new Error(msgPfx) } // they don't (stop script)
+      else { log('error', msgPfx); process.exit(0); } // they don't (stop script)
     }
   } else { // .env doesn't exist yet, create it and inquire new values
     fs.writeFileSync(envPath, '');
@@ -379,22 +380,32 @@ async function main() {
 
     // Validate database connections
     log('info', 'Validating database connections...');
+    const newDbUrl = `postgresql://${NEW_DATABASE.username}:${encodeURIComponent(NEW_DATABASE.password)}@${NEW_DATABASE.host}:${NEW_DATABASE.port}/${NEW_DATABASE.name}`;
     try {
-      prisma = new PrismaClient({ datasourceUrl: `postgresql://${NEW_DATABASE.username}:${encodeURIComponent(NEW_DATABASE.password)}@${NEW_DATABASE.host}:${NEW_DATABASE.port}/${NEW_DATABASE.name}` });
+      prisma = new PrismaClient({ datasourceUrl: newDbUrl });
       oldDb = new SQL({ hostname: 'localhost', port: OLD_DATABASE.port, database: OLD_DATABASE.name, username: OLD_DATABASE.username, password: OLD_DATABASE.password });
     
       const [oldSettings] = await oldDb`SELECT * FROM "SiteSettings" WHERE id = 1`;
-      if (!oldSettings || oldSettings.setupComplete) { throw new Error(`${old_ver} database is empty or not set up yet!`) };
+      if (!oldSettings || !oldSettings.setupComplete) { throw new Error(`${old_ver} database is empty or not set up yet!`) };
       const isDbOccupied = await prisma.serverSettings.findFirst({ where: { id: 1 } });
       if (isDbOccupied && isDbOccupied.lastSetupVersion) { throw new Error("New database isn't empty! Please clear it first.") };
     } catch (e) {
       if (e instanceof Error) { log('critical', e.message); process.exit(0); }
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') return null;
       throw e;
     }
 
     // Database valid, save inquiries to .env now
     log('info', 'Databases are valid, saving to .env.');
     await saveToEnv(NEW_DATABASE, SETTINGS, OPTIONS);
+    
+    try {
+      // Run prisma regen in child process
+      Bun.spawnSync(['bunx', 'prisma', 'db', 'push', '--skip-generate'], { env: { ...process.env, DATABASE_URL: newDbUrl }, stdout: 'inherit', stderr: 'inherit' });
+    } catch (e) {
+      log('error', `Failed to regerate new database! Please run 'bun regen' yourself, then restart the script.`);
+      process.exit(0);
+    }
 
     // after all inquirer fields are asked and dbs are validated that they can connect
     log('warn', "The section after this is only intended to be run once, so please confirm you are ready.");
