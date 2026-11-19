@@ -13,6 +13,7 @@ import { PrismaClient } from "../prisma/client";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 
 const old_ver = 'v0.14';
 
@@ -321,13 +322,33 @@ async function parseEnv(): Promise<{ NEW_DATABASE: Database, SETTINGS: SiteSetti
 
   return { NEW_DATABASE, SETTINGS, OPTIONS }
 }
+
+async function saveToEnv(db: Database, settings: SiteSettings, opts: BackendOptions) {
+  log('debug', "Saving inquiries to .env...");
+  const envPath = path.resolve(process.cwd(), '.env');
+  fs.appendFileSync(envPath, `DATABASE_URL="postgresql://${db.name}:${db.password}@${db.host}:${db.port}/${db.name}"`);
+  fs.appendFileSync(envPath, `LOG_LEVEL=INFO`);
+  fs.appendFileSync(envPath, `API_PORT=${opts.port}`);
+  fs.appendFileSync(envPath, `FRONTEND_URL="${settings.frontendDomain}"`);
+  fs.appendFileSync(envPath, `BACKEND_URL="${settings.backendDomain}"`);
+  fs.appendFileSync(envPath, `JWT_SECRET=${crypto.randomBytes(64).toString('hex')}`);
+  fs.appendFileSync(envPath, `VIDEO_CODEC=${opts.videoCodec}`);
+  fs.appendFileSync(envPath, `ENCODER_OVERRIDE=${opts.videoEncoderOverride}`);
+  fs.appendFileSync(envPath, `DISABLE_VIDEO_PREVIEWS=${opts.disableVideoPreviews}`);
+  fs.appendFileSync(envPath, `DISABLE_ANIMATION_PREVIEWS=${opts.disableAnimationPreviews}`);
+  fs.appendFileSync(envPath, `MODE=PRODUCTION`);
+  log('success', "Saved to .env successfully.");
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                       Main
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 async function main() {
+  console.clear();
   log('info', "This is an independent importer script designed to help you transition from v0.14.2 to v2.0.0.");
   log('info', "Please backup your postgres database and backend data folder.");
+  console.log('');
 
   let oldDb: SQL | undefined;
   let prisma: PrismaClient | undefined;
@@ -358,19 +379,28 @@ async function main() {
 
     // Validate database connections
     log('info', 'Validating database connections...');
-    prisma = new PrismaClient({ datasourceUrl: `postgresql://${NEW_DATABASE.username}:${encodeURIComponent(NEW_DATABASE.password)}@${NEW_DATABASE.host}:${NEW_DATABASE.port}/${NEW_DATABASE.name}` });
-    oldDb = new SQL({ hostname: 'localhost', port: OLD_DATABASE.port, database: OLD_DATABASE.name, username: OLD_DATABASE.username, password: OLD_DATABASE.password });
-
-    const [oldSettings] = await oldDb`SELECT * FROM "SiteSettings" WHERE id = 1`;
-    if (!oldSettings || oldSettings.setupComplete) { throw new Error(`${old_ver} database is empty or not set up yet!`) };
-    const isDbOccupied = await prisma.serverSettings.findFirst({ where: { id: 1 } });
-    if (isDbOccupied && isDbOccupied.lastSetupVersion) { throw new Error("New database isn't empty! Please clear it first.") };
+    try {
+      prisma = new PrismaClient({ datasourceUrl: `postgresql://${NEW_DATABASE.username}:${encodeURIComponent(NEW_DATABASE.password)}@${NEW_DATABASE.host}:${NEW_DATABASE.port}/${NEW_DATABASE.name}` });
+      oldDb = new SQL({ hostname: 'localhost', port: OLD_DATABASE.port, database: OLD_DATABASE.name, username: OLD_DATABASE.username, password: OLD_DATABASE.password });
+    
+      const [oldSettings] = await oldDb`SELECT * FROM "SiteSettings" WHERE id = 1`;
+      if (!oldSettings || oldSettings.setupComplete) { throw new Error(`${old_ver} database is empty or not set up yet!`) };
+      const isDbOccupied = await prisma.serverSettings.findFirst({ where: { id: 1 } });
+      if (isDbOccupied && isDbOccupied.lastSetupVersion) { throw new Error("New database isn't empty! Please clear it first.") };
+    } catch (e) {
+      if (e instanceof Error) { log('critical', e.message); process.exit(0); }
+      throw e;
+    }
 
     // Database valid, save inquiries to .env now
     log('info', 'Databases are valid, saving to .env.');
+    await saveToEnv(NEW_DATABASE, SETTINGS, OPTIONS);
 
     // after all inquirer fields are asked and dbs are validated that they can connect
-    // log('warn', "This script is only intended to be run once, so please confirm you are ready.")
+    log('warn', "The section after this is only intended to be run once, so please confirm you are ready.");
+    const ready = await confirm({ message: 'Continue?', default: false });
+
+    
   } catch (error) {
     if (error instanceof Error && error.name == 'ExitPromptError') { log('info', "Cancelled."); return; };
     log('critical', error);
