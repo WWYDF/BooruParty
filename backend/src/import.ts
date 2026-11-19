@@ -32,7 +32,7 @@ type Database = {
 
 async function getOldDb(): Promise<Database> {
   console.clear();
-  const pfx = old_ver; // in case I change it later
+  const pfx = "OLD"; // in case I change it later
   const name = await input({
     message: `${pfx} Database Name:`,
     default: 'database',
@@ -327,17 +327,17 @@ async function parseEnv(): Promise<{ NEW_DATABASE: Database, SETTINGS: SiteSetti
 async function saveToEnv(db: Database, settings: SiteSettings, opts: BackendOptions) {
   log('debug', "Saving inquiries to .env...");
   const envPath = path.resolve(process.cwd(), '.env');
-  fs.appendFileSync(envPath, `DATABASE_URL="postgresql://${db.name}:${db.password}@${db.host}:${db.port}/${db.name}"`);
-  fs.appendFileSync(envPath, `LOG_LEVEL=INFO`);
-  fs.appendFileSync(envPath, `API_PORT=${opts.port}`);
-  fs.appendFileSync(envPath, `FRONTEND_URL="${settings.frontendDomain}"`);
-  fs.appendFileSync(envPath, `BACKEND_URL="${settings.backendDomain}"`);
-  fs.appendFileSync(envPath, `JWT_SECRET=${crypto.randomBytes(64).toString('hex')}`);
-  fs.appendFileSync(envPath, `VIDEO_CODEC=${opts.videoCodec}`);
-  fs.appendFileSync(envPath, `ENCODER_OVERRIDE=${opts.videoEncoderOverride}`);
-  fs.appendFileSync(envPath, `DISABLE_VIDEO_PREVIEWS=${opts.disableVideoPreviews}`);
-  fs.appendFileSync(envPath, `DISABLE_ANIMATION_PREVIEWS=${opts.disableAnimationPreviews}`);
-  fs.appendFileSync(envPath, `MODE=PRODUCTION`);
+  fs.appendFileSync(envPath, `DATABASE_URL="postgresql://${db.username}:${db.password}@${db.host}:${db.port}/${db.name}"\n`);
+  fs.appendFileSync(envPath, `LOG_LEVEL=INFO\n`);
+  fs.appendFileSync(envPath, `API_PORT=${opts.port}\n`);
+  fs.appendFileSync(envPath, `FRONTEND_URL="${settings.frontendDomain}"\n`);
+  fs.appendFileSync(envPath, `BACKEND_URL="${settings.backendDomain}"\n`);
+  fs.appendFileSync(envPath, `JWT_SECRET=${crypto.randomBytes(64).toString('hex')}\n`);
+  fs.appendFileSync(envPath, `VIDEO_CODEC=${opts.videoCodec}\n`);
+  fs.appendFileSync(envPath, `ENCODER_OVERRIDE=${opts.videoEncoderOverride}\n`);
+  fs.appendFileSync(envPath, `DISABLE_VIDEO_PREVIEWS=${opts.disableVideoPreviews}\n`);
+  fs.appendFileSync(envPath, `DISABLE_ANIMATION_PREVIEWS=${opts.disableAnimationPreviews}\n`);
+  fs.appendFileSync(envPath, `MODE=PRODUCTION\n`);
   log('success', "Saved to .env successfully.");
 };
 
@@ -387,27 +387,30 @@ async function main() {
     
       const [oldSettings] = await oldDb`SELECT * FROM "SiteSettings" WHERE id = 1`;
       if (!oldSettings || !oldSettings.setupComplete) { throw new Error(`${old_ver} database is empty or not set up yet!`) };
-      const isDbOccupied = await prisma.serverSettings.findFirst({ where: { id: 1 } });
+      const isDbOccupied = await prisma.serverSettings.findFirst({ where: { id: 1 } }).catch((e) => {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') return null;
+        throw e;
+      });
       if (isDbOccupied && isDbOccupied.lastSetupVersion) { throw new Error("New database isn't empty! Please clear it first.") };
     } catch (e) {
       if (e instanceof Error) { log('critical', e.message); process.exit(0); }
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') return null;
       throw e;
     }
 
     // Database valid, save inquiries to .env now
-    log('info', 'Databases are valid, saving to .env.');
-    await saveToEnv(NEW_DATABASE, SETTINGS, OPTIONS);
+    log('success', 'Databases are valid.');
+    if (shouldInquire) { await saveToEnv(NEW_DATABASE, SETTINGS, OPTIONS) };
     
     try {
       // Run prisma regen in child process
-      Bun.spawnSync(['bunx', 'prisma', 'db', 'push', '--skip-generate'], { env: { ...process.env, DATABASE_URL: newDbUrl }, stdout: 'inherit', stderr: 'inherit' });
+      Bun.spawnSync(['bunx', 'prisma', 'db', 'push', '--skip-generate'], { env: { ...process.env, DATABASE_URL: newDbUrl }, stdout: 'ignore', stderr: 'inherit' });
     } catch (e) {
       log('error', `Failed to regerate new database! Please run 'bun regen' yourself, then restart the script.`);
       process.exit(0);
     }
 
     // after all inquirer fields are asked and dbs are validated that they can connect
+    console.log('');
     log('warn', "The section after this is only intended to be run once, so please confirm you are ready.");
     const ready = await confirm({ message: 'Continue?', default: false });
 
