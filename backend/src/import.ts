@@ -118,6 +118,7 @@ type SiteSettings = {
   backendDomain: string,
   guestViewing?: boolean, // change guest safety in dashboard later
   // add mailgun/smtp here later
+  jwtSecret: string | null,
 }
 
 async function getSiteSettings(): Promise<SiteSettings> {
@@ -140,7 +141,14 @@ async function getSiteSettings(): Promise<SiteSettings> {
     default: true,
   });
 
-  return { frontendDomain, backendDomain, guestViewing };
+  log('info', "OLD 'frontend/.env' JWT Secret is required for user sign-ins to continue working normally.");
+  log ('warn', "If this is skipped, all users will be created, but they have to change their passwords.");
+  const jwtSecret = await input({
+    message: `OLD JWT Secret:`,
+    required: false,
+  });
+
+  return { frontendDomain, backendDomain, guestViewing, jwtSecret };
 }
 
 
@@ -314,6 +322,7 @@ async function parseEnv(): Promise<{ NEW_DATABASE: Database, SETTINGS: SiteSetti
     frontendDomain: process.env.FRONTEND_URL!,
     backendDomain: process.env.BACKEND_URL!,
     // guestViewing isn't set by .env, so just ignore it
+    jwtSecret: process.env.JWT_SECRET!,
   }
 
   const OPTIONS: BackendOptions = {
@@ -336,7 +345,8 @@ async function saveToEnv(db: Database, settings: SiteSettings, opts: BackendOpti
   fs.appendFileSync(envPath, `API_PORT=${opts.port}\n`);
   fs.appendFileSync(envPath, `FRONTEND_URL="${settings.frontendDomain}"\n`);
   fs.appendFileSync(envPath, `BACKEND_URL="${settings.backendDomain}"\n`);
-  fs.appendFileSync(envPath, `JWT_SECRET=${crypto.randomBytes(64).toString('hex')}\n`);
+  if (settings.jwtSecret) { fs.appendFileSync(envPath, `JWT_SECRET=${settings.jwtSecret}\n`); }
+  else {fs.appendFileSync(envPath, `JWT_SECRET=${crypto.randomBytes(64).toString('hex')}\n`);  }
   fs.appendFileSync(envPath, `VIDEO_CODEC=${opts.videoCodec}\n`);
   if (opts.videoEncoderOverride) { fs.appendFileSync(envPath, `ENCODER_OVERRIDE=${opts.videoEncoderOverride}\n`); }
   else { fs.appendFileSync(envPath, `# ENCODER_OVERRIDE=\n`); }
