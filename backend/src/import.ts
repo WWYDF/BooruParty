@@ -10,6 +10,9 @@ import { confirm, input, number, password, select } from "@inquirer/prompts";
 import chalk from "chalk";
 import { SQL } from "bun";
 import { PrismaClient } from "../prisma/client";
+import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
 
 const old_ver = 'v0.14';
 
@@ -20,17 +23,24 @@ export const log = (level: keyof typeof c, ...args: unknown[]) => console.log(c[
 // This is not kept between attempts, so I recommend opening notepad lol
 type Database = {
   name: string,
+  host: string,
   port: number,
   username: string,
   password: string,
 }
 
 async function getOldDb(): Promise<Database> {
-  console.clear();
   const pfx = old_ver; // in case I change it later
   const name = await input({
     message: `${pfx} Database Name`,
     default: 'database',
+    required: true,
+    validate: (v) => v.trim().length > 0 || 'Required',
+  });
+
+  const host = await input({
+    message: `${pfx} Database Host`,
+    default: 'localhost',
     required: true,
     validate: (v) => v.trim().length > 0 || 'Required',
   });
@@ -53,7 +63,7 @@ async function getOldDb(): Promise<Database> {
     mask: '*',
   });
 
-  return { name, port, username, password: pwd };
+  return { name, host, port, username, password: pwd };
 }
 
 async function getNewDb(): Promise<Database> {
@@ -63,6 +73,13 @@ async function getNewDb(): Promise<Database> {
   const name = await input({
     message: `${pfx} Database Name`,
     default: 'boorupartyv2',
+    required: true,
+    validate: (v) => v.trim().length > 0 || 'Required',
+  });
+
+  const host = await input({
+    message: `${pfx} Database Host`,
+    default: 'localhost',
     required: true,
     validate: (v) => v.trim().length > 0 || 'Required',
   });
@@ -85,7 +102,7 @@ async function getNewDb(): Promise<Database> {
     mask: '*',
   });
 
-  return { name, port, username, password: pwd };
+  return { name, host, port, username, password: pwd };
 }
 
 
@@ -93,7 +110,7 @@ async function getNewDb(): Promise<Database> {
 type SiteSettings = {
   frontendDomain: string,
   backendDomain: string,
-  guestViewing: boolean, // change guest safety in dashboard later
+  guestViewing?: boolean, // change guest safety in dashboard later
   // add mailgun/smtp here later
 }
 
@@ -246,8 +263,63 @@ function getEncodeDeviceFromSelection(encoder: SelectEncoder, codec: SelectCodec
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                    Environment
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-async function checkReadEnv() {
-  
+// false = dont inquire (except old db) | true = inquire all values
+async function checkShouldInquire(): Promise<boolean> {
+  const envPath = path.resolve(process.cwd(), '.env');
+
+  if (fs.existsSync(envPath)) { // check if .env exists on disk
+    dotenv.config({ path: envPath });
+    if ( // check if .env has valid values
+      process.env.DATABASE_URL?.startsWith("postgresql://") &&
+      process.env.FRONTEND_URL?.startsWith("http") &&
+      process.env.BACKEND_URL?.startsWith("http") &&
+      process.env.JWT_SECRET
+    ) { // it does, skip inquiries
+      log('info', ".env already exists with valid values, skipping inquiries.");
+      return false;
+    } else { // it doesn't, ask if they want to continue (overwrite)
+      const msgPfx = ".env already exists, but the values are not valid."
+      log('warn', `${msgPfx} Continuing will overwrite the entire file.`);
+      const cont = await confirm({ message: "Continue?", default: false, });
+      if (cont) { return true } // they do
+      else { throw new Error(msgPfx) } // they don't (stop script)
+    }
+  } else { // .env doesn't exist yet, create it and inquire new values
+    fs.writeFileSync(envPath, '');
+    return true;
+  }
+}
+
+async function parseEnv(): Promise<{ NEW_DATABASE: Database, SETTINGS: SiteSettings, OPTIONS: BackendOptions }> {
+  const envPath = path.resolve(process.cwd(), '.env');
+  dotenv.config({ path: envPath });
+
+  // We assume all required values exist, if they don't, the script crashes anyway.
+  const dbUrl = new URL(process.env.DATABASE_URL!);
+  const NEW_DATABASE: Database = {
+    name: dbUrl.pathname.slice(1),
+    username: decodeURIComponent(dbUrl.username),
+    password: decodeURIComponent(dbUrl.password),
+    host: dbUrl.hostname,
+    port: Number(dbUrl.port) || 5432,
+  };
+
+  const SETTINGS: SiteSettings = {
+    frontendDomain: process.env.FRONTEND_URL!,
+    backendDomain: process.env.BACKEND_URL!,
+    // guestViewing isn't set by .env, so just ignore it
+  }
+
+  const OPTIONS: BackendOptions = {
+    videoEncoderOverride: process.env.ENCODER_OVERRIDE!.trim(),
+    videoCodec: process.env.VIDEO_CODEC ? process.env.VIDEO_CODEC! as SelectCodec : null,
+    disableVideoPreviews: Boolean(process.env.DISABLE_VIDEO_PREVIEWS!),
+    disableAnimationPreviews: Boolean(process.env.DISABLE_ANIMATION_PREVIEWS!),
+    convertShortMuteVids: Boolean(process.env.FORCE_CONVERT_SHORT_VIDEOS!),
+    port: Number(process.env.API_PORT ?? 3070),
+  }
+
+  return { NEW_DATABASE, SETTINGS, OPTIONS }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                       Main
@@ -261,17 +333,32 @@ async function main() {
   let prisma: PrismaClient | undefined;
 
   try {
-    // Use inquierer to get required fields from the user
+    // Check .env for existing values
+    const shouldInquire = await checkShouldInquire();
+
+    let NEW_DATABASE: Database;
+    let SETTINGS: SiteSettings;
+    let OPTIONS: BackendOptions;
+    if (shouldInquire) {
+      NEW_DATABASE = await getNewDb();
+      SETTINGS = await getSiteSettings();
+      OPTIONS = await getBackendOpts();
+    } else {
+      // Parse .env to fill required objects
+      const parsed = await parseEnv();
+      NEW_DATABASE = parsed.NEW_DATABASE;
+      SETTINGS = parsed.SETTINGS;
+      OPTIONS = parsed.OPTIONS;
+    }
+
+    // always ask for old db info, we don't save it lol
     const OLD_DATABASE = await getOldDb();
-    const NEW_DATABSE = await getNewDb();
-    const SETTINGS = await getSiteSettings();
-    const OPTIONS = await getBackendOpts();
     
     console.clear();
 
     // Validate database connections
     log('info', 'Validating database connections...');
-    prisma = new PrismaClient({ datasourceUrl: `postgresql://${NEW_DATABSE.username}:${encodeURIComponent(NEW_DATABSE.password)}@localhost:${NEW_DATABSE.port}/${NEW_DATABSE.name}` });
+    prisma = new PrismaClient({ datasourceUrl: `postgresql://${NEW_DATABASE.username}:${encodeURIComponent(NEW_DATABASE.password)}@${NEW_DATABASE.host}:${NEW_DATABASE.port}/${NEW_DATABASE.name}` });
     oldDb = new SQL({ hostname: 'localhost', port: OLD_DATABASE.port, database: OLD_DATABASE.name, username: OLD_DATABASE.username, password: OLD_DATABASE.password });
 
     const [oldSettings] = await oldDb`SELECT * FROM "SiteSettings" WHERE id = 1`;
@@ -279,7 +366,8 @@ async function main() {
     const isDbOccupied = await prisma.serverSettings.findFirst({ where: { id: 1 } });
     if (isDbOccupied && isDbOccupied.lastSetupVersion) { throw new Error("New database isn't empty! Please clear it first.") };
 
-    log('info', '');
+    // Database valid, save inquiries to .env now
+    log('info', 'Databases are valid, saving to .env.');
 
     // after all inquirer fields are asked and dbs are validated that they can connect
     // log('warn', "This script is only intended to be run once, so please confirm you are ready.")

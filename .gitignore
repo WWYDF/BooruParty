@@ -21,3 +21,4 @@ yarn.lock
 pnpm-lock.yaml
 frontend/next-env.d.ts
 /backend/prisma/client
+backend/env.backup

@@ -86,10 +86,10 @@ export async function initializeEncoder() {
   }
 
   // Otherwise, try every encoder for the chosen codec, in order.
-  const codec = (process.env.VIDEO_ENCODER ?? 'vp9').toLowerCase() as Codec;
+  const codec = (process.env.VIDEO_CODEC ?? 'vp9').toLowerCase() as Codec;
   let candidates = ENCODERS.filter((e) => e.codec === codec);
   if (candidates.length === 0) {
-    logger.warn(`[!] Unknown VIDEO_ENCODER "${codec}". Using default (vp9) instead.`);
+    logger.warn(`[!] Unknown VIDEO_CODEC "${codec}". Using default (vp9) instead.`);
     candidates = ENCODERS.filter((e) => e.codec === 'vp9');
   }
 
