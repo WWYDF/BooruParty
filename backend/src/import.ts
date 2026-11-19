@@ -9,11 +9,14 @@
 import { confirm, input, number, password, select } from "@inquirer/prompts";
 import chalk from "chalk";
 import { SQL } from "bun";
-import { Prisma, PrismaClient, Role } from "../prisma/client";
+import { FileType, Prisma, PrismaClient, Role, Safety } from "../prisma/client";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+import { resolveTagNames } from "./core/utilities/tags";
+import { detectFileType } from "./components/uploads/receive";
+import { THUMBNAIL_SIZES } from "./components/uploads/thumbnails";
 
 const old_ver = 'v0.14.2';
 
@@ -438,7 +441,7 @@ async function main() {
     await usersHandler(oldDb, prisma);
     
     log('info', "Starting Posts handler...");
-    // await postsHandler(oldDb, prisma);
+    await postsHandler(oldDb, prisma);
 
 
     log('success', "Successfully finished import! Enjoy!");
@@ -599,15 +602,26 @@ async function postsHandler(oldDb: SQL, prisma: PrismaClient) {
   // rename legacy data directory to make way for new one
   fs.renameSync(dataDir, oldDataDir);
   fs.mkdirSync(dataDir); // make new data folder
+  const DIRECTORIES = [
+    "data/uploads/video",
+    "data/uploads/image",
+    "data/uploads/animated",
+    "data/thumbnails",
+    "data/previews/image",
+    "data/previews/animated",
+    "data/previews/video",
+    "data/avatars",
+  ]
+  for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
 
   // Start processing individually through batches
   let lastId = 0;
   const BATCH = 500;
-  const failedIds = [];
+  const failedIds: number[] = [];
 
   while (true) {
     const posts = await oldDb`
-      SELECT * FROM "Post"
+      SELECT * FROM "Posts"
       WHERE id > ${lastId}
       ORDER BY id
       LIMIT ${BATCH}
@@ -615,14 +629,91 @@ async function postsHandler(oldDb: SQL, prisma: PrismaClient) {
     if (posts.length === 0) break; // nothing left
 
     for (const post of posts) {
-      const success = await importPost(oldDb, prisma, post);
+      const success = await importPost(oldDb, prisma, post, { old: oldDataDir, new: dataDir });
       if (!success) failedIds.push(post.id);
     }
+
+    await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"Post"', 'id'), (SELECT MAX(id) FROM "Post"))`; // resync autoincrement()
+    lastId = posts[posts.length - 1].id;
   }
 }
 
 // Posts handler components
-async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost): Promise<boolean> {
+async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataFolder: { old: string, new: string }): Promise<boolean> {
+  log('info', `Processing Post #${post.id}...`);
+  const oldOgPath = path.join(dataFolder.old, post.originalPath!.replace(/^\/data/, '')); // can't be asked to make this script work pre-v0.13.
+  const oldPrvwPath = post.previewPath ? path.join(dataFolder.old, post.previewPath.replace(/^\/data/, '')) : null;
+  
+  const detected = await detectFileType(oldOgPath);
+  const fileType = detected?.type ?? post.type;
+  const fileExt = detected?.ext ?? post.fileExt;
+  const fileKey = crypto.randomUUID();
+  
+  const originalPath = path.join(dataFolder.new, 'uploads', `${fileType!.toLowerCase()}`, `${fileKey}.${fileExt}`);
+  let previewPath = null;
+  if (post.previewPath) { previewPath = path.join(dataFolder.new, post.previewPath.replace(/^\/data/, '')); }
+
+  // Copy files
+  fs.copyFileSync(oldOgPath, originalPath);
+  if (oldPrvwPath && previewPath && post.previewPath) { fs.copyFileSync(oldPrvwPath, previewPath); };
+  for (const size of Object.keys(THUMBNAIL_SIZES)) {
+    const oldPath = path.join(dataFolder.old, 'thumbnails', `${post.id}_${size}.webp`);
+    const newPath = path.join(dataFolder.new, 'thumbnails', `${fileKey}_${size}.webp`);
+    fs.copyFileSync(oldPath, newPath);
+  }
+
+
+  let previewMeta = null;
+  const originalMeta = await fs.promises.stat(oldOgPath);
+  if (oldPrvwPath) { previewMeta = await fs.promises.stat(oldPrvwPath); }
+
+  await prisma.$transaction(async (tx) => {
+    // const { tags: found, missing } = await resolveTagNames(tags, tx);
+    // const tagIds = [...new Set([...found, ...autoFound].map((t) => t.id))];
+
+    let convertSafety: Safety = 'SAFE';
+    switch (post.safety) {
+      case 'SKETCHY': { convertSafety = 'QUESTIONABLE' }
+      case 'UNSAFE': { convertSafety = 'EXPLICIT' }
+    }
+
+    // Grab interaction counts
+    const [{ boostCount }] = await oldDb`
+      SELECT COUNT(*)::int AS "boostCount" FROM "Boosts" WHERE "postId" = ${post.id}
+    `;
+
+    const [{ favoriteCount }] = await oldDb`
+      SELECT COUNT(*)::int AS "favoriteCount" FROM "UserFavorites" WHERE "postId" = ${post.id}
+    `;
+
+    await tx.post.create({
+      data: {
+        id: post.id,
+        uploaderId: post.uploadedById,
+        type: fileType! as FileType,
+        originalPath,
+        previewPath,
+        fileKey,
+        safety: convertSafety,
+        sources: post.sources,
+        notes: post.notes,
+        aspectRatio: post.aspectRatio,
+        fileSize: originalMeta.size,
+        previewSize: previewMeta?.size,
+        duration: post.duration,
+        hasAudio: post.hasAudio,
+        pHash: post.pHash,
+        score: post.score,
+        boostCount,
+        favoriteCount,
+      },
+    });
+
+    // if (tagIds.length) {
+    //   await tx.tag.updateMany({ where: { id: { in: tagIds } }, data: { postCount: { increment: 1 } } });
+    // }
+  });
+
   return true;
 }
 

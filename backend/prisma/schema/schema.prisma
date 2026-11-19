@@ -130,7 +130,7 @@ model Post {
   duration                Float?                    // Duration in seconds, null if TYPE is not VIDEO
   hasAudio                Boolean?                  @default(false) // Only true if TYPE is VIDEO and has an audio track
 
-  pHash                   String
+  pHash                   String?
   dupeBypass              Boolean                   @default(false)
 
   // Counts

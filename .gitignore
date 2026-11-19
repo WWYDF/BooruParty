@@ -22,3 +22,5 @@ pnpm-lock.yaml
 frontend/next-env.d.ts
 /backend/prisma/client
 backend/env.backup
+/backend/data.dev
+/backend/data.old
