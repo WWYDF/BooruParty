@@ -6,13 +6,14 @@
 
 // Sorry if this file is a bit messy, I want to keep everything in one file the best I can.
 
-import { prisma } from "@/core/plugins/prisma";
 import { confirm, input, number, password, select } from "@inquirer/prompts";
 import chalk from "chalk";
+import { SQL } from "bun";
+import { PrismaClient } from "../prisma/client";
 
 const old_ver = 'v0.14';
 
-const c = { debug: chalk.gray, info: chalk.cyan, success: chalk.green, warn: chalk.yellow, error: chalk.red.bold };
+const c = { debug: chalk.gray, info: chalk.cyan, success: chalk.green, warn: chalk.yellow, error: chalk.red.bold, critical: chalk.bgRed.whiteBright };
 export const log = (level: keyof typeof c, ...args: unknown[]) => console.log(c[level](`[${level.toUpperCase()}]`), ...args);
 
 // First we need to get a bunch of data from the user through inquirer
@@ -134,6 +135,9 @@ type SelectCodec = 'vp9' | 'h264' | 'h265' | 'av1';
 
 async function getBackendOpts(): Promise<BackendOptions> {
   console.clear();
+  log('info', "Video Encoders are not validated here, instead at runtime.");
+  log('info', "If you want (or need) to switch later, edit the values in .env");
+  console.log('');
 
   const videoPreviews = await confirm({
     message: 'Should we generate previews for videos?',
@@ -178,7 +182,7 @@ async function getBackendOpts(): Promise<BackendOptions> {
         },
       ],
     });
-  }
+  };
 
   const animPreviews = await confirm({
     message: 'Should we generate previews for GIFs?',
@@ -239,26 +243,55 @@ function getEncodeDeviceFromSelection(encoder: SelectEncoder, codec: SelectCodec
   return null; // if we somehow get back down here, just default to automatic
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                               
+//                                                    Environment
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+async function checkReadEnv() {
+  
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                       Main
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 async function main() {
   log('info', "This is an independent importer script designed to help you transition from v0.14.2 to v2.0.0.");
   log('info', "Please backup your postgres database and backend data folder.");
 
-  // Use inquierer to get required fields from the user
-  const OLD_DATABASE = await getOldDb();
-  const NEW_DATABSE = await getNewDb();
-  const SETTINGS = await getSiteSettings();
-  const OPTIONS = await getBackendOpts();
-  
-  console.clear();
-  console.log('yes');
+  let oldDb: SQL | undefined;
+  let prisma: PrismaClient | undefined;
 
-  // after all inquirer fields are asked and dbs are validated that they can connect
-  // log('warn', "This script is only intended to be run once, so please confirm you are ready.")
+  try {
+    // Use inquierer to get required fields from the user
+    const OLD_DATABASE = await getOldDb();
+    const NEW_DATABSE = await getNewDb();
+    const SETTINGS = await getSiteSettings();
+    const OPTIONS = await getBackendOpts();
+    
+    console.clear();
+
+    // Validate database connections
+    log('info', 'Validating database connections...');
+    prisma = new PrismaClient({ datasourceUrl: `postgresql://${NEW_DATABSE.username}:${encodeURIComponent(NEW_DATABSE.password)}@localhost:${NEW_DATABSE.port}/${NEW_DATABSE.name}` });
+    oldDb = new SQL({ hostname: 'localhost', port: OLD_DATABASE.port, database: OLD_DATABASE.name, username: OLD_DATABASE.username, password: OLD_DATABASE.password });
+
+    const [oldSettings] = await oldDb`SELECT * FROM "SiteSettings" WHERE id = 1`;
+    if (!oldSettings || oldSettings.setupComplete) { throw new Error(`${old_ver} database is empty or not set up yet!`) };
+    const isDbOccupied = await prisma.serverSettings.findFirst({ where: { id: 1 } });
+    if (isDbOccupied && isDbOccupied.lastSetupVersion) { throw new Error("New database isn't empty! Please clear it first.") };
+
+    log('info', '');
+
+    // after all inquirer fields are asked and dbs are validated that they can connect
+    // log('warn', "This script is only intended to be run once, so please confirm you are ready.")
+  } catch (error) {
+    if (error instanceof Error && error.name == 'ExitPromptError') { log('info', "Cancelled."); return; };
+    log('critical', error);
+    return;
+  } finally {
+    // Close database connections no matter what
+    await oldDb?.close();
+    await prisma?.$disconnect();
+  }
 }
 
 

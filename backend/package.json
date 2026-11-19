@@ -33,12 +33,12 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/bun": "^1.4.4",
     "@types/busboy": "^1.5.4",
     "@types/node": "^24.0.10",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.9.10",
     "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.23.15",
     "typescript": "^5.8.3"
   },
   "baseUrl": ".",
@@ -52,7 +52,7 @@
     "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "regen": "bun prisma db push && bun prisma generate",
-    "importdata": "bun tsx src/import.ts"
+    "importdata": "bun src/import.ts"
   },
   "trustedDependencies": ["@prisma/client", "@prisma/engines", "bcrypt", "esbuild", "prisma", "sharp"]
 }
