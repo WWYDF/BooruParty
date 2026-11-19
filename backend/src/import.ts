@@ -9,7 +9,7 @@
 import { confirm, input, number, password, select } from "@inquirer/prompts";
 import chalk from "chalk";
 import { SQL } from "bun";
-import { Prisma, PrismaClient } from "../prisma/client";
+import { Prisma, PrismaClient, Role } from "../prisma/client";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
@@ -431,7 +431,13 @@ async function main() {
     if (!ready) { log('info', "Cancelled."); process.exit(0); };
 
     // BEGIN: Call import handlers
-    log('info', "Starting posts handler...");
+    log('info', "Starting Role handler...");
+    const newRoles = await rolesHandler(oldDb, prisma);
+
+    log('info', "Starting Users handler...");
+    await usersHandler(oldDb, prisma, newRoles);
+    
+    log('info', "Starting Posts handler...");
     await postsHandler(oldDb, prisma);
 
 
@@ -445,6 +451,82 @@ async function main() {
     await prisma?.$disconnect();
   }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                       Roles
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldRole = {
+  id: number,
+  name: string,
+  index: number,
+  color: string | null,
+  isDefault: boolean,
+}
+
+// Permissions get reset to new defaults, should prob let user know kek
+async function rolesHandler(oldDb: SQL, prisma: PrismaClient): Promise<Role[]> {
+  const roles = await oldDb`
+    SELECT * FROM "Role"
+    ORDER BY id ASC
+  ` as OldRole[];
+
+  const newFormat = roles.map((r) => ({
+    name: r.name,
+    index: r.index,
+    color: r.color ?? '#ffffff',
+    isDefault: r.isDefault,
+  }));
+
+  const newRoles = await prisma.role.createManyAndReturn({ data: newFormat, skipDuplicates: true });
+  log('success', `Successfully imported ${newRoles.length}/${roles.length} roles!`);
+  return newRoles;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                       Users
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldUser = {
+  id: string, // cuid
+  email: string,
+  username: string,
+  password: string, // hash
+  role: OldRole | null,
+  roleId: number | null,
+  avatar: string | null,
+  description: string | null,
+  // preferences
+  lastLogin: Date,
+  createdAt: Date,
+}
+
+async function usersHandler(oldDb: SQL, prisma: PrismaClient, newRoles: Role[]) {
+  // Start processing individually through batches
+  let lastId = 0;
+  const BATCH = 500;
+
+  while (true) {
+    const oldUsers = await oldDb`
+      SELECT * FROM "User"
+      WHERE id > ${lastId}
+      ORDER BY id
+      LIMIT ${BATCH}
+    ` as OldUser[];
+    if (oldUsers.length === 0) break; // nothing left
+
+    const newFormat = oldUsers.map((u) => ({
+      email: u.email,
+      username: u.username,
+      passHash: u.password,
+      roleId: 
+    }))
+  }
+}
+
+async function importUser(user: OldUser, newRoles: Role[]) {
+
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                       Posts
