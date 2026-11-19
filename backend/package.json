@@ -48,7 +48,7 @@
     ]
   },
   "scripts": {
-    "dev": "tsc && tsc-alias && node dist/server.js",
+    "dev": "bun src/server.ts",
     "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "regen": "bun prisma db push && bun prisma generate",

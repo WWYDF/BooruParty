@@ -20,6 +20,10 @@ const old_ver = 'v0.14.2';
 const c = { debug: chalk.gray, info: chalk.cyan, success: chalk.green, warn: chalk.yellow, error: chalk.red.bold, critical: chalk.bgRed.whiteBright };
 export const log = (level: keyof typeof c, ...args: unknown[]) => console.log(c[level](`[${level.toUpperCase()}]`), ...args);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                       Inquiries
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // First we need to get a bunch of data from the user through inquirer
 // This is not kept between attempts, so I recommend opening notepad lol
 type Database = {
@@ -334,7 +338,8 @@ async function saveToEnv(db: Database, settings: SiteSettings, opts: BackendOpti
   fs.appendFileSync(envPath, `BACKEND_URL="${settings.backendDomain}"\n`);
   fs.appendFileSync(envPath, `JWT_SECRET=${crypto.randomBytes(64).toString('hex')}\n`);
   fs.appendFileSync(envPath, `VIDEO_CODEC=${opts.videoCodec}\n`);
-  fs.appendFileSync(envPath, `ENCODER_OVERRIDE=${opts.videoEncoderOverride}\n`);
+  if (opts.videoEncoderOverride) { fs.appendFileSync(envPath, `ENCODER_OVERRIDE=${opts.videoEncoderOverride}\n`); }
+  else { fs.appendFileSync(envPath, `# ENCODER_OVERRIDE=\n`); }
   fs.appendFileSync(envPath, `DISABLE_VIDEO_PREVIEWS=${opts.disableVideoPreviews}\n`);
   fs.appendFileSync(envPath, `DISABLE_ANIMATION_PREVIEWS=${opts.disableAnimationPreviews}\n`);
   fs.appendFileSync(envPath, `MODE=PRODUCTION\n`);
@@ -413,8 +418,13 @@ async function main() {
     console.log('');
     log('warn', "The section after this is only intended to be run once, so please confirm you are ready.");
     const ready = await confirm({ message: 'Continue?', default: false });
+    if (!ready) { log('info', "Cancelled."); process.exit(0); };
 
-    
+    // BEGIN: Call import handlers
+    log('info', "Starting posts handler...");
+    await postsHandler(oldDb, prisma);
+
+
   } catch (error) {
     if (error instanceof Error && error.name == 'ExitPromptError') { log('info', "Cancelled."); return; };
     log('critical', error);
@@ -425,6 +435,78 @@ async function main() {
     await prisma?.$disconnect();
   }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                       Posts
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldPost = {
+  id: number,
+  fileExt: string,
+  type: string | null,
+  originalPath: string | null,
+  previewPath: string | null,
+  aspectRatio: number,
+  safety: 'SAFE' | 'SKETCHY' | 'UNSAFE',
+  // tags
+  // pools
+  // relatedTo
+  // relatedFrom
+  sources: string[],
+  notes: string | null,
+  previewScale: number | null,
+  pHash: string | null,
+  dupeBypass: boolean,
+  score: number,
+  // boosts (imported separately later)
+  // votes (imported separately later)
+  // comments (imported separately later)
+  // favoritedBy (imported separately later)
+  // collections (imported separately later)
+  uploadedById: string,
+  fileSize: number | null,
+  previewSize: number | null,
+  duration: number | null,
+  hasAudio: boolean | null,
+  createdAt: Date,
+}
+
+// Main Posts handler (oldDb is OLD, prisma is NEW)
+async function postsHandler(oldDb: SQL, prisma: PrismaClient) {
+  const dataDir = path.join(process.cwd(), 'data');
+  const oldDataDir = path.join(process.cwd(), 'data.old');
+  if (!fs.existsSync(dataDir)) { throw new Error("Data Directory doesn't exist! Are you sure you need to import anything?") };
+
+  // rename legacy data directory to make way for new one
+  fs.renameSync(dataDir, oldDataDir);
+  fs.mkdirSync(dataDir); // make new data folder
+
+  // Start processing individually through batches
+  let lastId = 0;
+  const BATCH = 500;
+  const failedIds = [];
+
+  while (true) {
+    const posts = await oldDb`
+      SELECT * FROM "Post"
+      WHERE id > ${lastId}
+      ORDER BY id
+      LIMIT ${BATCH}
+    ` as OldPost[];
+    if (posts.length === 0) break; // nothing left
+
+    for (const post of posts) {
+      const success = await importPost(oldDb, prisma, post);
+      if (!success) failedIds.push(post.id);
+    }
+  }
+}
+
+// Posts handler components
+async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost): Promise<boolean> {
+  return true;
+}
+
+
 
 
 main(); // run script
