@@ -435,11 +435,14 @@ async function main() {
     const newRoles = await rolesHandler(oldDb, prisma);
 
     log('info', "Starting Users handler...");
-    await usersHandler(oldDb, prisma, newRoles);
+    await usersHandler(oldDb, prisma);
     
     log('info', "Starting Posts handler...");
-    await postsHandler(oldDb, prisma);
+    // await postsHandler(oldDb, prisma);
 
+
+    log('success', "Successfully finished import! Enjoy!");
+    return;
 
   } catch (error) {
     if (error instanceof Error && error.name == 'ExitPromptError') { log('info', "Cancelled."); return; };
@@ -451,6 +454,12 @@ async function main() {
     await prisma?.$disconnect();
   }
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                       Maps
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const roleMap = new Map<number, string>(); // old role id -> new role id
+const userMap = new Map<string, string>(); // old id -> new id
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                       Roles
@@ -464,7 +473,7 @@ type OldRole = {
 }
 
 // Permissions get reset to new defaults, should prob let user know kek
-async function rolesHandler(oldDb: SQL, prisma: PrismaClient): Promise<Role[]> {
+async function rolesHandler(oldDb: SQL, prisma: PrismaClient) {
   const roles = await oldDb`
     SELECT * FROM "Role"
     ORDER BY id ASC
@@ -477,9 +486,19 @@ async function rolesHandler(oldDb: SQL, prisma: PrismaClient): Promise<Role[]> {
     isDefault: r.isDefault,
   }));
 
-  const newRoles = await prisma.role.createManyAndReturn({ data: newFormat, skipDuplicates: true });
-  log('success', `Successfully imported ${newRoles.length}/${roles.length} roles!`);
-  return newRoles;
+  await prisma.role.createMany({ data: newFormat, skipDuplicates: true });
+  const allNew = await prisma.role.findMany({ select: { id: true, name: true } });
+  const newIdByName = new Map(allNew.map((r) => [r.name, r.id]));
+
+  for (const r of roles) {
+    const newId = newIdByName.get(r.name);
+    if (newId) roleMap.set(r.id, newId);
+    else log('warn', `Role "${r.name}" didn't import`);
+  }
+
+
+  log('success', `Successfully imported ${allNew.length}/${roles.length} roles!`);
+  return;
 }
 
 
@@ -500,10 +519,11 @@ type OldUser = {
   createdAt: Date,
 }
 
-async function usersHandler(oldDb: SQL, prisma: PrismaClient, newRoles: Role[]) {
+async function usersHandler(oldDb: SQL, prisma: PrismaClient) {
   // Start processing individually through batches
-  let lastId = 0;
+  let lastId = '';
   const BATCH = 500;
+  const defaultRole = await prisma.role.findFirst({ where: { isDefault: true }, select: { id: true } });
 
   while (true) {
     const oldUsers = await oldDb`
@@ -515,16 +535,24 @@ async function usersHandler(oldDb: SQL, prisma: PrismaClient, newRoles: Role[]) 
     if (oldUsers.length === 0) break; // nothing left
 
     const newFormat = oldUsers.map((u) => ({
+      id: u.id,
       email: u.email,
       username: u.username,
       passHash: u.password,
-      roleId: 
-    }))
+      roleId: roleMap.get(u.roleId ?? 1) ?? defaultRole!.id, // if the user setup v0.14 properly, id #1 should be Member
+      // drop avatars for now
+      about: u.description,
+      lastLogin: u.lastLogin,
+      createdAt: u.createdAt
+    }));
+
+    const { count } = await prisma.user.createMany({ data: newFormat, skipDuplicates: true });
+    if (count < newFormat.length) log('warn', `${newFormat.length - count} users skipped (duplicate email/username)`);
+    lastId = oldUsers[oldUsers.length - 1].id;
   }
-}
 
-async function importUser(user: OldUser, newRoles: Role[]) {
-
+  log('success', `Successfully imported users!`);
+  return;
 }
 
 
