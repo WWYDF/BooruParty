@@ -1,84 +1,68 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Post } from "@/core/types/posts";
-import PostNavigator from "@/components/clientSide/Posts/Individual/PostNavigator";
-import { CaretDoubleLeft } from "phosphor-react";
+import { PostDetail } from "@/core/types/posts";
+import { API } from "@/core/api";
+import PostNavigator from "@/components/Posts/Individual/PostNavigator";
+import { CaretDoubleLeftIcon } from "@phosphor-icons/react";
 
 export default function PostFullscreenPage(props: { params: Promise<{ id: string }> }) {
-  const [id, setId] = useState<string | null>(null);
-  const [post, setPost] = useState<Post | null>(null);
+  const { id } = use(props.params);
+  const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(true);
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pool = searchParams.get("pool");
+  const poolId = pool ? Number(pool) : undefined;
+
+  const postLink = `/post/${id}${poolId ? `?pool=${poolId}` : ""}`;
 
   useEffect(() => {
-    props.params.then(p => setId(p.id));
-  }, [props.params]);
+    let cancelled = false; // ignore a slow answer for a post we already navigated away from
+    setPost(null);
+    setLoading(true);
 
-  const poolId = searchParams.get("pool");
-
-  // Always declare hooks before returning JSX
-  useEffect(() => {
-    if (!id) return;
-
-    const fetchPost = async () => {
+    (async () => {
       try {
-        const res = await fetch(`/api/posts/${id}`);
-        if (!res.ok) throw new Error("Failed to fetch post");
-        const data = await res.json();
-        setPost(data.post);
+        const res = await API(`/api/posts/${id}`);
+        if (cancelled) return;
+        // The normal post page knows how to explain 401/403/404, so send them there
+        if (!res.ok) return router.replace(postLink);
+        setPost(await res.json());
       } catch {
-        router.push("/post");
+        if (!cancelled) router.replace(postLink);
       }
-    };
+    })();
 
-    fetchPost();
-  }, [id, router]);
-  
+    return () => { cancelled = true; };
+  }, [id, postLink, router]);
 
+  // Escape = back to the normal post page
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && post?.id) {
-        const target = poolId
-          ? `/post/${post.id}?pool=${poolId}`
-          : `/post/${post.id}`;
-        router.replace(target);
-      }
+      if (e.key === "Escape") router.replace(postLink);
     };
-  
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, [router, post?.id, poolId]);
+  }, [router, postLink]);
 
-
+  // Navigator bar only shows while the mouse is in the top 30% of the screen
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const y = e.clientY;
-      const threshold = window.innerHeight * 0.3;
-      setVisible(y <= threshold);
-    };
-  
+    const handleMouseMove = (e: MouseEvent) => setVisible(e.clientY <= window.innerHeight * 0.3);
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
+  // Videos have no fullscreen view; their player has its own
   useEffect(() => {
-    if (!post) return;
+    if (post?.type === "VIDEO") router.replace(postLink);
+  }, [post, postLink, router]);
 
-    if (post.type === "video") {
-      router.replace(`/post/${post.id}`);
-    }
-  }, [post, router]);
-
-  if (!post) return null;
-
-  if (post.type === "video") { return null } // redirect already kicked off above, so prevent rendering anything here
+  if (!post || post.type === "VIDEO") return null;
 
   return (
     <motion.div
@@ -89,19 +73,21 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
       transition={{ duration: 0.25 }}
     >
       <div
-        className={`top-0 left-0 right-0 z-50 border-b border-zinc-800 bg-black transition-all duration-300
-          md:fixed md:${visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full"}
-          static`}
+        className={`static md:fixed top-0 left-0 right-0 z-50 border-b border-zinc-800 bg-black transition-all duration-300 ${
+          visible ? "md:opacity-100 md:translate-y-0" : "md:opacity-0 md:-translate-y-full"
+        }`}
       >
-        <PostNavigator postId={post.id} poolId={poolId ? parseInt(poolId) : undefined} fullscreen />
+        <PostNavigator
+          postId={post.id}
+          poolId={poolId}
+          poolName={post.pools.find((p) => p.id === poolId)?.name}
+          fullscreen
+        />
       </div>
 
-      <div
-        ref={containerRef}
-        className="relative w-full overflow-auto bg-black"
-      >
-        {/* This dummy spacer creates visible offset without layout shift */}
-        <div className="sticky top-0 h-[56px] z-0" />
+      <div className="relative w-full overflow-auto bg-black">
+        {/* Dummy spacer: visible offset under the fixed navigator without layout shift */}
+        <div className="sticky top-0 h-14 z-0" />
 
         {loading && (
           <div className="absolute z-50 flex items-center justify-center w-full h-full">
@@ -109,7 +95,9 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
           </div>
         )}
 
+        {/* key: a fresh <img> per post, so onLoad fires again when navigating */}
         <motion.img
+          key={post.id}
           src={post.originalPath}
           alt={`Post ${post.id}`}
           onLoad={() => setLoading(false)}
@@ -120,20 +108,14 @@ export default function PostFullscreenPage(props: { params: Promise<{ id: string
         />
       </div>
 
-        {post?.id && (
-          <div className="2xl:hidden bottom-0 w-full bg-black/90 backdrop-blur-sm z-50 border-t border-zinc-800 px-4 py-3">
-            <button
-              onClick={() =>
-                router.replace(poolId
-                  ? `/post/${post.id}?pool=${poolId}`
-                  : `/post/${post.id}`)
-              }
-              className="flex gap-2 items-center justify-center w-full py-2 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition text-white font-medium"
-            >
-              <CaretDoubleLeft /> Return to Post
-            </button>
-          </div>
-        )}
+      <div className="2xl:hidden bottom-0 w-full bg-black/90 backdrop-blur-sm z-50 border-t border-zinc-800 px-4 py-3">
+        <button
+          onClick={() => router.replace(postLink)}
+          className="flex gap-2 items-center justify-center w-full py-2 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition text-white font-medium cursor-pointer"
+        >
+          <CaretDoubleLeftIcon /> Return to Post
+        </button>
+      </div>
     </motion.div>
   );
 }

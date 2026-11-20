@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { PostDetail } from '@/core/types/posts';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { MagnifyingGlassIcon, StarIcon } from '@phosphor-icons/react';
+import { ArrowRightIcon, MagnifyingGlassIcon, StarIcon } from '@phosphor-icons/react';
 import { useSearchBarLogic } from '@/core/searchBarLogic';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/components/UserProvider';
@@ -209,7 +209,7 @@ export default function HomePage() {
                       )}
 
                       <span className="truncate">
-                        {s.alias && <span className="text-subtle">{s.alias} → </span>}
+                        {s.alias && <span className="text-subtle">{s.alias} <ArrowRightIcon className='inline mr-1'/> </span>}
                         {s.label}
                       </span>
 
