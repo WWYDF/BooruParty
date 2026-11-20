@@ -17,6 +17,7 @@ import crypto from "crypto";
 import { resolveTagNames } from "./core/utilities/tags";
 import { detectFileType } from "./components/uploads/receive";
 import { THUMBNAIL_SIZES } from "./components/uploads/thumbnails";
+import { parseArgs } from "util";
 
 const old_ver = 'v0.14.2';
 
@@ -376,6 +377,7 @@ async function main() {
     // Check .env for existing values
     const shouldInquire = await checkShouldInquire();
 
+    let OLD_DATABASE: Database;
     let NEW_DATABASE: Database;
     let SETTINGS: SiteSettings;
     let OPTIONS: BackendOptions;
@@ -392,7 +394,20 @@ async function main() {
     }
 
     // always ask for old db info, we don't save it lol
-    const OLD_DATABASE = await getOldDb();
+    const { values, positionals } = parseArgs({
+      args: Bun.argv.slice(2),
+      options: {
+        database: { type: 'string', short: 'd' },
+        host: { type: 'string', short: 'h' },
+        port: { type: 'string', short: 'p' },
+        username: { type: 'string', short: 'u' },
+        password: { type: 'string', short: 'P' },
+        force: { type: 'boolean', short: 'y' },
+      },
+      allowPositionals: true,
+    });
+    if (!values) { OLD_DATABASE = await getOldDb(); }
+    else { OLD_DATABASE = { host: values.host ?? 'localhost', port: Number(values.port ?? 5432), username: values.username!, password: values.password!, name: values.database! } };
     
     console.clear();
 
@@ -430,12 +445,14 @@ async function main() {
     // after all inquirer fields are asked and dbs are validated that they can connect
     console.log('');
     log('warn', "The section after this is only intended to be run once, so please confirm you are ready.");
-    const ready = await confirm({ message: 'Continue?', default: false });
+    let ready = false;
+    if (values && values.force) { ready = true }
+    else { ready = await confirm({ message: 'Continue?', default: false }); }
     if (!ready) { log('info', "Cancelled."); process.exit(0); };
 
     // BEGIN: Call import handlers
     log('info', "Starting Role handler...");
-    const newRoles = await rolesHandler(oldDb, prisma);
+    await rolesHandler(oldDb, prisma);
 
     log('info', "Starting Users handler...");
     await usersHandler(oldDb, prisma);
