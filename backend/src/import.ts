@@ -462,6 +462,12 @@ async function main() {
 
     log('info', "Starting Tags handler...");
     await tagHandler(oldDb, prisma);
+
+    log('info', "Starting Tag Alias handler...");
+    await tagAliasHandler(oldDb, prisma);
+
+    log('info', "Starting Tag Implications & Suggestions handler...");
+    await tagImpSuggHandler(oldDb, prisma);
     
     // handle posts as late as possible since its the slowest
     // log('info', "Starting Posts handler...");
@@ -827,11 +833,16 @@ async function tagHandler(oldDb: SQL, prisma: PrismaClient) {
   }
 
   await prisma.tag.createMany({ data: newFormat, skipDuplicates: true });
+  await prisma.tagName.createMany({
+    data: newFormat.map((t) => ({ name: t.name, tagId: t.id! })),
+    skipDuplicates: true,
+  });
   await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"Tag"', 'id'), (SELECT MAX(id) FROM "Tag"))`; // resync autoincrement()
 
   log('success', `Successfully imported ${newFormat.length}/${tags.length} tags!`);
   return;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                        Tag Aliases
@@ -840,6 +851,74 @@ type OldTagAlias = {
   id: number,
   alias: string,
   tagId: number,
+}
+
+async function tagAliasHandler(oldDb: SQL, prisma: PrismaClient) {
+  const aliases = await oldDb`
+    SELECT * FROM "TagAlias"
+    ORDER BY id ASC
+  ` as OldTagAlias[];
+
+  const newFormat: Prisma.TagNameCreateManyInput[] = [];
+
+  for (const alias of aliases) {
+    const tagId = resolveTagId(alias.tagId);
+    if (tagId === null) continue; // its tag was skipped, so the alias goes with it
+
+    const result = normalizeTagName(alias.alias);
+    if (!result.ok) {
+      log('warn', `Alias "${alias.alias}" (tag #${alias.tagId}) skipped: ${result.reason}`);
+      continue;
+    }
+
+    newFormat.push({ name: result.name, tagId });
+  }
+
+  const { count } = await prisma.tagName.createMany({ data: newFormat, skipDuplicates: true });
+  if (count < newFormat.length) log('warn', `${newFormat.length - count} aliases skipped (name already taken)`);
+
+  log('success', `Successfully imported and attached ${count}/${aliases.length} tag aliases!`);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                Tag Implications & Suggestions
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldTagPair = { A: number, B: number };
+
+// Resolve both ends through the redirects. Drop pairs that lost a tag or collapsed into one tag.
+function remapPair(fromOld: number, toOld: number): [number, number] | null {
+  const from = resolveTagId(fromOld);
+  const to = resolveTagId(toOld);
+  if (from === null || to === null || from === to) return null;
+  return [from, to];
+}
+
+async function tagImpSuggHandler(old: SQL, prisma: PrismaClient) { // camimi moment
+  // v0.14.2 stores these as Prisma implicit m2m tables, and the two use opposite column directions:
+  //   _TagImplies:     A implies B   (looking_down_at_viewer -> looking_at_viewer)
+  //   _TagSuggestions: B suggests A  (video -> 3d)
+
+  const oldImplies = await old`SELECT "A", "B" FROM "_TagImplies"` as OldTagPair[];
+  const oldSuggests = await old`SELECT "A", "B" FROM "_TagSuggestions"` as OldTagPair[];
+
+  const implications: Prisma.TagImplicationCreateManyInput[] = [];
+  for (const row of oldImplies) {
+    const pair = remapPair(row.A, row.B);
+    if (pair) implications.push({ tagId: pair[0], impliedId: pair[1] });
+  }
+
+  const suggestions: Prisma.TagSuggestionCreateManyInput[] = [];
+  for (const row of oldSuggests) {
+    const pair = remapPair(row.B, row.A); // flipped on purpose, see notes above
+    if (pair) suggestions.push({ tagId: pair[0], suggestedId: pair[1] });
+  }
+
+  const imp = await prisma.tagImplication.createMany({ data: implications, skipDuplicates: true });
+  const sugg = await prisma.tagSuggestion.createMany({ data: suggestions, skipDuplicates: true });
+
+  log('success', `Successfully imported ${imp.count}/${oldImplies.length} tag implications!`);
+  log('success', `Successfully imported ${sugg.count}/${oldSuggests.length} tag suggestions!`);
 }
 
 
