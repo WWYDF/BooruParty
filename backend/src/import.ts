@@ -14,7 +14,7 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { resolveTagNames } from "./core/utilities/tags";
+import { normalizeTagName, resolveTagNames } from "./core/utilities/tags";
 import { detectFileType } from "./components/uploads/receive";
 import { THUMBNAIL_SIZES } from "./components/uploads/thumbnails";
 import { parseArgs } from "util";
@@ -406,7 +406,7 @@ async function main() {
       },
       allowPositionals: true,
     });
-    if (!values) { OLD_DATABASE = await getOldDb(); }
+    if (!values.database) { OLD_DATABASE = await getOldDb(); }
     else { OLD_DATABASE = { host: values.host ?? 'localhost', port: Number(values.port ?? 5432), username: values.username!, password: values.password!, name: values.database! } };
     
     console.clear();
@@ -416,7 +416,7 @@ async function main() {
     const newDbUrl = `postgresql://${NEW_DATABASE.username}:${encodeURIComponent(NEW_DATABASE.password)}@${NEW_DATABASE.host}:${NEW_DATABASE.port}/${NEW_DATABASE.name}`;
     try {
       prisma = new PrismaClient({ datasourceUrl: newDbUrl });
-      oldDb = new SQL({ hostname: 'localhost', port: OLD_DATABASE.port, database: OLD_DATABASE.name, username: OLD_DATABASE.username, password: OLD_DATABASE.password });
+      oldDb = new SQL({ hostname: OLD_DATABASE.host, port: OLD_DATABASE.port, database: OLD_DATABASE.name, username: OLD_DATABASE.username, password: OLD_DATABASE.password });
     
       const [oldSettings] = await oldDb`SELECT * FROM "SiteSettings" WHERE id = 1`;
       if (!oldSettings || !oldSettings.setupComplete) { throw new Error(`${old_ver} database is empty or not set up yet!`) };
@@ -459,10 +459,13 @@ async function main() {
 
     log('info', "Starting Tag Categories handler...");
     await tagCatHandler(oldDb, prisma);
+
+    log('info', "Starting Tags handler...");
+    await tagHandler(oldDb, prisma);
     
     // handle posts as late as possible since its the slowest
-    log('info', "Starting Posts handler...");
-    await postsHandler(oldDb, prisma);
+    // log('info', "Starting Posts handler...");
+    // await postsHandler(oldDb, prisma);
 
 
     log('success', "Successfully finished import! Enjoy!");
@@ -484,6 +487,10 @@ async function main() {
 
 const roleMap = new Map<number, string>(); // old role id -> new role id
 const userMap = new Map<string, string>(); // old id -> new id
+
+const tagRedirects = new Map<number, number>(); // merged old id -> id it was folded into
+const skippedTags = new Set<number>();
+const resolveTagId = (id: number) => skippedTags.has(id) ? null : (tagRedirects.get(id) ?? id);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                       Roles
@@ -694,8 +701,8 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
 
     let convertSafety: Safety = 'SAFE';
     switch (post.safety) {
-      case 'SKETCHY': { convertSafety = 'QUESTIONABLE' }
-      case 'UNSAFE': { convertSafety = 'EXPLICIT' }
+      case 'SKETCHY': { convertSafety = 'QUESTIONABLE'; break; }
+      case 'UNSAFE': { convertSafety = 'EXPLICIT'; break; }
     }
 
     // Grab interaction counts
@@ -773,6 +780,67 @@ async function tagCatHandler(oldDb: SQL, prisma: PrismaClient) {
   return;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                        Tags
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldTag = {
+  id: number,
+  name: string, // main name
+  description: string | null,
+  categoryId: number,
+  createdAt: Date,
+}
+
+async function tagHandler(oldDb: SQL, prisma: PrismaClient) {
+  const tags = await oldDb`
+    SELECT * FROM "Tags"
+    ORDER BY id ASC
+  ` as OldTag[];
+
+  // Use route functions to create new tags
+  const ownerByName = new Map<string, number>(); // normalized name -> old id that kept it
+  const newFormat: Prisma.TagCreateManyInput[] = [];
+
+  for (const tag of tags) {
+    const result = normalizeTagName(tag.name);
+    if (!result.ok) {
+      skippedTags.add(tag.id);
+      log('warn', `Tag #${tag.id} "${tag.name}" skipped: ${result.reason}`);
+      continue;
+    }
+
+    const owner = ownerByName.get(result.name);
+    if (owner !== undefined) { // collision: fold into the first tag with this name
+      tagRedirects.set(tag.id, owner);
+      log('warn', `Tag #${tag.id} "${tag.name}" merged into #${owner}`);
+      continue;
+    }
+
+    ownerByName.set(result.name, tag.id);
+    newFormat.push({
+      id: tag.id,
+      name: result.name,
+      description: tag.description,
+      categoryId: tag.categoryId,
+      createdAt: tag.createdAt,
+    });
+  }
+
+  await prisma.tag.createMany({ data: newFormat, skipDuplicates: true });
+  await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"Tag"', 'id'), (SELECT MAX(id) FROM "Tag"))`; // resync autoincrement()
+
+  log('success', `Successfully imported ${newFormat.length}/${tags.length} tags!`);
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                        Tag Aliases
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldTagAlias = {
+  id: number,
+  alias: string,
+  tagId: number,
+}
 
 
 main(); // run script
