@@ -66,7 +66,7 @@ async function runSetup() {
   logger.success(`[+] Finished setting up! Continue on frontend through ${process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/setup` : 'the website.'}`)
 }
 
-async function syncPermissions() {
+export async function syncPermissions() {
   await prisma.permission.createMany({
     data: PERMISSIONS.map((name) => ({ name })),
     skipDuplicates: true,
@@ -124,7 +124,7 @@ const mod_perms: PermissionName[] = [
   "dashboard.audit.log"
 ];
 
-const default_roles = [
+export const default_roles = [
   { name: 'Default',   index: 4, color: '#ffffff', isDefault: true, perms: default_perms },
   { name: 'BOT',       index: 3, color: '#f1cb07', perms: [...default_perms, 'posts.autotag'] as PermissionName[] },
   { name: 'VIP',       index: 2, color: '#07f2ee', perms: vip_perms },
