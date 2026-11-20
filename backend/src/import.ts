@@ -18,6 +18,7 @@ import { normalizeTagName, resolveTagNames } from "./core/utilities/tags";
 import { detectFileType } from "./components/uploads/receive";
 import { THUMBNAIL_SIZES } from "./components/uploads/thumbnails";
 import { parseArgs } from "util";
+import sharp from "sharp";
 
 const old_ver = 'v0.14.2';
 
@@ -710,22 +711,32 @@ async function postsHandler(oldDb: SQL, prisma: PrismaClient) {
 // Posts handler components
 async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataFolder: { old: string, new: string }): Promise<boolean> {
   log('info', `Processing Post #${post.id}...`);
+  // v0.12 stored originalPath as previewPath when it deleted an unneeded preview, those posts have no real preview
+  if (post.previewPath?.startsWith('/data/uploads')) post.previewPath = null;
+  if (!post.originalPath) { return false; } // literally an empty post (???)
+
   const oldOgPath = path.join(dataFolder.old, post.originalPath!.replace(/^\/data/, '')); // can't be asked to make this script work pre-v0.13.
-  const oldPrvwPath = post.previewPath ? path.join(dataFolder.old, post.previewPath.replace(/^\/data/, '')) : null;
+  if (!fs.existsSync(oldOgPath)) { log('error', `Post #${post.id}: original file missing (${oldOgPath}), skipping...`); return false; }
+  let oldPrvwPath = post.previewPath ? path.join(dataFolder.old, post.previewPath.replace(/^\/data/, '')) : null;
+
+  if (oldPrvwPath && oldPrvwPath.endsWith('.null')) { log('warn', `Post #${post.id}: Preview has an invalid extension! Not copying it...`); oldPrvwPath = null };
+  if (oldOgPath.endsWith('.null')) { log('error', `Post #${post.id}: Original has an invalid extension! Skipping post...`); return false; };
   
   const detected = await detectFileType(oldOgPath);
-  const fileType = detected?.type ?? post.type;
+  const fileType = detected?.type ?? post.type?.toUpperCase();
   const fileExt = detected?.ext ?? post.fileExt;
   const fileKey = crypto.randomUUID();
 
   const typeDir = fileType!.toLowerCase();
   const storedOriginal = `/data/uploads/${typeDir}/${fileKey}.${fileExt}`;
-  const storedPreview = post.previewPath ? `/data/previews/${typeDir}/${fileKey}${path.extname(post.previewPath)}` : null;
+  let storedPreview = post.previewPath ? `/data/previews/${typeDir}/${fileKey}${path.extname(post.previewPath)}` : null;
 
 
   // Copy files
   fs.copyFileSync(oldOgPath, path.join(process.cwd(), storedOriginal));
-  if (oldPrvwPath && storedPreview) { fs.copyFileSync(oldPrvwPath, path.join(process.cwd(), storedPreview)); };
+  try { if (oldPrvwPath && storedPreview) { fs.copyFileSync(oldPrvwPath, path.join(process.cwd(), storedPreview)); }; }
+  catch (e) { log('warn', `Post #${post.id}: Preview doesn't exist on disk!`); oldPrvwPath = null; storedPreview = null; };
+  
   for (const size of Object.keys(THUMBNAIL_SIZES)) {
     const oldPath = path.join(dataFolder.old, 'thumbnails', `${post.id}_${size}.webp`);
     const newPath = path.join(dataFolder.new, 'thumbnails', `${fileKey}_${size}.webp`);
@@ -750,6 +761,13 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
     case 'UNSAFE': { convertSafety = 'EXPLICIT'; break; }
   }
 
+  let aspectRatio = post.aspectRatio;
+  if (aspectRatio == null) {
+    const { width, height } = await sharp(path.join(dataFolder.old, 'thumbnails', `${post.id}_${Object.keys(THUMBNAIL_SIZES)[0]}.webp`)).metadata();
+    aspectRatio = width && height ? width / height : 1; // 1 = square fallback if even that fails
+    log('warn', `Post #${post.id}: no aspect ratio in ${old_ver}, measured ${aspectRatio.toFixed(3)} from its thumbnail`);
+  }
+
   await prisma.post.create({
     data: {
       id: post.id,
@@ -761,7 +779,7 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
       safety: convertSafety,
       sources: post.sources,
       notes: post.notes,
-      aspectRatio: post.aspectRatio,
+      aspectRatio,
       fileSize: originalMeta.size,
       previewSize: previewMeta?.size,
       duration: post.duration,

@@ -23,7 +23,10 @@ export type DetectedFile = {
 export async function detectFileType(filePath: string): Promise<DetectedFile | null> {
   const result = await fileTypeFromFile(filePath);
   if (!result) return null;
-  const { mime, ext } = result;
+  let { mime, ext } = result;
+
+  // M4V is just an MP4 with Apple's fuckin brand in the header
+  if (mime === 'video/xm4v') { mime = 'video/mp4'; ext = 'mp4'; }
 
   if (ANIMATED_MIMES.includes(mime)) return { type: 'ANIMATED', mime, ext };
   if (VIDEO_MIMES.includes(mime)) return { type: 'VIDEO', mime, ext };
