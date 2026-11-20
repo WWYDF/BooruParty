@@ -1,4 +1,4 @@
-import { ClientPoolGrid } from "@/components/Pools/PoolGrid";
+import { ClientPoolGrid } from "@/components/Pools/PoolHome";
 
 export default function PoolsPage() {
   return (

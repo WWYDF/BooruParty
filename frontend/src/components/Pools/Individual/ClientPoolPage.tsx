@@ -307,7 +307,7 @@ export default function ClientPoolPage({ poolId }: { poolId: number }) {
             {tags.map((tag) => (
               <Link
                 key={tag.id}
-                href={`/tags/${encodeURIComponent(tag.name)}`}
+                href={`/pools?search=${encodeURIComponent(tag.name)}`}
                 title={`On ${tag.poolCount} of ${pool.posts.length} posts in this pool`}
                 className="flex items-center gap-1.5 rounded-md border border-secondary-border bg-secondary px-2 py-0.5 text-xs transition hover:bg-zinc-800"
               >

@@ -10,6 +10,7 @@ import { FastifyPluginAsync } from "fastify"
 import { Prisma } from "../../../prisma/client"
 import { getPoolSummaries } from "@/components/pools/summary"
 import { postVisibilitySelect } from "@/core/objects/selects/posts"
+import { resolveTagNames } from "@/core/utilities/tags"
 
 const POOL_SORTS = ['updated', 'newest', 'oldest', 'favorites', 'size', 'name'] as const;
 type PoolSort = typeof POOL_SORTS[number];
@@ -115,6 +116,15 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
     const visiblePost: Prisma.PostWhereInput = { AND: visibleConditions(viewer) };
     const text = search.trim();
 
+    // Every word in the search bar, tried as a tag (aliases resolve to the real tag like they are supposed to)
+    const words = text ? text.split(/\s+/) : [];
+    const resolved = words.length > 0 ? await resolveTagNames(words) : null;
+
+    // The tag side only counts if EVERY word was a real tag
+    const tagIds = resolved && resolved.missing.length === 0 && resolved.invalid.length === 0
+      ? resolved.tags.map((t) => t.id)
+      : [];
+
     const where: Prisma.PoolWhereInput = {
       AND: [
         // Same rule as GET /:id: nothing visible = doesn't exist (managers also see empty pools)
@@ -124,6 +134,13 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
           OR: [
             { name: { contains: text, mode: 'insensitive' } },
             { description: { contains: text, mode: 'insensitive' } },
+
+            // Or: the pool has every searched tag, each on at least one post
+            ...(tagIds.length > 0 ? [{
+              AND: tagIds.map((tagId) => ({
+                items: { some: { post: { AND: [visiblePost, { tags: { some: { tagId } } }] } } },
+              })),
+            }] : []),
           ],
         } : {},
 

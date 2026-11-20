@@ -21,10 +21,10 @@ const SORT_OPTIONS: { value: PoolSort; label: string }[] = [
   { value: "oldest", label: "Oldest" },
   { value: "favorites", label: "Most favorited" },
   { value: "size", label: "Most posts" },
-  { value: "name", label: "Name (A–Z)" },
+  { value: "name", label: "Name (A-Z)" },
 ];
 
-// "comic 2019" -> text "comic", year 2019 (a lone 4-digit number filters by year)
+// "comic 2019" -> text "comic" (or tag), year 2019 (a lone 4-digit number filters by year)
 function splitYear(input: string): { text: string; year: number | null } {
   const match = input.match(/(?:^|\s)(\d{4})(?=\s|$)/);
   if (!match) return { text: input.trim(), year: null };
@@ -140,7 +140,7 @@ export function ClientPoolGrid() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search pools (name, description, or a year)..."
+            placeholder="Search pools (name, description, year, or a specific tag)..."
             spellCheck={false}
             className="w-full bg-transparent py-2 text-sm text-white focus:outline-hidden"
           />
@@ -157,7 +157,7 @@ export function ClientPoolGrid() {
         <p className="py-8 text-center text-sm text-red-400">{error}</p>
       ) : !loading && pools.length === 0 ? (
         <p className="py-8 text-center text-sm text-subtle">
-          {debouncedSearch ? <>No pools match &quot;{debouncedSearch}&quot;.</> : "No pools yet."}
+          {debouncedSearch ? <>No pools match "{debouncedSearch}".</> : "No pools yet."}
         </p>
       ) : (
         <div className={`grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 transition-opacity ${loading ? "opacity-50" : ""}`}>
