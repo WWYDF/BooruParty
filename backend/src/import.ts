@@ -476,6 +476,9 @@ async function main() {
     log('info', "Starting Related Posts handler...");
     await relatedPostsHandler(oldDb, prisma);
 
+    log('info', "Starting Pools handler...");
+    await poolsHandler(oldDb, prisma);
+
 
     log('success', "Successfully finished import! Enjoy!");
     return;
@@ -955,5 +958,65 @@ async function tagImpSuggHandler(old: SQL, prisma: PrismaClient) { // camimi mom
   log('success', `Successfully imported ${sugg.count}/${oldSuggests.length} tag suggestions!`);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                        Pools
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldPool = {
+  id: number,
+  name: string,
+  artist: string | null,
+  description: string | null,
+  yearStart: number | null,
+  yearEnd: number | null,
+  lastEdited: Date,
+  createdAt: Date,
+}
+
+type OldPoolItem = {
+  poolId: number,
+  postId: number,
+  index: number,
+}
+
+async function poolsHandler(oldDb: SQL, prisma: PrismaClient) {
+  const oldPools = await oldDb`SELECT * FROM "Pools" ORDER BY id ASC` as OldPool[];
+
+  const newPools: Prisma.PoolCreateManyInput[] = oldPools.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.artist ? `Artist: ${p.artist}${p.description ? `\n\n${p.description}` : ''}` : p.description, // v2 has no artist field, so fallback to keeping them in desc
+    yearStart: p.yearStart,
+    yearEnd: p.yearEnd,
+    updatedAt: p.lastEdited,
+    createdAt: p.createdAt,
+  }));
+
+  await prisma.pool.createMany({ data: newPools, skipDuplicates: true });
+  await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"Pool"', 'id'), (SELECT MAX(id) FROM "Pool"))`; // resync autoincrement()
+
+  // ITEMS
+  // Ordered be pool, then old index, so we can renumber each pool 0..n-1 in one pass
+  const oldItems = await oldDb`SELECT "poolId", "postId", "index" FROM "PoolItems" ORDER BY "poolId", "index"` as OldPoolItem[];
+
+  const imported = await prisma.post.findMany({ select: { id: true } });
+  const postIds = new Set(imported.map((p) => p.id));
+
+  const nextIndex = new Map<number, number>(); // poolId -> next free index
+  const newItems: Prisma.PoolPostCreateManyInput[] = [];
+  
+  for (const item of oldItems) {
+    if (!postIds.has(item.postId)) { // post didn't import for some reason
+      log('warn', `Skipping Post #${item.postId} for Pool #${item.poolId} because Post doesn't exist!`);
+      continue;
+    };
+
+    const index = nextIndex.get(item.poolId) ?? 0;
+    nextIndex.set(item.poolId, index + 1);
+    newItems.push({ poolId: item.poolId, postId: item.postId, index });
+  }
+
+  const { count } = await prisma.poolPost.createMany({ data: newItems, skipDuplicates: true });
+  log('success', `Successfully imported ${newPools.length} pools with ${count}/${oldItems.length} posts!`);
+}
 
 main(); // run script
