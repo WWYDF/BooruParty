@@ -103,7 +103,7 @@ export default function PostDisplay({ post, onChange, disableFullscreen = false 
       {!showFull && post.previewSize !== null && (
         <button onClick={viewOriginal} className="text-subtle text-sm italic">
           Viewing sample encoded to {Math.round((post.previewSize / post.fileSize) * 100)}% of original (
-          <span className="underline text-accent">view original</span>
+          <span className="underline text-accent cursor-pointer">view original</span>
           )
         </button>
       )}

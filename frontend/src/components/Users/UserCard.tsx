@@ -8,7 +8,7 @@ export default function UserCard({ user }: { user: UserSimpleSummary }) {
   return (
     <Link
       href={`/users/${encodeURIComponent(user.username)}`}
-      className="flex cursor-pointer flex-col items-center rounded-xl bg-secondary p-6 py-8 text-center transition-colors hover:bg-zinc-900"
+      className="flex cursor-pointer flex-col items-center rounded-xl bg-secondary p-3 py-8 text-center transition-colors hover:bg-zinc-900"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -25,7 +25,7 @@ export default function UserCard({ user }: { user: UserSimpleSummary }) {
       </div>
 
       {user.about && (
-        <div className="mb-1 mt-1 max-w-[90%] break-words text-xs italic text-zinc-600">{user.about}</div>
+        <div className="mb-1 mt-1 max-w-[90%] wrap-break-word text-xs italic text-zinc-600">{user.about}</div>
       )}
 
       {/* Dates arrive as JSON strings */}

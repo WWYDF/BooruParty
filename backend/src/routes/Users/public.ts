@@ -19,8 +19,8 @@ const publicUsers: FastifyPluginAsync = async (fastify) => {
   }, async (req, reply) => {
     const { username } = req.params as { username: string };
 
-    const user = await prisma.user.findUnique({
-      where: { username },
+    const user = await prisma.user.findFirst({
+      where: { username, id: { not: '0' } },
       select: userProfileSelect
     });
 
@@ -51,7 +51,10 @@ const publicUsers: FastifyPluginAsync = async (fastify) => {
       sort: 'newest' | 'oldest' | 'username',
     };
 
-    const where: Prisma.UserWhereInput = search ? { username: { contains: search } } : {};
+    const where: Prisma.UserWhereInput = {
+      id: { not: '0' }, // hide system user
+      ...(search && { username: { contains: search } }),
+    };
     const orderBy: Prisma.UserOrderByWithRelationInput[] = 
       sort === 'username' ? [{ username: 'asc' }]
       : sort === 'oldest' ? [{ updatedAt: 'asc' }, { id: 'asc' }]

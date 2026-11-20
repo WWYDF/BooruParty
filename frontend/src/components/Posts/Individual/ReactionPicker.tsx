@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MagnifyingGlassIcon, SmileyIcon } from "@phosphor-icons/react";
+import { HeartIcon, MagnifyingGlassIcon, SmileyIcon, ThumbsUpIcon } from "@phosphor-icons/react";
 import InfoModal from "@/components/UI/Modals/InfoModal";
 import Button from "@/components/UI/Button";
 import { API, errorText } from "@/core/api";
 import { Posts } from "@/core/types/posts";
+import { useUser } from "@/components/UserProvider";
 
 type Props = {
   open: boolean;
@@ -25,6 +26,7 @@ export default function ReactionPicker({ open, onClose, onPick }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0); // ignore answers to searches the user already typed past
+  const { user } = useUser();
 
   const load = async (search: string, after: string | null) => {
     const id = ++requestId.current;
@@ -75,6 +77,24 @@ export default function ReactionPicker({ open, onClose, onPick }: Props) {
       subtitle="Click one to embed it in your comment."
     >
       <div className="space-y-3">
+        {/* Quick filters (logged-in only, they need a username) */}
+        {user && (
+          <div className="flex items-center gap-2">
+            {[
+              { label: "Show Favorites", query: `favorites:${user.username}`, Icon: HeartIcon },
+              { label: "Show Likes", query: `likes:${user.username}`, Icon: ThumbsUpIcon },
+            ].map(({ label, query, Icon }) => {
+              const active = text.trim() === query; // looks "pressed" while it's the current search
+              return (
+                <Button key={label} size="md" variant={active ? "primary" : "secondary"} onClick={() => setText(active ? "" : query)}>
+                  <Icon weight={active ? "fill" : "regular"} />
+                  {label}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Search inside the reaction images */}
         <div className="flex items-center gap-2 rounded-lg border border-secondary-border bg-zinc-950 px-3">
           <MagnifyingGlassIcon size={16} className="shrink-0 text-subtle" />
