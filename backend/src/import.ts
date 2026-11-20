@@ -667,9 +667,11 @@ async function postsHandler(oldDb: SQL, prisma: PrismaClient) {
       if (!success) failedIds.push(post.id);
     }
 
-    await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"Post"', 'id'), (SELECT MAX(id) FROM "Post"))`; // resync autoincrement()
     lastId = posts[posts.length - 1].id;
   }
+
+  await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"Post"', 'id'), (SELECT MAX(id) FROM "Post"))`; // resync autoincrement()
+  await prisma.$executeRaw`UPDATE "Tag" t SET "postCount" = (SELECT COUNT(*) FROM "PostTag" pt WHERE pt."tagId" = t.id)`;
 }
 
 // Posts handler components
@@ -701,51 +703,50 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
   const originalMeta = await fs.promises.stat(oldOgPath);
   if (oldPrvwPath) { previewMeta = await fs.promises.stat(oldPrvwPath); }
 
-  await prisma.$transaction(async (tx) => {
-    // const { tags: found, missing } = await resolveTagNames(tags, tx);
-    // const tagIds = [...new Set([...found, ...autoFound].map((t) => t.id))];
+  const oldTagRows = await oldDb`SELECT "B" AS "tagId" FROM "_PostTags" WHERE "A" = ${post.id}` as { tagId: number }[];
+  const tagIds = [...new Set(
+    oldTagRows.map((r) => resolveTagId(r.tagId)).filter((id): id is number => id !== null)
+  )];
 
-    let convertSafety: Safety = 'SAFE';
-    switch (post.safety) {
-      case 'SKETCHY': { convertSafety = 'QUESTIONABLE'; break; }
-      case 'UNSAFE': { convertSafety = 'EXPLICIT'; break; }
-    }
+  // Grab interaction counts
+  const [{ boostCount }] = await oldDb`
+    SELECT COUNT(*)::int AS "boostCount" FROM "Boosts" WHERE "postId" = ${post.id}
+  `;
 
-    // Grab interaction counts
-    const [{ boostCount }] = await oldDb`
-      SELECT COUNT(*)::int AS "boostCount" FROM "Boosts" WHERE "postId" = ${post.id}
-    `;
+  const [{ favoriteCount }] = await oldDb`
+    SELECT COUNT(*)::int AS "favoriteCount" FROM "UserFavorites" WHERE "postId" = ${post.id}
+  `;
 
-    const [{ favoriteCount }] = await oldDb`
-      SELECT COUNT(*)::int AS "favoriteCount" FROM "UserFavorites" WHERE "postId" = ${post.id}
-    `;
+  let convertSafety: Safety = 'SAFE';
+  switch (post.safety) {
+    case 'SKETCHY': { convertSafety = 'QUESTIONABLE'; break; }
+    case 'UNSAFE': { convertSafety = 'EXPLICIT'; break; }
+  }
 
-    await tx.post.create({
-      data: {
-        id: post.id,
-        uploaderId: post.uploadedById,
-        type: fileType! as FileType,
-        originalPath,
-        previewPath,
-        fileKey,
-        safety: convertSafety,
-        sources: post.sources,
-        notes: post.notes,
-        aspectRatio: post.aspectRatio,
-        fileSize: originalMeta.size,
-        previewSize: previewMeta?.size,
-        duration: post.duration,
-        hasAudio: post.hasAudio,
-        pHash: post.pHash,
-        score: post.score,
-        boostCount,
-        favoriteCount,
-      },
-    });
-
-    // if (tagIds.length) {
-    //   await tx.tag.updateMany({ where: { id: { in: tagIds } }, data: { postCount: { increment: 1 } } });
-    // }
+  await prisma.post.create({
+    data: {
+      id: post.id,
+      uploaderId: post.uploadedById,
+      type: fileType! as FileType,
+      originalPath,
+      previewPath,
+      fileKey,
+      safety: convertSafety,
+      sources: post.sources,
+      notes: post.notes,
+      aspectRatio: post.aspectRatio,
+      fileSize: originalMeta.size,
+      previewSize: previewMeta?.size,
+      duration: post.duration,
+      hasAudio: post.hasAudio,
+      pHash: post.pHash,
+      score: post.score,
+      boostCount,
+      favoriteCount,
+      tagCount: tagIds.length,
+      tags: { create: tagIds.map((tagId) => ({ tagId })) },
+      createdAt: post.createdAt,
+    },
   });
 
   return true;
