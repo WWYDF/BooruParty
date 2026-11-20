@@ -20,6 +20,7 @@ import { useUser } from '@/components/UserProvider';
 import TagInput from '@/components/Uploads/TagInput';
 import RelatedPostInput from './PostRelation';
 import AutoTaggerModal from './AutoTaggerModal';
+import TagSuggestionPopup from '@/components/Tags/TagSuggestionPopup';
 import { autoTaggerHas, useAddons } from '@/core/hooks/useAddons';
 import { CategoryInfo } from '@/core/types/tags';
 import { API, APIUpload, UploadResponse, errorText } from '@/core/api';
@@ -89,7 +90,15 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
     setTags(next);
   };
 
+  // Picks from the AutoTagger or a suggestion popup: one batch, so they land on top together like a paste
+  const addChips = (chips: TagChip[]) =>
+    changeTags([...tagsRef.current, ...chips.filter((c) => !tagsRef.current.some((t) => t.name === c.name))]);
+
+  // Which tag's suggestion popup is open (clicking a tag's name toggles it)
+  const [suggestFor, setSuggestFor] = useState<string | null>(null);
+
   const removeTag = (name: string) => {
+    if (suggestFor === name) setSuggestFor(null);
     setTags((prev) => prev.filter((t) => t.name !== name));
     setAddOrder((order) => order.filter((n) => n !== name)); // re-adding it later puts it back on top
   };
@@ -497,7 +506,7 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.25 }}
-                  className={`flex w-fit items-center gap-2 rounded-2xl border px-3 py-1.5 transition-colors ${
+                  className={`relative flex w-fit items-center gap-2 rounded-2xl border px-3 py-1.5 transition-colors ${
                     tag.isNew
                       ? 'border-dashed border-zinc-600'
                       : isAdded
@@ -523,10 +532,35 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
                     </Link>
                   )}
 
-                  <span>{tag.name}</span>
+                  {/* New tags don't exist yet, so they have no suggestions */}
+                  {tag.isNew ? (
+                    <span>{tag.name}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setSuggestFor((open) => (open === tag.name ? null : tag.name))}
+                      className="cursor-pointer hover:underline underline-offset-2"
+                      title="Show suggested tags"
+                    >
+                      {tag.name}
+                    </button>
+                  )}
                   {tag.postCount !== undefined && (
                     <span className="ml-1 text-xs text-zinc-400">{formatCounts(tag.postCount)}</span>
                   )}
+
+                  {/* AnimatePresence so the popup animates out instead of vanishing */}
+                  <AnimatePresence>
+                    {suggestFor === tag.name && (
+                      <TagSuggestionPopup
+                        tagName={tag.name}
+                        currentNames={tags.map((t) => t.name)}
+                        colorFor={colorFor}
+                        onAdd={addChips}
+                        onClose={() => setSuggestFor(null)}
+                      />
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               );
             })}
@@ -543,8 +577,7 @@ export default function PostEditing({ post, categories, onSaved, onDeleted }: Pr
         colorFor={colorFor}
         currentNames={tags.map((t) => t.name)}
         canCreateTags={canCreateTags}
-        // One batch, so the picks land on top together like a paste
-        onAdd={(chips) => changeTags([...tagsRef.current, ...chips.filter((c) => !tagsRef.current.some((t) => t.name === c.name))])}
+        onAdd={addChips}
       />
 
       <ConfirmModal

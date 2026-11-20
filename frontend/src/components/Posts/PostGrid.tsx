@@ -1,9 +1,9 @@
 'use client';
 
-import { Post } from '@/core/types/posts';
 import PostCard from './PostCard';
 import Masonry from 'react-masonry-css';
 import { motion } from "framer-motion";
+import { Posts } from '@/core/types/posts';
 
 type ViewMode = 'GRID' | 'COLLAGE';
 
@@ -16,7 +16,7 @@ export default function PostGrid({
   page = 1,
   postsPerPage,
 }: {
-  externalPosts?: Post[];
+  externalPosts?: Posts[];
   viewMode?: ViewMode;
   selectionMode: boolean;
   selectedPostIds: number[];
