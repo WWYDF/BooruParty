@@ -1,6 +1,6 @@
 'use client';
 
-import { useToast } from '@/components/clientSide/Toast';
+import { useToast } from '@/components/UI/Toast';
 import { useState } from 'react';
 
 export default function PasswordResetPage() {
@@ -116,7 +116,7 @@ export default function PasswordResetPage() {
 
             <button
               type="submit"
-              className="w-full py-2 bg-green-600 text-white rounded hover:opacity-90 transition"
+              className="w-full py-2 cursor-pointer bg-green-600 text-white rounded hover:opacity-90 transition"
             >
               Send Code
             </button>
@@ -148,7 +148,7 @@ export default function PasswordResetPage() {
 
             <button
               type="submit"
-              className="w-full py-2 bg-green-600 text-white rounded hover:opacity-90 transition"
+              className="w-full py-2 cursor-pointer bg-green-600 text-white rounded hover:opacity-90 transition"
             >
               Verify Code
             </button>
@@ -156,7 +156,7 @@ export default function PasswordResetPage() {
             <button
               type="button"
               onClick={() => setStep('email')}
-              className="w-full text-sm text-subtle hover:underline"
+              className="w-full text-sm cursor-pointer text-subtle hover:underline"
             >
               Use a different email
             </button>
@@ -200,7 +200,7 @@ export default function PasswordResetPage() {
 
             <button
               type="submit"
-              className="w-full py-2 bg-green-600 text-white rounded hover:opacity-90 transition"
+              className="w-full py-2 cursor-pointer bg-green-600 text-white rounded hover:opacity-90 transition"
             >
               Reset Password
             </button>

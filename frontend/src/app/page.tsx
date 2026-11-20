@@ -11,17 +11,18 @@ import { useUser } from '@/components/UserProvider';
 import { useToast } from '@/components/UI/Toast';
 import { API } from '@/core/api';
 
-function NumberDisplay({ number, size = 'w-16' }: { number: number, size?: string }) {
+// size is the max width per digit; digits shrink evenly below it so the number always fits its container
+function NumberDisplay({ number, size = 'max-w-16' }: { number: number, size?: string }) {
   const digits = String(number).split('');
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex w-full items-center justify-center gap-1">
       {digits.map((digit, index) => (
         <img
           key={index}
           src={`/i/numbers/${digit}.webp`}
           alt={digit}
-          className={`${size}`} // add bg-red-500 for debugging easier
+          className={`min-w-0 flex-1 ${size}`} // add bg-red-500 for debugging easier
         />
       ))}
     </div>
@@ -142,8 +143,8 @@ export default function HomePage() {
             transition={{ delay: 0.4, duration: 0.5 }}
             className='flex justify-center'
           >
-            <div className='w-full max-w-1/2 flex justify-center'>
-              <NumberDisplay number={postCount} size='w-24 md:w-48'/>
+            <div className='w-full px-4 md:max-w-1/2 flex justify-center'>
+              <NumberDisplay number={postCount} size='max-w-24 md:max-w-48'/>
             </div>
           </motion.div>
         </section>
