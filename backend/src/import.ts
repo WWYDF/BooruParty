@@ -19,8 +19,6 @@ import { detectFileType } from "./components/uploads/receive";
 import { THUMBNAIL_SIZES } from "./components/uploads/thumbnails";
 import { parseArgs } from "util";
 import sharp from "sharp";
-import { CURRENT_VERSION } from "./core/version";
-import { default_roles, syncPermissions } from "./core/setup";
 
 const old_ver = 'v0.14.2';
 
@@ -506,37 +504,16 @@ async function main() {
     log('info', "Starting Comments handler...");
     await postCommentsHandler(oldDb, prisma);
 
-    log('info', "Making sure valid defaults exist...");
-    let ver = CURRENT_VERSION;
-
-    await syncPermissions(); // ripped straight from setup.ts kek
-    const roles = await prisma.role.findMany();
-    const defaultRole = roles.find((r) => r.isDefault) ?? roles.find((r) => ['default', 'member'].includes(r.name.toLowerCase()));
-    const adminRole = roles.find((r) => r.name.toLowerCase().startsWith('admin'));  // matches 'admin' and 'administrator'
-    if (!defaultRole) {
-      log('warn', `No default role could be found! Creating one now.`);
-      const sysDefRole = default_roles[0];
-      await prisma.role.upsert({
-        where: { name: sysDefRole.name },
-        update: {},
-        create: sysDefRole,
-      });
-    }
-    if (!adminRole) {
-      log('warn', `No admin role could be found! Setup will fix on startup.`);
-      ver = '0.14.2'; // tell setup to do handoff, rather than full setup
-    }
-
+    log('info', "Finalizing...");
     await prisma.serverSettings.upsert({
       where: { id: 1 },
       update: {},
       create: {
-        lastSetupVersion: ver,
+        lastSetupVersion: '0.14.2', // last possible version before 2.0.0
         convertShortVids: OPTIONS.convertShortMuteVids,
         guestAccess: SETTINGS.guestViewing,
       }
     });
-
 
     log('success', "Successfully finished import! Enjoy!");
     return;
