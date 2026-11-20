@@ -457,6 +457,7 @@ async function main() {
     log('info', "Starting Users handler...");
     await usersHandler(oldDb, prisma);
 
+    // TAGS
     log('info', "Starting Tag Categories handler...");
     await tagCatHandler(oldDb, prisma);
 
@@ -469,16 +470,30 @@ async function main() {
     log('info', "Starting Tag Implications & Suggestions handler...");
     await tagImpSuggHandler(oldDb, prisma);
     
-    // handle posts as late as possible since its the slowest (and requires tags to be processed already)
+    // POSTS
+    // Handle posts as late as possible since its the slowest (and requires tags to be processed already)
     log('info', "Starting Posts handler...");
     await postsHandler(oldDb, prisma);
 
     log('info', "Starting Related Posts handler...");
     await relatedPostsHandler(oldDb, prisma);
 
+    // POOLS
     log('info', "Starting Pools handler...");
     await poolsHandler(oldDb, prisma);
 
+    log('info', "Starting Pool Favorites handler...");
+    await poolFavoritesHandler(oldDb, prisma);
+
+    // INTERACTIONS
+    log('info', "Starting Votes handler...");
+    await postVotesHandler(oldDb, prisma);
+
+    log('info', "Starting Favorites handler...");
+    await postFavoritesHandler(oldDb, prisma);
+
+    log('info', "Starting Boosts handler...");
+    await postBoostsHandler(oldDb, prisma);
 
     log('success', "Successfully finished import! Enjoy!");
     return;
@@ -1018,5 +1033,147 @@ async function poolsHandler(oldDb: SQL, prisma: PrismaClient) {
   const { count } = await prisma.poolPost.createMany({ data: newItems, skipDuplicates: true });
   log('success', `Successfully imported ${newPools.length} pools with ${count}/${oldItems.length} posts!`);
 }
+///////////////////////////////////
+type OldPoolVote = {
+  poolId: number,
+  userId: string,
+}
+
+async function poolFavoritesHandler(oldDb: SQL, prisma: PrismaClient) {
+  // Upvotes become favorites, downvotes are dropped
+  const oldUpvotes = await oldDb`SELECT "poolId", "userId" FROM "PoolVotes" WHERE vote > 0` as OldPoolVote[];
+
+  // Only users that actually imported (usersHandler can skip duplicates)
+  const users = await prisma.user.findMany({ select: { id: true } });
+  const userIds = new Set(users.map((u) => u.id));
+
+  const newFormat: Prisma.PoolFavoriteCreateManyInput[] = oldUpvotes
+    .filter((v) => userIds.has(v.userId))
+    .map((v) => ({ poolId: v.poolId, userId: v.userId }));
+
+  const { count } = await prisma.poolFavorite.createMany({ data: newFormat, skipDuplicates: true });
+  await prisma.$executeRaw`UPDATE "Pool" p SET "favoriteCount" = (SELECT COUNT(*) FROM "PoolFavorite" pf WHERE pf."poolId" = p.id)`;
+
+  log('success', `Successfully converted ${count}/${oldUpvotes.length} pool upvotes into favorites!`);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                      Interactions
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type Interaction = {
+  id: number,
+  userId: string,
+  postId: number,
+  createdAt: Date,
+}
+
+async function postFavoritesHandler(oldDb: SQL, prisma: PrismaClient) {
+  const users = await prisma.user.findMany({ select: { id: true } });
+  const userIds = new Set(users.map((u) => u.id));
+  const posts = await prisma.post.findMany({ select: { id: true } });
+  const postIds = new Set(posts.map((p) => p.id));
+
+  let lastId = 0;
+  const BATCH = 5000; // rows are tiny compared to posts
+  let imported = 0;
+
+  while (true) {
+    const oldFavs = await oldDb`
+      SELECT id, "userId", "postId", "createdAt" FROM "UserFavorites"
+      WHERE id > ${lastId}
+      ORDER BY id
+      LIMIT ${BATCH}
+    ` as Interaction[];
+    if (oldFavs.length === 0) break; // nothing left
+
+    const newFormat: Prisma.PostFavoriteCreateManyInput[] = oldFavs
+      .filter((f) => userIds.has(f.userId) && postIds.has(f.postId))
+      .map((f) => ({ userId: f.userId, postId: f.postId, createdAt: f.createdAt }));
+    
+    const { count } = await prisma.postFavorite.createMany({ data: newFormat, skipDuplicates: true });
+    imported += count;
+    lastId = oldFavs[oldFavs.length - 1].id;
+  }
+
+  await prisma.$executeRaw`UPDATE "Post" p SET "favoriteCount" = (SELECT COUNT(*) FROM "PostFavorite" pf WHERE pf."postId" = p.id)`;
+
+  log('success', `Successfully imported ${imported} post favorites!`);
+}
+
+async function postVotesHandler(oldDb: SQL, prisma: PrismaClient) {
+  const users = await prisma.user.findMany({ select: { id: true } });
+  const userIds = new Set(users.map((u) => u.id));
+  const posts = await prisma.post.findMany({ select: { id: true } });
+  const postIds = new Set(posts.map((p) => p.id));
+
+  let lastId = 0;
+  const BATCH = 5000; // rows are tiny compared to posts
+  let imported = 0;
+
+  while (true) {
+    const oldVotes = await oldDb`
+      SELECT id, "userId", "postId", type, "createdAt" FROM "Votes"
+      WHERE id > ${lastId}
+      ORDER BY id
+      LIMIT ${BATCH}
+    ` as { id: number, userId: string, postId: number, type: 'UPVOTE' | 'DOWNVOTE', createdAt: Date }[];
+    if (oldVotes.length === 0) break; // nothing left
+
+    const newFormat: Prisma.PostVoteCreateManyInput[] = oldVotes
+      .filter((v) => userIds.has(v.userId) && postIds.has(v.postId))
+      .map((v) => ({ userId: v.userId, postId: v.postId, value: v.type === 'UPVOTE' ? 1 : -1, createdAt: v.createdAt }));
+
+    const { count } = await prisma.postVote.createMany({ data: newFormat, skipDuplicates: true });
+    imported += count;
+    lastId = oldVotes[oldVotes.length - 1].id;
+  }
+
+  // v2 score is always the sum of votes (see setVote in components/posts/interactions.ts)
+  await prisma.$executeRaw`UPDATE "Post" p SET "score" = COALESCE((SELECT SUM(value) FROM "PostVote" pv WHERE pv."postId" = p.id), 0)`;
+
+  log('success', `Successfully imported ${imported} post votes!`)
+}
+
+async function postBoostsHandler(oldDb: SQL, prisma: PrismaClient) {
+  const users = await prisma.user.findMany({ select: { id: true } });
+  const userIds = new Set(users.map((u) => u.id));
+  const posts = await prisma.post.findMany({ select: { id: true } });
+  const postIds = new Set(posts.map((p) => p.id));
+
+  let lastId = 0;
+  const BATCH = 5000;
+  let imported = 0;
+
+  while (true) {
+    const oldBoosts = await oldDb`
+      SELECT id, "userId", "postId", "createdAt" FROM "Boosts"
+      WHERE id > ${lastId}
+      ORDER BY id
+      LIMIT ${BATCH}
+    ` as Interaction[];
+    if (oldBoosts.length === 0) break; // nothing left
+
+    const newFormat: Prisma.PostBoostCreateManyInput[] = oldBoosts
+      .filter((b) => userIds.has(b.userId) && postIds.has(b.postId))
+      .map((b) => ({ id: b.id, userId: b.userId, postId: b.postId, createdAt: b.createdAt }));
+    
+    const { count } = await prisma.postBoost.createMany({ data: newFormat, skipDuplicates: true });
+    imported += count;
+    lastId = oldBoosts[oldBoosts.length - 1].id;
+  }
+
+  await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"PostBoost"', 'id'), (SELECT MAX(id) FROM "PostBoost"))`; // resync autoincrement()
+  await prisma.$executeRaw`UPDATE "Post" p SET "boostCount" = (SELECT COUNT(*) FROM "PostBoost" pb WHERE pb."postId" = p.id)`;
+
+  // v2 reads cooldowns (and which boost is undoable) from User.lastBoostAt, so point it at each user's newest boost
+  await prisma.$executeRaw`
+    UPDATE "User" u SET "lastBoostAt" = b.latest
+    FROM (SELECT "userId", MAX("createdAt") AS latest FROM "PostBoost" GROUP BY "userId") b
+    WHERE u.id = b."userId"
+  `;
+
+  log('success', `Successfully imported ${imported} post boosts!`);
+}
+
 
 main(); // run script
