@@ -73,7 +73,6 @@ export default function PostMetadata({
   onReload: () => void; // refetch the post after an edit
 }) {
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null);
-  const [viewingFull, setViewingFullState] = useState<boolean>(false);
   const [editing, setEditing] = useState(false);
   const router = useRouter();
   const toast = useToast();
@@ -152,16 +151,10 @@ export default function PostMetadata({
       const { postId, w, h } = (e as CustomEvent).detail || {};
       if (postId === post.id && w && h) setDimensions({ w, h });
     };
-    const onViewingChange = (e: Event) => {
-      const { state } = (e as CustomEvent).detail || {};
-      setViewingFullState(state);
-    };
 
     window.addEventListener("post:image-dimensions", onDims as EventListener);
-    window.addEventListener("post:changeViewingState", onViewingChange as EventListener);
     return () => {
       window.removeEventListener("post:image-dimensions", onDims as EventListener);
-      window.removeEventListener("post:changeViewingState", onViewingChange as EventListener);
     };
   }, [post.id]);
 
@@ -187,18 +180,22 @@ export default function PostMetadata({
         />
 
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-base font-semibold text-white">
+          <p className="flex items-center text-base font-semibold text-white">
             {
               <>
                 <Link href={`/users/${encodeURIComponent(uploader.username)}`} className="truncate text-accent hover:underline">
                   {uploader.username}
                 </Link>
-                <RoleBadge role={uploader.role} />
+                
               </>
             }
           </p>
 
-          <p className="text-xs text-subtle">{new Date(post.createdAt).toLocaleString()}</p>
+          <span className={`inline-flex items-center font-medium text-xs`}
+            style={{ color: uploader.role.color }}
+          >
+            {uploader.role.name}
+          </span>
         </div>
 
         {canFeature && !editing && (
@@ -284,7 +281,7 @@ export default function PostMetadata({
               {post.type === "VIDEO" && post.hasAudio !== null && (
                 <InfoRow label="Audio">{post.hasAudio ? "Yes" : "No"}</InfoRow>
               )}
-              <InfoRow label="Uploaded">{new Date(post.createdAt).toLocaleDateString()}</InfoRow>
+              <InfoRow label="Uploaded">{new Date(post.createdAt).toLocaleString()}</InfoRow>
             </dl>
           </div>
 
