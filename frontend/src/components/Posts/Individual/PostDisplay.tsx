@@ -93,7 +93,6 @@ export default function PostDisplay({ post, onChange, disableFullscreen = false 
               onLoad={(e) => publishDims(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
               onError={handleError}
               // Reserves the right amount of space before the image loads, so the page doesn't jump
-              style={{ aspectRatio: post.aspectRatio }}
               className="lg:max-h-[80vh] lg:h-[80vh] w-auto max-w-full object-contain rounded-xl cursor-pointer"
             />
           )}

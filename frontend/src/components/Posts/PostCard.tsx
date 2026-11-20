@@ -101,12 +101,12 @@ export default function PostCard({ post, viewMode, selectionMode, isSelected, to
             </div>
           )}
 
-          {/* {post._count?.boosts > 0 && (
+          {post.boostCount > 0 && (
             <div className="bg-secondary-border/70 px-2 py-1 rounded-full text-xs flex items-center gap-1">
               <SparkleIcon size={16} className="text-cyan-500" weight="bold" />
-              <span>{post._count?.boosts}</span>
+              <span>{post.boostCount}</span>
             </div>
-          )} */}
+          )}
         </div>
       </div>
     </Link>
