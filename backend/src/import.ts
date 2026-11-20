@@ -473,6 +473,9 @@ async function main() {
     log('info', "Starting Posts handler...");
     await postsHandler(oldDb, prisma);
 
+    log('info', "Starting Related Posts handler...");
+    await relatedPostsHandler(oldDb, prisma);
+
 
     log('success', "Successfully finished import! Enjoy!");
     return;
@@ -752,6 +755,35 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
 
   return true;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                    Related Posts
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldPostRelation = {
+  fromId: number,
+  toId: number,
+}
+
+async function relatedPostsHandler(oldDb: SQL, prisma: PrismaClient) {
+  const oldRelations = await oldDb`SELECT "fromId", "toId" FROM "PostRelation"` as OldPostRelation[];
+
+  // Only relate posts that actually made it to db (should be all of them, but just in case ig)
+  const imported = await prisma.post.findMany({ select: { id: true } });
+  const postIds = new Set(imported.map((p) => p.id));
+
+  const newFormat: Prisma.PostRelationCreateManyInput[] = [];
+  for (const r of oldRelations) {
+    if (r.fromId === r.toId) continue; // can't relate a post to itself
+    if (!postIds.has(r.fromId) || !postIds.has(r.toId)) continue;
+
+    // v2 stores each pair once, smaller id first (same as relationPair() in Posts/manage.ts)
+    newFormat.push(r.fromId < r.toId ? { fromId: r.fromId, toId: r.toId } : { fromId: r.toId, toId: r.fromId } );
+  }
+
+  const { count } = await prisma.postRelation.createMany({ data: newFormat, skipDuplicates: true });
+  log('success', `Successfully imported ${count}/${oldRelations.length} post relations!`);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                    Tag Categories
