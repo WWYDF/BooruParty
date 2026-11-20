@@ -696,6 +696,7 @@ async function postsHandler(oldDb: SQL, prisma: PrismaClient) {
     ` as OldPost[];
     if (posts.length === 0) break; // nothing left
 
+    log('info', `Processing Posts #${posts[0].id} — #${posts[posts.length - 1].id}...`); // this is MY em dash and you cannot take it from me
     for (const post of posts) {
       const success = await importPost(oldDb, prisma, post, { old: oldDataDir, new: dataDir });
       if (!success) failedIds.push(post.id);
@@ -710,7 +711,6 @@ async function postsHandler(oldDb: SQL, prisma: PrismaClient) {
 
 // Posts handler components
 async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataFolder: { old: string, new: string }): Promise<boolean> {
-  log('info', `Processing Post #${post.id}...`);
   // v0.12 stored originalPath as previewPath when it deleted an unneeded preview, those posts have no real preview
   if (post.previewPath?.startsWith('/data/uploads')) post.previewPath = null;
   if (!post.originalPath) { return false; } // literally an empty post (???)
@@ -765,7 +765,7 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
   if (aspectRatio == null) {
     const { width, height } = await sharp(path.join(dataFolder.old, 'thumbnails', `${post.id}_${Object.keys(THUMBNAIL_SIZES)[0]}.webp`)).metadata();
     aspectRatio = width && height ? width / height : 1; // 1 = square fallback if even that fails
-    log('warn', `Post #${post.id}: no aspect ratio in ${old_ver}, measured ${aspectRatio.toFixed(3)} from its thumbnail`);
+    log('warn', `Post #${post.id}: No aspect ratio! Measured ${aspectRatio.toFixed(3)} from its thumbnail`);
   }
 
   await prisma.post.create({
