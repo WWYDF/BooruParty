@@ -451,11 +451,16 @@ async function main() {
     if (!ready) { log('info', "Cancelled."); process.exit(0); };
 
     // BEGIN: Call import handlers
+
+    // USERS
     log('info', "Starting Role handler...");
     await rolesHandler(oldDb, prisma);
 
     log('info', "Starting Users handler...");
     await usersHandler(oldDb, prisma);
+
+    log('info', "Starting User Preferences handler...");
+    await userPrefsHandler(oldDb, prisma); // not actually setup yet lol
 
     // TAGS
     log('info', "Starting Tag Categories handler...");
@@ -494,6 +499,9 @@ async function main() {
 
     log('info', "Starting Boosts handler...");
     await postBoostsHandler(oldDb, prisma);
+
+    log('info', "Starting Comments handler...");
+    await postCommentsHandler(oldDb, prisma);
 
     log('success', "Successfully finished import! Enjoy!");
     return;
@@ -613,6 +621,10 @@ async function usersHandler(oldDb: SQL, prisma: PrismaClient) {
   return;
 }
 
+async function userPrefsHandler(oldDb: SQL, prisma: PrismaClient) {
+
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                       Posts
@@ -730,14 +742,7 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
     oldTagRows.map((r) => resolveTagId(r.tagId)).filter((id): id is number => id !== null)
   )];
 
-  // Grab interaction counts
-  const [{ boostCount }] = await oldDb`
-    SELECT COUNT(*)::int AS "boostCount" FROM "Boosts" WHERE "postId" = ${post.id}
-  `;
-
-  const [{ favoriteCount }] = await oldDb`
-    SELECT COUNT(*)::int AS "favoriteCount" FROM "UserFavorites" WHERE "postId" = ${post.id}
-  `;
+  // Interaction counts are calculated later and added to posts
 
   let convertSafety: Safety = 'SAFE';
   switch (post.safety) {
@@ -763,8 +768,6 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
       hasAudio: post.hasAudio,
       pHash: post.pHash,
       score: post.score,
-      boostCount,
-      favoriteCount,
       tagCount: tagIds.length,
       tags: { create: tagIds.map((tagId) => ({ tagId })) },
       createdAt: post.createdAt,
@@ -1173,6 +1176,59 @@ async function postBoostsHandler(oldDb: SQL, prisma: PrismaClient) {
   `;
 
   log('success', `Successfully imported ${imported} post boosts!`);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                       Comments
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldComment = {
+  id: number,
+  postId: number,
+  authorId: string,
+  content: string,
+  createdAt: Date,
+  updatedAt: Date,
+}
+
+async function postCommentsHandler(oldDb: SQL, prisma: PrismaClient) {
+  const users = await prisma.user.findMany({ select: { id: true } });
+  const userIds = new Set(users.map((u) => u.id));
+  const posts = await prisma.post.findMany({ select: { id: true } });
+  const postIds = new Set(posts.map((p) => p.id));
+
+  let lastId = 0;
+  const BATCH = 2000; // comments carry text, so smaller batches than votes/favs
+  let imported = 0;
+
+  while (true) {
+    const oldComments = await oldDb`
+      SELECT id, "postId", "authorId", content, "createdAt", "updatedAt" FROM "Comments"
+      WHERE id > ${lastId}
+      ORDER BY id
+      LIMIT ${BATCH}
+    ` as OldComment[];
+    if (oldComments.length === 0) break; // nothing left
+
+    const newFormat: Prisma.PostCommentCreateManyInput[] = oldComments
+      .filter((c) => userIds.has(c.authorId) && postIds.has(c.postId))
+      .map((c) => ({
+        id: c.id,
+        postId: c.postId,
+        authorId: c.authorId,
+        content: c.content, // embeds (":123:" and links) are parsed from content at read time, so isEmbed isn't needed
+        // v0.14's @updatedAt was set on create too, so only set it if it's clearly later
+        editedAt: c.updatedAt.getTime() - c.createdAt.getTime() > 1000 ? c.updatedAt : null,
+        createdAt: c.createdAt,
+      }));
+
+    const { count } = await prisma.postComment.createMany({ data: newFormat, skipDuplicates: true });
+    imported += count;
+    lastId = oldComments[oldComments.length - 1].id;
+  }
+
+  await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"PostComment"', 'id'), (SELECT MAX(id) FROM "PostComment"))`; // resync autoincrement()
+
+  log('success', `Successfully imported ${imported} comments!`);
 }
 
 
