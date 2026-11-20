@@ -617,7 +617,7 @@ async function usersHandler(oldDb: SQL, prisma: PrismaClient) {
       username: u.username,
       passHash: u.password,
       roleId: roleMap.get(u.roleId ?? 1) ?? defaultRole!.id, // if the user setup v0.14 properly, id #1 should be Member
-      // drop avatars for now
+      avatarKey: userAvatar(u),
       about: u.description,
       lastLogin: u.lastLogin,
       createdAt: u.createdAt
@@ -630,6 +630,18 @@ async function usersHandler(oldDb: SQL, prisma: PrismaClient) {
 
   log('success', `Successfully imported users!`);
   return;
+}
+
+function userAvatar(old: OldUser): string | null {
+  if (!old.avatar) { return null }; // bail instantly if they don't even have one lol
+  try {
+    const avatarKey = crypto.randomUUID();
+    fs.copyFileSync(old.avatar, path.join(process.cwd(), 'data', 'avatars', `${avatarKey}.webp`));
+    return avatarKey;
+  } catch (e) {
+    log('error', `Could not apply ${old.username}'s avatar! (It will be reset)`)
+    return null;
+  }
 }
 
 async function userPrefsHandler(oldDb: SQL, prisma: PrismaClient) {
