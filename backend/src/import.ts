@@ -469,9 +469,9 @@ async function main() {
     log('info', "Starting Tag Implications & Suggestions handler...");
     await tagImpSuggHandler(oldDb, prisma);
     
-    // handle posts as late as possible since its the slowest
-    // log('info', "Starting Posts handler...");
-    // await postsHandler(oldDb, prisma);
+    // handle posts as late as possible since its the slowest (and requires tags to be processed already)
+    log('info', "Starting Posts handler...");
+    await postsHandler(oldDb, prisma);
 
 
     log('success', "Successfully finished import! Enjoy!");
@@ -684,14 +684,15 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
   const fileType = detected?.type ?? post.type;
   const fileExt = detected?.ext ?? post.fileExt;
   const fileKey = crypto.randomUUID();
-  
-  const originalPath = path.join(dataFolder.new, 'uploads', `${fileType!.toLowerCase()}`, `${fileKey}.${fileExt}`);
-  let previewPath = null;
-  if (post.previewPath) { previewPath = path.join(dataFolder.new, post.previewPath.replace(/^\/data/, '')); }
+
+  const typeDir = fileType!.toLowerCase();
+  const storedOriginal = `/data/uploads/${typeDir}/${fileKey}.${fileExt}`;
+  const storedPreview = post.previewPath ? `/data/previews/${typeDir}/${fileKey}${path.extname(post.previewPath)}` : null;
+
 
   // Copy files
-  fs.copyFileSync(oldOgPath, originalPath);
-  if (oldPrvwPath && previewPath && post.previewPath) { fs.copyFileSync(oldPrvwPath, previewPath); };
+  fs.copyFileSync(oldOgPath, path.join(process.cwd(), storedOriginal));
+  if (oldPrvwPath && storedPreview) { fs.copyFileSync(oldPrvwPath, path.join(process.cwd(), storedPreview)); };
   for (const size of Object.keys(THUMBNAIL_SIZES)) {
     const oldPath = path.join(dataFolder.old, 'thumbnails', `${post.id}_${size}.webp`);
     const newPath = path.join(dataFolder.new, 'thumbnails', `${fileKey}_${size}.webp`);
@@ -728,8 +729,8 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
       id: post.id,
       uploaderId: post.uploadedById,
       type: fileType! as FileType,
-      originalPath,
-      previewPath,
+      originalPath: storedOriginal,
+      previewPath: storedPreview,
       fileKey,
       safety: convertSafety,
       sources: post.sources,
