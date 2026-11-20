@@ -456,7 +456,11 @@ async function main() {
 
     log('info', "Starting Users handler...");
     await usersHandler(oldDb, prisma);
+
+    log('info', "Starting Tag Categories handler...");
+    await tagCatHandler(oldDb, prisma);
     
+    // handle posts as late as possible since its the slowest
     log('info', "Starting Posts handler...");
     await postsHandler(oldDb, prisma);
 
@@ -734,6 +738,40 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
   return true;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                    Tag Categories
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldTagCat = {
+  id: number,
+  name: string,
+  color: string,
+  order: number,
+  isDefault: boolean,
+  updatedAt: Date,
+}
+
+async function tagCatHandler(oldDb: SQL, prisma: PrismaClient) {
+  const tagCats = await oldDb`
+    SELECT * FROM "TagCategories"
+    ORDER BY id ASC
+  ` as OldTagCat[];
+
+  const newFormat = tagCats.map((c) => ({
+    id: c.id,
+    name: c.name,
+    index: c.order,
+    color: c.color,
+    isDefault: c.isDefault,
+    updatedAt: c.updatedAt,
+    createdAt: c.updatedAt, // we didn't store this before, so default to last updated instead of now lol
+  }));
+
+  await prisma.tagCategory.createMany({ data: newFormat, skipDuplicates: true });
+  await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"TagCategory"', 'id'), (SELECT MAX(id) FROM "TagCategory"))`; // resync autoincrement()
+
+  log('success', `Successfully imported ${newFormat.length}/${tagCats.length} categories!`);
+  return;
+}
 
 
 
