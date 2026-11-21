@@ -485,24 +485,19 @@ async function main() {
     await relatedPostsHandler(oldDb, prisma);
 
     // POOLS
-    log('info', "Starting Pools handler...");
+    log('info', "Starting Pools handlers...");
     await poolsHandler(oldDb, prisma);
-
-    log('info', "Starting Pool Favorites handler...");
     await poolFavoritesHandler(oldDb, prisma);
 
     // INTERACTIONS
-    log('info', "Starting Votes handler...");
+    log('info', "Starting Interactions handlers...");
     await postVotesHandler(oldDb, prisma);
-
-    log('info', "Starting Favorites handler...");
     await postFavoritesHandler(oldDb, prisma);
-
-    log('info', "Starting Boosts handler...");
     await postBoostsHandler(oldDb, prisma);
 
     log('info', "Starting Comments handler...");
     await postCommentsHandler(oldDb, prisma);
+    await commentVotesHandler(oldDb, prisma);
 
     log('info', "Finalizing...");
     await prisma.serverSettings.upsert({
@@ -1269,6 +1264,45 @@ async function postCommentsHandler(oldDb: SQL, prisma: PrismaClient) {
   await prisma.$executeRaw`SELECT setval(pg_get_serial_sequence('"PostComment"', 'id'), (SELECT MAX(id) FROM "PostComment"))`; // resync autoincrement()
 
   log('success', `Successfully imported ${imported} comments!`);
+}
+
+type OldCommentVote = { id: number, userId: string, commentId: number, vote: number };
+
+async function commentVotesHandler(oldDb: SQL, prisma: PrismaClient) {
+  const users = await prisma.user.findMany({ select: { id: true } });
+  const userIds = new Set(users.map((u) => u.id));
+  const comments = await prisma.postComment.findMany({ select: { id: true } }); // ids were kept from v0.14
+  const commentIds = new Set(comments.map((c) => c.id));
+
+  let lastId = 0;
+  const BATCH = 5000; // rows are tiny
+  let imported = 0;
+  let skipped = 0;
+
+  while (true) {
+    const oldVotes = await oldDb`
+      SELECT id, "userId", "commentId", vote FROM "CommentVotes"
+      WHERE id > ${lastId}
+      ORDER BY id
+      LIMIT ${BATCH}
+    ` as OldCommentVote[];
+    if (oldVotes.length === 0) break; // nothing left
+
+    // Only real likes/dislikes whose user and comment both made it over. Math.sign so a stray 2 or -5 still counts once
+    const newFormat: Prisma.CommentVoteCreateManyInput[] = oldVotes
+      .filter((v) => v.vote !== 0 && userIds.has(v.userId) && commentIds.has(v.commentId))
+      .map((v) => ({ userId: v.userId, commentId: v.commentId, value: Math.sign(v.vote) }));
+
+    const { count } = await prisma.commentVote.createMany({ data: newFormat, skipDuplicates: true });
+    imported += count;
+    skipped += oldVotes.length - count;
+    lastId = oldVotes[oldVotes.length - 1].id;
+  }
+
+  // score is always the sum of votes (same rule as Post.score)
+  await prisma.$executeRaw`UPDATE "PostComment" c SET "score" = COALESCE((SELECT SUM(value) FROM "CommentVote" cv WHERE cv."commentId" = c.id), 0)`;
+
+  log('success', `Successfully imported ${imported} comment votes!${skipped ? ` (${skipped} skipped: removed, orphaned or duplicate)` : ''}`);
 }
 
 

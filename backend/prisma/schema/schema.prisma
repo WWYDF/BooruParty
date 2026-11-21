@@ -80,6 +80,7 @@ model User {
   postCollections         PostCollection[]
 
   poolFavorites           PoolFavorite[]
+  commentVotes            CommentVote[]
   
   blacklistedTags         UserBlacklistedTag[]
   favoriteTags            UserFavoriteTag[]
@@ -234,12 +235,29 @@ model PostComment {
   authorId                String
   author                  User                      @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  votes                   CommentVote[]
+  score                   Int                       @default(0) // sum of votes, synced by API
+
   content                 String                    // raw text as written (after safety checks)
   editedAt                DateTime?                 // null = never edited (shown as "edited" in UI)
   createdAt               DateTime                  @default(now())
 
   @@index([postId, id])                             // a post's comments, paged by id
   @@index([authorId])                               // a user's comments (profile activity)
+}
+
+// Comment likes and dislikes
+model CommentVote {
+  commentId               Int
+  comment                 PostComment               @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId                  String
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value                   Int                       @db.SmallInt // can only be 1 or -1
+
+  createdAt               DateTime                  @default(now())
+
+  @@id([commentId, userId])                         // one vote per user per comment; also "votes on this comment" + cascade
+  @@index([userId])                                 // a user's votes / cascade on account delete
 }
 
 // Likes & Dislikes
