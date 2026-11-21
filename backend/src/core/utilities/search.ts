@@ -2,12 +2,14 @@ import { FileType, Safety, TagFlag } from "../../../prisma/client";
 import { normalizeTagName } from "./tags";
 
 const MAX_TERMS = 40; // every tag term becomes a subquery; keep searches bounded
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export type NumberOp = 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
 export type NumberFilter = { op: NumberOp, value: number, };
 export type Wildcard = { kind: 'startsWith' | 'endsWith' | 'contains', value: string };
 export type UserFilter = { include: string[], exclude: string[] };
 export type PoolsFilter = { include: number[], exclude: number[] };
+export type CollectionsFilter = { include: string[], exclude: string[] };
 
 export const SORT_ORDERS = ['newest', 'oldest', 'score', 'favorites', 'boosts', 'random'] as const;
 export type SortOrder = typeof SORT_ORDERS[number];
@@ -28,6 +30,8 @@ export type ParsedQuery = {
   score: NumberFilter[],
   tagcount: NumberFilter[],
   pools: PoolsFilter,
+  collections: CollectionsFilter,
+
   id: NumberFilter[],
   order: SortOrder,
   errors: string[],
@@ -80,6 +84,7 @@ export function parseSearch(input: string): ParsedQuery {
     likes: { include: [], exclude: [] },
     favorites: { include: [], exclude: [] },
     pools: { include: [], exclude: [] },
+    collections: { include: [], exclude: [] },
     score: [],
     tagcount: [],
     id: [],
@@ -119,6 +124,7 @@ export function parseSearch(input: string): ParsedQuery {
       'flag',
       'flags',
       'pool',
+      'collection',
     ].includes(key)) {
       q.errors.push(`"~" can't be used with ${key}:`);
       continue;
@@ -169,6 +175,12 @@ export function parseSearch(input: string): ParsedQuery {
         const id = /^\d{1,9}$/.test(value) ? Number(value) : 0;
         if (id < 1) { q.errors.push(`pool: needs a pool id`); continue; }
         (negate ? q.pools.exclude : q.pools.include).push(id);
+        continue;
+      }
+      case 'collection': {
+        // ids are uuids; the input is already lowercased, which matches what Prisma gens
+        if (!UUID_REGEX.test(value)) { q.errors.push(`collection: needs a collection id`); continue; }
+        (negate ? q.collections.exclude : q.collections.include).push(value);
         continue;
       }
       case 'order': // same as sort, just fall through

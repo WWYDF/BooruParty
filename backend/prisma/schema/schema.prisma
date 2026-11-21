@@ -74,6 +74,7 @@ model User {
   postVotes               PostVote[]
   postFavorites           PostFavorite[]
   postBoosts              PostBoost[]
+  postCollections         PostCollection[]
 
   poolFavorites           PoolFavorite[]
 
@@ -167,6 +168,7 @@ model Post {
   relatedTo               PostRelation[]            @relation("RelatedTo")
   featured                ServerSettings[]          // required back-relation to server settings
   pools                   PoolPost[]
+  collections             PostCollectionItem[]
   // etc.
 
   updatedAt               DateTime                  @default(now()) // editing a post manually updates this
@@ -366,4 +368,36 @@ model PoolFavorite {
   @@id([userId, poolId])                            // one fav per pool
   @@index([userId, createdAt])                      // a user's favorite pools, newest first
   @@index([poolId])                                 // cascade on pool delete
+}
+
+// -------------------------------------------------------------------------------------------------------
+//                                          COLLECTIONS
+// -------------------------------------------------------------------------------------------------------
+model PostCollection {
+  id                      String                    @id @default(uuid())
+  ownerId                 String
+  owner                   User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isPublic                Boolean                   @default(true)
+  name                    String                    @db.Citext
+  items                   PostCollectionItem[]
+  itemCount               Int                       @default(0) // API also manages this itself
+
+  updatedAt               DateTime                  @default(now()) // API manages this itself
+  createdAt               DateTime                  @default(now())
+
+  @@unique([ownerId, name])
+}
+
+model PostCollectionItem {
+  collectionId            String
+  collection              PostCollection            @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  postId                  Int
+  post                    Post                      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  addedAt                 DateTime                  @default(now())
+
+  @@id([collectionId, postId])
+  @@index([postId])
+  @@index([collectionId, addedAt])
 }

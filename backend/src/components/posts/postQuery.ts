@@ -2,6 +2,7 @@ import { NumberFilter, ParsedQuery, SortOrder, Wildcard } from '@/core/utilities
 import { Prisma, Safety, TagFlag } from '../../../prisma/client';
 import { resolveTagNames } from '@/core/utilities/tags';
 import { effectiveSafety, Viewer } from '@/core/utilities/viewer';
+import { visibleCollection } from '../collections/visibility';
 
 export type PostQuery =
   | { empty: true, unknownTags: string[] }
@@ -148,6 +149,17 @@ export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<Po
   // Pools
   for (const poolId of q.pools.include) AND.push({ pools: { some: { poolId } } });
   if (q.pools.exclude.length) AND.push({ pools: { none: { poolId: { in: q.pools.exclude } } } });
+
+  // Collections
+  if (q.collections.include.length || q.collections.exclude.length) {
+    const visible = visibleCollection(viewer);
+    for (const collectionId of q.collections.include) {
+      AND.push({ collections: { some: { collectionId, collection: visible } } });
+    }
+    if (q.collections.exclude.length) {
+      AND.push({ collections: { none: { collectionId: { in: q.collections.exclude }, collection: visible } } });
+    }
+  }
 
   // Flags
   for (const group of q.flags) AND.push({ tags: { some: { tag: { flags: { hasSome: group } } } } });

@@ -22,3 +22,12 @@ export const MAX_POOL_NAME_LENGTH = 128;
 export const MAX_POOL_DESCRIPTION_LENGTH = 2048;
 export const MAX_POOL_BATCH = 200; // posts added/removed per request
 export const MAX_POOL_POSTS = 1000; // total posts in one pool
+
+// Applications
+export const MAX_APPLICATIONS = 10;
+
+// Collections
+export const MAX_COLLECTION_NAME_LENGTH = 32;
+export const MAX_COLLECTIONS_PER_USER = 100;
+export const MAX_COLLECTION_BATCH = 250; // posts added/removed per request
+export const MAX_COLLECTION_POSTS = 5000; // total posts in one collection

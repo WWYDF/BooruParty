@@ -5,6 +5,7 @@ import { appLogger } from '@/core/plugins/logger';
 import { randomBytes } from 'node:crypto';
 import { blockApplications } from '@/core/plugins/auth';
 import { requirePermission, rolePermissionCheck } from '@/core/utilities/permissionCache';
+import { MAX_APPLICATIONS } from '@/core/objects/limits';
 
 const logger = appLogger('Applications');
 
@@ -70,7 +71,7 @@ const applications: FastifyPluginAsync = async (fastify) => {
   }, async (req, reply) => {
 
     const amt = await prisma.application.count({ where: { ownerId: req.user.sub } });
-    if (amt >= 10) { return reply.status(409).send({ error: 'Too many applications', hint: 'You can have a max of 10 applications' }) };
+    if (amt >= MAX_APPLICATIONS) { return reply.status(409).send({ error: 'Too many applications', hint: `You can have a max of ${MAX_APPLICATIONS} applications` }) };
 
     const name = (req.body as { name: string }).name.trim();
     if (!name) { return reply.status(400).send({ error: 'Bad request', hint: 'Name is required' }) };

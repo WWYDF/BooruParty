@@ -63,7 +63,19 @@ export const poolSummarySelect = {
   createdAt: true,
 } satisfies Prisma.PoolSelect;
 
+// A collection how it appears in a user's collection list
+export const collectionSummarySelect = {
+  id: true,
+  name: true,
+  isPublic: true,
+  itemCount: true,
+  ownerId: true,
+  updatedAt: true,
+  createdAt: true,
+} satisfies Prisma.PostCollectionSelect;
+
 export type UserSummary = Prisma.UserGetPayload<{ select: typeof userSummarySelect }>;
 export type TagSummary  = Prisma.TagGetPayload<{ select: typeof tagSummarySelect }>;
 export type PostSummary = Prisma.PostGetPayload<{ select: typeof postSummarySelect }>;
 export type PoolSummary = Prisma.PoolGetPayload<{ select: typeof poolSummarySelect }>;
+export type CollectionSummary = Prisma.PostCollectionGetPayload<{ select: typeof collectionSummarySelect }>;

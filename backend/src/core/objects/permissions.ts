@@ -50,6 +50,9 @@ export const PERMISSIONS = [
   "applications.manage.own", // Create, edit, etc.
   "applications.manage.others", // For Moderation
 
+  "collections.manage.own", // Create, edit, etc.
+  "collections.manage.others", // For Moderation
+
   "dashboard.view",
   "dashboard.settings",
   "dashboard.analytics",

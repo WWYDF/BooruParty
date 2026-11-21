@@ -94,6 +94,7 @@ const default_perms: PermissionName[] = [
   "profile.edit.avatar",
   "upload.type.image",
   "upload.type.animated",
+  "collections.manage.own",
 ]
 
 const vip_perms: PermissionName[] = [
@@ -122,6 +123,7 @@ const mod_perms: PermissionName[] = [
   "limit.upload.ignore",
   "tags.delete",
   "applications.manage.others",
+  "collections.manage.others",
   "dashboard.view",
   "dashboard.analytics",
   "dashboard.audit.log"

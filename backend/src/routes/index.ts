@@ -23,6 +23,7 @@ import managePools from './Pools/manage';
 import poolPosts from './Pools/posts';
 import poolInteractions from './Pools/interactions';
 import applications from './Users/apps';
+import manageCollections from './Collections/manage';
 
 const logger = appLogger('Routes');
 
@@ -54,6 +55,9 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(managePools, { prefix: '/pools' });
   fastify.register(poolPosts, { prefix: '/pools' });
   fastify.register(poolInteractions, { prefix: '/pools' });
+
+  // Collections
+  fastify.register(manageCollections, { prefix: '/collections' });
 
   // System
   fastify.register(stats, { prefix: '/system' });
