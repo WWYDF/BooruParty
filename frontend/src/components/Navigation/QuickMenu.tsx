@@ -74,7 +74,7 @@ export default function QuickMenu({ onSearch }: Props) {
   };
 
   return (
-    <div ref={rootRef} className="fixed bottom-4 right-4 z-50 md:bottom-6 md:right-6">
+    <div ref={rootRef} className="fixed bottom-8 right-4 z-50 md:bottom-12 md:right-8">
       <AnimatePresence>
         {open && (
           <motion.div

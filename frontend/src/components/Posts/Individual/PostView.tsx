@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import PostDisplay from './PostDisplay';
 import PostMetadata from './PostMetadata';
 import PostNavigator from './PostNavigator';
-import QuickMenu from '../QuickMenu';
+import QuickMenu from '../../Navigation/QuickMenu';
 import PostCommentForm from './PostCommentForm';
 import PostCommentList from './PostCommentList';
 import LoadingOverlay from '@/components/LoadingOverlay';

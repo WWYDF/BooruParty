@@ -57,8 +57,7 @@ function FlagPicker({ value, onChange }: { value: CategoryFlag[]; onChange: (v: 
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
-const inputClass =
-  "rounded-lg border border-secondary-border bg-zinc-900 px-3 py-2 text-sm text-zinc-200 focus:outline-hidden focus:ring-1 focus:ring-zinc-600";
+const inputClass = "rounded-lg border border-secondary-border bg-zinc-900 px-3 py-2 text-sm text-zinc-200 focus:outline-hidden focus:ring-1 focus:ring-zinc-600";
 
 // Native color picker + hex text box, kept in sync
 function ColorField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -273,8 +272,8 @@ export default function CategoriesPage() {
                         className={`${inputClass} min-w-0 flex-1`}
                       />
                       <ColorField value={editColor} onChange={setEditColor} />
-                      <Button type="submit" size="sm" variant="success" icon={<CheckIcon size={14} />} loading={busyId === c.id}>Save</Button>
-                      <Button size="sm" icon={<XIcon size={14} />} onClick={() => setEditingId(null)}>Cancel</Button>
+                      <Button type="submit" size="md" variant="success" icon={<CheckIcon size={14} />} loading={busyId === c.id}>Save</Button>
+                      <Button size="md" icon={<XIcon size={14} />} onClick={() => setEditingId(null)}>Cancel</Button>
                       <div className="flex w-full items-center gap-2">
                         <span className="text-xs text-subtle">Flags:</span>
                         <FlagPicker value={editFlags} onChange={setEditFlags} />

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ProhibitIcon } from "@phosphor-icons/react";
 import PostGrid from "@/components/Posts/PostGrid";
 import PostToolbar from "./PostToolbar";
-import QuickMenu from "./QuickMenu";
+import QuickMenu from "../Navigation/QuickMenu";
 import LoadingOverlay from "../LoadingOverlay";
 import { API, errorText } from "@/core/api";
 import { buildQuery } from "@/core/feedQuery";

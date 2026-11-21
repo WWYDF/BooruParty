@@ -320,7 +320,7 @@ export default function ClientPoolPage({ poolId }: { poolId: number }) {
                 onClick={() => setShowAllTags(!showAllTags)}
                 className="cursor-pointer px-2 py-0.5 text-xs text-accent hover:underline"
               >
-                {showAllTags ? "Show less" : `Show all ${pool.tags.length}`}
+                {showAllTags ? "Show Less" : `Show All (${pool.tags.length})`}
               </button>
             )}
             <Link

@@ -1,6 +1,6 @@
 {
   "name": "booruparty-backend",
-  "version": "0.15.0",
+  "version": "2.0.0",
   "main": "index.js",
   "description": "Hosts posts and avatars for a BooruParty instance.",
   "repository": "https://github.com/WWYDF/BooruParty",
