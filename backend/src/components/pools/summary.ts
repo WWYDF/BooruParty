@@ -1,4 +1,4 @@
-import { visibleConditions } from "@/components/posts/postQuery";
+import { listedConditions } from "@/components/posts/postQuery";
 import { PoolSummary, postSummarySelect } from "@/core/objects/selects/summaries"; // merge into existing import
 import { prisma } from "@/core/plugins/prisma";
 import { formatPoolSummary } from "@/core/utilities/reformatters";
@@ -11,7 +11,7 @@ export async function getPoolSummaries(pools: PoolSummary[], viewer: Viewer) {
 
   // Visible posts of these pools, in pool order (ids + safety only)
   const items = await prisma.poolPost.findMany({
-    where: { poolId: { in: pools.map((p) => p.id) }, post: { AND: visibleConditions(viewer) } },
+    where: { poolId: { in: pools.map((p) => p.id) }, post: { AND: listedConditions(viewer) } },
     orderBy: [{ poolId: 'asc' }, { index: 'asc' }],
     select: { poolId: true, postId: true, post: { select: { safety: true } } },
   });

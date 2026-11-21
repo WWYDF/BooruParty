@@ -1,17 +1,18 @@
 import { NumberFilter, ParsedQuery, SortOrder, Wildcard } from '@/core/utilities/search';
-import { Prisma, Safety, TagFlag } from '../../../prisma/client';
+import { Prisma, Safety } from '../../../prisma/client';
 import { resolveTagNames } from '@/core/utilities/tags';
 import { effectiveSafety, Viewer } from '@/core/utilities/viewer';
 import { visibleCollection } from '../collections/visibility';
 
 export type PostQuery =
-  | { empty: true, unknownTags: string[] }
+  | { empty: true, unknownTags: string[], blacklistedTags: string[] }
   | {
       empty: false,
       where: Prisma.PostWhereInput,
       orderBy: Prisma.PostOrderByWithRelationInput[],
       random: boolean,
       unknownTags: string[],
+      blacklistedTags: string[],
     };
 
 const PRISMA_OP = { eq: 'equals', gt: 'gt', gte: 'gte', lt: 'lt', lte: 'lte' } as const;
@@ -78,6 +79,16 @@ export function reverseOrder(orderBy: Prisma.PostOrderByWithRelationInput[]): Pr
   );
 }
 
+// visibleConditions + the viewer's blacklist, for LISTS of posts (feed, pools, related, covers, embeds...).
+// Never for "may they see/edit this post?" checks: a blacklisted post still opens from a direct link.
+export function listedConditions(viewer: Viewer, safety?: Safety[]): Prisma.PostWhereInput[] {
+  const conditions = visibleConditions(viewer, safety); // undefined -> its default safety, same as before
+  if (viewer.blacklist.length) {
+    conditions.push({ tags: { none: { tagId: { in: viewer.blacklist } } } });
+  }
+  return conditions;
+}
+
 
 // Conditions for "posts this viewer may see" (safety + private accounts)
 // Safety defaults to the viewer's default/cap
@@ -117,15 +128,22 @@ export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<Po
   ]);
   const unknownTags = [...inc.missing, ...any.missing];
 
+  // Tags the search asked for that the viewer has blacklisted
+  const blocked = new Set(viewer.blacklist);
+  const blacklistedTags = [...inc.tags, ...any.tags].filter((t) => blocked.has(t.id)).map((t) => t.name);
+
+  // A required tag that's blacklisted can never match: skip query
+  if (inc.tags.some((t) => blocked.has(t.id))) return { empty: true, unknownTags, blacklistedTags };
+
   // A required tag that doesn't exist matches nothing. Same if every ~tag is unknown.
-  if (inc.missing.length) return { empty: true, unknownTags };
-  if (q.anyOf.length && any.tags.length === 0) return { empty: true, unknownTags };
+  if (inc.missing.length) return { empty: true, unknownTags, blacklistedTags };
+  if (q.anyOf.length && any.tags.length === 0) return { empty: true, unknownTags, blacklistedTags };
 
   const safety = effectiveSafety(viewer, q.safety);
-  if (safety.length === 0) return { empty: true, unknownTags };
-  if (q.type && q.type.length === 0) return { empty: true, unknownTags };
+  if (safety.length === 0) return { empty: true, unknownTags, blacklistedTags };
+  if (q.type && q.type.length === 0) return { empty: true, unknownTags, blacklistedTags };
 
-  const AND: Prisma.PostWhereInput[] = visibleConditions(viewer, safety);
+  const AND: Prisma.PostWhereInput[] = listedConditions(viewer, safety); // feed = a list, so the blacklist applies
 
 
   // Tags
@@ -177,5 +195,5 @@ export async function buildPostQuery(q: ParsedQuery, viewer: Viewer): Promise<Po
     : field ? [{ [field]: 'desc' }, { id: 'desc' }]
     : [{ id: 'desc' }]; // newest (and the base order for random)
 
-  return { empty: false, where: { AND }, orderBy, random: q.order === 'random', unknownTags };
+  return { empty: false, where: { AND }, orderBy, random: q.order === 'random', unknownTags, blacklistedTags };
 }

@@ -1,7 +1,7 @@
 import { CollectionSummary, collectionSummarySelect, postSummarySelect } from "@/core/objects/selects/summaries";
 import { Prisma } from "../../../prisma/client";
 import { getBrowsingViewer, Viewer } from "@/core/utilities/viewer";
-import { visibleConditions } from "@/components/posts/postQuery";
+import { listedConditions } from "@/components/posts/postQuery";
 import { prisma } from "@/core/plugins/prisma";
 import { formatPostSummary } from "@/core/utilities/reformatters";
 import { FastifyPluginAsync } from "fastify";
@@ -22,7 +22,7 @@ const COLLECTION_ORDER: Record<CollectionSort, Prisma.PostCollectionOrderByWithR
 
 // Cover is the most recently added post THIS viewer can see. One indexed lookup per collection
 async function withCovers(collections: CollectionSummary[], viewer: Viewer) {
-  const visible = visibleConditions(viewer);
+  const visible = listedConditions(viewer);
   const covers = await Promise.all(collections.map((c) =>
     prisma.postCollectionItem.findFirst({
       where: { collectionId: c.id, post: { AND: visible } },

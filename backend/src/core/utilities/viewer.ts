@@ -1,5 +1,5 @@
 import { FastifyRequest } from "fastify"
-import { Prisma, Safety } from "../../../prisma/client"
+import { Safety } from "../../../prisma/client"
 import { prisma } from "../plugins/prisma"
 import { rolePermissionCheck } from "./permissionCache";
 import { getServerSettings } from "./settingsCache";
@@ -14,6 +14,7 @@ export type Viewer = {
   safety: Safety[], // ratings shown when the search doesn't specify any
   safetyIsCap: boolean, // guests: search may arrow this, but never expand it
   canSeePrivate: boolean, // only admins have this for moderation purposes
+  blacklist: number[], // tag ids: posts with any of these are left out of lists (except direct links)
 }
 
 type VisibilityFields = { safety: Safety, uploader: { id: string, private: boolean } };
@@ -31,13 +32,20 @@ export async function getViewer(req: FastifyRequest): Promise<Viewer> {
       safety: settings?.guestSafety ?? [Safety.SAFE],
       safetyIsCap: true,
       canSeePrivate: false,
+      blacklist: [],
     };
   };
 
-  const prefs = await prisma.preferences.findUnique({
-    where: { userId: req.user.sub },
-    select: { defaultSafety: true }
-  });
+  const [prefs, blacklisted] = await Promise.all([
+    await prisma.preferences.findUnique({
+      where: { userId: req.user.sub },
+      select: { defaultSafety: true }
+    }),
+    await prisma.userBlacklistedTag.findMany({
+      where: { userId: req.user.sub },
+      select: { tagId: true },
+    }),
+  ]);
 
   return {
     userId: req.user.sub,
@@ -46,6 +54,7 @@ export async function getViewer(req: FastifyRequest): Promise<Viewer> {
     safety: prefs?.defaultSafety ?? [Safety.SAFE],
     safetyIsCap: false,
     canSeePrivate: rolePermissionCheck(req.user.roleId, 'administrator'),
+    blacklist: blacklisted.map((b) => b.tagId),
   };
 }
 

@@ -27,6 +27,8 @@ const settings: FastifyPluginAsync = async (fastify) => {
             items: { type: 'string', enum: Object.values(Safety) },
           },
           convertShortVids: { type: 'boolean' },
+          maxFavoriteTags: { type: 'integer', minimum: 0, maximum: 100 },
+          maxBlacklistTags: { type: 'integer', minimum: 0, maximum: 1000 },
         },
       },
     },
@@ -35,6 +37,8 @@ const settings: FastifyPluginAsync = async (fastify) => {
       guestAccess?: boolean,
       guestSafety?: Safety[],
       convertShortVids?: boolean,
+      maxFavoriteTags?: number,
+      maxBlacklistTags?: number,
     };
 
     await prisma.serverSettings.update({ where: { id: 1 }, data: body });

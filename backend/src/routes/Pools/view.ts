@@ -1,5 +1,5 @@
 import { getPoolTags, getPrimaryArtists, poolSafety } from "@/components/pools/aggregate"
-import { visibleConditions } from "@/components/posts/postQuery"
+import { listedConditions } from "@/components/posts/postQuery"
 import { MAX_INT } from "@/core/objects/limits"
 import { poolSummarySelect, postSummarySelect } from "@/core/objects/selects/summaries"
 import { prisma } from "@/core/plugins/prisma"
@@ -58,7 +58,7 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
     // Only posts this viewer is allowed to see, same rules as the feed
     const items = pool
       ? await prisma.poolPost.findMany({
-          where: { poolId: id, post: { AND: visibleConditions(viewer) } },
+          where: { poolId: id, post: { AND: listedConditions(viewer) } },
           orderBy: { index: 'asc' },
           select: { post: { select: postSummarySelect } },
         })
@@ -113,7 +113,7 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
     };
     const viewer = await getBrowsingViewer(req);
     const canManage = viewer.roleId !== null && rolePermissionCheck(viewer.roleId, 'pool.manage');
-    const visiblePost: Prisma.PostWhereInput = { AND: visibleConditions(viewer) };
+    const visiblePost: Prisma.PostWhereInput = { AND: listedConditions(viewer) };
     const text = search.trim();
 
     // Every word in the search bar, tried as a tag (aliases resolve to the real tag like they are supposed to)
@@ -202,7 +202,7 @@ const viewPools: FastifyPluginAsync = async (fastify) => {
     });
     assertPostVisible(viewer, item?.post ?? null);
 
-    const visiblePost = { AND: visibleConditions(viewer) };
+    const visiblePost = { AND: listedConditions(viewer) };
     const [previous, next, before, total] = await Promise.all([
       prisma.poolPost.findFirst({
         where: { poolId: id, index: { lt: item!.index }, post: visiblePost },

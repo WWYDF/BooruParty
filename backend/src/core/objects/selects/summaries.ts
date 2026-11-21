@@ -33,6 +33,12 @@ export const tagSummarySelect = {
   postCount: true,
 } satisfies Prisma.TagSelect;
 
+// A tag chip that renders on its own (no separate /tag-categories fetch) (favorited & blacklisted tags)
+export const tagChipSelect = {
+  ...tagSummarySelect,
+  category: { select: { name: true, color: true } },
+}
+
 // A post as it appears in a feed grid: enough to render a thumbnail card
 export const postSummarySelect = {
   id: true,
@@ -79,3 +85,4 @@ export type TagSummary  = Prisma.TagGetPayload<{ select: typeof tagSummarySelect
 export type PostSummary = Prisma.PostGetPayload<{ select: typeof postSummarySelect }>;
 export type PoolSummary = Prisma.PoolGetPayload<{ select: typeof poolSummarySelect }>;
 export type CollectionSummary = Prisma.PostCollectionGetPayload<{ select: typeof collectionSummarySelect }>;
+export type TagChip = Prisma.TagGetPayload<{ select: typeof tagChipSelect }>;

@@ -4,11 +4,13 @@ import { userProfileSelect } from '@/core/objects/selects/users';
 import { Prisma } from '../../../prisma/client';
 import { userSummarySelect } from '@/core/objects/selects/summaries';
 import { formatUserSummary } from '@/core/utilities/reformatters';
+import { getViewer } from '@/core/utilities/viewer';
 
 const publicUsers: FastifyPluginAsync = async (fastify) => {
 
   // View a specific user's basic profile info
   fastify.get('/:username', {
+    onRequest: [fastify.identify],
     schema: {
       params: {
         type: 'object',
@@ -26,7 +28,15 @@ const publicUsers: FastifyPluginAsync = async (fastify) => {
 
     if (!user) { return reply.status(404).send({ error: 'Not Found', hint: "No user with that username" }) };
 
-    return reply.status(200).send(formatUserSummary(user));
+    // Private accounts: Favorite tags are also private
+    const viewer = await getViewer(req);
+    const canSeeActivity = !user.private || viewer.userId === user.id || viewer.canSeePrivate;
+
+    const { favoriteTags, ...profile } = user;
+    return reply.status(200).send({
+      ...formatUserSummary(user),
+      favoriteTags: canSeeActivity ? favoriteTags.map((f) => f.tag) : [],
+    });
   });
 
   // View a page of users

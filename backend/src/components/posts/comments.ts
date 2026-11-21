@@ -5,7 +5,7 @@ import { MAX_COMMENT_EMBEDS, MAX_INT } from "@/core/objects/limits";
 import { prisma } from "@/core/plugins/prisma";
 import { HttpError } from "@/core/utilities/errors";
 import { rolePermissionCheck } from "@/core/utilities/permissionCache";
-import { visibleConditions } from "./postQuery";
+import { listedConditions } from "./postQuery";
 import { postSummarySelect } from "@/core/objects/selects/summaries";
 import { formatPostSummary } from "@/core/utilities/reformatters";
 import { Viewer } from "@/core/utilities/viewer";
@@ -79,7 +79,7 @@ export async function resolveEmbeddedPosts(postIds: number[], viewer: Viewer) {
   if (!ids.length) return {};
 
   const posts = await prisma.post.findMany({
-    where: { AND: [{ id: { in: ids } }, ...visibleConditions(viewer)] },
+    where: { AND: [{ id: { in: ids } }, ...listedConditions(viewer)] },
     select: postSummarySelect,
   });
   return Object.fromEntries(posts.map((p) => [p.id, formatPostSummary(p)]));

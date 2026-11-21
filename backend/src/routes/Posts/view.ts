@@ -1,6 +1,6 @@
 import { getPoolSummaries } from "@/components/pools/summary";
 import { getViewerStates } from "@/components/posts/interactions";
-import { buildPostQuery, cursorCondition, encodeCursor, reverseOrder, visibleConditions } from "@/components/posts/postQuery";
+import { buildPostQuery, cursorCondition, encodeCursor, listedConditions, reverseOrder } from "@/components/posts/postQuery";
 import { postDetailSelect } from "@/core/objects/selects/posts";
 import { poolSummarySelect, postSummarySelect } from "@/core/objects/selects/summaries";
 import { prisma } from "@/core/plugins/prisma";
@@ -43,7 +43,7 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
     // Same visibility rules as the feed (Hidden posts are left out)
     const relatedRows = relatedIds.length
       ? await prisma.post.findMany({
-          where: { AND: [{ id: { in: relatedIds } }, ...visibleConditions(viewer)] },
+          where: { AND: [{ id: { in: relatedIds } }, ...listedConditions(viewer)] },
           select: postSummarySelect,
         })
       : [];
@@ -108,7 +108,7 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
 
     const query = await buildPostQuery(parsed, viewer);
     if (query.empty) {
-      return reply.status(200).send({ posts: [], nextCursor: null, total: 0, unknownTags: query.unknownTags });
+      return reply.status(200).send({ posts: [], nextCursor: null, total: 0, unknownTags: query.unknownTags, blacklistedTags: query.blacklistedTags });
     }
 
     // Random: sample from every match, no pagination ("next page" = another random batch)
@@ -130,7 +130,7 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
         .filter(Boolean)
         .map((p) => ({ ...formatPostSummary(p!), viewer: states.get(p!.id) ?? null }));
 
-      return reply.status(200).send({ posts, nextCursor: null, total: ids.length, unknownTags: query.unknownTags });
+      return reply.status(200).send({ posts, nextCursor: null, total: ids.length, unknownTags: query.unknownTags, blacklistedTags: query.blacklistedTags });
     }
 
     // Normal: keyset pagination
@@ -158,7 +158,7 @@ const viewPosts: FastifyPluginAsync = async (fastify) => {
     return reply.status(200).send({
       nextCursor: hasMore ? encodeCursor(parsed.order, page[page.length -1]) : null,
       total, // first page only, null afterwards
-      unknownTags: query.unknownTags,
+      unknownTags: query.unknownTags, blacklistedTags: query.blacklistedTags,
       posts: page.map((p) => ({ ...formatPostSummary(p), viewer: states.get(p.id) ?? null })),
     });
   });

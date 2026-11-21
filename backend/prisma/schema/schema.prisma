@@ -28,6 +28,9 @@ model ServerSettings {
 
   guestAccess             Boolean                   @default(false)
   guestSafety             Safety[]                  @default([SAFE])
+
+  maxFavoriteTags         Int                       @default(25)
+  maxBlacklistTags        Int                       @default(100)
 }
 
 // Works very similarly to ServerSettings, just less "core"
@@ -77,6 +80,9 @@ model User {
   postCollections         PostCollection[]
 
   poolFavorites           PoolFavorite[]
+  
+  blacklistedTags         UserBlacklistedTag[]
+  favoriteTags            UserFavoriteTag[]
 
   // Dates
   lastSeen                String?                   // pair with updatedAt
@@ -108,8 +114,6 @@ model Preferences {
 
   blurUnsafeEmbeds        Boolean                   @default(true)
   defaultSafety           Safety[]                  @default([SAFE])
-  // blacklistedTags
-  // favoriteTags
   profileBackground       Int?                      // Post ID
 }
 
@@ -125,6 +129,38 @@ model Application {
   lastUsedAt              DateTime?
   createdAt               DateTime                  @default(now())
 }
+
+// -------------------------------------------------------------------------------------------------------
+//                                       USER TAG LISTS
+// -------------------------------------------------------------------------------------------------------
+
+// Shown on the user's profile (max = ServerSettings.maxFavoriteTags)
+model UserFavoriteTag {
+  userId                  String
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId                   Int
+  tag                     Tag                       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt               DateTime                  @default(now()) // profile shows them in the order added
+
+  @@id([userId, tagId])                             // also serves "this user's favorites"
+  @@index([tagId])                                  // cascade on tag delete + merge
+}
+
+// Posts with any of these tags are left out of every list this user sees (max = ServerSettings.maxBlacklistTags)
+model UserBlacklistedTag {
+  userId                  String
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId                   Int
+  tag                     Tag                       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt               DateTime                  @default(now())
+
+  @@id([userId, tagId])
+  @@index([tagId])
+}
+
+
 
 // -------------------------------------------------------------------------------------------------------
 //                                          POSTS
@@ -276,12 +312,14 @@ model Tag {
   flags                   TagFlag[]                 @default([])
 
   posts                   PostTag[]
+  postCount               Int                       @default(0)
   implications            TagImplication[]          @relation("TagImplies")     // tags this tag implies
   impliedBy               TagImplication[]          @relation("TagImpliedBy")   // tags that imply this tag
   suggestions             TagSuggestion[]           @relation("TagSuggests")
   suggestedBy             TagSuggestion[]           @relation("TagSuggestedBy")
 
-  postCount               Int                       @default(0)
+  favoritedBy             UserFavoriteTag[]
+  blacklistedBy           UserBlacklistedTag[]  
 
   updatedAt               DateTime                  @updatedAt
   createdAt               DateTime                  @default(now())

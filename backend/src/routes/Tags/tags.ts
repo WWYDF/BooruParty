@@ -587,6 +587,19 @@ const tags: FastifyPluginAsync = async (fastify) => {
           ON CONFLICT DO NOTHING
         `;
 
+        // 3b. Users' favorite + blacklisted tags: whoever had source now has target
+        //     (anyone who had both just ends up with one entry; createdAt carries over)
+        await tx.$executeRaw`
+          INSERT INTO "UserFavoriteTag" ("userId", "tagId", "createdAt")
+          SELECT "userId", ${target.id}, "createdAt" FROM "UserFavoriteTag" WHERE "tagId" = ${source.id}
+          ON CONFLICT DO NOTHING
+        `;
+        await tx.$executeRaw`
+          INSERT INTO "UserBlacklistedTag" ("userId", "tagId", "createdAt")
+          SELECT "userId", ${target.id}, "createdAt" FROM "UserBlacklistedTag" WHERE "tagId" = ${source.id}
+          ON CONFLICT DO NOTHING
+        `;
+
         // 4. Names: hand them to the target before the cascade would delete them
         if (body.keepNames) {
           await tx.tagName.updateMany({ where: { tagId: source.id }, data: { tagId: target.id } });

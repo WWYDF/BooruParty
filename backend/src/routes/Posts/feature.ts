@@ -4,7 +4,7 @@ import { FastifyPluginAsync } from "fastify";
 import { Prisma } from "../../../prisma/client";
 import { getServerSettings, loadServerSettings } from "@/core/utilities/settingsCache";
 import { getViewer } from "@/core/utilities/viewer";
-import { visibleConditions } from "@/components/posts/postQuery";
+import { listedConditions } from "@/components/posts/postQuery";
 import { postSummarySelect } from "@/core/objects/selects/summaries";
 import { formatPostSummary } from "@/core/utilities/reformatters";
 
@@ -32,7 +32,7 @@ const featurePosts: FastifyPluginAsync = async (fastify) => {
 
     // Same visibility rules as the feed (A guest never gets an explicit or private featured post)
     const post = await prisma.post.findFirst({
-      where: { AND: [{ id: featuredPostId }, ...visibleConditions(viewer)] },
+      where: { AND: [{ id: featuredPostId }, ...listedConditions(viewer)] },
       select: postSummarySelect,
     });
 
