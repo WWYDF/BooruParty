@@ -50,9 +50,8 @@ export default function ProfileHeader({ profile, isOwner, canModerate, onLogout,
         </div>
 
         {profile.about && (
-          <p className="mb-2 mt-1 inline-block max-w-full break-words rounded bg-zinc-800 px-2 text-sm italic text-subtle">{profile.about}</p>
+          <p className="mb-2 mt-1 inline-block max-w-full wrap-break-word rounded bg-zinc-800 px-2 text-sm italic text-subtle">{profile.about}</p>
         )}
-
         {/* Dates arrive as JSON strings */}
         <div className="text-sm text-subtle">Last seen: {formatRelativeTime(String(profile.updatedAt))}</div>
         <div className="text-xs text-subtle">Member Since: {new Date(String(profile.createdAt)).toLocaleDateString()}</div>

@@ -1,5 +1,5 @@
 import { Safety } from "./posts"
-import { Tag } from "./tags"
+import { ColoredTag, Tag } from "./tags"
 
 // Contains sensitive information, be careful!
 export type UserSelf = {
@@ -148,6 +148,7 @@ export type UserSimpleSummary = {
 // GET /api/users/:username
 export type UserProfile = UserSimpleSummary & {
   preferences: { profileBackground: number | null } | null,
+  favoriteTags: ColoredTag[], // by category order, then name; [] for private accounts (unless it's you or an admin)
 }
 
 // Private Stuff

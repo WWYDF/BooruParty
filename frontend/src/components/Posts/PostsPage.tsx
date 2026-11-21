@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ProhibitIcon } from "@phosphor-icons/react";
 import PostGrid from "@/components/Posts/PostGrid";
 import PostToolbar from "./PostToolbar";
 import QuickMenu from "./QuickMenu";
@@ -69,6 +71,7 @@ export default function ClientPostsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FeedError | null>(null);
+  const [blacklistedHits, setBlacklistedHits] = useState<string[]>([]); // searched tags that are on the viewer's blacklist
   const requestId = useRef(0);
   const perPage = useRef(DEFAULT_PER_PAGE);
   const sentinel = useRef<HTMLDivElement>(null);
@@ -102,6 +105,7 @@ export default function ClientPostsPage() {
       }
 
       setError(null);
+      if (!after) setBlacklistedHits(data.blacklistedTags ?? []); // same for every page of a search; set it once
       setPosts((prev) => (after ? [...prev, ...data.posts] : data.posts));
       setCursor(data.nextCursor);
       setHasMore(data.nextCursor !== null);
@@ -236,6 +240,17 @@ export default function ClientPostsPage() {
         setSelectedPostIds={setSelectedPostIds}
         setModalOpen={setModalOpen}
       />
+
+      {/* Why a search is empty (or thinner than expected): it asked for tags the viewer hides */}
+      {!error && blacklistedHits.length > 0 && (
+        <p className="mx-auto mb-4 flex max-w-2xl flex-wrap items-center justify-center gap-x-1.5 rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-2 text-center text-sm text-red-300">
+          <ProhibitIcon size={16} className="shrink-0" />
+          <span>
+            {blacklistedHits.join(", ")} {blacklistedHits.length === 1 ? "is" : "are"} on your blacklist, so matching posts are hidden.
+          </span>
+          <Link href="/account" className="cursor-pointer text-accent underline-offset-2 hover:underline">Edit blacklist</Link>
+        </p>
+      )}
 
       {error ? (
         <FeedMessage error={error} />

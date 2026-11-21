@@ -95,5 +95,21 @@ export type TagGroup = {
 // GET /api/tag-categories item (only the fields the frontend uses; the list also carries isDefault)
 export type CategoryInfo = { id: number; name: string; color: string; index: number };
 
+// The API's tagChipSelect: a tag that renders on its own (favorites, blacklist), no category lookup needed
+export type ColoredTag = {
+  id: number;
+  name: string;
+  categoryId: number;
+  postCount: number;
+  category: { name: string; color: string };
+};
+
+// GET /api/me/tags, and what both PUTs return. Sorted by category order, then name.
+export type UserTagLists = {
+  favorites: ColoredTag[];
+  blacklist: ColoredTag[];
+  limits: { favorites: number; blacklist: number }; // ServerSettings.maxFavoriteTags / maxBlacklistTags
+};
+
 // Marks a category as a well-known kind, whatever its name ("Artists" / "Creators" are both CREATOR)
 export type CategoryFlag = 'CREATOR' | 'SUBJECT';

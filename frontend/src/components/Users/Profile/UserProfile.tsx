@@ -10,6 +10,7 @@ import { hexToRgb } from "@/core/styles/roles";
 import { UserProfile as Profile } from "@/core/types/users";
 import ProfileBackground from "./ProfileBackground";
 import ProfileCollections from "./ProfileCollections";
+import ProfileFavoriteTags from "./ProfileFavoriteTags";
 import ProfileComingSoon from "./ProfileComingSoon";
 import ProfileHeader from "./ProfileHeader";
 import ProfileRecentPosts from "./ProfileRecentPosts";
@@ -91,6 +92,8 @@ export default function UserProfile({ username }: { username: string }) {
           onLogout={handleLogout}
           onAvatarReset={() => setProfile({ ...profile, avatar: null })}
         />
+
+        <ProfileFavoriteTags tags={profile.favoriteTags} isOwner={isOwner} />
 
         <ProfileRecentPosts username={profile.username} />
 

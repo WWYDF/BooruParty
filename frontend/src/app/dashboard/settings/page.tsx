@@ -1,8 +1,7 @@
 'use client';
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { EyeIcon, FileVideoIcon, FloppyDiskIcon, ShieldCheckIcon, ShieldIcon, ShieldWarningIcon, StarIcon } from "@phosphor-icons/react";
+import { EyeIcon, FileVideoIcon, FloppyDiskIcon, ShieldCheckIcon, ShieldIcon, ShieldWarningIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import { FullCheckbox, FullCheckboxGroup } from "@/components/UI/FullCheckbox";
 import { useToast } from "@/components/UI/Toast";
@@ -15,7 +14,15 @@ type Settings = {
   guestSafety: Safety[],
   featuredPostId: number | null,
   convertShortVids: boolean,
+  maxFavoriteTags: number,
+  maxBlacklistTags: number,
 };
+
+// Same bounds as the API's schema (favorites also match the profile's 100-tag ceiling)
+const TAG_LIMITS = {
+  maxFavoriteTags: { min: 0, max: 100 },
+  maxBlacklistTags: { min: 0, max: 1000 },
+} as const;
 
 const SAFETY_OPTIONS: { value: Safety; label: string; description: string; icon: React.ReactNode }[] = [
   { value: "SAFE", label: "Safe", description: "Fine for anyone.", icon: <ShieldCheckIcon size={18} /> },
@@ -24,6 +31,7 @@ const SAFETY_OPTIONS: { value: Safety; label: string; description: string; icon:
 ];
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
+const inputClass = "w-28 rounded-lg border border-secondary-border bg-zinc-900 px-3 py-2 text-sm text-zinc-200 tabular-nums focus:outline-hidden focus:ring-1 focus:ring-zinc-600 disabled:opacity-50";
 
 function Card({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
@@ -35,12 +43,41 @@ function Card({ title, description, children }: { title: string; description?: s
   );
 }
 
+// A labelled whole-number box. The text is kept as typed; it's checked on save.
+function NumberField({ label, hint, value, onChange, disabled }: {
+  label: string;
+  hint: string;
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="flex flex-wrap items-center justify-between gap-3">
+      <span>
+        <span className="block text-sm text-zinc-200">{label}</span>
+        <span className="block text-xs text-subtle">{hint}</span>
+      </span>
+      <input
+        type="number"
+        inputMode="numeric"
+        step={1}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={inputClass}
+      />
+    </label>
+  );
+}
+
 export default function AdminSettingsPage() {
   const toast = useToast();
   const [saved, setSaved] = useState<Settings | null>(null); // what the server has
   const [guestAccess, setGuestAccess] = useState(false);
   const [guestSafety, setGuestSafety] = useState<Safety[]>([]);
-  const [convertShortVids, setconvertShortVids] = useState(false);
+  const [convertShortVids, setConvertShortVids] = useState(false);
+  const [maxFavoriteTags, setMaxFavoriteTags] = useState("");
+  const [maxBlacklistTags, setMaxBlacklistTags] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +85,9 @@ export default function AdminSettingsPage() {
     setSaved(s);
     setGuestAccess(s.guestAccess);
     setGuestSafety(s.guestSafety);
-    setconvertShortVids(s.convertShortVids);
+    setConvertShortVids(s.convertShortVids);
+    setMaxFavoriteTags(String(s.maxFavoriteTags));
+    setMaxBlacklistTags(String(s.maxBlacklistTags));
   };
 
   useEffect(() => {
@@ -60,19 +99,41 @@ export default function AdminSettingsPage() {
   if (error) return <p className="text-sm text-red-400">{error}</p>;
   if (!saved) return <p className="text-sm text-zinc-600">Loading...</p>;
 
-  const dirty = guestAccess !== saved.guestAccess || !sameSet(guestSafety, saved.guestSafety);
+  const favoritesNum = Number(maxFavoriteTags);
+  const blacklistNum = Number(maxBlacklistTags);
+
+  const dirty =
+    guestAccess !== saved.guestAccess ||
+    !sameSet(guestSafety, saved.guestSafety) ||
+    convertShortVids !== saved.convertShortVids ||
+    favoritesNum !== saved.maxFavoriteTags ||
+    blacklistNum !== saved.maxBlacklistTags;
+
+  // "Whole number within the API's bounds", or an error message
+  const checkLimit = (key: keyof typeof TAG_LIMITS, text: string, label: string): string | null => {
+    const n = Number(text);
+    const { min, max } = TAG_LIMITS[key];
+    if (text.trim() === "" || !Number.isInteger(n) || n < min || n > max) return `${label} must be a whole number from ${min} to ${max}.`;
+    return null;
+  };
 
   const handleSave = async () => {
     if (guestSafety.length === 0) {
       toast("Pick at least one safety level (turn off guest access to hide everything).", "error");
       return;
     }
+    const limitError =
+      checkLimit("maxFavoriteTags", maxFavoriteTags, "Favorite tags") ??
+      checkLimit("maxBlacklistTags", maxBlacklistTags, "Blacklisted tags");
+    if (limitError) return toast(limitError, "error");
 
     // PATCH semantics: only what changed
     const body: Partial<Settings> = {};
     if (guestAccess !== saved.guestAccess) body.guestAccess = guestAccess;
     if (!sameSet(guestSafety, saved.guestSafety)) body.guestSafety = guestSafety;
     if (convertShortVids !== saved.convertShortVids) body.convertShortVids = convertShortVids;
+    if (favoritesNum !== saved.maxFavoriteTags) body.maxFavoriteTags = favoritesNum;
+    if (blacklistNum !== saved.maxBlacklistTags) body.maxBlacklistTags = blacklistNum;
 
     setSaving(true);
     try {
@@ -119,10 +180,29 @@ export default function AdminSettingsPage() {
         <div className="space-y-4">
           <FullCheckbox
             checked={convertShortVids}
-            onChange={setconvertShortVids}
+            onChange={setConvertShortVids}
             label="Convert short, muted videos to animations"
             description="Off: keep them as videos."
             icon={<FileVideoIcon size={18} />}
+            disabled={saving}
+          />
+        </div>
+      </Card>
+
+      <Card title="Tags" description="Per-user list sizes. Lowering a limit never deletes anything; people over it just can't save until they're under it.">
+        <div className="space-y-4">
+          <NumberField
+            label="Favorite tags per user"
+            hint="Shown on their profile. 0 turns favorites off (max 100)."
+            value={maxFavoriteTags}
+            onChange={setMaxFavoriteTags}
+            disabled={saving}
+          />
+          <NumberField
+            label="Blacklisted tags per user"
+            hint="Hidden from every list they see. 0 turns the blacklist off (max 1000)."
+            value={maxBlacklistTags}
+            onChange={setMaxBlacklistTags}
             disabled={saving}
           />
         </div>
