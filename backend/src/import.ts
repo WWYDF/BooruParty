@@ -26,6 +26,9 @@ const old_ver = 'v0.14.2';
 const c = { debug: chalk.gray, info: chalk.cyan, success: chalk.green, warn: chalk.yellow, error: chalk.red.bold, critical: chalk.bgRed.whiteBright };
 export const log = (level: keyof typeof c, ...args: unknown[]) => console.log(c[level](`[${level.toUpperCase()}]`), ...args);
 
+const DATA_DIR = path.join(process.cwd(), 'data');
+const OLD_DATA_DIR = path.join(process.cwd(), 'data.old');
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                       Inquiries
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -452,6 +455,24 @@ async function main() {
     else { ready = await confirm({ message: 'Continue?', default: false }); }
     if (!ready) { log('info', "Cancelled."); process.exit(0); };
 
+
+
+    // Prepare data folder (rename current to data.old and make a new data folder)
+    const DIRECTORIES = [
+      "data/uploads/video", "data/uploads/image", "data/uploads/animated",
+      "data/thumbnails",
+      "data/previews/image", "data/previews/animated", "data/previews/video",
+      "data/avatars",
+    ]
+
+    if (!fs.existsSync(DATA_DIR)) throw new Error("Data Directory doesn't exist! Are you sure you need to import anything?");
+    fs.renameSync(DATA_DIR, OLD_DATA_DIR);
+    fs.mkdirSync(DATA_DIR);
+    for (const dir of DIRECTORIES) {
+      fs.mkdirSync(path.join(process.cwd(), dir), { recursive: true });
+    }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // BEGIN: Call import handlers
 
     // USERS
@@ -461,14 +482,9 @@ async function main() {
     log('info', "Starting Users handler...");
     await usersHandler(oldDb, prisma);
 
-    log('info', "Starting User Preferences handler...");
-    await userPrefsHandler(oldDb, prisma); // not actually setup yet lol
-
     // TAGS
-    log('info', "Starting Tag Categories handler...");
-    await tagCatHandler(oldDb, prisma);
-
     log('info', "Starting Tags handler...");
+    await tagCatHandler(oldDb, prisma);
     await tagHandler(oldDb, prisma);
 
     log('info', "Starting Tag Alias handler...");
@@ -499,6 +515,10 @@ async function main() {
     log('info', "Starting Comments handler...");
     await postCommentsHandler(oldDb, prisma);
     await commentVotesHandler(oldDb, prisma);
+
+    // USER PREFERENCES (must be after tags/posts)
+    log('info', "Starting User Preferences handler...");
+    await userPrefsHandler(oldDb, prisma);
 
     // COLLECTIONS (will skip if pre-0.14)
     log('info', "Starting Collections handler...");
@@ -637,19 +657,29 @@ async function usersHandler(oldDb: SQL, prisma: PrismaClient) {
 }
 
 function userAvatar(old: OldUser): string | null {
-  if (!old.avatar) { return null }; // bail instantly if they don't even have one lol
-  try {
-    const avatarKey = crypto.randomUUID();
-    fs.copyFileSync(old.avatar, path.join(process.cwd(), 'data', 'avatars', `${avatarKey}.webp`));
-    return avatarKey;
-  } catch (e) {
-    log('error', `Could not apply ${old.username}'s avatar! (It will be reset)`)
+  if (!old.avatar) return null; // bail instantly if they don't even have one lol
+
+  // Stored as "/data/avatars/<file>"
+  const relative = old.avatar.replace(/^.*?\/data\//, '');
+  const candidates = [
+    path.join(OLD_DATA_DIR, relative),
+    path.join(OLD_DATA_DIR, 'avatars', path.basename(old.avatar)), // in case it was just the file name
+  ];
+  const source = candidates.find((p) => fs.existsSync(p));
+
+  if (!source) {
+    log('error', `Could not find ${old.username}'s avatar (${old.avatar}). It will be reset.`);
     return null;
   }
-}
 
-async function userPrefsHandler(oldDb: SQL, prisma: PrismaClient) {
-
+  try {
+    const avatarKey = crypto.randomUUID();
+    fs.copyFileSync(source, path.join(DATA_DIR, 'avatars', `${avatarKey}.webp`));
+    return avatarKey;
+  } catch (e) {
+    log('error', `Could not copy ${old.username}'s avatar: ${(e as Error).message}. It will be reset.`);
+    return null;
+  }
 }
 
 
@@ -692,21 +722,6 @@ async function postsHandler(oldDb: SQL, prisma: PrismaClient) {
   const dataDir = path.join(process.cwd(), 'data');
   const oldDataDir = path.join(process.cwd(), 'data.old');
   if (!fs.existsSync(dataDir)) { throw new Error("Data Directory doesn't exist! Are you sure you need to import anything?") };
-
-  // rename legacy data directory to make way for new one
-  fs.renameSync(dataDir, oldDataDir);
-  fs.mkdirSync(dataDir); // make new data folder
-  const DIRECTORIES = [
-    "data/uploads/video",
-    "data/uploads/image",
-    "data/uploads/animated",
-    "data/thumbnails",
-    "data/previews/image",
-    "data/previews/animated",
-    "data/previews/video",
-    "data/avatars",
-  ]
-  for (const dir of DIRECTORIES) { fs.mkdirSync(dir, { recursive: true }); };
 
   // Start processing individually through batches
   let lastId = 0;
@@ -791,7 +806,7 @@ async function importPost(oldDb: SQL, prisma: PrismaClient, post: OldPost, dataF
   if (aspectRatio == null) {
     const { width, height } = await sharp(path.join(dataFolder.old, 'thumbnails', `${post.id}_${Object.keys(THUMBNAIL_SIZES)[0]}.webp`)).metadata();
     aspectRatio = width && height ? width / height : 1; // 1 = square fallback if even that fails
-    log('warn', `Post #${post.id}: No aspect ratio! Measured ${aspectRatio.toFixed(3)} from its thumbnail`);
+    log('warn', `Post #${post.id} has no aspect ratio! (measured ${aspectRatio.toFixed(3)} from its thumbnail)`);
   }
 
   await prisma.post.create({
@@ -1312,6 +1327,74 @@ async function commentVotesHandler(oldDb: SQL, prisma: PrismaClient) {
   await prisma.$executeRaw`UPDATE "PostComment" c SET "score" = COALESCE((SELECT SUM(value) FROM "CommentVote" cv WHERE cv."commentId" = c.id), 0)`;
 
   log('success', `Successfully imported ${imported} comment votes!${skipped ? ` (${skipped} skipped: removed, orphaned or duplicate)` : ''}`);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                    User Preferences
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// We can't have these in the same block as users cause the tags and posts must exist in order to link them
+
+type OldUserPrefs = {
+  id: string,
+  blurUnsafeEmbeds: boolean,
+  defaultSafety: string[],
+  profileBackground: number | null,
+  private: boolean,
+};
+
+// v0.14 safety names -> v2
+const SAFETY_RENAMES: Record<string, Safety> = { SAFE: 'SAFE', SKETCHY: 'QUESTIONABLE', UNSAFE: 'EXPLICIT' };
+
+// Old implicit m2m table -> [userId, newTagId] pairs. Prisma names the columns A/B alphabetically by model:
+// "Tags" < "UserPreferences", so A = tag id, B = user id
+async function oldTagList(oldDb: SQL, table: '_UserBLTags' | '_UserFavTags', userIds: Set<string>) {
+  const [exists] = await oldDb`SELECT to_regclass(${`public."${table}"`}) IS NOT NULL AS found` as { found: boolean }[];
+  if (!exists?.found) return [];
+
+  const rows = await oldDb`SELECT "A" AS "tagId", "B" AS "userId" FROM ${oldDb(table)}` as { tagId: number, userId: string }[];
+  return rows
+    .filter((r) => userIds.has(r.userId) && !skippedTags.has(r.tagId))
+    .map((r) => ({ userId: r.userId, tagId: tagRedirects.get(r.tagId) ?? r.tagId })); // merged names point at the tag that kept it
+}
+
+async function userPrefsHandler(oldDb: SQL, prisma: PrismaClient) {
+  const users = await prisma.user.findMany({ select: { id: true } });
+  const userIds = new Set(users.map((u) => u.id));
+  const posts = await prisma.post.findMany({ select: { id: true } });
+  const postIds = new Set(posts.map((p) => p.id));
+  const tags = await prisma.tag.findMany({ select: { id: true } });
+  const tagIds = new Set(tags.map((t) => t.id));
+
+  // 1. Preferences + private (::text[] so the enum array arrives as a real JS array)
+  const oldPrefs = (await oldDb`
+    SELECT id, "blurUnsafeEmbeds", "defaultSafety"::text[] AS "defaultSafety", "profileBackground", private
+    FROM "UserPreferences"
+  ` as OldUserPrefs[]).filter((p) => userIds.has(p.id));
+
+  const prefs: Prisma.PreferencesCreateManyInput[] = oldPrefs.map((p) => {
+    const safety = [...new Set(p.defaultSafety.map((s) => SAFETY_RENAMES[s]).filter(Boolean))];
+    return {
+      userId: p.id,
+      blurUnsafeEmbeds: p.blurUnsafeEmbeds,
+      defaultSafety: safety.length ? safety : ['SAFE'],
+      profileBackground: p.profileBackground && postIds.has(p.profileBackground) ? p.profileBackground : null, // post must have made it over
+    };
+  });
+  const { count: prefCount } = await prisma.preferences.createMany({ data: prefs, skipDuplicates: true });
+
+  // private moved from preferences onto User in v2
+  const privateIds = oldPrefs.filter((p) => p.private).map((p) => p.id);
+  if (privateIds.length) await prisma.user.updateMany({ where: { id: { in: privateIds } }, data: { private: true } });
+
+  // 2. Tag lists. A tag on both lists stays blacklisted only (hiding wins over showing off)
+  const blacklist = (await oldTagList(oldDb, '_UserBLTags', userIds)).filter((b) => tagIds.has(b.tagId));
+  const blocked = new Set(blacklist.map((b) => `${b.userId}:${b.tagId}`));
+  const favorites = (await oldTagList(oldDb, '_UserFavTags', userIds)).filter((f) => tagIds.has(f.tagId) && !blocked.has(`${f.userId}:${f.tagId}`));
+
+  const { count: blCount } = await prisma.userBlacklistedTag.createMany({ data: blacklist, skipDuplicates: true });
+  const { count: favCount } = await prisma.userFavoriteTag.createMany({ data: favorites, skipDuplicates: true });
+
+  log('success', `Imported preferences for ${prefCount} users (${privateIds.length} private), ${favCount} favorite tags, ${blCount} blacklisted tags!`);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
