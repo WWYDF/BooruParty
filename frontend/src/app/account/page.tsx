@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AccountHeader from "@/components/Account/AccountHeader";
+import ApplicationsCard from "@/components/Account/ApplicationsCard";
 import BrowserCard from "@/components/Account/BrowserCard";
 import ContentCard from "@/components/Account/ContentCard";
 import EmailCard from "@/components/Account/EmailCard";
@@ -63,6 +64,7 @@ export default function AccountPage() {
           <EmailCard me={me} onSaved={accountSaved} />
           <PasswordCard />
           <PrivacyCard me={me} onSaved={accountSaved} />
+          {user.permissions.includes("applications.manage.own") && <ApplicationsCard />}
         </div>
 
         <div className="space-y-6">
