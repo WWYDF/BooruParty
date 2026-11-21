@@ -11,7 +11,7 @@ import { UserProfile as Profile } from "@/core/types/users";
 import ProfileBackground from "./ProfileBackground";
 import ProfileCollections from "./ProfileCollections";
 import ProfileFavoriteTags from "./ProfileFavoriteTags";
-import ProfileComingSoon from "./ProfileComingSoon";
+import ProfileRecentComments from "./ProfileRecentComments";
 import ProfileHeader from "./ProfileHeader";
 import ProfileRecentPosts from "./ProfileRecentPosts";
 
@@ -98,7 +98,7 @@ export default function UserProfile({ username }: { username: string }) {
         <ProfileRecentPosts username={profile.username} />
 
         <ProfileCollections username={profile.username} isOwner={isOwner} />
-        <ProfileComingSoon title="Recent Comments" description="This user's latest comments will show up here." />
+        <ProfileRecentComments username={profile.username} />
       </motion.div>
     </main>
   );

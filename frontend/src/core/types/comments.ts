@@ -27,6 +27,15 @@ export type CommentPage = {
   embeddedPosts: EmbeddedPosts;
 };
 
+// GET /api/users/:username/comments: each comment also carries the post it's on (only posts the viewer would see listed)
+export type UserComment = PostComment & { post: Posts };
+
+export type UserCommentPage = {
+  comments: UserComment[];
+  nextCursor: number | null; // pass back as ?cursor= for the next (older) page
+  embeddedPosts: EmbeddedPosts;
+};
+
 // POST /api/posts/:id/comments and PATCH /api/comments/:commentId
 export type CommentWriteResponse = {
   comment: PostComment;

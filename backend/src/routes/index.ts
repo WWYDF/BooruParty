@@ -28,6 +28,7 @@ import postCollections from './Collections/posts';
 import viewCollections from './Collections/view';
 import roles from './System/roles';
 import tagLists from './Users/tags';
+import userActivity from './Users/activity';
 
 const logger = appLogger('Routes');
 
@@ -39,6 +40,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(avatars, { prefix: '/avatars' });
   fastify.register(applications, { prefix: '/applications' });
   fastify.register(tagLists, { prefix: '/me/tags' });
+  fastify.register(userActivity, { prefix: '/users' });
 
   // Posts
   fastify.register(createPost, { prefix: '/posts' });

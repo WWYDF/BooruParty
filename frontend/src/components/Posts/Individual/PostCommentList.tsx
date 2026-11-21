@@ -32,8 +32,8 @@ const formatDate = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 // The comment's text as React nodes. Embeds the server recognised are left out here (they render as cards below).
-// Plain text only: content is never treated as HTML.
-function renderText(comment: PostComment): React.ReactNode[] {
+// Plain text only: content is never treated as HTML. Exported for the profile's Recent Comments.
+export function renderText(comment: PostComment): React.ReactNode[] {
   const { content, embeds } = comment;
   const nodes: React.ReactNode[] = [];
   let last = 0;
