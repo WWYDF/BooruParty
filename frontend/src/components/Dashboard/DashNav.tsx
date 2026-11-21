@@ -11,7 +11,7 @@ export const DASHBOARD_SECTIONS = [
   { name: "Home", href: "/dashboard", perm: "dashboard.view" },
   { name: "Settings", href: "/dashboard/settings", perm: "dashboard.settings" },
   { name: "Categories", href: "/dashboard/categories", perm: "tags.categories.manage" },
-  { name: "Roles", href: "/dashboard/roles", perm: "dashboard.roles" },
+  { name: "Roles", href: "/dashboard/roles", perm: "administrator" }, // admins only (the API requires it too)
   { name: "Addons", href: "/dashboard/addons", perm: "dashboard.addons" },
   { name: "Applications", href: "/dashboard/applications", perm: "applications.manage.others" },
   { name: "Audit Log", href: "/dashboard/logs", perm: "dashboard.audit.log" },

@@ -26,6 +26,7 @@ import applications from './Users/apps';
 import manageCollections from './Collections/manage';
 import postCollections from './Collections/posts';
 import viewCollections from './Collections/view';
+import roles from './System/roles';
 
 const logger = appLogger('Routes');
 
@@ -67,6 +68,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(stats, { prefix: '/system' });
   fastify.register(settings, { prefix: '/system' });
   fastify.register(addons, { prefix: '/system' });
+  fastify.register(roles, { prefix: '/roles' });
 
   logger.success('[+] API Routes Initialized!');
 };
