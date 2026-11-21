@@ -105,6 +105,7 @@ const vip_perms: PermissionName[] = [
   "upload.type.video",
   "tags.create",
   "tags.edit",
+  "applications.manage.self",
   "profile.edit.background"
 ];
 
@@ -120,6 +121,7 @@ const mod_perms: PermissionName[] = [
   "profile.archive.others",
   "limit.upload.ignore",
   "tags.delete",
+  "applications.manage.others",
   "dashboard.view",
   "dashboard.analytics",
   "dashboard.audit.log"

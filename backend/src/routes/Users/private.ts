@@ -1,6 +1,6 @@
 import { prisma } from '@/core/plugins/prisma';
 import { FastifyPluginAsync } from 'fastify';
-import { clearSessionCookies, createSession } from '@/core/utilities/sessions';
+import { clearSessionCookies, createSession, hashToken } from '@/core/utilities/sessions';
 import { appLogger } from '@/core/plugins/logger';
 import { emailSchema, passwordSchema, usernameSchema } from '@/core/objects/fastifySchemas';
 import { Prisma, Safety } from '../../../prisma/client';
@@ -9,6 +9,8 @@ import { rolePermissionCheck, rolePermissionList } from '@/core/utilities/permis
 import { formatUserSummary } from '@/core/utilities/reformatters';
 import { getBoostState } from '@/components/posts/interactions';
 import { getServerSettings } from '@/core/utilities/settingsCache';
+import { randomBytes } from 'node:crypto';
+import { blockApplications } from '@/core/plugins/auth';
 
 const logger = appLogger('Users/Private');
 
@@ -42,6 +44,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
 
   // Base /me -> Edit base user object like user, pass, or email
   fastify.patch('/', {
+    onRequest: [blockApplications],
     schema: {
       body: {
         type: 'object',
@@ -117,6 +120,7 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
 
   // Edit Preferences
   fastify.patch('/preferences', {
+    onRequest: [blockApplications],
     schema: {
       body: {
         type: 'object',
@@ -148,6 +152,39 @@ const privateUsers: FastifyPluginAsync = async (fastify) => {
     });
 
     return reply.status(200).send(prefs);
+  });
+
+  // Create applications
+  fastify.post('/applications', {
+    onRequest: [blockApplications],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['name'],
+        properties: { name: { type: 'string', minLength: 1, maxLength: 32 } },
+        additionalProperties: false,
+      },
+    },
+  }, async (req, reply) => {
+
+    const amt = await prisma.application.count({ where: { ownerId: req.user.sub } });
+    if (amt >= 10) { return reply.status(409).send({ error: 'Too many applications', hint: 'You can have a max of 10 applications' }) };
+
+    const name = (req.body as { name: string }).name.trim();
+    if (!name) { return reply.status(400).send({ error: 'Bad request', hint: 'Name is required' }) };
+
+    const secret = randomBytes(32).toString('base64url');
+
+    const app = await prisma.application.create({
+      data: {
+        name,
+        secretHash: hashToken(secret),
+        ownerId: req.user.sub,
+      },
+    });
+
+    // The only time the plaintext secret ever leaves the server
+    return reply.status(201).send({ clientId: app.clientId, name: app.name, createdAt: app.createdAt, secret });
   });
 };
 

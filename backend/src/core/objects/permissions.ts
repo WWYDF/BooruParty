@@ -13,6 +13,7 @@ export const PERMISSIONS = [
   "posts.vote",
   "posts.favorite",
   "posts.boost",
+
   "comment.create",
   "comment.embed.url",
   "comment.embed.post",
@@ -21,10 +22,12 @@ export const PERMISSIONS = [
   "comment.delete.own",
   "comment.delete.others",
   "comment.vote",
+
   "pool.create",
   "pool.manage",
   "pool.delete",
   "pool.favorite",
+
   "profile.create",
   "profile.view",
   "profile.edit.avatar",
@@ -33,14 +36,20 @@ export const PERMISSIONS = [
   "profile.edit.roles",
   "profile.archive.others", // Delete user but not posts
   "profile.delete.others",  // Delete user and posts
+
   "upload.type.image",
   "upload.type.animated",
   "upload.type.video",
   "limit.upload.ignore",
+
   "tags.create",
   "tags.edit",
   "tags.delete",
   "tags.categories.manage",
+
+  "applications.manage.self", // Create, edit, etc.
+  "applications.manage.others", // For Moderation
+
   "dashboard.view",
   "dashboard.settings",
   "dashboard.analytics",

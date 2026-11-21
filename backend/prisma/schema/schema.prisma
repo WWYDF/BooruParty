@@ -39,6 +39,10 @@ model Addons {
   autoTaggerMode          AutoTaggerMode[]          @default([PASSIVE])
 }
 
+// -------------------------------------------------------------------------------------------------------
+//                                          USERS
+// -------------------------------------------------------------------------------------------------------
+
 model Session {
   id                      String                    @id @default(uuid())
   userId                  String
@@ -63,6 +67,7 @@ model User {
   private                 Boolean                   @default(false)
   roleId                  String
   role                    Role                      @relation(fields: [roleId], references: [id])
+  applications            Application[]
 
   posts                   Post[]
   comments                PostComment[]
@@ -105,6 +110,19 @@ model Preferences {
   // blacklistedTags
   // favoriteTags
   profileBackground       Int?                      // Post ID
+}
+
+// For bots 'n stuff
+model Application {
+  clientId                String                    @id @default(uuid())
+  secretHash              String                    // hashed by API
+
+  name                    String
+  ownerId                 String
+  owner                   User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  lastUsedAt              DateTime?
+  createdAt               DateTime                  @default(now())
 }
 
 // -------------------------------------------------------------------------------------------------------
