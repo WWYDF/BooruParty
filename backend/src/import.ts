@@ -9,7 +9,7 @@
 import { confirm, input, number, password, select } from "@inquirer/prompts";
 import chalk from "chalk";
 import { SQL } from "bun";
-import { FileType, Prisma, PrismaClient, Role, Safety } from "../prisma/client";
+import { AutoTaggerMode, FileType, Prisma, PrismaClient, Role, Safety } from "../prisma/client";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
@@ -19,6 +19,7 @@ import { detectFileType } from "./components/uploads/receive";
 import { THUMBNAIL_SIZES } from "./components/uploads/thumbnails";
 import { parseArgs } from "util";
 import sharp from "sharp";
+import { MAX_COLLECTION_NAME_LENGTH } from "./core/objects/limits";
 
 const old_ver = 'v0.14.2';
 
@@ -498,6 +499,14 @@ async function main() {
     log('info', "Starting Comments handler...");
     await postCommentsHandler(oldDb, prisma);
     await commentVotesHandler(oldDb, prisma);
+
+    // COLLECTIONS (will skip if pre-0.14)
+    log('info', "Starting Collections handler...");
+    await collectionsHandler(oldDb, prisma);
+
+    // ADDONS
+    log('info', "Starting Addons handler...");
+    await addonsHandler(oldDb, prisma);
 
     log('info', "Finalizing...");
     await prisma.serverSettings.upsert({
@@ -1303,6 +1312,161 @@ async function commentVotesHandler(oldDb: SQL, prisma: PrismaClient) {
   await prisma.$executeRaw`UPDATE "PostComment" c SET "score" = COALESCE((SELECT SUM(value) FROM "CommentVote" cv WHERE cv."commentId" = c.id), 0)`;
 
   log('success', `Successfully imported ${imported} comment votes!${skipped ? ` (${skipped} skipped: removed, orphaned or duplicate)` : ''}`);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                      Collections
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldCollection = { id: string, ownerId: string, isPublic: boolean, name: string, updatedAt: Date, createdAt: Date };
+type OldCollectionItem = { collectionId: string, postId: number, addedAt: Date };
+
+// "Name", or "Name (2)", "Name (3)"... if this owner already has it (case-insensitive, like the citext unique)
+function uniqueCollectionName(raw: string, taken: Set<string>): string {
+  const base = raw.trim().slice(0, MAX_COLLECTION_NAME_LENGTH) || 'Untitled';
+  let name = base;
+  for (let n = 2; taken.has(name.toLowerCase()); n++) {
+    const suffix = ` (${n})`;
+    name = base.slice(0, MAX_COLLECTION_NAME_LENGTH - suffix.length).trimEnd() + suffix;
+  }
+  taken.add(name.toLowerCase());
+  return name;
+}
+
+async function collectionsHandler(oldDb: SQL, prisma: PrismaClient) {
+  // Older v0.14 installs never had collections: skip instead of crashing on a missing table
+  const [exists] = await oldDb`
+    SELECT to_regclass('public."Collection"') IS NOT NULL AS collections,
+           to_regclass('public."CollectionItem"') IS NOT NULL AS items
+  ` as { collections: boolean, items: boolean }[];
+  if (!exists?.collections) {
+    log('info', 'Database version predates Collections. Skipping.');
+    return;
+  }
+
+  const users = await prisma.user.findMany({ select: { id: true } });
+  const userIds = new Set(users.map((u) => u.id));
+  const posts = await prisma.post.findMany({ select: { id: true } });
+  const postIds = new Set(posts.map((p) => p.id));
+
+  // 1. Collections (at most a few per user, so one query is fine)
+  const oldCollections = await oldDb`
+    SELECT id, "ownerId", "isPublic", name, "updatedAt", "createdAt" FROM "Collection"
+    ORDER BY "createdAt", id
+  ` as OldCollection[];
+
+  const takenByOwner = new Map<string, Set<string>>(); // ownerId -> lowercased names already used
+  let renamed = 0;
+
+  const newCollections: Prisma.PostCollectionCreateManyInput[] = oldCollections
+    .filter((c) => userIds.has(c.ownerId))
+    .map((c) => {
+      const taken = takenByOwner.get(c.ownerId) ?? new Set<string>();
+      takenByOwner.set(c.ownerId, taken);
+      const name = uniqueCollectionName(c.name, taken);
+      if (name !== c.name) renamed++;
+      return { id: c.id, ownerId: c.ownerId, isPublic: c.isPublic, name, updatedAt: c.updatedAt, createdAt: c.createdAt };
+    });
+
+  const { count: collectionCount } = await prisma.postCollection.createMany({ data: newCollections, skipDuplicates: true });
+  const collectionIds = new Set(newCollections.map((c) => c.id!));
+
+  // 2. Items, paged on the composite key (no id column to use as a cursor)
+  let imported = 0;
+  if (exists.items) {
+    const BATCH = 5000;
+    let after: { collectionId: string, postId: number } | null = null;
+
+    while (true) {
+      const oldItems: OldCollectionItem[] = after
+        ? await oldDb`
+            SELECT "collectionId", "postId", "addedAt" FROM "CollectionItem"
+            WHERE ("collectionId", "postId") > (${after.collectionId}, ${after.postId})
+            ORDER BY "collectionId", "postId" LIMIT ${BATCH}
+          ` as OldCollectionItem[]
+        : await oldDb`
+            SELECT "collectionId", "postId", "addedAt" FROM "CollectionItem"
+            ORDER BY "collectionId", "postId" LIMIT ${BATCH}
+          ` as OldCollectionItem[];
+      if (oldItems.length === 0) break;
+
+      const newItems: Prisma.PostCollectionItemCreateManyInput[] = oldItems
+        .filter((i) => collectionIds.has(i.collectionId) && postIds.has(i.postId))
+        .map((i) => ({ collectionId: i.collectionId, postId: i.postId, addedAt: i.addedAt }));
+
+      const { count } = await prisma.postCollectionItem.createMany({ data: newItems, skipDuplicates: true });
+      imported += count;
+      const last = oldItems[oldItems.length - 1];
+      after = { collectionId: last.collectionId, postId: last.postId };
+    }
+  }
+
+  // 3. Denormalized fields: itemCount, and updatedAt = latest of (old updatedAt, newest item added)
+  await prisma.$executeRaw`
+    UPDATE "PostCollection" c SET
+      "itemCount" = (SELECT COUNT(*) FROM "PostCollectionItem" i WHERE i."collectionId" = c.id),
+      "updatedAt" = GREATEST(c."updatedAt", COALESCE((SELECT MAX(i."addedAt") FROM "PostCollectionItem" i WHERE i."collectionId" = c.id), c."updatedAt"))
+  `;
+
+  log('success', `Successfully imported ${collectionCount} collections with ${imported} posts!${renamed ? ` (${renamed} renamed to fit the new name rules)` : ''}`);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                        Addons
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+type OldAddonsConfig = {
+  autoTagger: boolean,
+  autoTaggerUrl: string | null,
+  autoTaggerMode: string[],
+  artistProfiles: boolean,
+  jigsaw: boolean,
+  vagueTagName: string[],
+};
+
+async function addonsHandler(oldDb: SQL, prisma: PrismaClient) {
+  // Ancient installs may not have this table at all
+  const [exists] = await oldDb`SELECT to_regclass('public.addons_config') IS NOT NULL AS found` as { found: boolean }[];
+  if (!exists?.found) {
+    log('info', 'No addons config in the old database, skipping.');
+    return;
+  }
+
+  // ::text[] so the enum arrays arrive as plain JS string arrays instead of a raw "{A,B}" string
+  const [old] = await oldDb`
+    SELECT "autoTagger", "autoTaggerUrl", "autoTaggerMode"::text[] AS "autoTaggerMode",
+           "artistProfiles", jigsaw, "vagueTagName"::text[] AS "vagueTagName"
+    FROM addons_config WHERE id = 1
+  ` as OldAddonsConfig[];
+  if (!old) {
+    log('info', 'The old addons config row is empty, skipping.');
+    return;
+  }
+
+  // Only keep modes this version knows; fall back to the schema default
+  const known = Object.values(AutoTaggerMode) as string[];
+  const modes = old.autoTaggerMode.filter((m): m is AutoTaggerMode => known.includes(m));
+
+  // Only carry the URL over if it's still a usable http(s) URL
+  const url = old.autoTaggerUrl?.trim() || null;
+  const validUrl = url && /^https?:\/\//i.test(url) ? url : null;
+
+  const data = {
+    enableAutoTagger: old.autoTagger && validUrl !== null, // on without a URL would just fail every upload's tagging
+    autoTaggerUrl: validUrl,
+    autoTaggerMode: modes.length ? modes : [AutoTaggerMode.PASSIVE],
+  };
+
+  await prisma.addons.upsert({ where: { id: 1 }, update: data, create: { id: 1, ...data } });
+
+  // Settings with no v2 equivalent: say so instead of silently dropping them
+  const dropped = [
+    old.artistProfiles && 'artistProfiles',
+    old.jigsaw && 'jigsaw',
+    old.vagueTagName.length && `vagueTagName (${old.vagueTagName.length} names)`,
+  ].filter(Boolean);
+  if (dropped.length) log('warn', `Not carried over (no equivalent yet): ${dropped.join(', ')}`);
+  if (url && !validUrl) log('warn', `AutoTagger URL "${url}" isn't an http(s) URL; left empty and AutoTagger turned off.`);
+
+  log('success', `Imported addons settings (AutoTagger ${data.enableAutoTagger ? 'on' : 'off'}, modes: ${data.autoTaggerMode.join(', ')})`);
 }
 
 
