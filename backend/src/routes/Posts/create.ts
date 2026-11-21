@@ -83,9 +83,9 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       let autoTagNames: string[] = [];
       const addons = getServerAddons();
       const wantsAutoTag = addons.autoTaggerMode.includes('AGGRESSIVE')
-        || (addons.autoTaggerMode.includes('SELECTIVE'))
+        || (addons.autoTaggerMode.includes('SELECTIVE')
           && getField(upload, 'autoTag') === 'true'
-          && rolePermissionCheck(req.user.roleId, 'posts.autotag');
+          && rolePermissionCheck(req.user.roleId, 'posts.autotag'));
       
       if (addons.enableAutoTagger && addons.autoTaggerUrl && wantsAutoTag && file.type !== 'VIDEO') {
         try {
