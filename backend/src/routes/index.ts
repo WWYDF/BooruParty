@@ -24,6 +24,8 @@ import poolPosts from './Pools/posts';
 import poolInteractions from './Pools/interactions';
 import applications from './Users/apps';
 import manageCollections from './Collections/manage';
+import postCollections from './Collections/posts';
+import viewCollections from './Collections/view';
 
 const logger = appLogger('Routes');
 
@@ -57,7 +59,9 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(poolInteractions, { prefix: '/pools' });
 
   // Collections
-  fastify.register(manageCollections, { prefix: '/collections' });
+  fastify.register(manageCollections, { prefix: '/collections' }); // Create & Manage Collections
+  fastify.register(postCollections, { prefix: '/collections' }); // Add Posts to Collections
+  fastify.register(viewCollections, { prefix: '/collections' }); // View Collections (duh)
 
   // System
   fastify.register(stats, { prefix: '/system' });

@@ -4,7 +4,7 @@ import { isHttpUrl } from "@/components/uploads/fields";
 import { prisma } from "@/core/plugins/prisma";
 import { rolePermissionCheck } from "@/core/utilities/permissionCache";
 import { HttpError } from "@/core/utilities/errors";
-import { ResolvedTag, resolveOrCreateTags, resolveTagNames } from "@/core/utilities/tags";
+import { resolveOrCreateTags } from "@/core/utilities/tags";
 import { discardFiles, postFilePaths } from "@/components/uploads/finalize";
 import { appLogger } from "@/core/plugins/logger";
 import { MAX_POST_NOTES_LENGTH, MAX_POST_SOURCE_LENGTH, MAX_POST_SOURCES, MAX_POST_TAGS, MAX_RELATED_POSTS } from "@/core/objects/limits";
@@ -211,7 +211,13 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
           data: { postCount: { decrement: 1 } }
         });
 
-        await tx.post.delete({ where: { id } }); // cascades PostTag rows
+        // Decrement count on collections this post was a part of
+        await tx.postCollection.updateMany({
+          where: { items: { some: { postId: id } } },
+          data: { itemCount: { decrement: 1 } }
+        });
+
+        await tx.post.delete({ where: { id } }); // cascades PostTag + PostCollectionItem rows
       });
     } catch (e) {
       if (e instanceof HttpError) return reply.status(e.status).send(e.body);
