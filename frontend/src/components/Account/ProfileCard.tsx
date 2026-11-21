@@ -1,25 +1,30 @@
 'use client';
 
 import { useState } from "react";
-import { FloppyDiskIcon } from "@phosphor-icons/react";
+import { FloppyDiskIcon, StarIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import { useToast } from "@/components/UI/Toast";
+import { UserTagLists } from "@/core/types/tags";
+import { TagChip } from "@/core/types/uploads";
 import { AccountDetails, AccountPreferences } from "@/core/types/users";
 import { AccountCard, CardActions, Field, inputClass } from "./AccountCard";
 import AvatarPicker from "./AvatarPicker";
+import TagListField, { sameNames, toChip } from "./TagListField";
 import { useSend } from "./useSend";
 
 // Same rules as the API's schemas
 const USERNAME = /^[a-zA-Z0-9_.-]{3,32}$/;
 const ABOUT_MAX = 64;
 
-// Username + about live on the account (/api/me); the background is a preference (/api/me/preferences).
-// One Save button sends whichever of the two actually changed.
-export default function ProfileCard({ me, canEditAvatar, canChangeBackground, onSaved }: {
+// Username + about live on the account (/api/me), the background is a preference (/api/me/preferences),
+// favorite tags are their own list (/api/me/tags/favorites). One Save button sends whichever actually changed.
+export default function ProfileCard({ me, canEditAvatar, canChangeBackground, tagLists, onSaved, onTagListsSaved }: {
   me: AccountDetails;
   canEditAvatar: boolean;
   canChangeBackground: boolean;
+  tagLists: UserTagLists | null; // null = couldn't be loaded (the picker says so)
   onSaved: (updated: Partial<AccountDetails>) => void;
+  onTagListsSaved: (lists: UserTagLists) => void;
 }) {
   const send = useSend();
   const toast = useToast();
@@ -28,6 +33,7 @@ export default function ProfileCard({ me, canEditAvatar, canChangeBackground, on
   const [username, setUsername] = useState(me.username);
   const [about, setAbout] = useState(me.about ?? "");
   const [background, setBackground] = useState(savedBackground ? String(savedBackground) : "");
+  const [favorites, setFavorites] = useState<TagChip[]>(tagLists?.favorites.map(toChip) ?? []);
   const [saving, setSaving] = useState(false);
 
   const trimmedName = username.trim();
@@ -37,7 +43,8 @@ export default function ProfileCard({ me, canEditAvatar, canChangeBackground, on
   const nameChanged = trimmedName !== me.username;
   const aboutChanged = trimmedAbout !== (me.about ?? null);
   const backgroundChanged = canChangeBackground && backgroundId !== savedBackground;
-  const dirty = nameChanged || aboutChanged || backgroundChanged;
+  const favoritesChanged = !!tagLists && !sameNames(favorites, tagLists.favorites.map(toChip));
+  const dirty = nameChanged || aboutChanged || backgroundChanged || favoritesChanged;
 
   const save = async () => {
     if (nameChanged && !USERNAME.test(trimmedName)) return toast("Usernames are 3-32 characters: letters, numbers, _ . and -", "error");
@@ -69,8 +76,16 @@ export default function ProfileCard({ me, canEditAvatar, canChangeBackground, on
       else failed = true;
     }
 
+    if (favoritesChanged) {
+      const lists = await send<UserTagLists>("/api/me/tags/favorites", "PUT", { names: favorites.map((t) => t.name) });
+      if (lists) {
+        setFavorites(lists.favorites.map(toChip)); // the server's version: aliases resolved, sorted
+        onTagListsSaved(lists);
+      } else failed = true;
+    }
+
     setSaving(false);
-    if (Object.keys(updates).length) onSaved(updates); // keep whatever did save, even if the other half failed
+    if (Object.keys(updates).length) onSaved(updates); // keep whatever did save, even if another part failed
     if (!failed) toast("Profile saved", "success"); // failures were already toasted by send()
   };
 
@@ -91,7 +106,7 @@ export default function ProfileCard({ me, canEditAvatar, canChangeBackground, on
           />
         </Field>
 
-        <Field label="About me" hint={`${about.length}/${ABOUT_MAX}`}>
+        <Field label="About me" counter={{ value: about.length, max: ABOUT_MAX }}>
           <input
             type="text"
             value={about}
@@ -116,6 +131,20 @@ export default function ProfileCard({ me, canEditAvatar, canChangeBackground, on
             />
           </Field>
         )}
+
+        <TagListField
+          label="Favorite tags"
+          description="Shown on your profile, grouped by category."
+          value={favorites}
+          onChange={setFavorites}
+          max={tagLists?.limits.favorites ?? null}
+          blocked={tagLists?.blacklist.map((t) => t.name) ?? []}
+          blockedLabel="blacklist"
+          offText="Favorite tags are turned off on this site."
+          placeholder="Add a favorite tag..."
+          disabled={saving}
+          flip={true} /* show description below textbox instead (to match other Profile inputs) */
+        />
 
         <CardActions>
           <Button type="submit" size="lg" variant="success" icon={<FloppyDiskIcon size={16} />} loading={saving} disabled={!dirty}>

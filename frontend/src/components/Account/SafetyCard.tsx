@@ -1,13 +1,16 @@
 'use client';
 
 import { useState } from "react";
-import { EyeSlashIcon, FloppyDiskIcon, ShieldCheckIcon, ShieldIcon, ShieldWarningIcon } from "@phosphor-icons/react";
+import { EyeSlashIcon, FloppyDiskIcon, ProhibitIcon, ShieldCheckIcon, ShieldIcon, ShieldWarningIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import { FullCheckbox, FullCheckboxGroup } from "@/components/UI/FullCheckbox";
 import { useToast } from "@/components/UI/Toast";
 import { Safety } from "@/core/types/posts";
+import { UserTagLists } from "@/core/types/tags";
+import { TagChip } from "@/core/types/uploads";
 import { AccountDetails, AccountPreferences } from "@/core/types/users";
 import { AccountCard, CardActions } from "./AccountCard";
+import TagListField, { sameNames, toChip } from "./TagListField";
 import { useSend } from "./useSend";
 
 // What the server uses when the user has no Preferences row yet
@@ -21,11 +24,13 @@ const SAFETY_OPTIONS: { value: Safety; label: string; description: string; icon:
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
-// Safety + blur are preferences (/api/me/preferences); private is on the account (/api/me).
-// One Save button sends whichever of the two actually changed.
-export default function ContentCard({ me, onSaved }: {
+// Safety + blur are preferences (/api/me/preferences), private is on the account (/api/me),
+// the blacklist is its own list (/api/me/tags/blacklist). One Save button sends whichever actually changed.
+export default function ContentCard({ me, tagLists, onSaved, onTagListsSaved }: {
   me: AccountDetails;
+  tagLists: UserTagLists | null; // null = couldn't be loaded (the picker says so)
   onSaved: (updated: Partial<AccountDetails>) => void;
+  onTagListsSaved: (lists: UserTagLists) => void;
 }) {
   const send = useSend();
   const toast = useToast();
@@ -34,11 +39,13 @@ export default function ContentCard({ me, onSaved }: {
   const [blur, setBlur] = useState(saved.blurUnsafeEmbeds);
   const [safety, setSafety] = useState<Safety[]>(saved.defaultSafety);
   const [isPrivate, setIsPrivate] = useState(me.private);
+  const [blacklist, setBlacklist] = useState<TagChip[]>(tagLists?.blacklist.map(toChip) ?? []);
   const [saving, setSaving] = useState(false);
 
   const prefsChanged = blur !== saved.blurUnsafeEmbeds || !sameSet(safety, saved.defaultSafety);
   const privateChanged = isPrivate !== me.private;
-  const dirty = prefsChanged || privateChanged;
+  const blacklistChanged = !!tagLists && !sameNames(blacklist, tagLists.blacklist.map(toChip));
+  const dirty = prefsChanged || privateChanged || blacklistChanged;
 
   const save = async () => {
     if (safety.length === 0) return toast("Pick at least one safety level.", "error");
@@ -64,8 +71,16 @@ export default function ContentCard({ me, onSaved }: {
       else failed = true;
     }
 
+    if (blacklistChanged) {
+      const lists = await send<UserTagLists>("/api/me/tags/blacklist", "PUT", { names: blacklist.map((t) => t.name) });
+      if (lists) {
+        setBlacklist(lists.blacklist.map(toChip)); // the server's version: aliases resolved, sorted
+        onTagListsSaved(lists);
+      } else failed = true;
+    }
+
     setSaving(false);
-    if (Object.keys(updates).length) onSaved(updates); // keep whatever did save, even if the other half failed
+    if (Object.keys(updates).length) onSaved(updates); // keep whatever did save, even if another part failed
     if (!failed) toast("Preferences saved", "success"); // failures were already toasted by send()
   };
 
@@ -87,12 +102,29 @@ export default function ContentCard({ me, onSaved }: {
           description="In comments, blur embedded posts that are more explicit than the post they're on."
         />
 
+        <hr className="border-secondary-border" />
+
         <FullCheckbox
           checked={isPrivate}
           onChange={setIsPrivate}
           icon={<EyeSlashIcon size={18} />}
           label="Private account"
           description="Your account and posts are hidden from everyone. Admins can still see your old posts for moderation purposes."
+        />
+
+        <hr className="border-secondary-border" />
+
+        <TagListField
+          label="Blacklisted tags"
+          description="Posts with any of these are hidden from the feed, pools, collections and related posts. A direct link still opens them."
+          value={blacklist}
+          onChange={setBlacklist}
+          max={tagLists?.limits.blacklist ?? null}
+          blocked={tagLists?.favorites.map((t) => t.name) ?? []}
+          blockedLabel="favorite tags"
+          offText="The blacklist is turned off on this site."
+          placeholder="Add a tag to hide..."
+          disabled={saving}
         />
       </div>
 

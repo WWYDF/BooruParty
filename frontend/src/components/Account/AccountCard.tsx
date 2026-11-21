@@ -20,10 +20,23 @@ export function AccountCard({ title, description, badge, danger, children }: {
   );
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
+// counter = { value, max }: an "N / max" on the right of the label (amber when full), same as the tag lists
+export function Field({ label, hint, counter, children }: {
+  label: string;
+  hint?: React.ReactNode;
+  counter?: { value: number; max: number };
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-zinc-400">{label}</span>
+      <span className="mb-1 flex items-center text-xs font-medium text-zinc-400">
+        {label}
+        {counter && (
+          <span className={`ml-auto text-2xs tabular-nums ${counter.value >= counter.max ? "text-amber-400" : "text-zinc-600"}`}>
+            {counter.value} / {counter.max}
+          </span>
+        )}
+      </span>
       {children}
       {hint && <span className="mt-1 block text-xs text-zinc-600">{hint}</span>}
     </label>
