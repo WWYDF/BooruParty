@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FloppyDiskIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import { useToast } from "@/components/UI/Toast";
-import { AccountDetails } from "@/core/types/users";
+import { AccountDetails, AccountPreferences } from "@/core/types/users";
 import { AccountCard, CardActions, Field, inputClass } from "./AccountCard";
 import AvatarPicker from "./AvatarPicker";
 import { useSend } from "./useSend";
@@ -13,39 +13,65 @@ import { useSend } from "./useSend";
 const USERNAME = /^[a-zA-Z0-9_.-]{3,32}$/;
 const ABOUT_MAX = 64;
 
-export default function ProfileCard({ me, canEditAvatar, onSaved }: {
+// Username + about live on the account (/api/me); the background is a preference (/api/me/preferences).
+// One Save button sends whichever of the two actually changed.
+export default function ProfileCard({ me, canEditAvatar, canChangeBackground, onSaved }: {
   me: AccountDetails;
   canEditAvatar: boolean;
+  canChangeBackground: boolean;
   onSaved: (updated: Partial<AccountDetails>) => void;
 }) {
   const send = useSend();
   const toast = useToast();
+  const savedBackground = me.preferences?.profileBackground ?? null;
+
   const [username, setUsername] = useState(me.username);
   const [about, setAbout] = useState(me.about ?? "");
+  const [background, setBackground] = useState(savedBackground ? String(savedBackground) : "");
   const [saving, setSaving] = useState(false);
 
   const trimmedName = username.trim();
   const trimmedAbout = about.trim() || null; // empty clears it
+  const backgroundId = background.trim() ? Number(background) : null;
+
   const nameChanged = trimmedName !== me.username;
   const aboutChanged = trimmedAbout !== (me.about ?? null);
-  const dirty = nameChanged || aboutChanged;
+  const backgroundChanged = canChangeBackground && backgroundId !== savedBackground;
+  const dirty = nameChanged || aboutChanged || backgroundChanged;
 
   const save = async () => {
     if (nameChanged && !USERNAME.test(trimmedName)) return toast("Usernames are 3-32 characters: letters, numbers, _ . and -", "error");
-
-    // PATCH semantics: only what changed
-    const body: { username?: string; about?: string | null } = {};
-    if (nameChanged) body.username = trimmedName;
-    if (aboutChanged) body.about = trimmedAbout;
+    if (backgroundChanged && backgroundId !== null && (!Number.isInteger(backgroundId) || backgroundId < 1)) {
+      return toast("The background must be a post ID.", "error");
+    }
 
     setSaving(true);
-    const updated = await send<AccountDetails>("/api/me", "PATCH", body);
-    setSaving(false);
-    if (!updated) return;
+    const updates: Partial<AccountDetails> = {};
+    let failed = false;
 
-    setAbout(updated.about ?? "");
-    onSaved({ username: updated.username, about: updated.about });
-    toast("Profile saved", "success");
+    // PATCH semantics: only what changed
+    if (nameChanged || aboutChanged) {
+      const body: { username?: string; about?: string | null } = {};
+      if (nameChanged) body.username = trimmedName;
+      if (aboutChanged) body.about = trimmedAbout;
+
+      const updated = await send<AccountDetails>("/api/me", "PATCH", body);
+      if (updated) {
+        setAbout(updated.about ?? "");
+        updates.username = updated.username;
+        updates.about = updated.about;
+      } else failed = true;
+    }
+
+    if (backgroundChanged) {
+      const prefs = await send<AccountPreferences>("/api/me/preferences", "PATCH", { profileBackground: backgroundId });
+      if (prefs) updates.preferences = prefs;
+      else failed = true;
+    }
+
+    setSaving(false);
+    if (Object.keys(updates).length) onSaved(updates); // keep whatever did save, even if the other half failed
+    if (!failed) toast("Profile saved", "success"); // failures were already toasted by send()
   };
 
   return (
@@ -75,6 +101,21 @@ export default function ProfileCard({ me, canEditAvatar, onSaved }: {
             className={inputClass}
           />
         </Field>
+
+        {canChangeBackground && (
+          <Field label="Profile background" hint="A post ID to use as your profile's backdrop. Leave empty for none.">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              value={background}
+              onChange={(e) => setBackground(e.target.value)}
+              placeholder="None"
+              className={inputClass}
+            />
+          </Field>
+        )}
 
         <CardActions>
           <Button type="submit" size="lg" variant="success" icon={<FloppyDiskIcon size={16} />} loading={saving} disabled={!dirty}>

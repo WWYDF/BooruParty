@@ -6,6 +6,8 @@ import { randomBytes } from 'node:crypto';
 import { blockApplications } from '@/core/plugins/auth';
 import { requirePermission, rolePermissionCheck } from '@/core/utilities/permissionCache';
 import { MAX_APPLICATIONS } from '@/core/objects/limits';
+import { Prisma } from '../../../prisma/client';
+import { avatarUrl } from '@/core/utilities/reformatters';
 
 const logger = appLogger('Applications');
 
@@ -126,6 +128,58 @@ const applications: FastifyPluginAsync = async (fastify) => {
     if (count === 0) { return reply.status(404).send({ error: 'Not found', hint: 'Application not found' }) };
 
     return reply.status(200).send({ clientId, secret });
+  });
+
+  // Admin only: List all applications (on dashboard)
+  fastify.get('/all', {
+    onRequest: [requirePermission('applications.manage.others')],
+    schema: {
+      querystring: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          q: { type: 'string', maxLength: 64 },        // app name contains
+          owner: { type: 'string', maxLength: 32 },    // exact username
+          page: { type: 'integer', minimum: 1, default: 1 },
+          limit: { type: 'integer', minimum: 1, maximum: 100, default: 25 },
+        },
+      },
+    },
+  }, async (req, reply) => {
+    const { q, owner, page, limit } = req.query as { q?: string, owner?: string, page: number, limit: number };
+
+    const where: Prisma.ApplicationWhereInput = {
+      ...(q && { name: { contains: q, mode: 'insensitive' } }),
+      ...(owner && { owner: { username: owner } }),
+    };
+
+    const [apps, total] = await prisma.$transaction([
+      prisma.application.findMany({
+        where,
+        select: {
+          clientId: true,
+          name: true,
+          lastUsedAt: true,
+          createdAt: true,
+          owner: { select: { id: true, username: true, avatarKey: true, role: { select: { name: true, color: true } } } },
+        },
+        orderBy: [{ lastUsedAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }, { clientId: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.application.count({ where }),
+    ]);
+
+    return reply.send({
+      applications: apps.map(({ owner, ...app }) => ({
+        ...app,
+        owner: { ...owner, avatar: avatarUrl(owner.avatarKey), avatarKey: undefined },
+      })),
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    });
   });
 };
 

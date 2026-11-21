@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from "react";
-import { FloppyDiskIcon, ShieldCheckIcon, ShieldIcon, ShieldWarningIcon } from "@phosphor-icons/react";
+import { EyeSlashIcon, FloppyDiskIcon, ShieldCheckIcon, ShieldIcon, ShieldWarningIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import { FullCheckbox, FullCheckboxGroup } from "@/components/UI/FullCheckbox";
 import { useToast } from "@/components/UI/Toast";
 import { Safety } from "@/core/types/posts";
 import { AccountDetails, AccountPreferences } from "@/core/types/users";
-import { AccountCard, CardActions, Field, inputClass } from "./AccountCard";
+import { AccountCard, CardActions } from "./AccountCard";
 import { useSend } from "./useSend";
 
 // What the server uses when the user has no Preferences row yet
@@ -21,10 +21,11 @@ const SAFETY_OPTIONS: { value: Safety; label: string; description: string; icon:
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
-export default function ContentCard({ me, canChangeBackground, onSaved }: {
+// Safety + blur are preferences (/api/me/preferences); private is on the account (/api/me).
+// One Save button sends whichever of the two actually changed.
+export default function ContentCard({ me, onSaved }: {
   me: AccountDetails;
-  canChangeBackground: boolean;
-  onSaved: (prefs: AccountPreferences) => void;
+  onSaved: (updated: Partial<AccountDetails>) => void;
 }) {
   const send = useSend();
   const toast = useToast();
@@ -32,33 +33,44 @@ export default function ContentCard({ me, canChangeBackground, onSaved }: {
 
   const [blur, setBlur] = useState(saved.blurUnsafeEmbeds);
   const [safety, setSafety] = useState<Safety[]>(saved.defaultSafety);
-  const [background, setBackground] = useState(saved.profileBackground ? String(saved.profileBackground) : "");
+  const [isPrivate, setIsPrivate] = useState(me.private);
   const [saving, setSaving] = useState(false);
 
-  const backgroundId = background.trim() ? Number(background) : null;
-  const backgroundChanged = backgroundId !== saved.profileBackground;
-  const dirty = blur !== saved.blurUnsafeEmbeds || !sameSet(safety, saved.defaultSafety) || (canChangeBackground && backgroundChanged);
+  const prefsChanged = blur !== saved.blurUnsafeEmbeds || !sameSet(safety, saved.defaultSafety);
+  const privateChanged = isPrivate !== me.private;
+  const dirty = prefsChanged || privateChanged;
 
   const save = async () => {
     if (safety.length === 0) return toast("Pick at least one safety level.", "error");
-    if (backgroundId !== null && (!Number.isInteger(backgroundId) || backgroundId < 1)) return toast("The background must be a post ID.", "error");
-
-    // PATCH semantics: only what changed
-    const body: Partial<AccountPreferences> = {};
-    if (blur !== saved.blurUnsafeEmbeds) body.blurUnsafeEmbeds = blur;
-    if (!sameSet(safety, saved.defaultSafety)) body.defaultSafety = safety;
-    if (canChangeBackground && backgroundChanged) body.profileBackground = backgroundId;
 
     setSaving(true);
-    const prefs = await send<AccountPreferences>("/api/me/preferences", "PATCH", body);
+    const updates: Partial<AccountDetails> = {};
+    let failed = false;
+
+    // PATCH semantics: only what changed
+    if (prefsChanged) {
+      const body: Partial<AccountPreferences> = {};
+      if (blur !== saved.blurUnsafeEmbeds) body.blurUnsafeEmbeds = blur;
+      if (!sameSet(safety, saved.defaultSafety)) body.defaultSafety = safety;
+
+      const prefs = await send<AccountPreferences>("/api/me/preferences", "PATCH", body);
+      if (prefs) updates.preferences = prefs;
+      else failed = true;
+    }
+
+    if (privateChanged) {
+      const updated = await send<AccountDetails>("/api/me", "PATCH", { private: isPrivate });
+      if (updated) updates.private = updated.private;
+      else failed = true;
+    }
+
     setSaving(false);
-    if (!prefs) return;
-    onSaved(prefs);
-    toast("Preferences saved", "success");
+    if (Object.keys(updates).length) onSaved(updates); // keep whatever did save, even if the other half failed
+    if (!failed) toast("Preferences saved", "success"); // failures were already toasted by send()
   };
 
   return (
-    <AccountCard title="Content" description="Saved to your account, so they follow you to every device.">
+    <AccountCard title="Safety">
       <div className="space-y-5">
         <div>
           <p className="mb-2 text-xs text-subtle">
@@ -75,20 +87,13 @@ export default function ContentCard({ me, canChangeBackground, onSaved }: {
           description="In comments, blur embedded posts that are more explicit than the post they're on."
         />
 
-        {canChangeBackground && (
-          <Field label="Profile background" hint="A post ID to use as your profile's backdrop. Leave empty for none.">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              step={1}
-              value={background}
-              onChange={(e) => setBackground(e.target.value)}
-              placeholder="None"
-              className={inputClass}
-            />
-          </Field>
-        )}
+        <FullCheckbox
+          checked={isPrivate}
+          onChange={setIsPrivate}
+          icon={<EyeSlashIcon size={18} />}
+          label="Private account"
+          description="Your account and posts are hidden from everyone. Admins can still see your old posts for moderation purposes."
+        />
       </div>
 
       <CardActions>

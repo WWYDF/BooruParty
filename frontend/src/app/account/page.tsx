@@ -5,10 +5,9 @@ import { useRouter } from "next/navigation";
 import AccountHeader from "@/components/Account/AccountHeader";
 import ApplicationsCard from "@/components/Account/ApplicationsCard";
 import BrowserCard from "@/components/Account/BrowserCard";
-import ContentCard from "@/components/Account/ContentCard";
+import ContentCard from "@/components/Account/SafetyCard";
 import EmailCard from "@/components/Account/EmailCard";
 import PasswordCard from "@/components/Account/PasswordCard";
-import PrivacyCard from "@/components/Account/PrivacyCard";
 import ProfileCard from "@/components/Account/ProfileCard";
 import SessionCard from "@/components/Account/SessionCard";
 import TagsCard from "@/components/Account/TagsCard";
@@ -60,19 +59,19 @@ export default function AccountPage() {
 
       <div className="grid items-start gap-12 lg:grid-cols-2">
         <div className="space-y-6">
-          <ProfileCard me={me} canEditAvatar={user.permissions.includes("profile.edit.avatar")} onSaved={accountSaved} />
+          <ProfileCard
+            me={me}
+            canEditAvatar={user.permissions.includes("profile.edit.avatar")}
+            canChangeBackground={user.permissions.includes("profile.edit.background")}
+            onSaved={accountSaved}
+          />
           <EmailCard me={me} onSaved={accountSaved} />
           <PasswordCard />
-          <PrivacyCard me={me} onSaved={accountSaved} />
           {user.permissions.includes("applications.manage.own") && <ApplicationsCard />}
         </div>
 
         <div className="space-y-6">
-          <ContentCard
-            me={me}
-            canChangeBackground={user.permissions.includes("profile.edit.background")}
-            onSaved={(preferences) => setMe({ ...me, preferences })}
-          />
+          <ContentCard me={me} onSaved={accountSaved} />
           <TagsCard />
           <BrowserCard />
           <SessionCard onLogout={handleLogout} />

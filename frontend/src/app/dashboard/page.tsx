@@ -8,6 +8,7 @@ import {
   GearSixIcon,
   HardDrivesIcon,
   ImagesIcon,
+  KeyIcon,
   PuzzlePieceIcon,
   ShieldCheckIcon,
   SwatchesIcon,
@@ -25,6 +26,7 @@ const SECTION_INFO: Record<string, { icon: React.ReactNode; blurb: string }> = {
   "/dashboard/categories": { icon: <SwatchesIcon size={20} />, blurb: "Tag categories, colors and order" },
   "/dashboard/roles": { icon: <UsersThreeIcon size={20} />, blurb: "Roles and their permissions" },
   "/dashboard/addons": { icon: <PuzzlePieceIcon size={20} />, blurb: "AutoTagger, games and extras" },
+  "/dashboard/applications": { icon: <KeyIcon size={20} />, blurb: "Users' API keys: review and revoke" },
   "/dashboard/logs": { icon: <ClipboardTextIcon size={20} />, blurb: "Who changed what, and when" },
 };
 

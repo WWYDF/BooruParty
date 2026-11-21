@@ -13,6 +13,7 @@ export const DASHBOARD_SECTIONS = [
   { name: "Categories", href: "/dashboard/categories", perm: "tags.categories.manage" },
   { name: "Roles", href: "/dashboard/roles", perm: "dashboard.roles" },
   { name: "Addons", href: "/dashboard/addons", perm: "dashboard.addons" },
+  { name: "Applications", href: "/dashboard/applications", perm: "applications.manage.others" },
   { name: "Audit Log", href: "/dashboard/logs", perm: "dashboard.audit.log" },
 ] as const;
 
