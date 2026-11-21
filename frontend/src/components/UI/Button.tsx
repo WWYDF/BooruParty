@@ -23,7 +23,7 @@ const VARIANTS: Record<Variant, string> = {
 
 // Pphones get roughly one size up (easier to tap)
 const SIZES: Record<Size, string> = {
-  sm: 'gap-1.5 rounded-md px-2.5 py-1.5 text-xs   lg:gap-1 lg:px-2 lg:py-0.5 lg:text-2xs',
+  sm: 'gap-1.5 rounded-md px-2.5 py-2 text-xs   lg:gap-1 lg:px-2 lg:py-0.5 lg:text-2xs',
   md: 'gap-2 rounded-lg px-3 py-2 text-sm   lg:gap-1.5 lg:rounded-md lg:px-2.5 lg:py-1.5 lg:text-xs',
   lg: 'gap-2 rounded-lg px-4 py-2.5 text-sm   lg:px-3 lg:py-1.5',
 };

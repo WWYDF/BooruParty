@@ -9,6 +9,7 @@ import { API } from "@/core/api";
 import { hexToRgb } from "@/core/styles/roles";
 import { UserProfile as Profile } from "@/core/types/users";
 import ProfileBackground from "./ProfileBackground";
+import ProfileCollections from "./ProfileCollections";
 import ProfileComingSoon from "./ProfileComingSoon";
 import ProfileHeader from "./ProfileHeader";
 import ProfileRecentPosts from "./ProfileRecentPosts";
@@ -93,7 +94,7 @@ export default function UserProfile({ username }: { username: string }) {
 
         <ProfileRecentPosts username={profile.username} />
 
-        <ProfileComingSoon title="Collections" description="Favorites, liked pools and collections will show up here." />
+        <ProfileCollections username={profile.username} isOwner={isOwner} />
         <ProfileComingSoon title="Recent Comments" description="This user's latest comments will show up here." />
       </motion.div>
     </main>

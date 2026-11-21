@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { SparkleIcon, StarIcon, ThumbsDownIcon, ThumbsUpIcon } from '@phosphor-icons/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { BookmarksIcon, SparkleIcon, StarIcon, ThumbsDownIcon, ThumbsUpIcon } from '@phosphor-icons/react';
+import CollectionPopup from '@/components/Collections/CollectionPopup';
 import { useUser } from '@/components/UserProvider';
 import { useToast } from '@/components/UI/Toast';
 import { API, errorText } from '@/core/api';
 import { formatDuration } from '@/core/formats';
+import { OwnCollection } from '@/core/types/collections';
 import {
   BoostCooldownError,
   BoostResponse,
@@ -25,7 +28,7 @@ const buttonBase =
   'flex cursor-pointer items-center gap-2 rounded-full border border-secondary-border px-3 py-1.5 text-sm transition md:hover:border-zinc-700 disabled:cursor-not-allowed disabled:opacity-50';
 const idle = 'bg-secondary-border text-subtle';
 
-// Upvote / Favorite / Downvote, plus Boost. Collections come back once their API exists.
+// Upvote / Favorite / Downvote, plus Boost and Collection (opens CollectionPopup).
 export default function PostVoting({ post, onChange }: Props) {
   const { user, setUser } = useUser();
   const toast = useToast();
@@ -36,6 +39,34 @@ export default function PostVoting({ post, onChange }: Props) {
   const canVote = !!viewer && hasPerm('posts.vote');
   const canFavorite = !!viewer && hasPerm('posts.favorite');
   const canBoost = !!viewer && hasPerm('posts.boost');
+  const canCollect = !!viewer && hasPerm('collections.manage.own');
+
+  // Your collections, each saying whether this post is in it. Loaded up front so the button can show it,
+  // and so the popup opens instantly. The popup edits this list in place.
+  const [collections, setCollections] = useState<OwnCollection[] | null>(null);
+  const [collectionsFailed, setCollectionsFailed] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
+
+  useEffect(() => {
+    setCollections(null);
+    setCollectionsFailed(false);
+    setCollectionsOpen(false);
+    if (!canCollect) return;
+
+    let cancelled = false;
+    API(`/api/collections/own?postId=${post.id}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data: { collections: OwnCollection[] }) => { if (!cancelled) setCollections(data.collections); })
+      .catch(() => { if (!cancelled) setCollectionsFailed(true); });
+    return () => { cancelled = true; };
+  }, [post.id, canCollect]);
+
+  const updateCollections = useCallback(
+    (update: (prev: OwnCollection[]) => OwnCollection[]) => setCollections((prev) => (prev ? update(prev) : prev)),
+    [],
+  );
+  const closeCollections = useCallback(() => setCollectionsOpen(false), []); // stable, so the popup's listeners aren't re-added every render
+  const collected = collections?.some((c) => c.hasPost) ?? false;
 
   // Boost cooldown: a live countdown to the user's nextBoostAt (ticks only while one is running)
   const nextBoostAt = user?.boost?.nextBoostAt ? new Date(user.boost.nextBoostAt).getTime() : null;
@@ -213,6 +244,32 @@ export default function PostVoting({ post, onChange }: Props) {
           <SparkleIcon size={18} weight={canUndoBoost ? 'fill' : 'regular'} />
           {canUndoBoost ? `Boosted` : onCooldown ? `${timer}` : 'Boost'}
         </button>
+
+        {/* Relative wrapper: the popup hangs under the button, and clicks on the button don't count as "outside" */}
+        <div className="relative">
+          <button
+            onClick={() => setCollectionsOpen((o) => !o)}
+            disabled={!canCollect}
+            aria-expanded={collectionsOpen}
+            title={guestTitle ?? (collected ? 'Saved in a collection: click to change' : 'Save to a collection')}
+            className={`${buttonBase} ${collected ? 'bg-accent/10 text-purple-400' : idle}`}
+          >
+            <BookmarksIcon size={18} weight={collected ? 'fill' : 'regular'} />
+            Collection
+          </button>
+
+          <AnimatePresence>
+            {collectionsOpen && (
+              <CollectionPopup
+                postId={post.id}
+                collections={collections}
+                failed={collectionsFailed}
+                onChange={updateCollections}
+                onClose={closeCollections}
+              />
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
