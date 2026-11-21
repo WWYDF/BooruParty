@@ -72,6 +72,12 @@ export async function syncPermissions() {
     data: PERMISSIONS.map((name) => ({ name })),
     skipDuplicates: true,
   });
+
+  // Perms removed are dropped (Prisma clears their role links automatically)
+  const { count } = await prisma.permission.deleteMany({
+    where: { name: { notIn: [...PERMISSIONS] } },
+  });
+  if (count) logger.info(`[-] Removed ${count} retired permission(s).`);
 }
 
 
@@ -164,8 +170,8 @@ async function runPostImportSetup() {
       });
     } else {
       await prisma.$transaction(async (tx) => {
-        tx.role.updateMany({ where: { isDefault: true }, data: { isDefault: false } })
-        tx.role.update({
+        await tx.role.updateMany({ where: { isDefault: true }, data: { isDefault: false } })
+        await tx.role.update({
           where: { id: selDefRole },
           data: { isDefault: true }
         });

@@ -58,7 +58,6 @@ export const PERMISSIONS = [
   "dashboard.analytics",
   "dashboard.update",
   "dashboard.backups",
-  "dashboard.roles",
   "dashboard.audit.log",
   "dashboard.addons",
   "dashboard.checks",
