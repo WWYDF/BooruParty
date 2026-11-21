@@ -97,7 +97,7 @@ const postComments: FastifyPluginAsync = async (fastify) => {
       });
 
       return reply.status(201).send({
-        comment: { ...comment, embeds },
+        comment: { ...comment, embeds, author: formatUserSummary(comment.author) },
         embeddedPosts: await resolveEmbeddedPosts(embeds.postIds, viewer),
       })
     } catch (e) {
