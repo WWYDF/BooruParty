@@ -22,6 +22,7 @@ import viewPools from './Pools/view';
 import managePools from './Pools/manage';
 import poolPosts from './Pools/posts';
 import poolInteractions from './Pools/interactions';
+import applications from './Users/apps';
 
 const logger = appLogger('Routes');
 
@@ -31,6 +32,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(privateUsers, { prefix: '/me' });
   fastify.register(publicUsers, { prefix: '/users' });
   fastify.register(avatars, { prefix: '/avatars' });
+  fastify.register(applications, { prefix: '/applications' });
 
   // Posts
   fastify.register(createPost, { prefix: '/posts' });

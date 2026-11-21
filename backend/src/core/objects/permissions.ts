@@ -47,7 +47,7 @@ export const PERMISSIONS = [
   "tags.delete",
   "tags.categories.manage",
 
-  "applications.manage.self", // Create, edit, etc.
+  "applications.manage.own", // Create, edit, etc.
   "applications.manage.others", // For Moderation
 
   "dashboard.view",

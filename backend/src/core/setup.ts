@@ -105,7 +105,7 @@ const vip_perms: PermissionName[] = [
   "upload.type.video",
   "tags.create",
   "tags.edit",
-  "applications.manage.self",
+  "applications.manage.own",
   "profile.edit.background"
 ];
 

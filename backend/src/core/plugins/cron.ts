@@ -21,7 +21,9 @@ const cronPlugin: FastifyPluginAsync = async (fastify) => {
   });
 
   // Additionally, run the following once at each startup:
-  await updateServerStats();
+  if (process.env.MODE === 'PRODUCTION') {
+    await updateServerStats();
+  }
 
   logger.success('[+] Cronjobs loaded successfully!');
 };
