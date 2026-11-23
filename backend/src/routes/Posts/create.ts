@@ -66,13 +66,6 @@ const createPost: FastifyPluginAsync = async (fastify) => {
           hint: resolvedTags.invalid.map((i) => `"${i.input}": ${i.reason}`).join(' '),
         });
       }
-      if (resolvedTags.missing.length) {
-        return reply.status(400).send({
-          error: 'Unknown tags',
-          hint: `These tags don't exist: ${resolvedTags.missing.join(', ')}`,
-          missing: resolvedTags.missing,
-        });
-      }
 
       // 4. Process file (detect, check, dedupe, thumbs, preview, measure, and move into place)
       const skipDupes = getField(upload, 'skipDupes') === 'true';
@@ -99,10 +92,7 @@ const createPost: FastifyPluginAsync = async (fastify) => {
       // 6. Save the post and its tags together
       const post = await prisma.$transaction(async (tx) => {
         // Resolve again: tags may have been deleted or merged while we were processing
-        const { tags: found, missing } = await resolveTagNames(tags, tx);
-        if (missing.length) {
-          throw new HttpError(400, { error: 'Unknown tags', hint: `These tags don't exist: ${missing.join(', ')}`, missing });
-        }
+        const { tags: found } = await resolveTagNames(tags, tx);
 
         const { tags: autoFound } = await resolveTagNames(autoTagNames, tx);
         const tagIds = [...new Set([...found, ...autoFound].map((t) => t.id))];
