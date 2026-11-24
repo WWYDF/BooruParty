@@ -148,8 +148,14 @@ export const MAX_BULK_POSTS = 250; // backend MAX_BULK_EDITS (pool and collectio
 // Mass editor "Related posts": leave alone, relate all to one post (relateTo), or to each other (relateEachOther)
 export type RelateMode = 'none' | 'one' | 'all';
 
-// What the feed has to do after a mass edit: drop deleted posts, or reload after an edit
-export type MassEditChange = { deleted?: number[], edited?: boolean };
+// What the feed has to do after a mass edit: drop deleted posts, reload after an edit,
+// or patch its cards' viewer state after a bulk vote/favorite (ids = the updated ones only)
+export type MassEditChange = {
+  deleted?: number[],
+  edited?: boolean,
+  voted?: { ids: number[], value: VoteValue },
+  favorited?: { ids: number[], favorited: boolean, autoLike: boolean }, // autoLike: new favorites were also liked
+};
 
 // GET /api/posts/:id/navigate. null = nothing that way (end of the search, or order:random)
 export type PostNavigatorType = {

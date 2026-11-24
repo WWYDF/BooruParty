@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { WarningIcon } from '@phosphor-icons/react';
 import InfoModal from '@/components/UI/Modals/InfoModal';
 import { useUser } from '@/components/UserProvider';
-import { MassEditChange, MAX_BULK_POSTS } from '@/core/types/posts';
+import { MassEditChange, MAX_BULK_POSTS, PostViewerState } from '@/core/types/posts';
 import EditorsTab from './MassEditor/EditorsTab';
 import UsersTab from './MassEditor/UsersTab';
 import { plural } from './MassEditor/shared';
@@ -13,12 +13,13 @@ type Props = {
   open: boolean;
   onClose: () => void;
   postIds: number[]; // selected posts, in the order the feed shows them (pools append in this order)
+  viewers: (PostViewerState | null)[]; // the user's vote/favorite on each selected post (from the feed)
   onApplied: (change: MassEditChange) => void;
 };
 
 type Tab = 'editors' | 'users';
 
-export default function MassEditor({ open, onClose, postIds, onApplied }: Props) {
+export default function MassEditor({ open, onClose, postIds, viewers, onApplied }: Props) {
   const { user } = useUser();
   const hasPerm = (perm: string) => user?.permissions.includes(perm) ?? false;
 
@@ -71,7 +72,7 @@ export default function MassEditor({ open, onClose, postIds, onApplied }: Props)
               You can change at most {MAX_BULK_POSTS} posts at once. Deselect {postIds.length - MAX_BULK_POSTS} to continue.
             </p>
           ) : activeTab === 'users' ? (
-            <UsersTab postIds={postIds} hasPerm={hasPerm} />
+            <UsersTab postIds={postIds} viewers={viewers} hasPerm={hasPerm} onApplied={onApplied} />
           ) : (
             <EditorsTab postIds={postIds} hasPerm={hasPerm} onApplied={onApplied} onClose={onClose} />
           )}

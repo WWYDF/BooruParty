@@ -11,7 +11,7 @@ import LoadingOverlay from "../LoadingOverlay";
 import MassEditor from "./MassEditor";
 import { API, errorText } from "@/core/api";
 import { buildQuery } from "@/core/feedQuery";
-import { MassEditChange } from "@/core/types/posts";
+import { MassEditChange, PostViewerState, VoteValue } from "@/core/types/posts";
 
 type Layout = "GRID" | "COLLAGE";
 type FeedError = { status: number; text: string };
@@ -231,9 +231,45 @@ export default function ClientPostsPage() {
   // The mass editor gets the selection in feed order (pools append posts in the order sent),
   // not in the order they were clicked
   const selectedSet = new Set(selectedPostIds);
-  const selectedInFeedOrder = posts.filter((p) => selectedSet.has(p.id)).map((p) => p.id);
+  const selectedPosts = posts.filter((p) => selectedSet.has(p.id));
+  const selectedInFeedOrder = selectedPosts.map((p) => p.id);
+  const selectedViewers: (PostViewerState | null)[] = selectedPosts.map((p) => p.viewer ?? null);
+
+  // Bulk vote/favorite: update the cards in place (score and favoriteCount too) instead of refetching.
+  // The selection stays, since the Users tab keeps the modal open for more actions.
+  const patchPosts = (ids: number[], update: (post: any) => any) => {
+    const hit = new Set(ids);
+    setPosts((prev) => prev.map((p) => (hit.has(p.id) ? update(p) : p)));
+  };
+
+  const applyVote = (post: any, value: VoteValue) => {
+    const old: number = post.viewer?.vote ?? 0;
+    return { ...post, score: post.score + value - old, viewer: { favorited: false, ...post.viewer, vote: value } };
+  };
 
   const handleMassEdit = (change: MassEditChange) => {
+    if (change.voted) {
+      const { ids, value } = change.voted;
+      patchPosts(ids, (p) => applyVote(p, value));
+      return;
+    }
+
+    if (change.favorited) {
+      const { ids, favorited, autoLike } = change.favorited;
+      patchPosts(ids, (p) => {
+        const was = p.viewer?.favorited ?? false;
+        if (was === favorited) return p; // already in that state: the server skipped it too
+        // Same rule as the server: only a NEW favorite auto-likes; unfavoriting leaves the vote alone
+        const voted = favorited && autoLike ? applyVote(p, 1) : p;
+        return {
+          ...voted,
+          favoriteCount: p.favoriteCount + (favorited ? 1 : -1),
+          viewer: { vote: 0, ...voted.viewer, favorited },
+        };
+      });
+      return;
+    }
+
     setSelectedPostIds([]);
     setSelectMode(false);
 
@@ -299,6 +335,7 @@ export default function ClientPostsPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         postIds={selectedInFeedOrder}
+        viewers={selectedViewers}
         onApplied={handleMassEdit}
       />
 
