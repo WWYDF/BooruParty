@@ -1,6 +1,6 @@
 import { MAX_INT, MAX_POOL_BATCH, MAX_POOL_POSTS } from "@/core/objects/limits";
 import { FastifyPluginAsync } from "fastify";
-import { Prisma } from "../../../prisma/client";
+import { Prisma, Safety } from "../../../prisma/client";
 import { HttpError, isMissingRowError } from "@/core/utilities/errors";
 import { requirePermission } from "@/core/utilities/permissionCache";
 import { getViewer } from "@/core/utilities/viewer";
@@ -47,7 +47,7 @@ const poolPosts: FastifyPluginAsync = async (fastify) => {
 
     // Editors can only add posts they can see. Hidden and nonexistent give the same answer
     const visible = await prisma.post.count({
-      where: { AND: [{ id: { in: postIds } }, ...visibleConditions(viewer)] },
+      where: { AND: [{ id: { in: postIds } }, ...visibleConditions(viewer, Object.values(Safety))] },
     });
     if (visible !== postIds.length) {
       throw new HttpError(400, { error: 'Bad Request', hint: 'Unknown posts' });

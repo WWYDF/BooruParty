@@ -8,8 +8,10 @@ import PostGrid from "@/components/Posts/PostGrid";
 import PostToolbar from "./PostToolbar";
 import QuickMenu from "../Navigation/QuickMenu";
 import LoadingOverlay from "../LoadingOverlay";
+import MassEditor from "./MassEditor";
 import { API, errorText } from "@/core/api";
 import { buildQuery } from "@/core/feedQuery";
+import { MassEditChange } from "@/core/types/posts";
 
 type Layout = "GRID" | "COLLAGE";
 type FeedError = { status: number; text: string };
@@ -226,6 +228,22 @@ export default function ClientPostsPage() {
     });
   };
 
+  // The mass editor gets the selection in feed order (pools append posts in the order sent),
+  // not in the order they were clicked
+  const selectedSet = new Set(selectedPostIds);
+  const selectedInFeedOrder = posts.filter((p) => selectedSet.has(p.id)).map((p) => p.id);
+
+  const handleMassEdit = (change: MassEditChange) => {
+    setSelectedPostIds([]);
+    setSelectMode(false);
+
+    if (change.deleted?.length) {
+      const gone = new Set(change.deleted);
+      setPosts((prev) => prev.filter((p) => !gone.has(p.id)));
+    }
+    if (change.edited) loadPosts(activeQuery, null); // safety/tags may change what this search matches
+  };
+
   return (
     <>
       <PostToolbar
@@ -276,6 +294,13 @@ export default function ClientPostsPage() {
       )}
 
       <div ref={sentinel} />
+
+      <MassEditor
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        postIds={selectedInFeedOrder}
+        onApplied={handleMassEdit}
+      />
 
       {/* The feed only reads ?query= on mount, so the menu runs its searches through search() */}
       <QuickMenu onSearch={(text) => { setSearchText(text); search(text); }} />
