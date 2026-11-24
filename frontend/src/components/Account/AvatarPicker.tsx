@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CameraIcon, TrashIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import { useToast } from "@/components/UI/Toast";
-import { APIUpload, errorText } from "@/core/api";
-import { useSend } from "./useSend";
+import { APIUpload, errorText, useSend } from "@/core/api";
 
 const MAX_AVATAR_MB = 5; // matches MAX_AVATAR_BYTES on the API
 const DEFAULT_AVATAR = "/i/user.png";

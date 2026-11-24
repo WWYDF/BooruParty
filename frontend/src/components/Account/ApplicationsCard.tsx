@@ -8,8 +8,8 @@ import ConfirmModal from "@/components/UI/Modals/ConfirmModal";
 import { useToast } from "@/components/UI/Toast";
 import { formatRelativeTime } from "@/core/formats";
 import { AccountCard, inputClass } from "./AccountCard";
-import { useSend } from "./useSend";
 import { Docs } from "@/core/constants/docs";
+import { useSend } from "@/core/api";
 
 const MAX_APPLICATIONS = 10; // backend MAX_APPLICATIONS
 const MAX_NAME = 32;

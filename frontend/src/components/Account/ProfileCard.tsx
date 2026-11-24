@@ -10,7 +10,7 @@ import { AccountDetails, AccountPreferences } from "@/core/types/users";
 import { AccountCard, CardActions, Field, inputClass } from "./AccountCard";
 import AvatarPicker from "./AvatarPicker";
 import TagListField, { sameNames, toChip } from "./TagListField";
-import { useSend } from "./useSend";
+import { useSend } from "@/core/api";
 
 // Same rules as the API's schemas
 const USERNAME = /^[a-zA-Z0-9_.-]{3,32}$/;

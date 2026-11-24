@@ -11,7 +11,7 @@ import { TagChip } from "@/core/types/uploads";
 import { AccountDetails, AccountPreferences } from "@/core/types/users";
 import { AccountCard, CardActions } from "./AccountCard";
 import TagListField, { sameNames, toChip } from "./TagListField";
-import { useSend } from "./useSend";
+import { useSend } from "@/core/api";
 
 // What the server uses when the user has no Preferences row yet
 const DEFAULT_PREFS: AccountPreferences = { blurUnsafeEmbeds: true, defaultSafety: ["SAFE"], profileBackground: null };

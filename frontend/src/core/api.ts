@@ -1,3 +1,5 @@
+import { useToast } from "@/components/UI/Toast";
+
 export const API_Endpoint = process.env.NEXT_PUBLIC_FASTIFY;
 
 let refreshing: Promise<boolean> | null = null;
@@ -52,5 +54,27 @@ export async function APIUpload(path: string, body: FormData, onProgress?: (frac
   return res;
 }
 
-export const errorText = (data: { error?: string; hint?: string }) =>
-  data.hint ? `${data.error}: ${data.hint}` : data.error ?? 'Something went wrong';
+export const errorText = (data: { error?: string; hint?: string }) => data.hint ? `${data.error}: ${data.hint}` : data.error ?? 'Something went wrong';
+
+// JSON request that toasts the API's error and returns the body (null on failure)
+export function useSend() {
+  const toast = useToast();
+
+  return async <T>(path: string, method: string, body?: object): Promise<T | null> => {
+    try {
+      const res = await API(path, {
+        method,
+        ...(body && { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(errorText(data), "error");
+        return null;
+      }
+      return data as T;
+    } catch {
+      toast("The server could not be reached", "error");
+      return null;
+    }
+  };
+}

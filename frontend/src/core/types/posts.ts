@@ -129,11 +129,11 @@ export type BoostResponse = BoostState & { boostCount: number };
 // 429 from PUT /api/posts/:id/boost
 export type BoostCooldownError = { error: string, hint?: string, nextBoostAt: string };
 
-// Every /api/posts/mass route (vote, favorite, PATCH edit, DELETE).
+// Every /api/posts/bulk route (vote, favorite, PATCH edit, DELETE).
 // skipped = posts left alone: hidden, missing, or not yours to edit/delete
 export type BulkResult = { updated: number[], skipped: number[] };
 
-// PATCH /api/posts/mass body. Tags are a diff; relateTo and relateEachOther are mutually exclusive
+// PATCH /api/posts/bulk body. Tags are a diff; relateTo and relateEachOther are mutually exclusive
 export type BulkEditBody = {
   postIds: number[],
   addTags?: string[],
@@ -144,6 +144,9 @@ export type BulkEditBody = {
 };
 
 export const MAX_BULK_POSTS = 250; // backend MAX_BULK_EDITS (pool and collection batches allow the same)
+
+// Mass editor "Related posts": leave alone, relate all to one post (relateTo), or to each other (relateEachOther)
+export type RelateMode = 'none' | 'one' | 'all';
 
 // What the feed has to do after a mass edit: drop deleted posts, or reload after an edit
 export type MassEditChange = { deleted?: number[], edited?: boolean };

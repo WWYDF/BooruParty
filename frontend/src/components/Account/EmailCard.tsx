@@ -6,7 +6,7 @@ import Button from "@/components/UI/Button";
 import { useToast } from "@/components/UI/Toast";
 import { AccountDetails } from "@/core/types/users";
 import { AccountCard, CardActions, Field, inputClass } from "./AccountCard";
-import { useSend } from "./useSend";
+import { useSend } from "@/core/api";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

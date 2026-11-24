@@ -5,7 +5,7 @@ import { KeyIcon } from "@phosphor-icons/react";
 import Button from "@/components/UI/Button";
 import { useToast } from "@/components/UI/Toast";
 import { AccountCard, CardActions, Field, inputClass } from "./AccountCard";
-import { useSend } from "./useSend";
+import { useSend } from "@/core/api";
 
 // Same limits as the API's passwordSchema (72 bytes is bcrypt's cap)
 const PASSWORD_MIN = 8;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
 type ConfirmModalProps = {
@@ -44,12 +45,13 @@ export default function ConfirmModal({
     return () => document.removeEventListener("keydown", esc);
   }, [onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  // Portaled above InfoModal (z-1000), so it also works when opened from inside one
+  return createPortal(
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+        className="fixed inset-0 bg-black/70 flex items-center justify-center z-1100"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -102,6 +104,7 @@ export default function ConfirmModal({
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
