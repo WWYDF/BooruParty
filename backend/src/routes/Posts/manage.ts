@@ -5,13 +5,11 @@ import { prisma } from "@/core/plugins/prisma";
 import { rolePermissionCheck } from "@/core/utilities/permissionCache";
 import { HttpError } from "@/core/utilities/errors";
 import { resolveOrCreateTags } from "@/core/utilities/tags";
-import { appLogger } from "@/core/plugins/logger";
 import { MAX_POST_NOTES_LENGTH, MAX_POST_SOURCE_LENGTH, MAX_POST_SOURCES, MAX_POST_TAGS, MAX_RELATED_POSTS } from "@/core/objects/limits";
 import { getViewer } from "@/core/utilities/viewer";
 import { visibleConditions } from "@/components/posts/postQuery";
 import { cleanupDeletedPosts, deletePosts, postDeleteSelect } from "@/components/posts/delete";
-
-const logger = appLogger('Posts/Manage');
+import { relationPair } from "@/components/posts/relations";
 
 type EditBody = {
   safety?: Safety,
@@ -19,11 +17,6 @@ type EditBody = {
   notes?: string | null,
   tags?: string[],
   related?: number[],
-}
-
-// PostRelation stores each pair once, lower id first. Every read/write goes through this
-function relationPair(a: number, b: number) {
-  return a < b ? { fromId: a, toId: b } : { fromId: b, toId: a };
 }
 
 const managePosts: FastifyPluginAsync = async (fastify) => {
