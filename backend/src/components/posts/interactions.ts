@@ -125,3 +125,19 @@ export async function getBoostState(db: Db, userId: string, lastBoostAt: Date | 
     activeBoostPostId: active?.postId ?? null,
   };
 }
+
+// Recounts score for many posts in one statement (bulk version of the recount in setVote)
+export async function recountScores(db: Db, postIds: number[]) {
+  await db.$executeRaw`
+    UPDATE "Post" p
+    SET score = COALESCE((SELECT SUM(v.value) FROM "PostVote" v WHERE v."postId" = p.id), 0)
+    WHERE p.id = ANY(${postIds})`;
+}
+
+// Recounts favoriteCount for many posts in one statement (bulk version of the recount in setFavorite)
+export async function recountFavorites(db: Db, postIds: number[]) {
+  await db.$executeRaw`
+    UPDATE "Post" p
+    SET "favoriteCount" = (SELECT COUNT(*) FROM "PostFavorite" f WHERE f."postId" = p.id)
+    WHERE p.id = ANY(${postIds})`;
+}

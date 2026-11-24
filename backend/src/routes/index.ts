@@ -29,6 +29,7 @@ import viewCollections from './Collections/view';
 import roles from './System/roles';
 import tagLists from './Users/tags';
 import userActivity from './Users/activity';
+import bulkPosts from './Posts/bulk';
 
 const logger = appLogger('Routes');
 
@@ -52,6 +53,7 @@ const routes: FastifyPluginAsync = async (fastify) => {
   fastify.register(postComments, { prefix: '/posts' });
   fastify.register(manageComments, { prefix: '/comments' });
   fastify.register(autoTagPosts, { prefix: '/posts' });
+  fastify.register(bulkPosts, { prefix: '/posts/bulk' });
 
   // Tags
   fastify.register(tagCategories, { prefix: '/tag-categories' });

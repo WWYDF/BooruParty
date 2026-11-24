@@ -5,12 +5,11 @@ import { prisma } from "@/core/plugins/prisma";
 import { rolePermissionCheck } from "@/core/utilities/permissionCache";
 import { HttpError } from "@/core/utilities/errors";
 import { resolveOrCreateTags } from "@/core/utilities/tags";
-import { discardFiles, postFilePaths } from "@/components/uploads/finalize";
 import { appLogger } from "@/core/plugins/logger";
 import { MAX_POST_NOTES_LENGTH, MAX_POST_SOURCE_LENGTH, MAX_POST_SOURCES, MAX_POST_TAGS, MAX_RELATED_POSTS } from "@/core/objects/limits";
 import { getViewer } from "@/core/utilities/viewer";
 import { visibleConditions } from "@/components/posts/postQuery";
-import { getServerSettings, loadServerSettings } from "@/core/utilities/settingsCache";
+import { cleanupDeletedPosts, deletePosts, postDeleteSelect } from "@/components/posts/delete";
 
 const logger = appLogger('Posts/Manage');
 
@@ -184,10 +183,7 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
   }, async (req, reply) => {
     const { id } = req.params as { id: number };
 
-    const post = await prisma.post.findUnique({
-      where: { id },
-      select: { id: true, uploaderId: true, fileKey: true, thumbKey: true, originalPath: true, previewPath: true }
-    });
+    const post = await prisma.post.findUnique({ where: { id }, select: postDeleteSelect });
     if (!post) return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
 
     // Same rule as editing, delete.others covers your own posts too
@@ -199,41 +195,10 @@ const managePosts: FastifyPluginAsync = async (fastify) => {
       return reply.status(403).send({ error: 'Forbidden', hint: `Missing permission: ${isOwner ? 'posts.delete.own' : 'posts.delete.others'}` });
     }
 
-    try {
-      await prisma.$transaction(async (tx) => {
-        // Lock the post row. A concurrent edit or delete of this post waits until we're done.
-        const locked = await tx.$queryRaw<{id: number }[]>`SELECT id FROM "Post" WHERE id = ${id} FOR UPDATE`;
-        if (locked.length === 0) throw new HttpError(404, { error: 'Not found', hint: 'No post with that id' });
+    const deleted = await prisma.$transaction((tx) => deletePosts(tx, [id]));
+    if (deleted.length === 0) return reply.status(404).send({ error: 'Not found', hint: 'No post with that id' });
 
-        // -1 on every tag this post has, in one query, BEFORE the cascade removes the PostTag rows
-        await tx.tag.updateMany({
-          where: { posts: { some: { postId: id } } },
-          data: { postCount: { decrement: 1 } }
-        });
-
-        // Decrement count on collections this post was a part of
-        await tx.postCollection.updateMany({
-          where: { items: { some: { postId: id } } },
-          data: { itemCount: { decrement: 1 } }
-        });
-
-        await tx.post.delete({ where: { id } }); // cascades PostTag + PostCollectionItem rows
-      });
-    } catch (e) {
-      if (e instanceof HttpError) return reply.status(e.status).send(e.body);
-      throw e;
-    };
-
-    // Only after the commit: if the tx had failed, the post would still need its files
-    try {
-      await discardFiles(postFilePaths(post));
-
-      // if this post was featured, refresh the serverSettings cache
-      if (getServerSettings().featuredPostId === id) await loadServerSettings();
-    } catch (e) {
-      logger.error(`Post ${id} deleted, but some of its files could not be removed`, e);
-    }
-
+    await cleanupDeletedPosts([post]);
     return reply.status(204).send();
   });
 };
