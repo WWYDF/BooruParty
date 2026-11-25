@@ -78,7 +78,7 @@ export default function TagEditPage() {
   const router = useRouter();
   const toast = useToast();
   const { user } = useUser();
-  const { tag, categories, error } = useTagDetail(name, "edit");
+  const { tag, categories, error, reload } = useTagDetail(name, "edit");
 
   const [primary, setPrimary] = useState("");
   const [aliases, setAliases] = useState<string[]>([]);
@@ -154,7 +154,8 @@ export default function TagEditPage() {
         return;
       }
       toast("Tag saved", "success");
-      router.push(`/tags/${encodeURIComponent(data.name ?? newName)}`); // may have been renamed
+      if (body.name) router.replace(`/tags/${encodeURIComponent(newName)}/edit`);
+      else reload();
     } catch {
       toast("The server could not be reached", "error");
     } finally {
