@@ -24,9 +24,6 @@ export type CollectionList = {
   totalPages: number;
 };
 
-export const COLLECTION_SORTS = ['updated', 'newest', 'name', 'size'] as const;
-export type CollectionSort = typeof COLLECTION_SORTS[number];
-
 // GET /api/collections/own?postId=<id>
 export type OwnCollection = CollectionSummary & {
   hasPost: boolean;     // only sent when postId was given

@@ -5,15 +5,9 @@ import { PlusIcon, XIcon } from '@phosphor-icons/react';
 import { API } from '@/core/api';
 import { formatCounts } from '@/core/formats';
 import { TagChip } from '../../core/types/uploads';
+import { TagResult } from '@/core/types/tags';
 
-// GET /api/tags item (only the fields used here)
-type TagResult = {
-  id: number;
-  name: string;
-  postCount: number;
-  category: { color: string };
-  names?: { name: string }[]; // only the names that matched the search
-};
+
 
 // GET /api/tags/:name -> allImplications item
 type ImpliedTag = { id: number; name: string; categoryId: number };

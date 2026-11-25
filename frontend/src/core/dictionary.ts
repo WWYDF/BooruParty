@@ -1,40 +1,4 @@
-// This should match whats in Fastify.
-export const ALLOWED_EXTENSIONS = [
-  'png', 'jpg', 'jpeg', 'webp', 'bmp', 'tiff',
-  'gif', 'apng',
-  'mp4', 'webm', 'mov', 'avi', 'mkv', 'quicktime'
-];
-
 export type FileType = 'IMAGE' | 'ANIMATED' | 'VIDEO';
-
-export const DISALLOWED_USERNAMES = [
-  "admin",
-  "administrator",
-  "root",
-  "moderator",
-  "support",
-  "staff",
-  "system",
-  "null",
-  "undefined",
-  "api",
-  "setup",
-  "login",
-  "register",
-  "me",
-  "deleted",
-  "anonymous"
-];
-
-export const ALLOWED_EMBED_SOURCES: Record<string, "image" | "iframe"> = {
-  "cdn.discordapp.com": "image",
-  "media.tenor.com": "image",
-  "media1.tenor.com": "image",
-  "c.tenor.com": "image",
-  // Later additions:
-  // "youtube.com": "iframe",
-  // "youtu.be": "iframe",
-};
 
 
 // Dashboard Stuff
@@ -45,3 +9,6 @@ export const auditLogColors: Record<string, string> = {
   UPDATE: "text-blue-400",
   ARCHIVE: "text-pink",
 };
+
+// Any API with pagination generally follows this format
+export type GenericPageInfo = { page: number, limit: number, total: number, totalPages: number };

@@ -23,7 +23,7 @@ type Adjacent = PostNavigatorType & { position?: number; total?: number };
 
 const NO_NAV: Adjacent = { previousPostId: null, nextPostId: null };
 
-export function useAdjacentPosts(postId: number, poolId?: number) {
+function useAdjacentPosts(postId: number, poolId?: number) {
   const [nav, setNav] = useState<Adjacent>(NO_NAV);
 
   useEffect(() => {

@@ -7,7 +7,7 @@ import PostNavigator from './PostNavigator';
 import QuickMenu from '../../Navigation/QuickMenu';
 import PostCommentForm from './PostCommentForm';
 import PostCommentList from './PostCommentList';
-import LoadingOverlay from '@/components/LoadingOverlay';
+import LoadingOverlay from '@/components/UI/LoadingOverlay';
 import Button from '@/components/UI/Button';
 import { useUser } from '@/components/UserProvider';
 import { API } from '@/core/api';

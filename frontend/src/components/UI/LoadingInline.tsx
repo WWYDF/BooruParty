@@ -1,4 +1,4 @@
-import { SpinnerGap } from '@phosphor-icons/react'
+import { SpinnerGapIcon } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 type LoadingInlineProps = {
@@ -24,7 +24,7 @@ export default function LoadingInline({
           transition={{ duration: animatedExit ? 0.2 : 0 }}
           className={`inline-flex items-center gap-2 ${className}`}
         >
-          <SpinnerGap className="animate-spin" size={16} />
+          <SpinnerGapIcon className="animate-spin" size={16} />
           <span>{label}</span>
         </motion.div>
       )}

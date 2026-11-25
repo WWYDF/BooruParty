@@ -1,40 +1,8 @@
 import { FileType } from "../dictionary";
-import { Tag, TagGroup } from "./tags";
 import { BoostState, UserSimpleSummary } from "./users";
 import { PoolSummary } from "./pools";
 
 export type Safety = 'SAFE' | 'QUESTIONABLE' | 'EXPLICIT';
-
-// Returned when searching an individual post
-// Has new sturcture, but will be phased out over time in favor of PostDetail
-export type Post = {
-  id: number,
-  type: FileType,
-  safety: Safety,
-  fileKey: string,
-  aspectRatio: number,
-  sources: string[],
-  notes: string | null,
-  
-  fileSize: number, // bytes
-  previewSize: number, // bytes
-  duration: number | null,
-  hasAudio: boolean,
-
-  score: number,
-  tags: [],
-
-  createdAt: Date,
-  uploader: UserSimpleSummary,
-
-  originalPath: string,
-  previewPath: string,
-  thumbnails: {
-    small: string,
-    med: string,
-    large: string,
-  }
-}
 
 // Returned when searching the Posts page(s)
 export type Posts = {
@@ -161,25 +129,4 @@ export type MassEditChange = {
 export type PostNavigatorType = {
   previousPostId: number | null;
   nextPostId: number | null;
-}
-
-
-// Fastify Response
-export type FastifyUpload = {
-  status: string,
-  postId: number,
-  type: FileType,
-  previewScale: number | null,
-  aspectRatio: number,
-  deletedPreview?: boolean,
-  fileName?: string
-  assignedExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif' | null,
-  transType?: FileType,
-  finalExt: 'mp4' | 'webm' | 'mkv' | 'webp' | 'gif',
-  fileSize: number,
-  previewSize?: number,
-  previewPath: string,
-  originalPath: string,
-  duration?: number,
-  hasAudio: boolean,
 }

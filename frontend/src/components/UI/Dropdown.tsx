@@ -5,7 +5,7 @@ import { CaretDownIcon, CheckIcon } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import clsx from 'clsx';
 
-export type DropdownOption<T extends string | number> = {
+type DropdownOption<T extends string | number> = {
   value: T;
   label: string;
   color?: string;     // dot to the left + colored label (e.g. tag categories)

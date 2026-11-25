@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { API } from "@/core/api";
+import { TagResult } from "./types/tags";
 
-export type Suggestion = {
+type Suggestion = {
   key: string;        // React key
   insert: string;     // replaces the token under the caret (any -/~ prefix is kept)
   label: string;      // what the dropdown shows
@@ -9,15 +10,6 @@ export type Suggestion = {
   color?: string;     // category color dot
   count?: number;     // post count
   continues?: boolean; // true = no trailing space, the user keeps typing (e.g. "safety:")
-};
-
-// GET /api/tags item (only the fields used here)
-type TagResult = {
-  id: number;
-  name: string;
-  postCount: number;
-  category: { color: string };
-  names?: { name: string }[]; // only the names that matched the search
 };
 
 // Must match parseSearch() in backend/src/core/utilities/search.ts

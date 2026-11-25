@@ -2,7 +2,7 @@ import { Posts } from './posts';
 import { UserSimpleSummary } from './users';
 
 // Parsed by the server from `content`. Only these are embeds; any other link is plain text.
-export type CommentEmbeds = {
+type CommentEmbeds = {
   postIds: number[]; // ":123:" tokens, unique, in order of appearance
   media: string[];   // https URLs on the server's media allowlist (GIFs etc.)
 };

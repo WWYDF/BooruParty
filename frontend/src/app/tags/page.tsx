@@ -12,6 +12,7 @@ import { CreateTagModal } from "@/components/Tags/CreateModal";
 import { CategoryInfo } from "@/core/types/tags";
 import { API, errorText } from "@/core/api";
 import { formatCounts } from "@/core/formats";
+import { GenericPageInfo } from "@/core/dictionary";
 
 type Sort = "popular" | "name" | "newest" | "oldest";
 
@@ -24,8 +25,6 @@ type TagRow = {
   category: CategoryInfo;
   names?: { name: string }[]; // only while searching: the names that matched
 };
-
-type PageInfo = { page: number; limit: number; total: number; totalPages: number };
 
 const PER_PAGE = 50;
 const SORT_OPTIONS: { value: Sort; label: string }[] = [
@@ -50,7 +49,7 @@ export default function TagListPage() {
 
   const [categories, setCategories] = useState<(CategoryInfo & { isDefault?: boolean })[]>([]);
   const [tags, setTags] = useState<TagRow[]>([]);
-  const [pagination, setPagination] = useState<PageInfo | null>(null);
+  const [pagination, setPagination] = useState<GenericPageInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);

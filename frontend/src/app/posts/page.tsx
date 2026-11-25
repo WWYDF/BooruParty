@@ -1,7 +1,7 @@
 import ClientPostsPage from "@/components/Posts/PostsPage";
 import { Metadata } from "next";
 import { Suspense } from "react";
-import LoadingOverlay from "@/components/LoadingOverlay";
+import LoadingOverlay from "@/components/UI/LoadingOverlay";
 
 const site_name = process.env.NEXT_PUBLIC_SITE_NAME || 'https://example.com'
 

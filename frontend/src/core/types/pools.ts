@@ -1,15 +1,5 @@
 import { Posts, Safety } from "./posts";
-
-// A tag as the API's tagSummarySelect returns it
-export type TagSummary = {
-  id: number;
-  name: string;
-  categoryId: number;
-  postCount: number; // site-wide
-};
-
-// A tag on a pool page: poolCount = how many of the pool's posts (that you can see) carry it
-export type PoolTag = TagSummary & { poolCount: number };
+import { TagSummary } from "./tags";
 
 // poolSummarySelect
 type PoolBase = {
@@ -35,8 +25,8 @@ export type PoolSummary = PoolBase & {
 // GET /api/pools/:id
 export type PoolDetail = PoolBase & {
   safety: Safety | null;
-  artists: PoolTag[];  // most common first; [0] is the primary artist
-  tags: PoolTag[];     // every tag on the pool's posts, most common first
+  artists: TagSummary[];  // most common first; [0] is the primary artist
+  tags: TagSummary[];     // every tag on the pool's posts, most common first
   posts: Posts[];      // in pool order
   viewer: { favorited: boolean } | null; // null for guests
 };

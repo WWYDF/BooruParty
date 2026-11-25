@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircleIcon, MinusCircleIcon, PlusCircleIcon, XCircleIcon, XIcon } from '@phosphor-icons/react';
-import LoadingInline from '@/components/LoadingInline';
+import LoadingInline from '@/components/UI/LoadingInline';
 import { useLockBodyScroll } from '@/core/hooks/bodyScroll';
 import { API, errorText } from '@/core/api';
 import { AutoTagMatch, AutoTagResult } from '@/core/types/addons';

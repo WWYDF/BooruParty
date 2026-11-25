@@ -7,7 +7,7 @@ import { ProhibitIcon } from "@phosphor-icons/react";
 import PostGrid from "@/components/Posts/PostGrid";
 import PostToolbar from "./PostToolbar";
 import QuickMenu from "../Navigation/QuickMenu";
-import LoadingOverlay from "../LoadingOverlay";
+import LoadingOverlay from "../UI/LoadingOverlay";
 import MassEditor from "./MassEditor";
 import { API, errorText } from "@/core/api";
 import { buildQuery } from "@/core/feedQuery";

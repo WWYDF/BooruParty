@@ -8,9 +8,9 @@ import { API, errorText } from "@/core/api";
 import { formatCounts } from "@/core/formats";
 import { UserSimpleSummary } from "@/core/types/users";
 import UserCard from "./UserCard";
+import { GenericPageInfo } from "@/core/dictionary";
 
 type Sort = "newest" | "oldest" | "username";
-type PageInfo = { page: number; limit: number; total: number; totalPages: number };
 
 const PER_PAGE = 30;
 const SORT_OPTIONS: { value: Sort; label: string }[] = [
@@ -28,7 +28,7 @@ export default function UserList() {
   const [page, setPage] = useState(1);
 
   const [users, setUsers] = useState<UserSimpleSummary[]>([]);
-  const [pagination, setPagination] = useState<PageInfo | null>(null);
+  const [pagination, setPagination] = useState<GenericPageInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
