@@ -163,7 +163,7 @@ export function useSearchBarLogic({ input, setInput, onSubmit }: UseSearchBarLog
 
   const handleSubmit = () => {
     close();
-    onSubmit(input.trim());
+    onSubmit(input);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

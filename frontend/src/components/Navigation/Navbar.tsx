@@ -118,7 +118,7 @@ export default function Navbar() {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen((v) => !v)}
-                className="text-subtle hover:text-accent transition focus:outline-none"
+                className="text-subtle hover:text-accent transition focus:outline-none cursor-pointer"
               >
                 <UserCircleIcon size={28} weight="fill" />
               </button>
@@ -129,7 +129,7 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-md shadow-md z-50 min-w-[120px]"
+                    className="absolute right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-md shadow-md z-50 min-w-30"
                   >
                     <Link
                       href="/auth/login"
