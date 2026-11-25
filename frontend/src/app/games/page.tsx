@@ -44,7 +44,7 @@ export default function GamesPage() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h1 className="text-5xl font-bold text-white mb-4 bg-linear-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold text-white mb-4 bg-linear-to-r from-purple-400 to-pink-400 bg-clip-text">
             Available Games
           </h1>
         </motion.div>
@@ -101,7 +101,7 @@ export default function GamesPage() {
 
           {/* Coming Soon Card */}
           <motion.div variants={item}>
-            <div className="relative bg-zinc-800/30 backdrop-blur-sm border border-zinc-700/50 border-dashed rounded-2xl p-6 h-full flex flex-col items-center justify-center text-center min-h-[280px]">
+            <div className="relative bg-zinc-800/30 backdrop-blur-sm border border-zinc-700/50 border-dashed rounded-2xl p-6 h-full flex flex-col items-center justify-center text-center min-h-70">
               <div className="w-16 h-16 rounded-xl bg-zinc-700/50 flex items-center justify-center mb-4">
                 <div className="text-4xl text-zinc-500"><QuestionIcon /></div>
               </div>

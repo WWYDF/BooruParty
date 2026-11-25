@@ -1,13 +1,12 @@
 'use client';
 
-import { Suspense, use, useEffect, useState, useCallback, useMemo } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arraySwap } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { ArrowsClockwise as ArrowsClockwiseIcon, Shuffle as ShuffleIcon, Play as PlayIcon, Pause as PauseIcon, Confetti as ConfettiIcon } from '@phosphor-icons/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useRouter } from 'next/navigation';
+import { ArrowsClockwiseIcon, ShuffleIcon } from '@phosphor-icons/react';
 
 type Post = {
   id: number;

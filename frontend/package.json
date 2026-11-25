@@ -18,6 +18,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/postcss": "^4.3.5",
+    "@types/canvas-confetti": "^1.9.0",
     "caniuse-lite": "^1.0.30001826",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
